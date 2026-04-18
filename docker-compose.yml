@@ -1,0 +1,15 @@
+version: '3.9'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: hackflare:latest
+    environment:
+      PHX_SERVER: "true"
+      MIX_ENV: "prod"
+      PORT: "4000"
+    ports:
+      - "4000:4000"
+    restart: unless-stopped
