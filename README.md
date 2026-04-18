@@ -2,6 +2,16 @@
 
 Cf alternative for HackClub. Hence the name HackFlare.  
 
+## Repo Structure
+
+- `docs/` - Documentation when we do it
+- `rust/` - Rust code for the project
+- `elixir/` - Elixir code for the project
+
+## How we using Rust and Elixir
+
+Elixir will be the main language with Rust for performance critical code.  
+Going to use Rustler to integrate Rust code into Elixir and use Phoenix for the web framework.
 
 ## Needed Features for POC/MVP
 
