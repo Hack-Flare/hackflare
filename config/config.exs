@@ -16,7 +16,7 @@ config :hackflare, HackflareWeb.Endpoint,
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
     formats: [html: HackflareWeb.ErrorHTML, json: HackflareWeb.ErrorJSON],
-    layout: false
+    layout: {HackflareWeb.Layouts, :root}
   ],
   pubsub_server: Hackflare.PubSub,
   live_view: [signing_salt: "DQeScnUv"]

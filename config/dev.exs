@@ -12,7 +12,7 @@ config :hackflare, HackflareWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}],
   check_origin: false,
   code_reloader: true,
-  debug_errors: true,
+  debug_errors: false,
   secret_key_base: "xlRFH5/AU3D0bDFWF96fJCUsyrvQ4Ss1SZiGFwY5SSj5t27+xYqIbUNnzVEZkUKL",
   watchers: [
     esbuild: {Esbuild, :install_and_run, [:hackflare, ~w(--sourcemap=inline --watch)]},
