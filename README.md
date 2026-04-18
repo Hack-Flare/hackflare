@@ -13,8 +13,14 @@ Going to use Rustler to integrate Rust code into Elixir and use Phoenix for the 
 
 ## Running the project
 
+This runs elixir and Rust code together  
 ```
 iex -S mix
+```
+
+This runs just rust code  
+```
+cd native/core && cargo run
 ```
 
 ## Needed Features for POC/MVP

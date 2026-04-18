@@ -1,8 +1,6 @@
-use rustler::{Env, Term};
-
 #[rustler::nif]
 fn add(a: i64, b: i64) -> i64 {
     a + b
 }
 
-rustler::init!("Elixir.Hackflare.Native", [add]);
+rustler::init!("Elixir.Hackflare.Native");
