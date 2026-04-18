@@ -22,4 +22,12 @@ erl_crash.dump
 # Ignore package tarball (built via "mix hex.build").
 hackflare-*.tar
 
-/native/core/target/
+# Rustler / native builds
+/native/**/target
+priv/native/**/*.so
+priv/native/**/*.dll
+priv/native/**/*.dylib
+
+# Rust lock/build noise (inside native crates)
+**/Cargo.lock
+**/target/
