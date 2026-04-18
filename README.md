@@ -1,6 +1,6 @@
 # HackFlare
 
-Cf alternative for HackClub. Hence the name HackFlare.  
+Cloudflare alternative for HackClub. Hence the name HackFlare.  
 
 ## Repo Structure
 
@@ -49,3 +49,5 @@ Going to use Rustler to integrate Rust code into Elixir and use Phoenix for the 
 - Analytics
 - SSL/TLS Management
 - SSL certificates?
+
+Backend in elixir and rust(?) and frontend in elixir
