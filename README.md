@@ -10,7 +10,8 @@ Cloudflare alternative for HackClub. Hence the name HackFlare.
 ## How we using Rust and Elixir
 
 Elixir will be the main language with Rust for performance critical code.  
-Using Rustler to integrate Rust code into Elixir and use Phoenix for the web framework.
+Using Rustler to integrate Rust code into Elixir and use Phoenix for the web framework.  
+Will also integrate inline rust assembly code for performance critical sections.
 
 ## Running the project
 
