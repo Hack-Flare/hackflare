@@ -1,6 +1,6 @@
 # HackFlare
 
-Cf alternative for HackClub. Hence the name HackFlare.  
+Cloudflare alternative for HackClub. Hence the name HackFlare.  
 
 
 ## Needed Features for POC/MVP
@@ -39,3 +39,5 @@ Cf alternative for HackClub. Hence the name HackFlare.
 - Analytics
 - SSL/TLS Management
 - SSL certificates?
+
+Backend in elixir and rust(?) and frontend in elixir
