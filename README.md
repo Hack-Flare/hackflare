@@ -41,7 +41,7 @@ cd native/core && cargo run
 - [ ] Atleast one nameserver
 - [ ] Auth system (hc auth)
 - [ ] Simple Logging
-- [ ] Caching
+- [ ] Caching (incl. DNS caching, Edge caching, etc.)
 - [ ] Simple Website
 
 ## Features From Reccomendations
