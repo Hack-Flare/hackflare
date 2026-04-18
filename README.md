@@ -5,9 +5,7 @@ Cloudflare alternative for HackClub. Hence the name HackFlare.
 ## Repo Structure
 
 - `docs/` - Documentation when we do it
-- `rust/` - Rust code for the project
-- `elixir/` - Elixir code for the project
-
+- `/` - Main codebase for the project, including backend and frontend code
 ## How we using Rust and Elixir
 
 Elixir will be the main language with Rust for performance critical code.  
