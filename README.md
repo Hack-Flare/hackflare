@@ -13,6 +13,15 @@ Elixir will be the main language with Rust for performance critical code.
 Using Rustler to integrate Rust code into Elixir and use Phoenix for the web framework.  
 Will also integrate inline rust assembly code for performance critical sections.
 
+### Stack
+
+PETRL  
+- Phoenix
+- Elixir
+- Tailwind
+- Rust
+- liveview
+
 ## Running the project
 
 This runs elixir and Rust code together  
