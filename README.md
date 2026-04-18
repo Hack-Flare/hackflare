@@ -20,6 +20,7 @@ mix phx.server
 ```
 
 This runs just rust code  
+FYI this does not work yet  
 ```
 cd native/core && cargo run
 ```
