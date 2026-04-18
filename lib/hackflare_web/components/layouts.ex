@@ -39,24 +39,21 @@ defmodule HackflareWeb.Layouts do
       <div class="flex-1">
         <a href="/" class="flex-1 flex w-fit items-center gap-2">
           <img src={~p"/images/logo.svg"} width="36" />
-          <span class="text-sm font-semibold">v{Application.spec(:phoenix, :vsn)}</span>
+          <span class="text-sm font-semibold">v{Application.spec(:hackflare, :vsn)}</span>
         </a>
       </div>
       <div class="flex-none">
         <ul class="flex flex-column px-1 space-x-4 items-center">
           <li>
-            <a href="https://phoenixframework.org/" class="btn btn-ghost">Website</a>
-          </li>
-          <li>
-            <a href="https://github.com/phoenixframework/phoenix" class="btn btn-ghost">GitHub</a>
+            <a href="https://github.com/">
+              <img src={~p"/images/github.svg"} width="26" />
+            </a>
           </li>
           <li>
             <.theme_toggle />
           </li>
           <li>
-            <a href="https://hexdocs.pm/phoenix/overview.html" class="btn btn-primary">
-              Get Started <span aria-hidden="true">&rarr;</span>
-            </a>
+            <.auth_menu current_scope={@current_scope} />
           </li>
         </ul>
       </div>
@@ -149,6 +146,46 @@ defmodule HackflareWeb.Layouts do
         <.icon name="hero-moon-micro" class="size-4 opacity-75 hover:opacity-100" />
       </button>
     </div>
+    """
+  end
+
+  @doc """
+  Provides a redir to dashboard. Replace current icon with signed in icon in future.
+  """
+  attr :current_scope, :map, default: nil, doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
+  def auth_menu(assigns) do
+    ~H"""
+    <a href="dash/" class="btn btn-ghost btn-circle avatar">
+      <div class="w-10 rounded-full bg-base-200 text-base-content">
+        <.icon name="hero-user" class="size-5" />
+      </div>
+    </a>
+    """
+  end
+
+  @doc """
+  Renders the homepage content using the app layout.
+  """
+  attr :flash, :map, default: %{}, doc: "the map of flash messages"
+
+  def home(assigns) do
+    ~H"""
+    <.app flash={@flash}>
+      <header class="text-center">
+        <h1 class="text-4xl font-bold">HackFlare</h1>
+        <p class="text-base-content/70 mt-2">Cloudflare alternative for HackClub</p>
+      </header>
+
+      <section class="mt-6 text-center">
+        <div class="prose">
+          <p>This is a homepage.</p>
+        </div>
+
+        <div class="mt-6 flex gap-3 text-center justify-center">
+          <a href="dash/" class="btn btn-primary">Get Started</a>
+        </div>
+      </section>
+    </.app>
     """
   end
 end

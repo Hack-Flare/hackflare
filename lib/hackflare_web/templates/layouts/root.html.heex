@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HackFlare</title>
+    <%= csrf_meta_tag() %>
+    <%= live_title_tag assigns[:page_title] || "HackFlare" %>
+    <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
+    <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}></script>
+  </head>
+  <body>
+    <.app flash={@flash}>
+      <%= render_slot(@inner_block) %>
+    </.app>
+  </body>
+</html>
