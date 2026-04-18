@@ -6,10 +6,11 @@ Cloudflare alternative for HackClub. Hence the name HackFlare.
 
 - `docs/` - Documentation when we do it
 - `/` - Main codebase for the project, including backend and frontend code
+
 ## How we using Rust and Elixir
 
 Elixir will be the main language with Rust for performance critical code.  
-Going to use Rustler to integrate Rust code into Elixir and use Phoenix for the web framework.
+Using Rustler to integrate Rust code into Elixir and use Phoenix for the web framework.
 
 ## Running the project
 
@@ -60,5 +61,3 @@ cd native/core && cargo run
 - SSL/TLS Management
 - SSL certificates?
 - Slack Bot
-
-Backend in elixir and rust(?) and frontend in elixir
