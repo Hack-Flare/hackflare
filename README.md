@@ -16,7 +16,7 @@ Using Rustler to integrate Rust code into Elixir and use Phoenix for the web fra
 
 This runs elixir and Rust code together  
 ```
-iex -S mix
+mix phx.server
 ```
 
 This runs just rust code  
