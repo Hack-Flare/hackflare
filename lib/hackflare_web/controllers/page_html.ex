@@ -9,6 +9,21 @@ defmodule HackflareWeb.PageHTML do
   # We keep the embed_templates call for future page templates.
   embed_templates "page_html/*"
 
+  @doc """
+  Renders the home page using the Layouts.home component.
+
+  Delegates to the Layouts module for rendering the homepage with standard
+  navigation and layout structure.
+
+  ## Parameters
+
+    - `"home.html"` - Template name
+    - `assigns` - Assigns map containing variables for the template
+
+  ## Returns
+
+    Rendered HTML output
+  """
   def render("home.html", assigns) do
     HackflareWeb.Layouts.home(assigns)
   end
