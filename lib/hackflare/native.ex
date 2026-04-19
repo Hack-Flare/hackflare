@@ -11,6 +11,4 @@ defmodule Hackflare.Native do
   def manager_find_records(_mgr, _name, _type \\ nil), do: :erlang.nif_error(:nif_not_loaded)
   def engine_handle_query(_mgr, _query), do: :erlang.nif_error(:nif_not_loaded)
   def manager_start_nameserver(_mgr, _bind, _port), do: :erlang.nif_error(:nif_not_loaded)
-
-  def add(_a, _b), do: :erlang.nif_error(:nif_not_loaded)
 end
