@@ -37,7 +37,6 @@ npm-debug.log
 
 
 **/target
-**/Cargo.lock
 
 priv/native
 native/**/target
