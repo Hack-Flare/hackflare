@@ -1,5 +1,6 @@
 use crate::dns::engine::DnsEngine;
 use crate::dns::{DnsManager, Record as DnsRecord};
+use crate::ns::{Nameserver, NsConfig};
 use rustler::{Env, NifResult, ResourceArc, Term};
 use serde_json;
 use std::sync::Mutex;
@@ -88,6 +89,32 @@ fn engine_handle_query(
     drop(guard);
     let engine = DnsEngine::new(manager_clone);
     Ok(engine.handle_query(&query))
+}
+
+#[rustler::nif]
+fn manager_start_nameserver(
+    resource: ResourceArc<DnsManagerResource>,
+    bind_addr: String,
+    port: u16,
+) -> NifResult<bool> {
+    let guard = resource.0.lock().unwrap();
+    let manager_clone = guard.clone();
+    drop(guard);
+
+    std::thread::spawn(move || {
+        let engine = DnsEngine::new(manager_clone);
+        let config = NsConfig {
+            bind_addr,
+            port,
+            zone_file: None,
+        };
+        let ns = Nameserver::with_engine(config, engine);
+        if let Err(e) = ns.run() {
+            eprintln!("Nameserver exited with error: {}", e);
+        }
+    });
+
+    Ok(true)
 }
 
 pub fn init(env: Env, _info: Term) -> bool {

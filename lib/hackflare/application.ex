@@ -10,6 +10,7 @@ defmodule Hackflare.Application do
     children = [
       HackflareWeb.Telemetry,
       {DNSCluster, query: Application.get_env(:hackflare, :dns_cluster_query) || :ignore},
+      Hackflare.Nameserver,
       {Phoenix.PubSub, name: Hackflare.PubSub},
       # Start a worker by calling: Hackflare.Worker.start_link(arg)
       # {Hackflare.Worker, arg},

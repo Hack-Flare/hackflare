@@ -1,7 +1,6 @@
 mod tests;
 
 pub mod dns;
-pub mod email_routing;
 pub mod nifs;
 pub mod ns;
 
@@ -16,6 +15,8 @@ rustler::init!(
         nifs::manager_list_zones,
         nifs::manager_find_records,
         nifs::engine_handle_query,
+        nifs::manager_start_nameserver,
+        tests::example_add,
     ],
     load = nifs::init
 );
