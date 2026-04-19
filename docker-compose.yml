@@ -1,8 +1,6 @@
-version: '3.9'
-
 services:
   db:
-    image: postgres:15
+    image: postgres:18.3
     environment:
       POSTGRES_USER: hackflare
       POSTGRES_PASSWORD: hackflare
@@ -10,7 +8,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql
     restart: unless-stopped
   web:
     build:
@@ -23,7 +21,11 @@ services:
       PHX_SERVER: "true"
       MIX_ENV: "prod"
       PORT: "4000"
+      SECRET_KEY_BASE: "Sx/6AL8gOMUfxLVU78lnIqghTEOe9pefhaGIOFVP3NYtBBvhFq+Yc46XFs9/3FBt"
     ports:
       - "4000:4000"
       - "53:5353/udp"
     restart: unless-stopped
+
+volumes:
+  db_data:
