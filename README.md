@@ -28,7 +28,7 @@ PETRL
 ## Running the project
 
 ```
-mix phx.server
+iex -S mix phx.server
 ```
 
 ## Needed Features for POC/MVP
