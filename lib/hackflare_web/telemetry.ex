@@ -2,11 +2,27 @@ defmodule HackflareWeb.Telemetry do
   use Supervisor
   import Telemetry.Metrics
 
+  @doc """
+  Starts the Telemetry supervisor.
+
+  This function initializes the telemetry supervision tree, which manages
+  periodic measurements and metric collection for the application.
+
+  ## Parameters
+
+    - `arg` - Arguments passed from the supervisor
+
+  ## Returns
+
+    - `{:ok, pid}` - PID of the telemetry supervisor
+    - `{:error, reason}` - If startup fails
+  """
   def start_link(arg) do
     Supervisor.start_link(__MODULE__, arg, name: __MODULE__)
   end
 
   @impl true
+  @doc false
   def init(_arg) do
     children = [
       # Telemetry poller will execute the given period measurements
@@ -19,6 +35,21 @@ defmodule HackflareWeb.Telemetry do
     Supervisor.init(children, strategy: :one_for_one)
   end
 
+  @doc """
+  Returns the list of metrics to be monitored by the telemetry system.
+
+  Includes metrics for:
+  - Phoenix HTTP endpoints and routing
+  - Phoenix LiveView channels
+  - Erlang VM memory usage and scheduler metrics
+
+  These metrics can be exported to monitoring services or displayed in
+  the LiveDashboard during development.
+
+  ## Returns
+
+    List of `Telemetry.Metrics` metric definitions
+  """
   def metrics do
     [
       # Phoenix Metrics
@@ -60,6 +91,7 @@ defmodule HackflareWeb.Telemetry do
     ]
   end
 
+  @doc false
   defp periodic_measurements do
     [
       # A module, function and arguments to be invoked periodically.
