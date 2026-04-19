@@ -75,7 +75,7 @@ name = "core"
 version = "0.1.0"
 dependencies = [
  "base64 0.21.7",
- "idna 0.3.0",
+ "idna 1.1.0",
  "lettre",
  "once_cell",
  "rand 0.10.1",
@@ -418,16 +418,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "418a0a6fab821475f634efe3ccc45c013f742efe03d853e8d3355d5cb850ecf8"
 dependencies = [
  "matches",
- "unicode-bidi",
- "unicode-normalization",
-]
-
-[[package]]
-name = "idna"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e14ddfc70884202db2244c223200c204c2bda1bc6e0998d11b5e024d657209e6"
-dependencies = [
  "unicode-bidi",
  "unicode-normalization",
 ]
