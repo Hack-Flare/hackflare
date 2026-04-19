@@ -14,7 +14,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: hackflare:latest
+    image: ghcr.io/SeradedStripes/hackflare:latest
     depends_on:
       - db
     environment:
