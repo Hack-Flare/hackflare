@@ -1,9 +1,8 @@
-# HackFlare
-
 <div align="center">
   <img src="priv/static/images/hackflare.png" alt="Hackflare" />
 </div>
 
+# HackFlare
 Cloudflare alternative for HackClub. Hence the name HackFlare.  
 
 ## Repo Structure
