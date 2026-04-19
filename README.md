@@ -41,6 +41,7 @@ mix phx.server
 - [ ] Auth system (hc auth)
   - [ ] Backend
   - [ ] Frontend
+  - [x] ENV Setup
 - [ ] Simple Logging
 - [ ] Caching (incl. DNS caching, Edge caching, etc.)
 - [ ] Simple Website
