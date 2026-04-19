@@ -13,33 +13,28 @@ WORKDIR /app
 RUN mix local.hex --force && mix local.rebar --force
 
 COPY mix.exs mix.lock ./
-RUN --mount=type=cache,target=/app/deps \
-    --mount=type=cache,target=/root/.cargo/registry \
-    mix deps.get
+RUN --mount=type=cache,target=/root/.cargo/registry \
+    --mount=type=cache,target=/root/.cargo/git \
+    mix deps.get --only prod
 
-COPY config ./config
-COPY lib ./lib
-COPY native ./native
+COPY config/ ./config/
+COPY native/ ./native/
 
-RUN --mount=type=cache,target=/app/deps \
-    --mount=type=cache,target=/app/_build/prod \
-    --mount=type=cache,target=/root/.cargo/registry \
+RUN --mount=type=cache,target=/root/.cargo/registry \
+    --mount=type=cache,target=/root/.cargo/git \
     mix deps.compile
 
-COPY assets ./assets
-COPY priv ./priv
+COPY priv/ ./priv/
+COPY lib/ ./lib/
+COPY assets/ ./assets/
 
-RUN --mount=type=cache,target=/app/deps \
-    --mount=type=cache,target=/app/_build/prod \
-    --mount=type=cache,target=/root/.cargo/registry \
+RUN --mount=type=cache,target=/root/.cargo/registry \
+    --mount=type=cache,target=/root/.cargo/git \
     mix compile
 
-COPY . .
+RUN mix assets.deploy
 
-RUN --mount=type=cache,target=/app/deps \
-    --mount=type=cache,target=/app/_build/prod \
-    --mount=type=cache,target=/root/.cargo/registry \
-    mix do assets.deploy, release --overwrite && \
+RUN mix release --overwrite && \
     cp -r _build/prod/rel/hackflare ./release
 
 FROM debian:trixie-slim AS app
