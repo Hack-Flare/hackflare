@@ -18,7 +18,7 @@ import Config
 # script that automatically sets the env var above.
 config :hackflare, :dns, %{
   bind: System.get_env("DNS_BIND") || "0.0.0.0",
-  port: System.get_env("DNS_PORT") || 5353
+  port: System.get_env("DNS_PORT") || 53
 }
 
 if System.get_env("PHX_SERVER") do
