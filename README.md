@@ -24,15 +24,8 @@ PETRL
 
 ## Running the project
 
-This runs elixir and Rust code together  
 ```
 mix phx.server
-```
-
-This runs just rust code  
-FYI this does not work yet  
-```
-cd native/core && cargo run
 ```
 
 ## Needed Features for POC/MVP
