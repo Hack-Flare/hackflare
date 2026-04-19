@@ -39,7 +39,9 @@ cd native/core && cargo run
 
 - [ ] DNS System
   - [ ] Backend
-    - [ ] Needs Auth Integration
+    - [ ] Auth Integration
+    - [ ] Domain Migration
+    - [ ] Domain Management
   - [ ] Frontend
 - [ ] nameservers
   - [x] Working nameserver implementation
