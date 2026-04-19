@@ -1,11 +1,24 @@
 version: '3.9'
 
 services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: hackflare
+      POSTGRES_PASSWORD: hackflare
+      POSTGRES_DB: hackflare
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    restart: unless-stopped
   web:
     build:
       context: .
       dockerfile: Dockerfile
     image: hackflare:latest
+    depends_on:
+      - db
     environment:
       PHX_SERVER: "true"
       MIX_ENV: "prod"
