@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:18.3
+    image: postgres:18
     environment:
       POSTGRES_USER: hackflare
       POSTGRES_PASSWORD: hackflare
