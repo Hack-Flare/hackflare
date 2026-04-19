@@ -1,0 +1,19 @@
+version: 2
+updates:
+  - package-ecosystem: mix
+    directory: "/"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 20
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 20
+
+  - package-ecosystem: cargo
+    directory: "/native/core"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 20
