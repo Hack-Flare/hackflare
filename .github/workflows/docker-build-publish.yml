@@ -2,13 +2,7 @@ name: Build and Publish Elixir Docker Image
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - 'docker-compose.yml'
-      - 'Dockerfile'
-
+  
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/hackflare
