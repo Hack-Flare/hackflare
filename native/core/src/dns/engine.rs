@@ -5,11 +5,15 @@ use std::time::Duration;
 
 pub struct DnsEngine {
     pub manager: DnsManager,
+    pub recursion_enabled: bool,
 }
 
 impl DnsEngine {
-    pub fn new(manager: DnsManager) -> Self {
-        Self { manager }
+    pub fn new(manager: DnsManager, recursion_enabled: bool) -> Self {
+        Self {
+            manager,
+            recursion_enabled,
+        }
     }
 
     pub fn handle_query(&self, req: &[u8]) -> Option<Vec<u8>> {
@@ -42,12 +46,25 @@ impl DnsEngine {
             self.manager.find_records(&qname, Some(qtype_str))
         };
 
+        let req_flags = u16::from_be_bytes([req[2], req[3]]);
         if recs.is_empty() {
             if let Some(mut resp) = crate::dns::recursive::resolve(&qname, qtype, 6) {
                 let id_bytes = id.to_be_bytes();
                 if resp.len() >= 2 {
                     resp[0] = id_bytes[0];
                     resp[1] = id_bytes[1];
+                }
+                if resp.len() >= 4 {
+                    let resp_flags = u16::from_be_bytes([resp[2], resp[3]]);
+                    let mut new_flags = resp_flags | 0x8000;
+
+                    new_flags |= req_flags & 0x0100;
+                    if self.recursion_enabled {
+                        new_flags |= 0x0080;
+                    }
+                    let nf = new_flags.to_be_bytes();
+                    resp[2] = nf[0];
+                    resp[3] = nf[1];
                 }
                 return Some(resp);
             }
@@ -56,7 +73,13 @@ impl DnsEngine {
         let mut resp: Vec<u8> = Vec::new();
         resp.extend_from_slice(&id.to_be_bytes());
 
-        resp.extend_from_slice(&0x8400u16.to_be_bytes());
+        let mut flags: u16 = 0x8400;
+
+        flags |= req_flags & 0x0100;
+        if self.recursion_enabled {
+            flags |= 0x0080;
+        }
+        resp.extend_from_slice(&flags.to_be_bytes());
         resp.extend_from_slice(&1u16.to_be_bytes());
         resp.extend_from_slice(&(recs.len() as u16).to_be_bytes());
         resp.extend_from_slice(&0u16.to_be_bytes());

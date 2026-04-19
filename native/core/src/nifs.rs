@@ -87,7 +87,7 @@ fn engine_handle_query(
     let guard = resource.0.lock().unwrap();
     let manager_clone = guard.clone();
     drop(guard);
-    let engine = DnsEngine::new(manager_clone);
+    let engine = DnsEngine::new(manager_clone, true);
     Ok(engine.handle_query(&query))
 }
 
@@ -102,7 +102,7 @@ fn manager_start_nameserver(
     drop(guard);
 
     std::thread::spawn(move || {
-        let engine = DnsEngine::new(manager_clone);
+        let engine = DnsEngine::new(manager_clone, true);
         let config = NsConfig {
             bind_addr,
             port,
