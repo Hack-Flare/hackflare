@@ -1,7 +1,8 @@
 use crate::dns::engine::{encode_name_labels_vec, parse_qname};
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
-use std::net::{SocketAddr, UdpSocket};
+use std::io::{Read, Write};
+use std::net::{SocketAddr, TcpStream, UdpSocket};
 use std::str;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
@@ -69,6 +70,33 @@ fn parse_rrs(buf: &[u8], mut pos: usize, count: usize) -> Option<Vec<(u16, usize
     Some(out)
 }
 
+fn tcp_send_recv(addr: &str, msg: &[u8]) -> Option<Vec<u8>> {
+    let target = format!("{}:53", addr);
+    let sockaddr = target.parse().ok()?;
+    let mut stream = TcpStream::connect_timeout(&sockaddr, Duration::from_secs(3)).ok()?;
+    let _ = stream.set_read_timeout(Some(Duration::from_secs(4))).ok()?;
+    let _ = stream
+        .set_write_timeout(Some(Duration::from_secs(4)))
+        .ok()?;
+    let len = (msg.len() as u16).to_be_bytes();
+    if stream.write_all(&len).is_err() {
+        return None;
+    }
+    if stream.write_all(msg).is_err() {
+        return None;
+    }
+    let mut lenbuf = [0u8; 2];
+    if stream.read_exact(&mut lenbuf).is_err() {
+        return None;
+    }
+    let rlen = u16::from_be_bytes(lenbuf) as usize;
+    let mut buf = vec![0u8; rlen];
+    if stream.read_exact(&mut buf).is_err() {
+        return None;
+    }
+    Some(buf)
+}
+
 fn extract_ns_and_glue(
     buf: &[u8],
     authority_rrs: &[(u16, usize, usize, u32)],
@@ -127,18 +155,30 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
         let req = build_query(qid, &qname, qtype);
         let mut next_servers: Vec<String> = Vec::new();
         for srv in &servers {
-            if let Some(resp) = send_recv(&sock, srv, &req) {
+            let mut resp_opt = send_recv(&sock, srv, &req);
+            if resp_opt.is_none() {
+                resp_opt = tcp_send_recv(srv, &req);
+            }
+            if let Some(mut resp) = resp_opt {
+                let flags = if resp.len() >= 4 {
+                    u16::from_be_bytes([resp[2], resp[3]])
+                } else {
+                    0
+                };
+                if flags & 0x0200 != 0 {
+                    if let Some(tcp_resp) = tcp_send_recv(srv, &req) {
+                        resp = tcp_resp;
+                    }
+                }
                 if resp.len() < 12 {
                     continue;
                 }
                 let ancount = u16::from_be_bytes([resp[6], resp[7]]) as usize;
                 let nscount = u16::from_be_bytes([resp[8], resp[9]]) as usize;
                 let arcount = u16::from_be_bytes([resp[10], resp[11]]) as usize;
-
                 let mut pos = 12usize;
                 let (_qn, p2) = parse_qname(&resp, pos)?;
                 pos = p2 + 4;
-
                 if ancount > 0 {
                     if let Some(ans_rrs) = parse_rrs(&resp, pos, ancount) {
                         let mut min_ttl: Option<u32> = None;
@@ -148,7 +188,7 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
                                     let exp = Instant::now() + Duration::from_secs((*ttl).into());
                                     c.insert((name.to_string(), qtype), (resp.clone(), exp));
                                 }
-                                return Some(resp);
+                                return Some(resp.clone());
                             }
                             if let Some(mt) = min_ttl {
                                 if *ttl < mt {
@@ -157,7 +197,6 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
                             } else {
                                 min_ttl = Some(*ttl);
                             }
-
                             if *rtype == 5 {
                                 if let Some((cname, _)) = parse_qname(&resp, *rpos) {
                                     qname = cname;
@@ -166,16 +205,8 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
                                 }
                             }
                         }
-
-                        if let Some(mt) = min_ttl {
-                            if let Ok(mut c) = CACHE.lock() {
-                                let exp = Instant::now() + Duration::from_secs(mt.into());
-                                c.insert((name.to_string(), qtype), (resp.clone(), exp));
-                            }
-                        }
                     }
                 }
-
                 let mut after_pos = pos;
                 if ancount > 0 {
                     if let Some(list) = parse_rrs(&resp, pos, ancount) {
@@ -189,7 +220,6 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
                     after_auth = last.1 + last.2;
                 }
                 let additional_rrs = parse_rrs(&resp, after_auth, arcount).unwrap_or_default();
-
                 let (ns_names, glue_ips) =
                     extract_ns_and_glue(&resp, &authority_rrs, &additional_rrs);
                 if !glue_ips.is_empty() {
@@ -225,7 +255,6 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
                         }
                     }
                 }
-
                 if !next_servers.is_empty() {
                     servers = next_servers.clone();
                     break;
