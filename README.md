@@ -36,15 +36,15 @@ mix phx.server
     - [ ] Domain Migration
     - [ ] Domain Management
   - [ ] Frontend
-- [ ] nameservers
-  - [x] Working nameserver implementation
+- [x] nameservers
+  - [0] Amount Online
 - [ ] Auth system (hc auth)
   - [ ] Backend
   - [ ] Frontend
   - [x] ENV Setup
 - [ ] Simple Logging
 - [ ] Caching (incl. DNS caching, Edge caching, etc.)
-- [ ] Simple Website
+- [ ] Proper Frontend
 - [x] Docker
 
 ## Features From Reccomendations
