@@ -27,12 +27,17 @@ RUN --mount=type=cache,target=/root/.cargo/registry \
 COPY priv/ ./priv/
 COPY lib/ ./lib/
 COPY assets/ ./assets/
+COPY doc/ ./doc/
 
 RUN --mount=type=cache,target=/root/.cargo/registry \
     --mount=type=cache,target=/root/.cargo/git \
     mix compile
 
 RUN mix assets.deploy
+
+# Ensure generated ExDoc HTML is packaged into `priv/static/docs`
+# so Plug.Static (served from priv/static) will serve it in the release.
+RUN mkdir -p priv/static/docs && cp -r doc/. priv/static/docs/
 
 RUN mix release --overwrite && \
     cp -r _build/prod/rel/hackflare ./release

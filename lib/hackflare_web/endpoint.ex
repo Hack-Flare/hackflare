@@ -27,12 +27,11 @@ defmodule HackflareWeb.Endpoint do
     only: HackflareWeb.static_paths(),
     raise_on_missing_only: code_reloading?
 
-  # Serve generated ExDoc HTML at "/docs" from the repository's `doc/` folder.
-  # Path.expand resolves the project `doc` directory relative to this file.
+  # Serve packaged ExDoc HTML from `priv/static/docs` at `/docs` in releases.
   plug Plug.Static,
     at: "/docs",
-    from: Path.expand("../../doc", __DIR__),
-    gzip: false
+    from: {:hackflare, "priv/static/docs"},
+    gzip: not code_reloading?
 
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
@@ -40,6 +39,11 @@ defmodule HackflareWeb.Endpoint do
     socket "/phoenix/live_reload/socket", Phoenix.LiveReloader.Socket
     plug Phoenix.LiveReloader
     plug Phoenix.CodeReloader
+    # In development only, serve generated ExDoc HTML from the project's `doc/` folder.
+    plug Plug.Static,
+      at: "/docs",
+      from: Path.expand("../../doc", __DIR__),
+      gzip: false
   end
 
   plug Phoenix.LiveDashboard.RequestLogger,
