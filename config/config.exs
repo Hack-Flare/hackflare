@@ -7,6 +7,8 @@
 # General application configuration
 import Config
 
+config :hackflare, ecto_repos: [Hackflare.Repo]
+
 config :hackflare,
   generators: [timestamp_type: :utc_datetime]
 

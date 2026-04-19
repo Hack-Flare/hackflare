@@ -8,6 +8,7 @@ defmodule Hackflare.Application do
   @impl true
   def start(_type, _args) do
     children = [
+      Hackflare.Repo,
       HackflareWeb.Telemetry,
       {DNSCluster, query: Application.get_env(:hackflare, :dns_cluster_query) || :ignore},
       Hackflare.Nameserver,

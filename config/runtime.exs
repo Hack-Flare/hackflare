@@ -21,6 +21,12 @@ config :hackflare, :dns, %{
   port: System.get_env("DNS_PORT") || 53
 }
 
+config :hackflare, Hackflare.Repo,
+  hostname: System.get_env("DB_HOST") || "localhost",
+  username: System.get_env("DB_USER") || "hackflare",
+  password: System.get_env("DB_PASS") || "hackflare",
+  database: System.get_env("DB_NAME") || "hackflare"
+
 config :hackflare, :auth, %{
   hca_cid: System.get_env("HCA_CID") || "fuhh-you-forgot-set-this",
   hca_sec: System.get_env("HCA_SEC") || "fuhh-you-forgot-set-this-too",
