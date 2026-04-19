@@ -37,11 +37,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: CD
-        run: cd native/core/
-
       - name: Run Rust checks
-        run: cargo check --all
+        run: cd native/core && cargo check --all
 
       - name: Run Rust clippy
-        run: cargo clippy --all -- -D warnings
+        run: cd native/core && cargo clippy --all -- -D warnings
