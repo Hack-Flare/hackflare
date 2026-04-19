@@ -21,6 +21,12 @@ config :hackflare, :dns, %{
   port: System.get_env("DNS_PORT") || 53
 }
 
+config :hackflare, :auth, %{
+  hca_cid: System.get_env("HCA_CID") || "fuhh-you-forgot-set-this",
+  hca_sec: System.get_env("HCA_SEC") || "fuhh-you-forgot-set-this-too",
+  hca_redir_url: System.get_env("HCA_REDIR_URL") || "fuhh-you-forgot-set-this-too"
+}
+
 if System.get_env("PHX_SERVER") do
   config :hackflare, HackflareWeb.Endpoint, server: true
 end
