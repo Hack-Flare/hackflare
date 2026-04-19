@@ -25,4 +25,5 @@ services:
       PORT: "4000"
     ports:
       - "4000:4000"
+      - "53:5353/udp"
     restart: unless-stopped
