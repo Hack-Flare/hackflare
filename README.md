@@ -38,8 +38,13 @@ cd native/core && cargo run
 ## Needed Features for POC/MVP
 
 - [ ] DNS System
-- [ ] Atleast one nameserver
+  - [x] Backend
+  - [ ] Frontend
+- [ ] nameservers
+  - [x] Working nameserver implementation
 - [ ] Auth system (hc auth)
+  - [ ] Backend
+  - [ ] Frontend
 - [ ] Simple Logging
 - [ ] Caching (incl. DNS caching, Edge caching, etc.)
 - [ ] Simple Website
