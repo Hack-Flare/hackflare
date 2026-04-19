@@ -9,10 +9,10 @@ pub struct DnsEngine {
 }
 
 impl DnsEngine {
-    pub fn new(manager: DnsManager, recursion_enabled: bool) -> Self {
+    pub fn new(manager: DnsManager) -> Self {
         Self {
             manager,
-            recursion_enabled,
+            recursion_enabled: true,
         }
     }
 
@@ -38,13 +38,59 @@ impl DnsEngine {
 
         let qtype_str = map_qtype(qtype);
 
-        let recs = if qtype == 255 {
+        let req_flags = u16::from_be_bytes([req[2], req[3]]);
+
+        let mut reverse_name: Option<String> = None;
+        let mut is_ip_literal = false;
+        if let Ok(v4) = qname.parse::<Ipv4Addr>() {
+            let o = v4.octets();
+            reverse_name = Some(format!("{}.{}.{}.{}.in-addr.arpa", o[3], o[2], o[1], o[0]));
+            is_ip_literal = true;
+        } else if let Ok(v6) = qname.parse::<Ipv6Addr>() {
+            let octs = v6.octets();
+            let mut nibbles: Vec<String> = Vec::new();
+            for b in octs.iter().rev() {
+                nibbles.push(format!("{:x}", b & 0x0f));
+                nibbles.push(format!("{:x}", (b >> 4) & 0x0f));
+            }
+            let rev = nibbles.join(".");
+            reverse_name = Some(format!("{}.ip6.arpa", rev));
+            is_ip_literal = true;
+        }
+
+        let mut recs = if qtype == 255 {
             self.manager.find_records(&qname, None)
         } else if qtype_str.is_empty() {
             Vec::new()
         } else {
             self.manager.find_records(&qname, Some(qtype_str))
         };
+
+        if is_ip_literal {
+            if recs.is_empty() {
+                if let Some(rn) = reverse_name.as_ref() {
+                    let ptrs = self.manager.find_records(rn, Some("PTR"));
+                    if !ptrs.is_empty() {
+                        recs = ptrs;
+                    } else {
+                        let mut nx: Vec<u8> = Vec::new();
+                        nx.extend_from_slice(&id.to_be_bytes());
+                        let mut flags: u16 = 0x8000;
+                        flags |= req_flags & 0x0100;
+                        if self.recursion_enabled {
+                            flags |= 0x0080;
+                        }
+                        flags |= 3;
+                        nx.extend_from_slice(&flags.to_be_bytes());
+                        nx.extend_from_slice(&0u16.to_be_bytes());
+                        nx.extend_from_slice(&0u16.to_be_bytes());
+                        nx.extend_from_slice(&0u16.to_be_bytes());
+                        nx.extend_from_slice(&0u16.to_be_bytes());
+                        return Some(nx);
+                    }
+                }
+            }
+        }
 
         let req_flags = u16::from_be_bytes([req[2], req[3]]);
         if recs.is_empty() {
@@ -67,6 +113,28 @@ impl DnsEngine {
                     resp[3] = nf[1];
                 }
                 return Some(resp);
+            }
+
+            if let Some(rn) = reverse_name.as_ref() {
+                if let Some(mut resp) = crate::dns::recursive::resolve(rn, 12, 6) {
+                    let id_bytes = id.to_be_bytes();
+                    if resp.len() >= 2 {
+                        resp[0] = id_bytes[0];
+                        resp[1] = id_bytes[1];
+                    }
+                    if resp.len() >= 4 {
+                        let resp_flags = u16::from_be_bytes([resp[2], resp[3]]);
+                        let mut new_flags = resp_flags | 0x8000;
+                        new_flags |= req_flags & 0x0100;
+                        if self.recursion_enabled {
+                            new_flags |= 0x0080;
+                        }
+                        let nf = new_flags.to_be_bytes();
+                        resp[2] = nf[0];
+                        resp[3] = nf[1];
+                    }
+                    return Some(resp);
+                }
             }
         }
 
