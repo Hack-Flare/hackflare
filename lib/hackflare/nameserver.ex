@@ -8,11 +8,10 @@ defmodule Hackflare.Nameserver do
   @impl true
   def init(_) do
     # create manager and start nameserver via native NIF
+    config = Application.get_env(:hackflare, :dns)
     mgr = Hackflare.Native.manager_new()
-    bind = Application.get_env(:hackflare, :dns_bind, "0.0.0.0")
-    port = Application.get_env(:hackflare, :dns_port, 53)
     # start nameserver in background
-    _ = Hackflare.Native.manager_start_nameserver(mgr, bind, port)
+    _ = Hackflare.Native.manager_start_nameserver(mgr, config.bind, config.port)
     {:ok, %{manager: mgr}}
   end
 end
