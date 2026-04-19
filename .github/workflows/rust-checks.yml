@@ -27,6 +27,9 @@ jobs:
           toolchain: stable
           override: true
 
+      - name: CD
+        run: cd native/core/
+
       - name: Run Rust checks
         run: cargo check --all
 
