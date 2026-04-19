@@ -50,7 +50,7 @@ mix phx.server
 - [ ] Proper Frontend
 - [x] Docker
 
-## Features From Reccomendations
+## Features From Recommendations
 
 - Dynamic Firewall (Optional)
 - DDoS Protection
@@ -80,3 +80,4 @@ mix phx.server
 - Slack Bot
 - Live Packet Watching (for fun)
 - TMP Docker, a temporary docker for users to test stuff.
+- Fix recommendations spelling in readme.
