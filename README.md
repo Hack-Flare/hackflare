@@ -4,6 +4,7 @@
 
 # HackFlare
 Cloudflare alternative for HackClub. Hence the name HackFlare.  
+[View Elixir Documentation](ELIXIR_DOCS.md)
 
 ## Repo Structure
 
