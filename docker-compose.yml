@@ -11,7 +11,7 @@ services:
       - db_data:/var/lib/postgresql
     restart: unless-stopped
   web:
-    image: ghcr.io/seradedstripes/hackflare:latest
+    image: ghcr.io/hack-flare/hackflare:latest
     depends_on:
       - db
     environment:
