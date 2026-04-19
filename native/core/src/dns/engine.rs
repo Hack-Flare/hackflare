@@ -1,6 +1,7 @@
 use crate::dns::DnsManager;
 use idna::domain_to_ascii;
-use std::net::{Ipv4Addr, Ipv6Addr};
+use std::net::{Ipv4Addr, Ipv6Addr, UdpSocket};
+use std::time::Duration;
 
 pub struct DnsEngine {
     pub manager: DnsManager,
@@ -40,6 +41,17 @@ impl DnsEngine {
         } else {
             self.manager.find_records(&qname, Some(qtype_str))
         };
+
+        if recs.is_empty() {
+            if let Some(mut resp) = crate::dns::recursive::resolve(&qname, qtype, 6) {
+                let id_bytes = id.to_be_bytes();
+                if resp.len() >= 2 {
+                    resp[0] = id_bytes[0];
+                    resp[1] = id_bytes[1];
+                }
+                return Some(resp);
+            }
+        }
 
         let mut resp: Vec<u8> = Vec::new();
         resp.extend_from_slice(&id.to_be_bytes());
@@ -142,7 +154,7 @@ pub(crate) fn parse_hex_bytes(s: &str) -> Option<Vec<u8>> {
     Some(out)
 }
 
-fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)> {
+pub(crate) fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)> {
     let mut labels: Vec<String> = Vec::new();
     let mut jumped = false;
     let mut orig_pos = pos;
@@ -192,7 +204,7 @@ fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)> {
     if jumped {
         Some((name, orig_pos))
     } else {
-        Some((name, pos + 0))
+        Some((name, pos))
     }
 }
 

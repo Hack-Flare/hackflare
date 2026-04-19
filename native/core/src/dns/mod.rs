@@ -10,3 +10,4 @@ pub use record::Record;
 pub use zone::Zone;
 
 pub use engine::DnsEngine;
+pub mod recursive;
