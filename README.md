@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="priv/static/images/hackflare.svg" alt="Hackflare" />
+  <img src="tree/main/priv/static/images/logo.svg" alt="Hackflare" />
 </div>
 
 # HackFlare
