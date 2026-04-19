@@ -27,6 +27,16 @@ jobs:
           toolchain: stable
           override: true
 
+      - name: Caching
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
       - name: CD
         run: cd native/core/
 
