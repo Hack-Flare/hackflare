@@ -1,0 +1,33 @@
+name: Check Rust Code
+
+on:
+  push:
+    branches: [ "main" ]
+    paths: "native/**"
+
+concurrency:
+  group: build-and-push
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Run Rust checks
+        run: cargo check --all
+
+      - name: Run Rust clippy
+        run: cargo clippy --all -- -D warnings
