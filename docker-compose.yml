@@ -21,7 +21,7 @@ services:
       SECRET_KEY_BASE: "Sx/6AL8gOMUfxLVU78lnIqghTEOe9pefhaGIOFVP3NYtBBvhFq+Yc46XFs9/3FBt"
     ports:
       - "4000:4000"
-      - "53:5353/udp"
+      - "53:53/udp"
     restart: unless-stopped
 
 volumes:
