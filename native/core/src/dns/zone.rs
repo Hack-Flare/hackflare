@@ -29,7 +29,7 @@ impl Zone {
     pub fn find(&self, name: &str, rtype: Option<&str>) -> Vec<Record> {
         self.records
             .iter()
-            .filter(|r| r.name == name && rtype.map_or(true, |t| r.rtype == t))
+            .filter(|r| r.name == name && rtype.is_none_or(|t| r.rtype == t))
             .cloned()
             .collect()
     }

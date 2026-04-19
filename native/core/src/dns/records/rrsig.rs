@@ -1,4 +1,5 @@
 use crate::dns::Record;
+use base64::Engine;
 
 pub fn encode(r: &Record) -> Option<Vec<u8>> {
     let mut parts = r.data.split_whitespace();
@@ -11,7 +12,9 @@ pub fn encode(r: &Record) -> Option<Vec<u8>> {
     let key_tag = parts.next()?.parse::<u16>().ok()?;
     let signer = parts.next()?;
     let signature_b64 = parts.next()?;
-    let sig = base64::decode(signature_b64).ok()?;
+    let sig = base64::engine::general_purpose::STANDARD
+        .decode(signature_b64)
+        .ok()?;
 
     let mut out = Vec::new();
     out.extend_from_slice(&type_covered.to_be_bytes());

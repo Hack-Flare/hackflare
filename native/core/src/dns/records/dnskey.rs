@@ -1,4 +1,5 @@
 use crate::dns::Record;
+use base64::Engine;
 
 pub fn encode(r: &Record) -> Option<Vec<u8>> {
     let parts: Vec<&str> = r.data.split_whitespace().collect();
@@ -6,7 +7,9 @@ pub fn encode(r: &Record) -> Option<Vec<u8>> {
         let flags = parts[0].parse::<u16>().ok()?;
         let protocol = parts[1].parse::<u8>().ok()?;
         let algorithm = parts[2].parse::<u8>().ok()?;
-        let key = base64::decode(parts[3]).ok()?;
+        let key = base64::engine::general_purpose::STANDARD
+            .decode(parts[3])
+            .ok()?;
         let mut out = Vec::new();
         out.extend_from_slice(&flags.to_be_bytes());
         out.push(protocol);
@@ -17,7 +20,9 @@ pub fn encode(r: &Record) -> Option<Vec<u8>> {
         let flags = parts[0].parse::<u16>().ok()?;
         let protocol = 3u8;
         let algorithm = parts[1].parse::<u8>().ok()?;
-        let key = base64::decode(parts[2]).ok()?;
+        let key = base64::engine::general_purpose::STANDARD
+            .decode(parts[2])
+            .ok()?;
         let mut out = Vec::new();
         out.extend_from_slice(&flags.to_be_bytes());
         out.push(protocol);

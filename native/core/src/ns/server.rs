@@ -94,10 +94,10 @@ impl Nameserver {
                     match sock.recv_from(&mut buf) {
                         Ok((amt, src)) => {
                             eprintln!("UDP recv {} bytes from {}", amt, src);
-                            if let Some(engine) = &udp_engine {
-                                if let Some(resp) = engine.handle_query(&buf[..amt]) {
-                                    let _ = sock.send_to(&resp, src);
-                                }
+                            if let Some(engine) = &udp_engine
+                                && let Some(resp) = engine.handle_query(&buf[..amt])
+                            {
+                                let _ = sock.send_to(&resp, src);
                             }
                         }
                         Err(e) => {

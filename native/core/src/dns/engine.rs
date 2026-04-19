@@ -1,7 +1,6 @@
 use crate::dns::DnsManager;
 use idna::domain_to_ascii;
-use std::net::{Ipv4Addr, Ipv6Addr, UdpSocket};
-use std::time::Duration;
+use std::net::{Ipv4Addr, Ipv6Addr};
 
 pub struct DnsEngine {
     pub manager: DnsManager,
@@ -66,29 +65,28 @@ impl DnsEngine {
             self.manager.find_records(&qname, Some(qtype_str))
         };
 
-        if is_ip_literal {
-            if recs.is_empty() {
-                if let Some(rn) = reverse_name.as_ref() {
-                    let ptrs = self.manager.find_records(rn, Some("PTR"));
-                    if !ptrs.is_empty() {
-                        recs = ptrs;
-                    } else {
-                        let mut nx: Vec<u8> = Vec::new();
-                        nx.extend_from_slice(&id.to_be_bytes());
-                        let mut flags: u16 = 0x8000;
-                        flags |= req_flags & 0x0100;
-                        if self.recursion_enabled {
-                            flags |= 0x0080;
-                        }
-                        flags |= 3;
-                        nx.extend_from_slice(&flags.to_be_bytes());
-                        nx.extend_from_slice(&0u16.to_be_bytes());
-                        nx.extend_from_slice(&0u16.to_be_bytes());
-                        nx.extend_from_slice(&0u16.to_be_bytes());
-                        nx.extend_from_slice(&0u16.to_be_bytes());
-                        return Some(nx);
-                    }
+        if is_ip_literal
+            && recs.is_empty()
+            && let Some(rn) = reverse_name.as_ref()
+        {
+            let ptrs = self.manager.find_records(rn, Some("PTR"));
+            if !ptrs.is_empty() {
+                recs = ptrs;
+            } else {
+                let mut nx: Vec<u8> = Vec::new();
+                nx.extend_from_slice(&id.to_be_bytes());
+                let mut flags: u16 = 0x8000;
+                flags |= req_flags & 0x0100;
+                if self.recursion_enabled {
+                    flags |= 0x0080;
                 }
+                flags |= 3;
+                nx.extend_from_slice(&flags.to_be_bytes());
+                nx.extend_from_slice(&0u16.to_be_bytes());
+                nx.extend_from_slice(&0u16.to_be_bytes());
+                nx.extend_from_slice(&0u16.to_be_bytes());
+                nx.extend_from_slice(&0u16.to_be_bytes());
+                return Some(nx);
             }
         }
 
@@ -115,26 +113,26 @@ impl DnsEngine {
                 return Some(resp);
             }
 
-            if let Some(rn) = reverse_name.as_ref() {
-                if let Some(mut resp) = crate::dns::recursive::resolve(rn, 12, 6) {
-                    let id_bytes = id.to_be_bytes();
-                    if resp.len() >= 2 {
-                        resp[0] = id_bytes[0];
-                        resp[1] = id_bytes[1];
-                    }
-                    if resp.len() >= 4 {
-                        let resp_flags = u16::from_be_bytes([resp[2], resp[3]]);
-                        let mut new_flags = resp_flags | 0x8000;
-                        new_flags |= req_flags & 0x0100;
-                        if self.recursion_enabled {
-                            new_flags |= 0x0080;
-                        }
-                        let nf = new_flags.to_be_bytes();
-                        resp[2] = nf[0];
-                        resp[3] = nf[1];
-                    }
-                    return Some(resp);
+            if let Some(rn) = reverse_name.as_ref()
+                && let Some(mut resp) = crate::dns::recursive::resolve(rn, 12, 6)
+            {
+                let id_bytes = id.to_be_bytes();
+                if resp.len() >= 2 {
+                    resp[0] = id_bytes[0];
+                    resp[1] = id_bytes[1];
                 }
+                if resp.len() >= 4 {
+                    let resp_flags = u16::from_be_bytes([resp[2], resp[3]]);
+                    let mut new_flags = resp_flags | 0x8000;
+                    new_flags |= req_flags & 0x0100;
+                    if self.recursion_enabled {
+                        new_flags |= 0x0080;
+                    }
+                    let nf = new_flags.to_be_bytes();
+                    resp[2] = nf[0];
+                    resp[3] = nf[1];
+                }
+                return Some(resp);
             }
         }
 
@@ -263,7 +261,7 @@ pub(crate) fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)>
                 return None;
             }
             let b2 = buf[pos + 1];
-            let offset = (((len as u16 & 0x3F) as u16) << 8) | b2 as u16;
+            let offset = ((len as u16 & 0x3F) << 8) | b2 as u16;
             let offset = offset as usize;
             if offset >= buf.len() {
                 return None;

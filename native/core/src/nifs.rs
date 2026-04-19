@@ -117,7 +117,8 @@ fn manager_start_nameserver(
     Ok(true)
 }
 
+#[allow(non_local_definitions)]
 pub fn init(env: Env, _info: Term) -> bool {
-    rustler::resource!(DnsManagerResource, env);
+    let _ = rustler::resource!(DnsManagerResource, env);
     true
 }

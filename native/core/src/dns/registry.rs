@@ -7,6 +7,12 @@ pub struct Registry {
     map: HashMap<String, Encoder>,
 }
 
+impl Default for Registry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Registry {
     pub fn new() -> Self {
         Self {

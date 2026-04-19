@@ -9,6 +9,12 @@ pub struct DnsManager {
     zones: HashMap<String, Zone>,
 }
 
+impl Default for DnsManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DnsManager {
     pub fn new() -> Self {
         Self {
@@ -44,7 +50,7 @@ impl DnsManager {
         let mut out = Vec::new();
         for zone in self.zones.values() {
             for r in &zone.records {
-                if r.name == fqdn && rtype.map_or(true, |t| r.rtype.eq_ignore_ascii_case(t)) {
+                if r.name == fqdn && rtype.is_none_or(|t| r.rtype.eq_ignore_ascii_case(t)) {
                     out.push(r.clone());
                 }
             }
@@ -53,15 +59,13 @@ impl DnsManager {
     }
 
     pub fn save_to_file(&self, path: &str) -> io::Result<()> {
-        let json = serde_json::to_string_pretty(&self)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        let json = serde_json::to_string_pretty(&self).map_err(io::Error::other)?;
         fs::write(path, json)
     }
 
     pub fn load_from_file(path: &str) -> io::Result<Self> {
         let data = fs::read_to_string(path)?;
-        let manager: DnsManager =
-            serde_json::from_str(&data).map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        let manager: DnsManager = serde_json::from_str(&data).map_err(io::Error::other)?;
         Ok(manager)
     }
 }
