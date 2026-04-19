@@ -11,10 +11,7 @@ services:
       - db_data:/var/lib/postgresql
     restart: unless-stopped
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: ghcr.io/SeradedStripes/hackflare:latest
+    image: ghcr.io/seradedstripes/hackflare:latest
     depends_on:
       - db
     environment:

@@ -13,24 +13,33 @@ WORKDIR /app
 RUN mix local.hex --force && mix local.rebar --force
 
 COPY mix.exs mix.lock ./
-RUN --mount=type=cache,target=/app/deps mix deps.get --only prod
+RUN --mount=type=cache,target=/app/deps \
+    --mount=type=cache,target=/root/.cargo/registry \
+    mix deps.get
 
 COPY config ./config
 COPY lib ./lib
-COPY native ./native 
+COPY native ./native
 
 RUN --mount=type=cache,target=/app/deps \
     --mount=type=cache,target=/app/_build/prod \
     --mount=type=cache,target=/root/.cargo/registry \
-    mix deps.compile && mix compile
+    mix deps.compile
 
 COPY assets ./assets
 COPY priv ./priv
+
+RUN --mount=type=cache,target=/app/deps \
+    --mount=type=cache,target=/app/_build/prod \
+    --mount=type=cache,target=/root/.cargo/registry \
+    mix compile
+
 COPY . .
 
 RUN --mount=type=cache,target=/app/deps \
     --mount=type=cache,target=/app/_build/prod \
-    mix do assets.deploy + release --overwrite && \
+    --mount=type=cache,target=/root/.cargo/registry \
+    mix do assets.deploy, release --overwrite && \
     cp -r _build/prod/rel/hackflare ./release
 
 FROM debian:trixie-slim AS app
