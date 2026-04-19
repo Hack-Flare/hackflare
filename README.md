@@ -45,6 +45,7 @@ mix phx.server
 - [ ] Simple Logging
 - [ ] Caching (incl. DNS caching, Edge caching, etc.)
 - [ ] Simple Website
+- [x] Docker
 
 ## Features From Reccomendations
 
