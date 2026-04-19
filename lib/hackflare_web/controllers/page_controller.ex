@@ -25,4 +25,11 @@ defmodule HackflareWeb.PageController do
   def home(conn, _params) do
     render(conn, :home)
   end
+
+  @doc """
+  Redirect `/docs` to the generated documentation index page.
+  """
+  def docs_redirect(conn, _params) do
+    redirect(conn, to: "/docs/index.html")
+  end
 end

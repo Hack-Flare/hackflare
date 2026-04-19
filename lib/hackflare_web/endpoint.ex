@@ -27,6 +27,13 @@ defmodule HackflareWeb.Endpoint do
     only: HackflareWeb.static_paths(),
     raise_on_missing_only: code_reloading?
 
+  # Serve generated ExDoc HTML at "/docs" from the repository's `doc/` folder.
+  # Path.expand resolves the project `doc` directory relative to this file.
+  plug Plug.Static,
+    at: "/docs",
+    from: Path.expand("../../doc", __DIR__),
+    gzip: false
+
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
   if code_reloading? do

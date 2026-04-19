@@ -66,6 +66,7 @@ defmodule HackflareWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+    get "/docs", PageController, :docs_redirect
   end
 
   # Other scopes may use custom stacks.

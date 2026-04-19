@@ -220,7 +220,7 @@ defmodule HackflareWeb do
     end
   end
 
-  @doc """
+  @doc ~S"""
   Returns the setup for verified routes (the ~p sigil).
 
   When included in modules, enables the use of the verified routes sigil (~p)
