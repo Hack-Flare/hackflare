@@ -14,6 +14,6 @@ jobs:
     steps:
       - name: Trigger Coolify Redeploy
         run: |
-          curl -X POST "https://coolify.kirze.de/api/v1/deploy?uuid=byz9kstjqt94l6c9zccwodia&force=false" \
+          curl -X POST "https://coolify.kirze.de/api/v1/deploy?uuid=byz9kstjqt94l6c9zccwodia&force=true" \
                -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
                -H "Content-Type: application/json"
