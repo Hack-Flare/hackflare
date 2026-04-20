@@ -162,7 +162,7 @@ jobs:
           path: _build
           key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('**/mix.lock') }}-${{ github.sha }}
 
-      - run: mix ecto.create && mix ecto.migrate
+      - run: mkdir -p priv/repo/migrations && mix ecto.create && mix ecto.migrate
       - env:
           MIX_TEST_PARTITION: ${{ matrix.partition }}
         run: mix test --partitions 4
