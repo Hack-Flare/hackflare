@@ -40,9 +40,7 @@ RUN mix assets.deploy
 RUN mkdir -p priv/static/docs && cp -r doc/. priv/static/docs/
 
 RUN mix release --overwrite && \
-    cp -r _build/prod/rel/hackflare ./release && \
-    mkdir -p release/lib/hackflare-*/priv/static/docs && \
-    cp -r doc/. release/lib/hackflare-*/priv/static/docs/
+    cp -r _build/prod/rel/hackflare ./release
 
 FROM debian:trixie-slim AS app
 
@@ -59,7 +57,6 @@ RUN useradd -m -u 1000 appuser && \
 USER appuser
 
 COPY --from=build --chown=appuser:appuser /app/release .
-COPY --from=build --chown=appuser:appuser /app/doc ./doc
 
 EXPOSE 4000
 CMD ["bin/hackflare", "start"]
