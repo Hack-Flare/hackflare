@@ -73,6 +73,70 @@ hackflare/
 - Query handling and nameserver control
 - All functions are non-blocking
 
+#### Rust NIF API (Elixir.Hackflare.Native)
+
+The Rust crate in `native/core` is loaded via:
+
+```rust
+rustler::init!("Elixir.Hackflare.Native", load = nifs::init);
+```
+
+This means the Elixir module `Hackflare.Native` is the only Rust-exported API currently wired into the runtime.
+
+Resource type:
+- `manager_new/0` returns an opaque Rustler resource wrapping `Mutex<DnsManager>`
+
+Exported NIFs and runtime behavior:
+
+1. `manager_new() :: resource`
+- Creates an empty in-memory DNS manager.
+
+2. `manager_create_zone(manager, name :: String.t()) :: boolean`
+- Always returns `true`.
+- Operation is idempotent: if the zone already exists, it is kept as-is.
+
+3. `manager_delete_zone(manager, name :: String.t()) :: boolean`
+- Returns `true` if a zone existed and was removed.
+- Returns `false` if the zone did not exist.
+
+4. `manager_add_record(manager, zone_name, name, rtype, ttl, data) :: boolean`
+- Returns `true` when `zone_name` exists and the record is appended.
+- Returns `false` when `zone_name` is missing.
+- Record data model in Rust:
+	- `%{"name" => string, "rtype" => string, "ttl" => non_neg_integer, "data" => string}`
+
+5. `manager_remove_record(manager, zone_name, name, rtype) :: boolean`
+- Returns `true` if at least one matching record was removed.
+- Returns `false` if the zone does not exist or no record matched.
+- Matching in this path is exact string match for both `name` and `rtype`.
+
+6. `manager_list_zones(manager) :: String.t()`
+- Returns a JSON string (not a native Elixir list).
+- Shape: `"[\"zone1\",\"zone2\"]"`.
+
+7. `manager_find_records(manager, name, rtype \\ nil) :: String.t()`
+- Returns a JSON string (not a native Elixir list).
+- Shape: JSON array of record objects, e.g.
+	- `[{"name":"www.example.com","rtype":"A","ttl":300,"data":"1.2.3.4"}]`
+- `rtype` filter uses case-insensitive comparison in Rust manager lookup.
+
+8. `engine_handle_query(manager, query_bin :: binary) :: binary | nil`
+- Returns `nil` for malformed packets or queries that cannot be processed.
+- Returns a raw DNS response packet (`binary`) when handled.
+- If local records are absent, resolver recursion is attempted in Rust.
+
+9. `manager_start_nameserver(manager, bind_addr :: String.t(), port :: 0..65535) :: boolean`
+- Always returns `true` immediately after spawning the nameserver thread.
+- Internally starts both UDP and TCP listeners in Rust (`Nameserver::run/0`).
+- Runtime bind failures are logged on the Rust side (stderr), not surfaced as Elixir error tuples.
+
+Notes about current Elixir docs vs runtime:
+- `Hackflare.Native` function stubs in Elixir currently document `:ok | {:error, reason}` in places, but the Rust NIF implementation actually returns booleans for most mutating operations.
+- `manager_list_zones/1` and `manager_find_records/3` currently return JSON-encoded strings from Rust and must be decoded in Elixir if structured data is needed.
+
+Current non-exported Rust code:
+- `native/auth/src/lib.rs` is not connected through Rustler init and is not exposed to Elixir.
+
 ### Email
 
 **`Hackflare.Mailer`** - Transactional email service
