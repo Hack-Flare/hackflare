@@ -14,7 +14,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      image: hackflare:latest
     depends_on:
       - db
     env_file:
