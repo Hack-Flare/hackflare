@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches: [ "main" ]
-    pull_request:
+  pull_request:
       branches: [ "main" ]
   workflow_dispatch:
 
@@ -121,7 +121,7 @@ jobs:
       - run: mix deps.audit
       - run: mix sobelow --config
 
-type_check:
+  type_check:
     name: Type Checking
     needs: [compile]
     runs-on: ubuntu-latest
@@ -156,7 +156,7 @@ type_check:
       - name: Run Dialyzer
         run: mix dialyzer
         
-    test:
+  test:
     name: Test Partition ${{ matrix.partition }}
     needs: [compile]
     runs-on: ubuntu-latest
