@@ -64,6 +64,7 @@ docker compose -f docker-compose.dev.yml up
 
 ## Features From Recommendations
 
+- Node Based Nameservers (All can connect to main server through api)
 - Dynamic Firewall (Optional)
 - DDoS Protection
 - Load Balancing
