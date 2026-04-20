@@ -5,21 +5,26 @@ services:
       POSTGRES_USER: hackflare
       POSTGRES_PASSWORD: hackflare
       POSTGRES_DB: hackflare
-    ports:
-      - "5432:5432"
     volumes:
-      - db_data:/var/lib/postgresql
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hackflare -d hackflare"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
+
   hackflare:
     build:
       context: .
       dockerfile: Dockerfile
       cache_from:
-        - type=local,src=.docker-cache
+        - type=local,src=./.docker-cache
       cache_to:
-        - type=local,dest=.docker-cache,mode=max
+        - type=local,dest=./.docker-cache,mode=max
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     env_file:
       - .env
     environment:
