@@ -1,8 +1,6 @@
 /* See the Tailwind configuration guide for advanced usage
    https://tailwindcss.com/docs/configuration */
 
-@import url('https://fonts.googleapis.com/css2?family=Dosis:wght@200;300;400;500;600;700;800&display=swap');
-
 @import "tailwindcss" source(none);
 @source "../css";
 @source "../js";
@@ -103,12 +101,6 @@
 
 /* Make LiveView wrapper divs transparent for layout */
 [data-phx-session], [data-phx-teleported-src] { display: contents }
-
-/* Apply Dosis font to the entire page */
-html, body {
-  font-family: 'Dosis', system-ui, sans-serif;
-  font-weight: 600;
-}
 
 html {
   font-weight: 600;
