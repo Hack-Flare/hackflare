@@ -1,5 +1,6 @@
 <div align="center">
-  <img src="priv/static/images/logo.svg" alt="Hackflare" />
+  <img src="priv/static/images/logo.svg" alt="Hackflare" style="width: auto; height: 250px;" />
+  // We need a banner fr fr
 </div>
 
 # HackFlare
