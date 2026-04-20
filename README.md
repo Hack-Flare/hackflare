@@ -52,7 +52,7 @@ docker compose -f docker-compose.dev.yml up
     - [ ] Domain Management
   - [ ] Frontend
 - [x] nameservers
-  - [0] Amount Online
+  - [1] Amount Online
 - [ ] Auth system (hc auth)
   - [ ] Backend
   - [ ] Frontend
