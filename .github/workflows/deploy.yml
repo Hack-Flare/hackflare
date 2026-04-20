@@ -1,0 +1,19 @@
+name: Deploy to Coolify
+
+on:
+  workflow_run:
+    workflows: ["Build and Publish Elixir Docker Image"] 
+    types:
+      - completed
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+      - name: Trigger Coolify Redeploy
+        run: |
+          curl -X POST "https://coolify.kirze.de/api/v1/deploy?uuid=byz9kstjqt94l6c9zccwodia&force=false" \
+               -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+               -H "Content-Type: application/json"
