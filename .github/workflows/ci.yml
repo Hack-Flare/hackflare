@@ -3,23 +3,123 @@ name: CI
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 permissions:
   contents: write
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MIX_ENV: test
+
 jobs:
-  build_and_test:
+  format:
+    name: Auto-Format Code
     runs-on: ubuntu-latest
-    env:
-      MIX_ENV: test
-    name: OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: '1.19'
+          otp-version: '27.0'
+
+      - uses: actions/cache@v4
+        with:
+          path: deps
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-
+
+      - run: mix deps.get
+      
+      - run: mix format
+
+      - name: Auto-commit formatted code
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: auto-format Elixir code"
+          branch: main
+
+  static_analysis:
+    name: Static Analysis
+    needs: [format]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: '1.19'
+          otp-version: '27.0'
+
+      - uses: actions/cache@v4
+        with:
+          path: deps
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-
+
+      - uses: actions/cache@v4
+        with:
+          path: _build
+          key: ${{ runner.os }}-build-27.0-1.19-${{ hashFiles('**/mix.lock') }}
+          restore-keys: ${{ runner.os }}-build-27.0-1.19-
+
+      - run: mix deps.get
+      - run: mix compile --warnings-as-errors
+      - run: mix credo --strict
+      - run: mix deps.audit
+      - run: mix sobelow --config
+
+  type_check:
+    name: Type Checking
+    needs: [format]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: '1.19'
+          otp-version: '27.0'
+
+      - uses: actions/cache@v4
+        with:
+          path: deps
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-
+
+      - uses: actions/cache@v4
+        with:
+          path: _build
+          key: ${{ runner.os }}-build-27.0-1.19-${{ hashFiles('**/mix.lock') }}
+          restore-keys: ${{ runner.os }}-build-27.0-1.19-
+
+      - run: mix deps.get
+      - run: mix compile
+      - run: mix dialyzer
+
+  test:
+    name: Test Partition ${{ matrix.partition }}
+    needs: [format]
+    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        otp: ['27.0']
-        elixir: ['1.19']
-    
+        partition: [1, 2, 3, 4]
     services:
       postgres:
         image: postgres:18
@@ -34,9 +134,10 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -44,58 +145,27 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
 
-      - name: Set up Elixir
-        uses: erlef/setup-beam@v1
+      - uses: erlef/setup-beam@v1
         with:
-          elixir-version: ${{ matrix.elixir }}
-          otp-version: ${{ matrix.otp }}
+          elixir-version: '1.19'
+          otp-version: '27.0'
 
-      - name: Restore dependencies cache
-        uses: actions/cache@v4
+      - uses: actions/cache@v4
         with:
           path: deps
           key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
           restore-keys: ${{ runner.os }}-mix-
 
-      - name: Restore build cache
-        uses: actions/cache@v4
+      - uses: actions/cache@v4
         with:
           path: _build
-          key: ${{ runner.os }}-build-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('**/mix.lock') }}
-          restore-keys: ${{ runner.os }}-build-${{ matrix.otp }}-${{ matrix.elixir }}-
+          key: ${{ runner.os }}-build-27.0-1.19-${{ hashFiles('**/mix.lock') }}
+          restore-keys: ${{ runner.os }}-build-27.0-1.19-
 
-      - name: Install dependencies
-        run: mix deps.get
-
-      - name: Format Code
-        run: mix format
-
-      - name: Auto-commit formatted code
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "style: auto-format Elixir code"
-
-      - name: Compile Code
-        run: mix compile --warnings-as-errors
-
-      - name: Code Quality (Credo)
-        run: mix credo --strict
-
-      - name: Type Checking (Dialyzer)
-        run: mix dialyzer
-
-      - name: Dependency Audit
-        run: mix deps.audit
-
-      - name: Security Scan (Sobelow)
-        run: mix sobelow --config
-
-      - name: Setup Database
-        env:
-          MIX_ENV: test
-        run: mix ecto.create && mix ecto.migrate
-
-      - name: Run Tests
-        env:
-          MIX_ENV: test
-        run: mix test
+      - run: mix deps.get
+      - run: mix compile --warnings-as-errors
+      - run: mix ecto.create && mix ecto.migrate
+      
+      - env:
+          MIX_TEST_PARTITION: ${{ matrix.partition }}
+        run: mix test --partitions 4
