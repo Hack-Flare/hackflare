@@ -1,6 +1,8 @@
 /* See the Tailwind configuration guide for advanced usage
    https://tailwindcss.com/docs/configuration */
 
+@import url('https://fonts.googleapis.com/css2?family=Dosis:wght@200;300;400;500;600;700;800&display=swap');
+
 @import "tailwindcss" source(none);
 @source "../css";
 @source "../js";
@@ -101,5 +103,66 @@
 
 /* Make LiveView wrapper divs transparent for layout */
 [data-phx-session], [data-phx-teleported-src] { display: contents }
+
+/* Apply Dosis font to the entire page */
+html, body {
+  font-family: 'Dosis', system-ui, sans-serif;
+  font-weight: 600;
+}
+
+html {
+  font-weight: 600;
+}
+
+/* Custom styling for better visual appeal */
+@layer components {
+  .btn {
+    @apply transition-all duration-300;
+  }
+
+  .btn:hover {
+    @apply translate-y-[-2px];
+  }
+
+  .card {
+    @apply border-0;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-dosis;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Better focus states */
+  @media (prefers-reduced-motion: no-preference) {
+    * {
+      @apply scroll-smooth;
+    }
+  }
+
+  /* Dark theme enhancements */
+  [data-theme="dark"] {
+    --color-base-100: oklch(18% 0.02 252);
+    --color-base-200: oklch(22% 0.02 252);
+    --color-base-300: oklch(26% 0.03 252);
+  }
+
+  [data-theme="dark"] .card {
+    @apply bg-base-300;
+  }
+
+  [data-theme="dark"] .badge {
+    @apply border-0;
+  }
+}
+
+/* Custom gradient backgrounds */
+.gradient-primary-secondary {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+}
 
 /* This file is for your main application CSS */

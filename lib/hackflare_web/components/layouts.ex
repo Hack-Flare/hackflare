@@ -35,22 +35,19 @@ defmodule HackflareWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <header class="navbar px-4 sm:px-6 lg:px-8">
+    <header class="navbar px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-primary to-secondary shadow-md">
       <div class="flex-1">
-        <a href="/" class="flex-1 flex w-fit items-center gap-2">
-          <img src={~p"/images/logo.svg"} width="64" />
-          <span class="text-sm font-semibold">v{Application.spec(:hackflare, :vsn)}</span>
+        <a href="/" class="flex-1 flex w-fit items-center gap-3 hover:opacity-80 transition-opacity">
+          <img src={~p"/images/logo.svg"} width="48" />
+          <span class="font-bold text-xl text-primary-content hidden sm:inline">HackFlare</span>
         </a>
       </div>
-      <div class="flex-none">
-        <ul class="flex flex-column px-1 space-x-4 items-center">
+      <div class="flex-none gap-4">
+        <ul class="flex gap-4 items-center">
           <li>
-            <a href="https://github.com/">
-              <img src={~p"/images/github.svg"} width="26" />
+            <a href="https://github.com/Hack-Flare/hackflare" class="btn btn-ghost btn-circle hover:bg-base-200">
+              <img src={~p"/images/github.svg"} width="24" />
             </a>
-          </li>
-          <li>
-            <.theme_toggle />
           </li>
           <li>
             <.auth_menu current_scope={@current_scope} />
@@ -59,9 +56,11 @@ defmodule HackflareWeb.Layouts do
       </div>
     </header>
 
-    <main class="px-4 py-20 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl space-y-4">
-        {render_slot(@inner_block)}
+    <main class="min-h-screen">
+      <div class="px-4 py-12 sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-4xl">
+          {render_slot(@inner_block)}
+        </div>
       </div>
     </main>
 
@@ -155,10 +154,8 @@ defmodule HackflareWeb.Layouts do
   attr :current_scope, :map, default: nil, doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
   def auth_menu(assigns) do
     ~H"""
-    <a href="dash/" class="btn btn-ghost btn-circle avatar">
-      <div class="w-10 rounded-full bg-base-200 text-base-content">
-        <.icon name="hero-user" class="size-5" />
-      </div>
+    <a href="dash/" class="btn btn-sm btn-ghost btn-circle">
+      <.icon name="hero-user" class="size-5" />
     </a>
     """
   end
@@ -171,20 +168,96 @@ defmodule HackflareWeb.Layouts do
   def home(assigns) do
     ~H"""
     <.app flash={@flash}>
-      <header class="text-center">
-        <h1 class="text-4xl font-bold">HackFlare</h1>
-        <p class="text-base-content/70 mt-2">Cloudflare alternative for HackClub</p>
-      </header>
+      <div class="space-y-16">
+        <!-- Hero Section -->
+        <section class="text-center space-y-8">
+          <div class="space-y-4">
+            <h1 class="text-5xl sm:text-7xl font-extrabold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+              HackFlare
+            </h1>
+            <p class="text-xl sm:text-2xl text-base-content/70 font-light">
+              Cloudflare alternative for HackClub
+            </p>
+          </div>
 
-      <section class="mt-6 text-center">
-        <div class="prose">
-          <p>This is a homepage.</p>
-        </div>
+          <p class="text-base sm:text-lg text-base-content/60 max-w-2xl mx-auto leading-relaxed">
+            Take control of your DNS and content delivery. Simple, powerful, and built for HackClub members.
+          </p>
 
-        <div class="mt-6 flex gap-3 text-center justify-center">
-          <a href="dash/" class="btn btn-primary">Get Started</a>
-        </div>
-      </section>
+          <div class="flex gap-4 justify-center pt-4">
+            <a href="dash/" class="btn btn-primary btn-lg gap-2">
+              <span>Get Started</span>
+              <.icon name="hero-arrow-right" class="w-5 h-5" />
+            </a>
+            <a href="https://github.com/Hack-Flare/hackflare" class="btn btn-outline btn-lg gap-2">
+              <.icon name="hero-star" class="w-5 h-5" />
+              <span>Star on GitHub</span>
+            </a>
+          </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="space-y-8">
+          <h2 class="text-3xl sm:text-4xl font-bold text-center">
+            Why HackFlare?
+          </h2>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="card bg-base-300 shadow-lg hover:shadow-xl transition-shadow hover:bg-base-200">
+              <div class="card-body space-y-3">
+                <div class="flex justify-center">
+                  <div class="badge badge-primary badge-lg">
+                    <.icon name="hero-bolt" class="w-5 h-5" />
+                  </div>
+                </div>
+                <h3 class="card-title text-center justify-center">Fast & Reliable</h3>
+                <p class="text-center text-sm">Lightning-fast DNS resolution and global content delivery network.</p>
+              </div>
+            </div>
+
+            <div class="card bg-base-300 shadow-lg hover:shadow-xl transition-shadow hover:bg-base-200">
+              <div class="card-body space-y-3">
+                <div class="flex justify-center">
+                  <div class="badge badge-secondary badge-lg">
+                    <.icon name="hero-shield-check" class="w-5 h-5" />
+                  </div>
+                </div>
+                <h3 class="card-title text-center justify-center">Secure</h3>
+                <p class="text-center text-sm">Built-in DDoS protection and advanced security features.</p>
+              </div>
+            </div>
+
+            <div class="card bg-base-300 shadow-lg hover:shadow-xl transition-shadow hover:bg-base-200">
+              <div class="card-body space-y-3">
+                <div class="flex justify-center">
+                  <div class="badge badge-accent badge-lg">
+                    <.icon name="hero-cog" class="w-5 h-5" />
+                  </div>
+                </div>
+                <h3 class="card-title text-center justify-center">Easy to Use</h3>
+                <p class="text-center text-sm">Intuitive dashboard for managing your domains and settings.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="card bg-base-300 border-2 border-primary/40">
+          <div class="card-body text-center space-y-4">
+            <h2 class="card-title justify-center text-2xl sm:text-3xl">
+              Ready to get started?
+            </h2>
+            <p class="text-base-content/70">
+              Join the HackClub community and start managing your DNS today.
+            </p>
+            <div class="card-actions justify-center pt-4">
+              <a href="dash/" class="btn btn-primary btn-wide">
+                Launch Dashboard
+              </a>
+            </div>
+          </div>
+        </section>
+      </div>
     </.app>
     """
   end
