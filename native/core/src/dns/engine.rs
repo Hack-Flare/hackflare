@@ -1,5 +1,6 @@
-use crate::dns::DnsManager;
+use crate::dns::{DnsManager, Record};
 use idna::domain_to_ascii;
+use std::env;
 use std::net::{Ipv4Addr, Ipv6Addr};
 
 pub struct DnsEngine {
@@ -73,21 +74,23 @@ impl DnsEngine {
             if !ptrs.is_empty() {
                 recs = ptrs;
             } else {
-                let mut nx: Vec<u8> = Vec::new();
-                nx.extend_from_slice(&id.to_be_bytes());
-                let mut flags: u16 = 0x8000;
-                flags |= req_flags & 0x0100;
-                if self.recursion_enabled {
-                    flags |= 0x0080;
-                }
-                flags |= 3;
-                nx.extend_from_slice(&flags.to_be_bytes());
-                nx.extend_from_slice(&0u16.to_be_bytes());
-                nx.extend_from_slice(&0u16.to_be_bytes());
-                nx.extend_from_slice(&0u16.to_be_bytes());
-                nx.extend_from_slice(&0u16.to_be_bytes());
-                return Some(nx);
+                return Some(build_nxdomain_with_soa(
+                    id,
+                    req_flags,
+                    self.recursion_enabled,
+                    &req[12..pos + 4],
+                ));
             }
+        }
+
+        let label_count = qname.split('.').filter(|label| !label.is_empty()).count();
+        if recs.is_empty() && reverse_name.is_none() && label_count < 2 {
+            return Some(build_nxdomain_with_soa(
+                id,
+                req_flags,
+                self.recursion_enabled,
+                &req[12..pos + 4],
+            ));
         }
 
         let req_flags = u16::from_be_bytes([req[2], req[3]]);
@@ -101,6 +104,7 @@ impl DnsEngine {
                 if resp.len() >= 4 {
                     let resp_flags = u16::from_be_bytes([resp[2], resp[3]]);
                     let mut new_flags = resp_flags | 0x8000;
+                    new_flags &= !0x0400;
 
                     new_flags |= req_flags & 0x0100;
                     if self.recursion_enabled {
@@ -124,6 +128,7 @@ impl DnsEngine {
                 if resp.len() >= 4 {
                     let resp_flags = u16::from_be_bytes([resp[2], resp[3]]);
                     let mut new_flags = resp_flags | 0x8000;
+                    new_flags &= !0x0400;
                     new_flags |= req_flags & 0x0100;
                     if self.recursion_enabled {
                         new_flags |= 0x0080;
@@ -139,7 +144,10 @@ impl DnsEngine {
         let mut resp: Vec<u8> = Vec::new();
         resp.extend_from_slice(&id.to_be_bytes());
 
-        let mut flags: u16 = 0x8400;
+        let mut flags: u16 = 0x8000;
+        if !recs.is_empty() {
+            flags |= 0x0400;
+        }
 
         flags |= req_flags & 0x0100;
         if self.recursion_enabled {
@@ -169,6 +177,104 @@ impl DnsEngine {
         }
 
         Some(resp)
+    }
+}
+
+fn build_nxdomain_with_soa(
+    id: u16,
+    req_flags: u16,
+    recursion_enabled: bool,
+    question_section: &[u8],
+) -> Vec<u8> {
+    let soa_config = load_soa_config();
+    let mut resp: Vec<u8> = Vec::new();
+    resp.extend_from_slice(&id.to_be_bytes());
+
+    let mut flags: u16 = 0x8000;
+    flags |= req_flags & 0x0100;
+    if recursion_enabled {
+        flags |= 0x0080;
+    }
+    flags |= 3;
+    resp.extend_from_slice(&flags.to_be_bytes());
+    resp.extend_from_slice(&1u16.to_be_bytes());
+    resp.extend_from_slice(&0u16.to_be_bytes());
+    resp.extend_from_slice(&1u16.to_be_bytes());
+    resp.extend_from_slice(&0u16.to_be_bytes());
+
+    resp.extend_from_slice(question_section);
+
+    resp.extend_from_slice(&0x00u8.to_be_bytes());
+    resp.extend_from_slice(&6u16.to_be_bytes());
+    resp.extend_from_slice(&1u16.to_be_bytes());
+    resp.extend_from_slice(&soa_config.ttl.to_be_bytes());
+
+    let soa = Record::new(
+        ".",
+        "SOA",
+        soa_config.ttl,
+        format!(
+            "{} {} {} {} {} {} {}",
+            soa_config.mname,
+            soa_config.rname,
+            soa_config.serial,
+            soa_config.refresh,
+            soa_config.retry,
+            soa_config.expire,
+            soa_config.minimum
+        ),
+    );
+    if let Some(rdata) = crate::dns::records::encode_by_type("SOA", &soa) {
+        resp.extend_from_slice(&(rdata.len() as u16).to_be_bytes());
+        resp.extend_from_slice(&rdata);
+    } else {
+        resp.extend_from_slice(&0u16.to_be_bytes());
+    }
+
+    resp
+}
+
+struct SoaConfig {
+    mname: String,
+    rname: String,
+    serial: u32,
+    refresh: u32,
+    retry: u32,
+    expire: u32,
+    minimum: u32,
+    ttl: u32,
+}
+
+fn load_soa_config() -> SoaConfig {
+    SoaConfig {
+        mname: env::var("HACKFLARE_DNS_SOA_MNAME")
+            .unwrap_or_else(|_| "a.root-servers.net.".to_string()),
+        rname: env::var("HACKFLARE_DNS_SOA_RNAME")
+            .unwrap_or_else(|_| "nstld.verisign-grs.com.".to_string()),
+        serial: env::var("HACKFLARE_DNS_SOA_SERIAL")
+            .ok()
+            .and_then(|value| value.parse::<u32>().ok())
+            .unwrap_or(2026042000),
+        refresh: env::var("HACKFLARE_DNS_SOA_REFRESH")
+            .ok()
+            .and_then(|value| value.parse::<u32>().ok())
+            .unwrap_or(1800),
+        retry: env::var("HACKFLARE_DNS_SOA_RETRY")
+            .ok()
+            .and_then(|value| value.parse::<u32>().ok())
+            .unwrap_or(900),
+        expire: env::var("HACKFLARE_DNS_SOA_EXPIRE")
+            .ok()
+            .and_then(|value| value.parse::<u32>().ok())
+            .unwrap_or(604_800),
+        minimum: env::var("HACKFLARE_DNS_SOA_MINIMUM")
+            .ok()
+            .and_then(|value| value.parse::<u32>().ok())
+            .unwrap_or(86_400),
+        ttl: env::var("HACKFLARE_DNS_SOA_TTL")
+            .ok()
+            .and_then(|value| value.parse::<u32>().ok())
+            .unwrap_or(86_400),
     }
 }
 

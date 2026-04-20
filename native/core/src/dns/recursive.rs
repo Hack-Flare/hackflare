@@ -3,8 +3,11 @@ use once_cell::sync::Lazy;
 use std::collections::HashMap;
 type CacheKey = (String, u16);
 type CacheValue = (Vec<u8>, Instant);
+use std::env;
+use std::fs;
 use std::io::{Read, Write};
-use std::net::{TcpStream, UdpSocket};
+use std::net::{IpAddr, Ipv4Addr, TcpStream, UdpSocket};
+use std::path::Path;
 use std::str;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
@@ -25,6 +28,12 @@ const ROOT_SERVERS: [&str; 13] = [
     "202.12.27.33",
 ];
 
+const UDP_ATTEMPTS_PER_SERVER: usize = 2;
+const UDP_ATTEMPT_TIMEOUT_MS: u64 = 1500;
+const ROOT_CACHE_TTL_SECS: u64 = 86400;
+const TLD_DELEGATION_MIN_TTL_SECS: u64 = 3600;
+const TLD_DELEGATION_MAX_TTL_SECS: u64 = 86400;
+
 fn build_query(id: u16, qname: &str, qtype: u16) -> Vec<u8> {
     let mut out = Vec::new();
     out.extend_from_slice(&id.to_be_bytes());
@@ -40,14 +49,177 @@ fn build_query(id: u16, qname: &str, qtype: u16) -> Vec<u8> {
     out
 }
 
-fn send_recv(sock: &UdpSocket, addr: &str, msg: &[u8]) -> Option<Vec<u8>> {
-    let target = format!("{}:53", addr);
-    let _ = sock.send_to(msg, &target).ok()?;
-    let mut buf = [0u8; 4096];
-    match sock.recv_from(&mut buf) {
-        Ok((amt, _)) => Some(buf[..amt].to_vec()),
-        Err(_) => None,
+fn parse_root_hints(content: &str) -> Vec<String> {
+    let mut ips = Vec::new();
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.starts_with(';') || trimmed.starts_with('#') {
+            continue;
+        }
+        for token in trimmed.split_whitespace() {
+            if let Ok(ip) = token.parse::<Ipv4Addr>() {
+                ips.push(ip.to_string());
+            }
+        }
     }
+    ips.sort();
+    ips.dedup();
+    ips
+}
+
+fn root_hints_content() -> String {
+    let mut out = String::from("; Auto-generated root hints by Hackflare\n");
+    for ip in ROOT_SERVERS {
+        out.push_str(ip);
+        out.push('\n');
+    }
+    out
+}
+
+fn root_hint_candidate_paths() -> Vec<String> {
+    let mut paths: Vec<String> = Vec::new();
+    if let Ok(path) = env::var("HACKFLARE_ROOT_HINTS_FILE")
+        && !path.trim().is_empty()
+    {
+        paths.push(path);
+    }
+    paths.push("/etc/hackflare/root.hints".to_string());
+    paths.push("/etc/bind/db.root".to_string());
+    paths.push("/etc/named.root".to_string());
+    paths.push("./root.hints".to_string());
+    paths.push("/tmp/hackflare/root.hints".to_string());
+    paths
+}
+
+fn try_create_root_hints_file(path: &str) -> bool {
+    let p = Path::new(path);
+    if p.exists() {
+        return false;
+    }
+    if let Some(parent) = p.parent()
+        && fs::create_dir_all(parent).is_err()
+    {
+        return false;
+    }
+    fs::write(p, root_hints_content()).is_ok()
+}
+
+fn load_root_hint_servers() -> Vec<String> {
+    let paths = root_hint_candidate_paths();
+
+    for path in &paths {
+        if let Ok(content) = fs::read_to_string(&path) {
+            let parsed = parse_root_hints(&content);
+            if !parsed.is_empty() {
+                return parsed;
+            }
+        }
+    }
+
+    for path in &paths {
+        if try_create_root_hints_file(path)
+            && let Ok(content) = fs::read_to_string(path)
+        {
+            let parsed = parse_root_hints(&content);
+            if !parsed.is_empty() {
+                return parsed;
+            }
+        }
+    }
+
+    ROOT_SERVERS.iter().map(|s| s.to_string()).collect()
+}
+
+fn tld_from_name(name: &str) -> Option<String> {
+    name.split('.')
+        .rev()
+        .find(|label| !label.is_empty())
+        .map(|s| s.to_ascii_lowercase())
+}
+
+fn clamp_tld_ttl(ttl_secs: u64) -> u64 {
+    ttl_secs
+        .max(TLD_DELEGATION_MIN_TTL_SECS)
+        .min(TLD_DELEGATION_MAX_TTL_SECS)
+}
+
+fn response_matches_expected(
+    resp: &[u8],
+    expected_id: u16,
+    expected_qname: &str,
+    expected_qtype: u16,
+) -> bool {
+    if resp.len() < 12 {
+        return false;
+    }
+    let id = u16::from_be_bytes([resp[0], resp[1]]);
+    if id != expected_id {
+        return false;
+    }
+    let flags = u16::from_be_bytes([resp[2], resp[3]]);
+    if flags & 0x8000 == 0 {
+        return false;
+    }
+    let qdcount = u16::from_be_bytes([resp[4], resp[5]]);
+    if qdcount == 0 {
+        return false;
+    }
+    let (qname, pos) = match parse_qname(resp, 12) {
+        Some(v) => v,
+        None => return false,
+    };
+    if !qname.eq_ignore_ascii_case(expected_qname) {
+        return false;
+    }
+    if pos + 4 > resp.len() {
+        return false;
+    }
+    let qtype = u16::from_be_bytes([resp[pos], resp[pos + 1]]);
+    qtype == expected_qtype
+}
+
+fn send_recv(
+    sock: &UdpSocket,
+    addr: &str,
+    msg: &[u8],
+    qid: u16,
+    qname: &str,
+    qtype: u16,
+) -> Option<Vec<u8>> {
+    let target = format!("{}:53", addr);
+    let expected_ip: IpAddr = addr.parse().ok()?;
+    let mut buf = [0u8; 4096];
+
+    for _ in 0..UDP_ATTEMPTS_PER_SERVER {
+        let _ = sock.send_to(msg, &target).ok()?;
+        let deadline = Instant::now() + Duration::from_millis(UDP_ATTEMPT_TIMEOUT_MS);
+
+        loop {
+            if Instant::now() >= deadline {
+                break;
+            }
+            match sock.recv_from(&mut buf) {
+                Ok((amt, src)) => {
+                    if src.port() != 53 || src.ip() != expected_ip {
+                        continue;
+                    }
+                    let candidate = &buf[..amt];
+                    if response_matches_expected(candidate, qid, qname, qtype) {
+                        return Some(candidate.to_vec());
+                    }
+                }
+                Err(ref e)
+                    if e.kind() == std::io::ErrorKind::WouldBlock
+                        || e.kind() == std::io::ErrorKind::TimedOut =>
+                {
+                    break;
+                }
+                Err(_) => break,
+            }
+        }
+    }
+
+    None
 }
 
 fn parse_rrs(buf: &[u8], mut pos: usize, count: usize) -> Option<Vec<(u16, usize, usize, u32)>> {
@@ -133,15 +305,34 @@ fn extract_ns_and_glue(
     (ns_names, glue_ips)
 }
 
+type RootCacheValue = (Vec<String>, Vec<String>, Instant);
+type DelegationCacheValue = (Vec<String>, Instant);
+
 pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
     if max_depth == 0 {
         return None;
     }
     let sock = UdpSocket::bind(("0.0.0.0", 0)).ok()?;
-    let _ = sock.set_read_timeout(Some(Duration::from_secs(2)));
+    let _ = sock.set_read_timeout(Some(Duration::from_millis(UDP_ATTEMPT_TIMEOUT_MS)));
 
     static CACHE: Lazy<Mutex<HashMap<CacheKey, CacheValue>>> =
         Lazy::new(|| Mutex::new(HashMap::new()));
+    static ROOT_CACHE: Lazy<Mutex<HashMap<String, RootCacheValue>>> =
+        Lazy::new(|| Mutex::new(HashMap::new()));
+    static DELEGATION_CACHE: Lazy<Mutex<HashMap<String, DelegationCacheValue>>> =
+        Lazy::new(|| Mutex::new(HashMap::new()));
+    static ROOT_HINTS: Lazy<Vec<String>> = Lazy::new(load_root_hint_servers);
+
+    if let Ok(mut roots) = ROOT_CACHE.lock()
+        && !roots.contains_key("__root__")
+        && !ROOT_HINTS.is_empty()
+    {
+        let exp = Instant::now() + Duration::from_secs(ROOT_CACHE_TTL_SECS);
+        roots.insert(
+            "__root__".to_string(),
+            (Vec::new(), ROOT_HINTS.clone(), exp),
+        );
+    }
 
     if let Ok(c) = CACHE.lock()
         && let Some((data, exp)) = c.get(&(name.to_string(), qtype))
@@ -150,14 +341,31 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
         return Some(data.clone());
     }
 
-    let mut servers: Vec<String> = ROOT_SERVERS.iter().map(|s| s.to_string()).collect();
+    let requested_tld = tld_from_name(name);
+
+    let mut servers: Vec<String> = if let Some(tld) = requested_tld.as_ref()
+        && let Ok(delegations) = DELEGATION_CACHE.lock()
+        && let Some((cached, exp)) = delegations.get(tld)
+        && Instant::now() < *exp
+        && !cached.is_empty()
+    {
+        cached.clone()
+    } else if let Ok(roots) = ROOT_CACHE.lock()
+        && let Some((_ns_names, glue_ips, exp)) = roots.get("__root__")
+        && Instant::now() < *exp
+        && !glue_ips.is_empty()
+    {
+        glue_ips.clone()
+    } else {
+        ROOT_HINTS.clone()
+    };
     let mut qname = name.to_string();
     for _round in 0..6 {
         let qid = rand::random::<u16>();
         let req = build_query(qid, &qname, qtype);
         let mut next_servers: Vec<String> = Vec::new();
         for srv in &servers {
-            let mut resp_opt = send_recv(&sock, srv, &req);
+            let mut resp_opt = send_recv(&sock, srv, &req, qid, &qname, qtype);
             if resp_opt.is_none() {
                 resp_opt = tcp_send_recv(srv, &req);
             }
@@ -217,6 +425,11 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
                 }
                 let auth_pos = after_pos;
                 let authority_rrs = parse_rrs(&resp, auth_pos, nscount).unwrap_or_default();
+                let referral_ttl_secs = authority_rrs
+                    .iter()
+                    .map(|(_, _, _, ttl)| *ttl as u64)
+                    .min()
+                    .unwrap_or(ROOT_CACHE_TTL_SECS);
                 let mut after_auth = auth_pos;
                 if let Some(last) = authority_rrs.last() {
                     after_auth = last.1 + last.2;
@@ -224,6 +437,17 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
                 let additional_rrs = parse_rrs(&resp, after_auth, arcount).unwrap_or_default();
                 let (ns_names, glue_ips) =
                     extract_ns_and_glue(&resp, &authority_rrs, &additional_rrs);
+
+                if _round == 0 && !ns_names.is_empty() {
+                    if let Ok(mut roots) = ROOT_CACHE.lock() {
+                        let exp = Instant::now() + Duration::from_secs(ROOT_CACHE_TTL_SECS);
+                        roots.insert(
+                            "__root__".to_string(),
+                            (ns_names.clone(), glue_ips.clone(), exp),
+                        );
+                    }
+                }
+
                 if !glue_ips.is_empty() {
                     for ip in glue_ips {
                         next_servers.push(ip);
@@ -258,6 +482,14 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
                     }
                 }
                 if !next_servers.is_empty() {
+                    if _round == 0
+                        && let Some(tld) = requested_tld.as_ref()
+                        && let Ok(mut delegations) = DELEGATION_CACHE.lock()
+                    {
+                        let ttl = clamp_tld_ttl(referral_ttl_secs);
+                        let exp = Instant::now() + Duration::from_secs(ttl);
+                        delegations.insert(tld.clone(), (next_servers.clone(), exp));
+                    }
                     servers = next_servers.clone();
                     break;
                 }

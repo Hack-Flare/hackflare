@@ -12,6 +12,21 @@ config :hackflare, ecto_repos: [Hackflare.Repo]
 config :hackflare,
   generators: [timestamp_type: :utc_datetime]
 
+config :hackflare, :dns, %{
+  bind: "0.0.0.0",
+  port: 53,
+  soa: %{
+    mname: "a.root-servers.net.",
+    rname: "nstld.verisign-grs.com.",
+    serial: 2026042000,
+    refresh: 1800,
+    retry: 900,
+    expire: 604_800,
+    minimum: 86_400,
+    ttl: 86_400
+  }
+}
+
 # Configure the endpoint
 config :hackflare, HackflareWeb.Endpoint,
   url: [host: "localhost"],

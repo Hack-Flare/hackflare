@@ -4,6 +4,7 @@ use std::io::{self, Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream, UdpSocket};
 use std::sync::Arc;
 use std::thread;
+use std::time::Duration;
 
 pub struct Nameserver {
     pub config: NsConfig,
@@ -76,7 +77,7 @@ impl Nameserver {
 
         let udp_bind = format!("{}:{}", bind_addr, port);
         let udp_socket = UdpSocket::bind(&udp_bind)?;
-        udp_socket.set_nonblocking(false)?;
+        udp_socket.set_nonblocking(true)?;
 
         let tcp_bind = udp_bind.clone();
         let tcp_listener = TcpListener::bind(&tcp_bind)?;
@@ -93,15 +94,23 @@ impl Nameserver {
                 loop {
                     match sock.recv_from(&mut buf) {
                         Ok((amt, src)) => {
-                            eprintln!("UDP recv {} bytes from {}", amt, src);
-                            if let Some(engine) = &udp_engine
-                                && let Some(resp) = engine.handle_query(&buf[..amt])
-                            {
-                                let _ = sock.send_to(&resp, src);
-                            }
+                            let req = buf[..amt].to_vec();
+                            let send_sock = sock.clone();
+                            let engine = udp_engine.clone();
+                            thread::spawn(move || {
+                                if let Some(engine) = &engine
+                                    && let Some(resp) = engine.handle_query(&req)
+                                {
+                                    let _ = send_sock.send_to(&resp, src);
+                                }
+                            });
+                        }
+                        Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
+                            thread::sleep(Duration::from_millis(1));
                         }
                         Err(e) => {
                             eprintln!("UDP recv error: {}", e);
+                            thread::sleep(Duration::from_millis(5));
                         }
                     }
                 }

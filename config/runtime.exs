@@ -18,7 +18,17 @@ import Config
 # script that automatically sets the env var above.
 config :hackflare, :dns, %{
   bind: System.get_env("DNS_BIND") || "0.0.0.0",
-  port: System.get_env("DNS_PORT") || 53
+  port: String.to_integer(System.get_env("DNS_PORT", "53")),
+  soa: %{
+    mname: System.get_env("DNS_SOA_MNAME") || "a.root-servers.net.",
+    rname: System.get_env("DNS_SOA_RNAME") || "nstld.verisign-grs.com.",
+    serial: String.to_integer(System.get_env("DNS_SOA_SERIAL", "2026042000")),
+    refresh: String.to_integer(System.get_env("DNS_SOA_REFRESH", "1800")),
+    retry: String.to_integer(System.get_env("DNS_SOA_RETRY", "900")),
+    expire: String.to_integer(System.get_env("DNS_SOA_EXPIRE", "604800")),
+    minimum: String.to_integer(System.get_env("DNS_SOA_MINIMUM", "86400")),
+    ttl: String.to_integer(System.get_env("DNS_SOA_TTL", "86400"))
+  }
 }
 
 db_host_env = System.get_env("DB_HOST") || "localhost"

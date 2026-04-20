@@ -55,10 +55,28 @@ defmodule Hackflare.Nameserver do
   @doc false
   def init(_) do
     # create manager and start nameserver via native NIF
-    config = Application.get_env(:hackflare, :dns)
+    config = Application.get_env(:hackflare, :dns, %{})
+    export_soa_config(Map.get(config, :soa, %{}))
     mgr = Hackflare.Native.manager_new()
     # start nameserver in background
-    _ = Hackflare.Native.manager_start_nameserver(mgr, config.bind, config.port)
+    _ = Hackflare.Native.manager_start_nameserver(
+      mgr,
+      Map.get(config, :bind, "0.0.0.0"),
+      Map.get(config, :port, 53)
+    )
     {:ok, %{manager: mgr}}
   end
+
+  defp export_soa_config(soa) when is_map(soa) do
+    System.put_env("HACKFLARE_DNS_SOA_MNAME", Map.get(soa, :mname, "a.root-servers.net."))
+    System.put_env("HACKFLARE_DNS_SOA_RNAME", Map.get(soa, :rname, "nstld.verisign-grs.com."))
+    System.put_env("HACKFLARE_DNS_SOA_SERIAL", Integer.to_string(Map.get(soa, :serial, 2026042000)))
+    System.put_env("HACKFLARE_DNS_SOA_REFRESH", Integer.to_string(Map.get(soa, :refresh, 1800)))
+    System.put_env("HACKFLARE_DNS_SOA_RETRY", Integer.to_string(Map.get(soa, :retry, 900)))
+    System.put_env("HACKFLARE_DNS_SOA_EXPIRE", Integer.to_string(Map.get(soa, :expire, 604_800)))
+    System.put_env("HACKFLARE_DNS_SOA_MINIMUM", Integer.to_string(Map.get(soa, :minimum, 86_400)))
+    System.put_env("HACKFLARE_DNS_SOA_TTL", Integer.to_string(Map.get(soa, :ttl, 86_400)))
+  end
+
+  defp export_soa_config(_), do: :ok
 end
