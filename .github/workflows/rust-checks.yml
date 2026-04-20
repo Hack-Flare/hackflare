@@ -11,34 +11,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  checks:
+  core-checks:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-      
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-rust
 
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+      - name: Check Core Crate
+        run: cd native/core && cargo check
 
-      - name: Caching
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+      - name: Clippy Core Crate
+        run: cd native/core && cargo clippy -- -D warnings
 
-      - name: Run Rust checks
-        run: cd native/core && cargo check --all
-
-      - name: Run Rust clippy
-        run: cd native/core && cargo clippy --all -- -D warnings
+  #auth-checks:
+  #  runs-on: ubuntu-latest
+  #  permissions:
+  #    contents: read
+  #    packages: write
+  #
+  #  steps:
+  #    - uses: actions/checkout@v6
+  #    - uses: ./.github/actions/setup-rust
+  #
+  #    - name: Check Auth Crate
+  #      run: cd native/auth && cargo check
+  #
+  #    - name: Clippy Auth Crate
+  #      run: cd native/auth && cargo clippy -- -D warnings
