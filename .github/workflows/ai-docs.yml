@@ -1,6 +1,9 @@
 name: Auto-generate Elixir @doc Strings
 
 on:
+  push:
+    paths:
+      - 'lib/**/*.ex'
   pull_request:
     paths:
       - 'lib/**/*.ex'
