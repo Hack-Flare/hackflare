@@ -22,7 +22,7 @@ config :hackflare, :dns, %{
 }
 
 config :hackflare, Hackflare.Repo,
-  hostname: System.get_env("DB_HOST") || "localhost",
+  hostname: System.get_env("DB_HOST") || "localhost:5432",
   username: System.get_env("DB_USER") || "hackflare",
   password: System.get_env("DB_PASS") || "hackflare",
   database: System.get_env("DB_NAME") || "hackflare"
