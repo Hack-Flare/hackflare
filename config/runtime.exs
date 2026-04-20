@@ -32,31 +32,22 @@ config :hackflare, :dns, %{
 }
 
 db_host_env = System.get_env("DB_HOST") || "localhost"
-db_port_env = System.get_env("DB_PORT")
+db_port_env = System.get_env("DB_PORT") || "5432"
 
-{db_host, db_port} =
-  case String.split(db_host_env, ":", parts: 2) do
-    [host, port] when port != "" ->
-      parsed_port =
-        case Integer.parse(port) do
-          {value, ""} -> value
-          _ -> 5432
-        end
+{host, port_str} =
+  case String.split(db_host_env, ":") do
+    [h, p] -> {h, p}
+    [h] -> {h, db_port_env}
+  end
 
-      {host, parsed_port}
-
-    [host] ->
-      parsed_port =
-        case Integer.parse(db_port_env || "5432") do
-          {value, ""} -> value
-          _ -> 5432
-        end
-
-      {host, parsed_port}
+db_port =
+  case Integer.parse(port_str) do
+    {val, ""} -> val
+    _ -> 5432
   end
 
 config :hackflare, Hackflare.Repo,
-  hostname: db_host,
+  hostname: host,
   port: db_port,
   username: System.get_env("DB_USER") || "hackflare",
   password: System.get_env("DB_PASS") || System.get_env("DB_PASSWORD") || "hackflare",
