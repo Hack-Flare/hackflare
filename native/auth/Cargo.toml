@@ -1,0 +1,11 @@
+[package]
+name = "auth"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "auth"
+crate-type = ["cdylib"]
+
+[dependencies]
+rustler = "0.37.3"
