@@ -12,6 +12,7 @@ services:
     restart: unless-stopped
   hackflare:
     image: ghcr.io/hack-flare/hackflare:latest
+    pull_policy: always
     depends_on:
       - db
     env_file:
