@@ -20,11 +20,11 @@ jobs:
     
     services:
       postgres:
-        image: postgres:15
+        image: postgres:18
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: hackflare_test
+          POSTGRES_USER: hackflare
+          POSTGRES_PASSWORD: hackflare
+          POSTGRES_DB: hackflare
         ports:
           - 5432:5432
         options: >-
