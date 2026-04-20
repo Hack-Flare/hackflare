@@ -30,8 +30,14 @@ jobs:
       - name: Get changed .ex files
         id: changed_files
         run: |
-          git fetch origin ${{ github.event.pull_request.base.ref }}
-          FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD | grep '\.ex$' | paste -sd ' ' - || echo '')
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_REF="${{ github.event.pull_request.base.ref }}"
+          else
+            BASE_REF="${{ github.event.repository.default_branch || 'main' }}"
+          fi
+          echo "Comparing against origin/$BASE_REF..."
+          git fetch origin $BASE_REF
+          FILES=$(git diff --name-only origin/$BASE_REF...HEAD | grep '\.ex$' | paste -sd ' ' - || echo '')
           echo "files=${FILES}" >> $GITHUB_OUTPUT
 
       - name: Extract and generate docs via AI
@@ -40,11 +46,9 @@ jobs:
         run: |
           mkdir -p /tmp/ai_docs
           echo "{}" > /tmp/ai_docs/generated.json
-          
           for file in ${{ steps.changed_files.outputs.files }}; do
             if [ -f "$file" ]; then
               CONTENT=$(cat "$file")
-              
               PAYLOAD=$(jq -n --arg file "$file" --arg code "$CONTENT" '{
                 model: "gpt-3.5-turbo",
                 messages: [
@@ -60,15 +64,12 @@ jobs:
                 temperature: 0.3,
                 max_tokens: 2048
               }')
-              
               RESPONSE=$(curl -s -X POST \
                 "${{ secrets.OPENAI_BASE_URL }}/v1/chat/completions" \
                 -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
                 -H "Content-Type: application/json" \
                 -d "$PAYLOAD")
-              
               DOC_JSON=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // "{}"' 2>/dev/null)
-              
               jq -s '.[0] * .[1]' /tmp/ai_docs/generated.json <(echo "$DOC_JSON") > /tmp/ai_docs/temp.json
               mv /tmp/ai_docs/temp.json /tmp/ai_docs/generated.json
             fi
