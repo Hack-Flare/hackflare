@@ -28,8 +28,19 @@ PETRL
 
 ## Running the project
 
+Without Docker
 ```
 iex -S mix phx.server
+```
+
+With Docker from containers
+```
+docker compose up
+```
+
+Dev Docker Which builds the image locally
+```
+docker compose -f docker-compose.dev.yml up
 ```
 
 ## Needed Features for POC/MVP
