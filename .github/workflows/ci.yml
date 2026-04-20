@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build_and_test:
@@ -65,8 +65,13 @@ jobs:
       - name: Install dependencies
         run: mix deps.get
 
-      - name: Check Formatting
-        run: mix format --check-formatted
+      - name: Format Code
+        run: mix format
+
+      - name: Auto-commit formatted code
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: auto-format Elixir code"
 
       - name: Compile Code
         run: mix compile --warnings-as-errors
