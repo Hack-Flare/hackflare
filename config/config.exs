@@ -18,7 +18,7 @@ config :hackflare, :dns, %{
   soa: %{
     mname: "a.root-servers.net.",
     rname: "nstld.verisign-grs.com.",
-    serial: 2026042000,
+    serial: 2_026_042_000,
     refresh: 1800,
     retry: 900,
     expire: 604_800,

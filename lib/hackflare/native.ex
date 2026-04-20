@@ -138,7 +138,8 @@ defmodule Hackflare.Native do
 
     `:nif_not_loaded` - If the native library is not compiled/loaded
   """
-  def manager_add_record(_mgr, _zone, _name, _type, _ttl, _data), do: :erlang.nif_error(:nif_not_loaded)
+  def manager_add_record(_mgr, _zone, _name, _type, _ttl, _data),
+    do: :erlang.nif_error(:nif_not_loaded)
 
   @doc """
   Removes a DNS record from a zone.

@@ -45,7 +45,10 @@ defmodule HackflareWeb.Layouts do
       <div class="flex-none gap-4">
         <ul class="flex gap-4 items-center">
           <li>
-            <a href="https://github.com/Hack-Flare/hackflare" class="btn btn-ghost btn-circle hover:bg-base-200">
+            <a
+              href="https://github.com/Hack-Flare/hackflare"
+              class="btn btn-ghost btn-circle hover:bg-base-200"
+            >
               <img src={~p"/images/github.svg"} width="24" />
             </a>
           </li>
@@ -151,7 +154,10 @@ defmodule HackflareWeb.Layouts do
   @doc """
   Provides a redir to dashboard. Replace current icon with signed in icon in future.
   """
-  attr :current_scope, :map, default: nil, doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
+  attr :current_scope, :map,
+    default: nil,
+    doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
+
   def auth_menu(assigns) do
     ~H"""
     <a href="dash/" class="btn btn-sm btn-ghost btn-circle">
@@ -195,8 +201,8 @@ defmodule HackflareWeb.Layouts do
             </a>
           </div>
         </section>
-
-        <!-- Features Section -->
+        
+    <!-- Features Section -->
         <section class="space-y-8">
           <h2 class="text-3xl sm:text-4xl font-bold text-center">
             Why HackFlare?
@@ -211,7 +217,9 @@ defmodule HackflareWeb.Layouts do
                   </div>
                 </div>
                 <h3 class="card-title text-center justify-center">Fast & Reliable</h3>
-                <p class="text-center text-sm">Lightning-fast DNS resolution and global content delivery network.</p>
+                <p class="text-center text-sm">
+                  Lightning-fast DNS resolution and global content delivery network.
+                </p>
               </div>
             </div>
 
@@ -223,7 +231,9 @@ defmodule HackflareWeb.Layouts do
                   </div>
                 </div>
                 <h3 class="card-title text-center justify-center">Secure</h3>
-                <p class="text-center text-sm">Built-in DDoS protection and advanced security features.</p>
+                <p class="text-center text-sm">
+                  Built-in DDoS protection and advanced security features.
+                </p>
               </div>
             </div>
 
@@ -235,13 +245,15 @@ defmodule HackflareWeb.Layouts do
                   </div>
                 </div>
                 <h3 class="card-title text-center justify-center">Easy to Use</h3>
-                <p class="text-center text-sm">Intuitive dashboard for managing your domains and settings.</p>
+                <p class="text-center text-sm">
+                  Intuitive dashboard for managing your domains and settings.
+                </p>
               </div>
             </div>
           </div>
         </section>
-
-        <!-- CTA Section -->
+        
+    <!-- CTA Section -->
         <section class="card bg-base-300 border-2 border-primary/40">
           <div class="card-body text-center space-y-4">
             <h2 class="card-title justify-center text-2xl sm:text-3xl">
