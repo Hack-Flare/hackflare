@@ -70,7 +70,7 @@ defmodule Hackflare.Native do
 
     `:nif_not_loaded` - If the native library is not compiled/loaded
   """
-  def manager_new(), do: :erlang.nif_error(:nif_not_loaded)
+  def manager_new, do: :erlang.nif_error(:nif_not_loaded)
 
   @doc """
   Creates a new DNS zone in the manager.
