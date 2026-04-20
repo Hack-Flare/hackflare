@@ -1,5 +1,5 @@
 <div align="center">
-  <img width="512" height="512" alt="hackflare" src="https://github.com/user-attachments/assets/4f292c3f-bc36-4328-ba3c-d789a69d7e06" />
+  <img width="512" height="512" alt="hackflare (2)" src="https://github.com/user-attachments/assets/9d565fcb-752a-4efe-a7a9-20629199ed70" />
 </div>
 
 # HackFlare
