@@ -17,3 +17,11 @@ jobs:
           curl -X POST "https://coolify.kirze.de/api/v1/deploy?uuid=byz9kstjqt94l6c9zccwodia&force=true" \
                -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
                -H "Content-Type: application/json"
+      - name: Trigger Coolify Deploy with SHA tag
+        run: |
+          SHA=sha-${{ github.event.workflow_run.head_sha }}
+
+          curl -X POST "https://coolify.kirze.de/api/v1/deploy?uuid=byz9kstjqt94l6c9zccwodia&force=true" \
+              -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              -d "{\"environment_variables\": {\"IMAGE_TAG\": \"$SHA\"}}"
