@@ -13,6 +13,8 @@ concurrency:
 
 env:
   MIX_ENV: test
+  ELIXIR_VERSION: '1.19'
+  OTP_VERSION: '27.0'
 
 jobs:
   format:
@@ -22,62 +24,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
-
       - uses: erlef/setup-beam@v1
         with:
-          elixir-version: '1.19'
-          otp-version: '27.0'
-
-      - uses: actions/cache@v4
-        with:
-          path: deps
-          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
-          restore-keys: ${{ runner.os }}-mix-
-
-      - run: mix deps.get
-      
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
       - run: mix format
-
       - name: Auto-commit formatted code
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "style: auto-format Elixir code"
           branch: main
 
-  static_analysis:
-    name: Static Analysis
-    needs: [format]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-
-      - uses: erlef/setup-beam@v1
-        with:
-          elixir-version: '1.19'
-          otp-version: '27.0'
-
-      - uses: actions/cache@v4
-        with:
-          path: deps
-          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
-          restore-keys: ${{ runner.os }}-mix-
-
-      - uses: actions/cache@v4
-        with:
-          path: _build
-          key: ${{ runner.os }}-build-27.0-1.19-${{ hashFiles('**/mix.lock') }}
-          restore-keys: ${{ runner.os }}-build-27.0-1.19-
-
-      - run: mix deps.get
-      - run: mix compile --warnings-as-errors
-      - run: mix credo --strict
-      - run: mix deps.audit
-      - run: mix sobelow --config
-
-  type_check:
-    name: Type Checking
+  compile:
+    name: Compile Application
     needs: [format]
     runs-on: ubuntu-latest
     steps:
@@ -87,34 +46,83 @@ jobs:
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
-
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
 
       - uses: erlef/setup-beam@v1
         with:
-          elixir-version: '1.19'
-          otp-version: '27.0'
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
 
+      # Notice the github.sha in the keys below to perfectly lock the cache
       - uses: actions/cache@v4
         with:
           path: deps
-          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
-          restore-keys: ${{ runner.os }}-mix-
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}-
 
       - uses: actions/cache@v4
         with:
           path: _build
-          key: ${{ runner.os }}-build-27.0-1.19-${{ hashFiles('**/mix.lock') }}
-          restore-keys: ${{ runner.os }}-build-27.0-1.19-
+          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('**/mix.lock') }}-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('**/mix.lock') }}-
 
       - run: mix deps.get
-      - run: mix compile
+      - run: mix compile --warnings-as-errors
+
+  static_analysis:
+    name: Static Analysis
+    needs: [compile]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
+          
+      - uses: actions/cache@v4
+        with:
+          path: deps
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}-${{ github.sha }}
+      - uses: actions/cache@v4
+        with:
+          path: _build
+          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('**/mix.lock') }}-${{ github.sha }}
+
+      - run: mix credo --strict
+      - run: mix deps.audit
+      - run: mix sobelow --config
+
+  type_check:
+    name: Type Checking
+    needs: [compile]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
+
+      - uses: actions/cache@v4
+        with:
+          path: deps
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}-${{ github.sha }}
+      - uses: actions/cache@v4
+        with:
+          path: _build
+          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('**/mix.lock') }}-${{ github.sha }}
+
       - run: mix dialyzer
 
   test:
     name: Test Partition ${{ matrix.partition }}
-    needs: [format]
+    needs: [compile]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -138,34 +146,21 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
-
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2
-
       - uses: erlef/setup-beam@v1
         with:
-          elixir-version: '1.19'
-          otp-version: '27.0'
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
 
       - uses: actions/cache@v4
         with:
           path: deps
-          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
-          restore-keys: ${{ runner.os }}-mix-
-
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}-${{ github.sha }}
       - uses: actions/cache@v4
         with:
           path: _build
-          key: ${{ runner.os }}-build-27.0-1.19-${{ hashFiles('**/mix.lock') }}
-          restore-keys: ${{ runner.os }}-build-27.0-1.19-
+          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('**/mix.lock') }}-${{ github.sha }}
 
-      - run: mix deps.get
-      - run: mix compile --warnings-as-errors
       - run: mix ecto.create && mix ecto.migrate
-      
       - env:
           MIX_TEST_PARTITION: ${{ matrix.partition }}
         run: mix test --partitions 4
