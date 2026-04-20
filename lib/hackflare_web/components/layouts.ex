@@ -195,6 +195,10 @@ defmodule HackflareWeb.Layouts do
               <span>Get Started</span>
               <.icon name="hero-arrow-right" class="w-5 h-5" />
             </a>
+            <a href="/docs" class="btn btn-outline btn-lg gap-2">
+              <.icon name="hero-book-open" class="w-5 h-5" />
+              <span>View Docs</span>
+            </a>
             <a href="https://github.com/Hack-Flare/hackflare" class="btn btn-outline btn-lg gap-2">
               <.icon name="hero-star" class="w-5 h-5" />
               <span>Star on GitHub</span>
