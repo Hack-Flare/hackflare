@@ -20,6 +20,11 @@ services:
       PHX_SERVER: "true"
       MIX_ENV: "prod"
       PORT: "4000"
+      DB_HOST: "db"
+      DB_PORT: "5432"
+      DB_USER: "hackflare"
+      DB_PASS: "hackflare"
+      DB_NAME: "hackflare"
       SECRET_KEY_BASE: "Sx/6AL8gOMUfxLVU78lnIqghTEOe9pefhaGIOFVP3NYtBBvhFq+Yc46XFs9/3FBt"
     ports:
       - "4000:4000"
