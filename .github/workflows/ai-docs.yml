@@ -1,0 +1,98 @@
+name: Auto-generate Elixir @doc Strings
+
+on:
+  pull_request:
+    paths:
+      - 'lib/**/*.ex'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  generate_docs:
+    runs-on: ubuntu-latest
+    name: Generate Documentation
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: '1.19'
+          otp-version: '27'
+
+      - name: Get changed .ex files
+        id: changed_files
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+          FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD | grep '\.ex$' | paste -sd ' ' - || echo '')
+          echo "files=${FILES}" >> $GITHUB_OUTPUT
+
+      - name: Extract and generate docs via AI
+        id: ai_docs
+        if: "steps.changed_files.outputs.files != ''"
+        run: |
+          mkdir -p /tmp/ai_docs
+          echo "{}" > /tmp/ai_docs/generated.json
+          
+          for file in ${{ steps.changed_files.outputs.files }}; do
+            if [ -f "$file" ]; then
+              CONTENT=$(cat "$file")
+              
+              PAYLOAD=$(jq -n --arg file "$file" --arg code "$CONTENT" '{
+                model: "gpt-3.5-turbo",
+                messages: [
+                  {
+                    role: "system",
+                    content: "Act as an Elixir HexDocs expert. Review the following Elixir code. For every public function (def) missing a @doc, generate a concise, accurate @doc string in Markdown based on the code logic. Return ONLY a raw JSON object mapping function names to docstrings: {\"function_name\": \"doc_string\"}. Do not include markdown formatting blocks like ```json."
+                  },
+                  {
+                    role: "user",
+                    content: ("File: " + $file + "\n\n" + $code)
+                  }
+                ],
+                temperature: 0.3,
+                max_tokens: 2048
+              }')
+              
+              RESPONSE=$(curl -s -X POST \
+                "${{ secrets.OPENAI_BASE_URL }}/v1/chat/completions" \
+                -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+                -H "Content-Type: application/json" \
+                -d "$PAYLOAD")
+              
+              DOC_JSON=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // "{}"' 2>/dev/null)
+              
+              jq -s '.[0] * .[1]' /tmp/ai_docs/generated.json <(echo "$DOC_JSON") > /tmp/ai_docs/temp.json
+              mv /tmp/ai_docs/temp.json /tmp/ai_docs/generated.json
+            fi
+          done
+
+      - name: Inject docs into files
+        if: "steps.changed_files.outputs.files != ''"
+        run: |
+          mix escript.build 2>/dev/null || true
+          elixir scripts/inject_docs.exs \
+            "${{ steps.changed_files.outputs.files }}" \
+            /tmp/ai_docs/generated.json
+
+      - name: Format code
+        if: "steps.changed_files.outputs.files != ''"
+        run: mix format ${{ steps.changed_files.outputs.files }}
+
+      - name: Commit and push changes
+        if: "steps.changed_files.outputs.files != ''"
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add ${{ steps.changed_files.outputs.files }}
+          if ! git diff --cached --quiet; then
+            git commit -m "docs: auto-inject @doc strings via AI"
+            git push origin HEAD
+          fi
