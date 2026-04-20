@@ -12,7 +12,7 @@
 
     <link rel="stylesheet" href="dist/html-elixir-YJO4MOOW.css" />
 
-    <script defer src="dist/sidebar_items-6138F1A3.js"></script>
+    <script defer src="dist/sidebar_items-D2863BCE.js"></script>
     <script defer src="docs_config.js"></script>
     <script defer src="dist/html-YU4BZFVS.js"></script>
 
@@ -274,9 +274,9 @@ and Tailwind (CSS).</p>
 <p>Returns the setup for Phoenix channels.</p><p>When used with <code class="inline">use HackflareWeb, :channel</code>, provides the base channel module
 for WebSocket/long-polling connections.</p><h2 id="channel/0-examples" class="section-heading"><a href="#channel/0-examples" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Examples</span></h2><pre><code class="makeup elixir" translate="no"><span class="kn">use</span><span class="w"> </span><span class="nc">HackflareWeb</span><span class="p">,</span><span class="w"> </span><span class="ss">:channel</span><span class="w">
 
-</span><span class="kd">def</span><span class="w"> </span><span class="nf">join</span><span class="p" data-group-id="2307218893-1">(</span><span class="s">&quot;room:lobby&quot;</span><span class="p">,</span><span class="w"> </span><span class="c">_message</span><span class="p">,</span><span class="w"> </span><span class="n">socket</span><span class="p" data-group-id="2307218893-1">)</span><span class="w"> </span><span class="k" data-group-id="2307218893-2">do</span><span class="w">
-  </span><span class="p" data-group-id="2307218893-3">{</span><span class="ss">:ok</span><span class="p">,</span><span class="w"> </span><span class="n">socket</span><span class="p" data-group-id="2307218893-3">}</span><span class="w">
-</span><span class="k" data-group-id="2307218893-2">end</span></code></pre>
+</span><span class="kd">def</span><span class="w"> </span><span class="nf">join</span><span class="p" data-group-id="1271616014-1">(</span><span class="s">&quot;room:lobby&quot;</span><span class="p">,</span><span class="w"> </span><span class="c">_message</span><span class="p">,</span><span class="w"> </span><span class="n">socket</span><span class="p" data-group-id="1271616014-1">)</span><span class="w"> </span><span class="k" data-group-id="1271616014-2">do</span><span class="w">
+  </span><span class="p" data-group-id="1271616014-3">{</span><span class="ss">:ok</span><span class="p">,</span><span class="w"> </span><span class="n">socket</span><span class="p" data-group-id="1271616014-3">}</span><span class="w">
+</span><span class="k" data-group-id="1271616014-2">end</span></code></pre>
   </section>
 </section>
 <section class="detail" id="controller/0">
@@ -297,9 +297,9 @@ for WebSocket/long-polling connections.</p><h2 id="channel/0-examples" class="se
 <p>Returns the setup for controllers.</p><p>When used with <code class="inline">use HackflareWeb, :controller</code>, provides common imports and
 configuration for HTTP request handlers supporting both HTML and JSON rendering.</p><h2 id="controller/0-examples" class="section-heading"><a href="#controller/0-examples" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Examples</span></h2><pre><code class="makeup elixir" translate="no"><span class="kn">use</span><span class="w"> </span><span class="nc">HackflareWeb</span><span class="p">,</span><span class="w"> </span><span class="ss">:controller</span><span class="w">
 
-</span><span class="kd">def</span><span class="w"> </span><span class="nf">action</span><span class="p" data-group-id="6270245520-1">(</span><span class="n">conn</span><span class="p">,</span><span class="w"> </span><span class="c">_params</span><span class="p" data-group-id="6270245520-1">)</span><span class="w"> </span><span class="k" data-group-id="6270245520-2">do</span><span class="w">
-  </span><span class="n">render</span><span class="p" data-group-id="6270245520-3">(</span><span class="n">conn</span><span class="p">,</span><span class="w"> </span><span class="ss">:index</span><span class="p">,</span><span class="w"> </span><span class="ss">items</span><span class="p">:</span><span class="w"> </span><span class="n">get_items</span><span class="p" data-group-id="6270245520-4">(</span><span class="p" data-group-id="6270245520-4">)</span><span class="p" data-group-id="6270245520-3">)</span><span class="w">
-</span><span class="k" data-group-id="6270245520-2">end</span></code></pre>
+</span><span class="kd">def</span><span class="w"> </span><span class="nf">action</span><span class="p" data-group-id="8911942138-1">(</span><span class="n">conn</span><span class="p">,</span><span class="w"> </span><span class="c">_params</span><span class="p" data-group-id="8911942138-1">)</span><span class="w"> </span><span class="k" data-group-id="8911942138-2">do</span><span class="w">
+  </span><span class="n">render</span><span class="p" data-group-id="8911942138-3">(</span><span class="n">conn</span><span class="p">,</span><span class="w"> </span><span class="ss">:index</span><span class="p">,</span><span class="w"> </span><span class="ss">items</span><span class="p">:</span><span class="w"> </span><span class="n">get_items</span><span class="p" data-group-id="8911942138-4">(</span><span class="p" data-group-id="8911942138-4">)</span><span class="p" data-group-id="8911942138-3">)</span><span class="w">
+</span><span class="k" data-group-id="8911942138-2">end</span></code></pre>
   </section>
 </section>
 <section class="detail" id="html/0">
@@ -320,9 +320,9 @@ configuration for HTTP request handlers supporting both HTML and JSON rendering.
 <p>Returns the setup for HTML/component modules.</p><p>When used with <code class="inline">use HackflareWeb, :html</code>, provides imports for building
 reusable HTML components and helpers.</p><h2 id="html/0-examples" class="section-heading"><a href="#html/0-examples" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Examples</span></h2><pre><code class="makeup elixir" translate="no"><span class="kn">use</span><span class="w"> </span><span class="nc">HackflareWeb</span><span class="p">,</span><span class="w"> </span><span class="ss">:html</span><span class="w">
 
-</span><span class="kd">def</span><span class="w"> </span><span class="nf">my_component</span><span class="p" data-group-id="7689019111-1">(</span><span class="n">assigns</span><span class="p" data-group-id="7689019111-1">)</span><span class="w"> </span><span class="k" data-group-id="7689019111-2">do</span><span class="w">
+</span><span class="kd">def</span><span class="w"> </span><span class="nf">my_component</span><span class="p" data-group-id="9481324393-1">(</span><span class="n">assigns</span><span class="p" data-group-id="9481324393-1">)</span><span class="w"> </span><span class="k" data-group-id="9481324393-2">do</span><span class="w">
   </span><span class="sx">~H&quot;&lt;div&gt;&lt;%= @content %&gt;&lt;/div&gt;&quot;</span><span class="w">
-</span><span class="k" data-group-id="7689019111-2">end</span></code></pre>
+</span><span class="k" data-group-id="9481324393-2">end</span></code></pre>
   </section>
 </section>
 <section class="detail" id="live_component/0">
@@ -343,9 +343,9 @@ reusable HTML components and helpers.</p><h2 id="html/0-examples" class="section
 <p>Returns the setup for LiveComponent modules.</p><p>When used with <code class="inline">use HackflareWeb, :live_component</code>, provides configuration
 for reusable stateful components within LiveView pages.</p><h2 id="live_component/0-examples" class="section-heading"><a href="#live_component/0-examples" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Examples</span></h2><pre><code class="makeup elixir" translate="no"><span class="kn">use</span><span class="w"> </span><span class="nc">HackflareWeb</span><span class="p">,</span><span class="w"> </span><span class="ss">:live_component</span><span class="w">
 
-</span><span class="kd">def</span><span class="w"> </span><span class="nf">render</span><span class="p" data-group-id="2344544605-1">(</span><span class="n">assigns</span><span class="p" data-group-id="2344544605-1">)</span><span class="w"> </span><span class="k" data-group-id="2344544605-2">do</span><span class="w">
+</span><span class="kd">def</span><span class="w"> </span><span class="nf">render</span><span class="p" data-group-id="8561134666-1">(</span><span class="n">assigns</span><span class="p" data-group-id="8561134666-1">)</span><span class="w"> </span><span class="k" data-group-id="8561134666-2">do</span><span class="w">
   </span><span class="sx">~H&quot;&lt;button phx-click=&quot;click</span><span class="s">&quot;&gt;&lt;%= @label %&gt;&lt;/button&gt;&quot;</span><span class="w">
-</span><span class="k" data-group-id="2344544605-2">end</span></code></pre>
+</span><span class="k" data-group-id="8561134666-2">end</span></code></pre>
   </section>
 </section>
 <section class="detail" id="live_view/0">
@@ -366,7 +366,7 @@ for reusable stateful components within LiveView pages.</p><h2 id="live_componen
 <p>Returns the setup for LiveView modules.</p><p>When used with <code class="inline">use HackflareWeb, :live_view</code>, provides common configuration
 for real-time interactive UI components with WebSocket support.</p><h2 id="live_view/0-examples" class="section-heading"><a href="#live_view/0-examples" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Examples</span></h2><pre><code class="makeup elixir" translate="no"><span class="kn">use</span><span class="w"> </span><span class="nc">HackflareWeb</span><span class="p">,</span><span class="w"> </span><span class="ss">:live_view</span><span class="w">
 
-</span><span class="kd">def</span><span class="w"> </span><span class="nf">render</span><span class="p" data-group-id="5457637421-1">(</span><span class="n">assigns</span><span class="p" data-group-id="5457637421-1">)</span><span class="w"> </span><span class="k" data-group-id="5457637421-2">do</span><span class="w">
+</span><span class="kd">def</span><span class="w"> </span><span class="nf">render</span><span class="p" data-group-id="8558248488-1">(</span><span class="n">assigns</span><span class="p" data-group-id="8558248488-1">)</span><span class="w"> </span><span class="k" data-group-id="8558248488-2">do</span><span class="w">
   </span><span class="sx">~H&quot;&quot;&quot;
   &lt;div&gt;
     &lt;button phx-click=&quot;increment&quot;&gt;
@@ -374,7 +374,7 @@ for real-time interactive UI components with WebSocket support.</p><h2 id="live_
     &lt;/button&gt;
   &lt;/div&gt;
   &quot;&quot;&quot;</span><span class="w">
-</span><span class="k" data-group-id="5457637421-2">end</span></code></pre>
+</span><span class="k" data-group-id="8558248488-2">end</span></code></pre>
   </section>
 </section>
 <section class="detail" id="router/0">
@@ -395,10 +395,10 @@ for real-time interactive UI components with WebSocket support.</p><h2 id="live_
 <p>Returns the setup for routers.</p><p>When used with <code class="inline">use HackflareWeb, :router</code>, provides common imports and
 configuration for HTTP routers.</p><h2 id="router/0-examples" class="section-heading"><a href="#router/0-examples" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Examples</span></h2><pre><code class="makeup elixir" translate="no"><span class="kn">use</span><span class="w"> </span><span class="nc">HackflareWeb</span><span class="p">,</span><span class="w"> </span><span class="ss">:router</span><span class="w">
 
-</span><span class="n">scope</span><span class="w"> </span><span class="s">&quot;/&quot;</span><span class="p">,</span><span class="w"> </span><span class="nc">MyApp</span><span class="w"> </span><span class="k" data-group-id="0814530535-1">do</span><span class="w">
+</span><span class="n">scope</span><span class="w"> </span><span class="s">&quot;/&quot;</span><span class="p">,</span><span class="w"> </span><span class="nc">MyApp</span><span class="w"> </span><span class="k" data-group-id="6835390555-1">do</span><span class="w">
   </span><span class="n">pipe_through</span><span class="w"> </span><span class="ss">:browser</span><span class="w">
   </span><span class="n">get</span><span class="w"> </span><span class="s">&quot;/&quot;</span><span class="p">,</span><span class="w"> </span><span class="nc">PageController</span><span class="p">,</span><span class="w"> </span><span class="ss">:index</span><span class="w">
-</span><span class="k" data-group-id="0814530535-1">end</span></code></pre>
+</span><span class="k" data-group-id="6835390555-1">end</span></code></pre>
   </section>
 </section>
 <section class="detail" id="static_paths/0">

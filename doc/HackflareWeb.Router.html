@@ -12,7 +12,7 @@
 
     <link rel="stylesheet" href="dist/html-elixir-YJO4MOOW.css" />
 
-    <script defer src="dist/sidebar_items-6138F1A3.js"></script>
+    <script defer src="dist/sidebar_items-D2863BCE.js"></script>
     <script defer src="docs_config.js"></script>
     <script defer src="dist/html-YU4BZFVS.js"></script>
 
@@ -112,10 +112,10 @@ hackflare
 <p>HTTP Router for Hackflare web application.</p><p>This module defines all HTTP routes and request pipelines for the Hackflare
 web interface. Routes are matched against incoming HTTP requests and dispatched
 to the appropriate controller or live view handler.</p><h2 id="module-pipelines" class="section-heading"><a href="#module-pipelines" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Pipelines</span></h2><p>Pipelines are sequences of plugs that process requests before they reach handlers.</p><h3 id="module-browser" class="section-heading"><a href="#module-browser" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">:browser</span></h3><p>Used for traditional HTML requests. Includes:</p><ul><li>CSRF protection</li><li>Session handling</li><li>LiveView flash support</li><li>Secure headers</li></ul><h3 id="module-api" class="section-heading"><a href="#module-api" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">:api</span></h3><p>Used for JSON API requests. Includes:</p><ul><li>JSON content type handling</li><li>No CSRF/session requirements</li></ul><h2 id="module-routes" class="section-heading"><a href="#module-routes" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Routes</span></h2><p>Currently defined routes:</p><ul><li><code class="inline">GET /</code> - Home page (PageController.home)</li><li><code class="inline">/dev/dashboard</code> - LiveDashboard (development only)</li><li><code class="inline">/dev/mailbox</code> - Email preview (development only)</li></ul><h2 id="module-development-only-routes" class="section-heading"><a href="#module-development-only-routes" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Development-only Routes</span></h2><p>The <code class="inline">/dev</code> scope is only mounted when <code class="inline">dev_routes</code> is enabled in compile-time
-configuration. This provides development tools:</p><ul><li>LiveDashboard for monitoring and debugging</li><li>Swoosh mailbox preview for email testing</li></ul><h2 id="module-extending-routes" class="section-heading"><a href="#module-extending-routes" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Extending Routes</span></h2><p>To add new routes:</p><pre><code class="makeup elixir" translate="no"><span class="n">scope</span><span class="w"> </span><span class="s">&quot;/api/v1&quot;</span><span class="p">,</span><span class="w"> </span><span class="nc">HackflareWeb</span><span class="w"> </span><span class="k" data-group-id="0100260615-1">do</span><span class="w">
+configuration. This provides development tools:</p><ul><li>LiveDashboard for monitoring and debugging</li><li>Swoosh mailbox preview for email testing</li></ul><h2 id="module-extending-routes" class="section-heading"><a href="#module-extending-routes" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Extending Routes</span></h2><p>To add new routes:</p><pre><code class="makeup elixir" translate="no"><span class="n">scope</span><span class="w"> </span><span class="s">&quot;/api/v1&quot;</span><span class="p">,</span><span class="w"> </span><span class="nc">HackflareWeb</span><span class="w"> </span><span class="k" data-group-id="0745366813-1">do</span><span class="w">
   </span><span class="n">pipe_through</span><span class="w"> </span><span class="ss">:api</span><span class="w">
   </span><span class="n">resources</span><span class="w"> </span><span class="s">&quot;/domains&quot;</span><span class="p">,</span><span class="w"> </span><span class="nc">DomainController</span><span class="w">
-</span><span class="k" data-group-id="0100260615-1">end</span></code></pre>
+</span><span class="k" data-group-id="0745366813-1">end</span></code></pre>
     </section>
 
 </div>

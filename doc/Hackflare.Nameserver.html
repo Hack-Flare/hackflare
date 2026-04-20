@@ -12,7 +12,7 @@
 
     <link rel="stylesheet" href="dist/html-elixir-YJO4MOOW.css" />
 
-    <script defer src="dist/sidebar_items-6138F1A3.js"></script>
+    <script defer src="dist/sidebar_items-D2863BCE.js"></script>
     <script defer src="docs_config.js"></script>
     <script defer src="dist/html-YU4BZFVS.js"></script>
 
@@ -113,10 +113,10 @@ hackflare
 DNS nameserver implementation. It initializes and manages the lifetime of the native
 DNS manager, which handles all DNS query processing and zone management.</p><h2 id="module-responsibilities" class="section-heading"><a href="#module-responsibilities" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Responsibilities</span></h2><ul><li>Create and maintain the native DNS manager instance</li><li>Start the nameserver listening on the configured bind address and port</li><li>Handle GenServer lifecycle (start, stop, restart)</li><li>Provide interface to DNS operations via <a href="Hackflare.Native.html"><code class="inline">Hackflare.Native</code></a></li></ul><h2 id="module-configuration" class="section-heading"><a href="#module-configuration" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Configuration</span></h2><p>The nameserver is configured via the <code class="inline">:dns</code> application environment variable,
 which should contain:</p><pre><code class="makeup elixir" translate="no"><span class="n">config</span><span class="w"> </span><span class="ss">:hackflare</span><span class="p">,</span><span class="w">
-  </span><span class="ss">dns</span><span class="p">:</span><span class="w"> </span><span class="p" data-group-id="6790710517-1">[</span><span class="w">
+  </span><span class="ss">dns</span><span class="p">:</span><span class="w"> </span><span class="p" data-group-id="1994820114-1">[</span><span class="w">
     </span><span class="ss">bind</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;0.0.0.0&quot;</span><span class="p">,</span><span class="w">
     </span><span class="ss">port</span><span class="p">:</span><span class="w"> </span><span class="mi">53</span><span class="w">
-  </span><span class="p" data-group-id="6790710517-1">]</span></code></pre><h2 id="module-native-integration" class="section-heading"><a href="#module-native-integration" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Native Integration</span></h2><p>This module uses Rustler NIF bindings in <a href="Hackflare.Native.html"><code class="inline">Hackflare.Native</code></a> to communicate with
+  </span><span class="p" data-group-id="1994820114-1">]</span></code></pre><h2 id="module-native-integration" class="section-heading"><a href="#module-native-integration" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Native Integration</span></h2><p>This module uses Rustler NIF bindings in <a href="Hackflare.Native.html"><code class="inline">Hackflare.Native</code></a> to communicate with
 the Rust nameserver implementation. The native manager handles the actual DNS
 protocol parsing, zone storage, and query resolution.</p>
     </section>

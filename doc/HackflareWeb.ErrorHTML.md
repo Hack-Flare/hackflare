@@ -6,6 +6,8 @@ See config/config.exs.
 
 # `404`
 
+# `500`
+
 # `render`
 
 ---

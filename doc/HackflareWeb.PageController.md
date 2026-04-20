@@ -5,6 +5,10 @@ Controller for static pages in the Hackflare web application.
 This controller handles basic page requests such as the home page.
 For dynamic, real-time pages, use LiveView modules instead.
 
+# `docs_redirect`
+
+Redirect `/docs` to the generated documentation index page.
+
 # `home`
 
 Render the home page.

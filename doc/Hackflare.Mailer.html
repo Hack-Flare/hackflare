@@ -12,7 +12,7 @@
 
     <link rel="stylesheet" href="dist/html-elixir-YJO4MOOW.css" />
 
-    <script defer src="dist/sidebar_items-6138F1A3.js"></script>
+    <script defer src="dist/sidebar_items-D2863BCE.js"></script>
     <script defer src="docs_config.js"></script>
     <script defer src="dist/html-YU4BZFVS.js"></script>
 
@@ -110,15 +110,15 @@ hackflare
 
     <section id="moduledoc">
 <p>Email service for Hackflare using Swoosh.</p><p>This module provides email sending capabilities for transactional emails such as:</p><ul><li>Account notifications</li><li>Password resets</li><li>Domain verification</li><li>Security alerts</li></ul><h2 id="module-usage" class="section-heading"><a href="#module-usage" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Usage</span></h2><pre><code class="makeup elixir" translate="no"><span class="n">email</span><span class="w"> </span><span class="o">=</span><span class="w">
-  </span><span class="n">new</span><span class="p" data-group-id="6308420249-1">(</span><span class="p" data-group-id="6308420249-1">)</span><span class="w">
-  </span><span class="o">|&gt;</span><span class="w"> </span><span class="n">to</span><span class="p" data-group-id="6308420249-2">(</span><span class="s">&quot;user@example.com&quot;</span><span class="p" data-group-id="6308420249-2">)</span><span class="w">
-  </span><span class="o">|&gt;</span><span class="w"> </span><span class="n">from</span><span class="p" data-group-id="6308420249-3">(</span><span class="s">&quot;noreply@hackflare.app&quot;</span><span class="p" data-group-id="6308420249-3">)</span><span class="w">
-  </span><span class="o">|&gt;</span><span class="w"> </span><span class="n">subject</span><span class="p" data-group-id="6308420249-4">(</span><span class="s">&quot;Welcome to Hackflare&quot;</span><span class="p" data-group-id="6308420249-4">)</span><span class="w">
-  </span><span class="o">|&gt;</span><span class="w"> </span><span class="n">text_body</span><span class="p" data-group-id="6308420249-5">(</span><span class="s">&quot;Welcome!&quot;</span><span class="p" data-group-id="6308420249-5">)</span><span class="w">
+  </span><span class="n">new</span><span class="p" data-group-id="9961780231-1">(</span><span class="p" data-group-id="9961780231-1">)</span><span class="w">
+  </span><span class="o">|&gt;</span><span class="w"> </span><span class="n">to</span><span class="p" data-group-id="9961780231-2">(</span><span class="s">&quot;user@example.com&quot;</span><span class="p" data-group-id="9961780231-2">)</span><span class="w">
+  </span><span class="o">|&gt;</span><span class="w"> </span><span class="n">from</span><span class="p" data-group-id="9961780231-3">(</span><span class="s">&quot;noreply@hackflare.app&quot;</span><span class="p" data-group-id="9961780231-3">)</span><span class="w">
+  </span><span class="o">|&gt;</span><span class="w"> </span><span class="n">subject</span><span class="p" data-group-id="9961780231-4">(</span><span class="s">&quot;Welcome to Hackflare&quot;</span><span class="p" data-group-id="9961780231-4">)</span><span class="w">
+  </span><span class="o">|&gt;</span><span class="w"> </span><span class="n">text_body</span><span class="p" data-group-id="9961780231-5">(</span><span class="s">&quot;Welcome!&quot;</span><span class="p" data-group-id="9961780231-5">)</span><span class="w">
 
-</span><span class="nc">Hackflare.Mailer</span><span class="o">.</span><span class="n">deliver</span><span class="p" data-group-id="6308420249-6">(</span><span class="n">email</span><span class="p" data-group-id="6308420249-6">)</span></code></pre><h2 id="module-configuration" class="section-heading"><a href="#module-configuration" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Configuration</span></h2><p>In development, emails are stored locally and viewable at <code class="inline">/dev/mailbox</code>.</p><p>In production, configure the mailer adapter in <code class="inline">config/runtime.exs</code>:</p><pre><code class="makeup elixir" translate="no"><span class="n">config</span><span class="w"> </span><span class="ss">:hackflare</span><span class="p">,</span><span class="w"> </span><span class="nc">Hackflare.Mailer</span><span class="p">,</span><span class="w">
+</span><span class="nc">Hackflare.Mailer</span><span class="o">.</span><span class="n">deliver</span><span class="p" data-group-id="9961780231-6">(</span><span class="n">email</span><span class="p" data-group-id="9961780231-6">)</span></code></pre><h2 id="module-configuration" class="section-heading"><a href="#module-configuration" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Configuration</span></h2><p>In development, emails are stored locally and viewable at <code class="inline">/dev/mailbox</code>.</p><p>In production, configure the mailer adapter in <code class="inline">config/runtime.exs</code>:</p><pre><code class="makeup elixir" translate="no"><span class="n">config</span><span class="w"> </span><span class="ss">:hackflare</span><span class="p">,</span><span class="w"> </span><span class="nc">Hackflare.Mailer</span><span class="p">,</span><span class="w">
   </span><span class="ss">adapter</span><span class="p">:</span><span class="w"> </span><span class="nc">Swoosh.Adapters.Sendgrid</span><span class="p">,</span><span class="w">
-  </span><span class="ss">api_key</span><span class="p">:</span><span class="w"> </span><span class="nc">System</span><span class="o">.</span><span class="n">get_env</span><span class="p" data-group-id="9401339568-1">(</span><span class="s">&quot;SENDGRID_API_KEY&quot;</span><span class="p" data-group-id="9401339568-1">)</span></code></pre><p>Supported adapters include SendGrid, Mailgun, AWS SES, SMTP, and others.
+  </span><span class="ss">api_key</span><span class="p">:</span><span class="w"> </span><span class="nc">System</span><span class="o">.</span><span class="n">get_env</span><span class="p" data-group-id="2208168541-1">(</span><span class="s">&quot;SENDGRID_API_KEY&quot;</span><span class="p" data-group-id="2208168541-1">)</span></code></pre><p>Supported adapters include SendGrid, Mailgun, AWS SES, SMTP, and others.
 See <a href="https://hexdocs.pm/swoosh">Swoosh documentation</a> for available adapters.</p>
     </section>
 

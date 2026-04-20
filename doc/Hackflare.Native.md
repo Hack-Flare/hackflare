@@ -27,6 +27,22 @@ exposed through these NIF stubs. The actual implementation is in `native/core/sr
 
 - `manager_start_nameserver/3` - Start the nameserver listening on bind:port
 
+## Rust Runtime Behavior
+
+These functions are exported from Rust in `native/core/src/nifs.rs`.
+The Elixir stubs below raise `:nif_not_loaded` until the NIF is loaded,
+but once loaded, runtime return values are currently:
+
+- `manager_new/0` -> opaque resource
+- `manager_create_zone/2` -> `true`
+- `manager_delete_zone/2` -> `true | false`
+- `manager_add_record/6` -> `true | false`
+- `manager_remove_record/4` -> `true | false`
+- `manager_list_zones/1` -> JSON string
+- `manager_find_records/3` -> JSON string
+- `engine_handle_query/2` -> `binary | nil`
+- `manager_start_nameserver/3` -> `true`
+
 ## Error Handling
 
 If the native library is not loaded (e.g., in development without compilation),
@@ -52,7 +68,7 @@ This is the core DNS query handling function used by the nameserver.
 
 ## Returns
 
-  Raw DNS response packet (binary)
+  Raw DNS response packet (binary) or `nil` if query cannot be handled
 
 ## Errors
 
@@ -76,8 +92,8 @@ name but different types (or data) can coexist.
 
 ## Returns
 
-  `:ok` - Record added successfully
-  `{:error, reason}` - If addition fails (e.g., invalid type, zone not found)
+  `true` - Record added successfully
+  `false` - Zone not found
 
 ## Errors
 
@@ -97,8 +113,7 @@ added to the zone after creation.
 
 ## Returns
 
-  `:ok` - Zone created successfully
-  `{:error, reason}` - If zone creation fails (e.g., zone already exists)
+  `true` - Zone create request accepted
 
 ## Errors
 
@@ -117,8 +132,8 @@ Removes the zone and all its associated records. This operation cannot be undone
 
 ## Returns
 
-  `:ok` - Zone deleted successfully
-  `{:error, reason}` - If deletion fails (e.g., zone not found)
+  `true` - Zone existed and was deleted
+  `false` - Zone did not exist
 
 ## Errors
 
@@ -139,8 +154,8 @@ matching the name are returned.
 
 ## Returns
 
-  List of matching records with their details
-  Empty list if no records found
+  JSON string containing matching record objects
+  JSON `[]` if no records found
 
 ## Errors
 
@@ -156,7 +171,7 @@ Lists all zones currently in the DNS manager.
 
 ## Returns
 
-  List of zone names (strings)
+  JSON string containing list of zone names (e.g., `"["example.com"]"`)
 
 ## Errors
 
@@ -192,8 +207,8 @@ Deletes all records matching the specified name and type from the zone.
 
 ## Returns
 
-  `:ok` - Record removed successfully
-  `{:error, reason}` - If removal fails (e.g., record not found)
+  `true` - At least one record was removed
+  `false` - Zone missing or no matching record found
 
 ## Errors
 
@@ -214,8 +229,7 @@ that runs in the background on the Rust side.
 
 ## Returns
 
-  `:ok` - Nameserver started successfully
-  `{:error, reason}` - If startup fails (e.g., port already in use)
+  `true` immediately after spawning nameserver thread
 
 ## Errors
 
