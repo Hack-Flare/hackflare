@@ -59,6 +59,7 @@ RUN useradd -m -u 1000 appuser && \
 USER appuser
 
 COPY --from=build --chown=appuser:appuser /app/release .
+COPY --from=build --chown=appuser:appuser /app/doc ./doc
 
 EXPOSE 4000
 CMD ["bin/hackflare", "start"]

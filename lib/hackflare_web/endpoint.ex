@@ -15,6 +15,9 @@ defmodule HackflareWeb.Endpoint do
     websocket: [connect_info: [session: @session_options]],
     longpoll: [connect_info: [session: @session_options]]
 
+  # Normalize trailing slash form so `/docs/` resolves consistently in prod and dev.
+  plug :redirect_docs_trailing_slash
+
   # Serve at "/" the static files from "priv/static" directory.
   #
   # When code reloading is disabled (e.g., in production),
@@ -30,7 +33,7 @@ defmodule HackflareWeb.Endpoint do
   # Serve packaged ExDoc HTML from `priv/static/docs` at `/docs` in releases.
   plug Plug.Static,
     at: "/docs",
-    from: {:hackflare, "priv/static/docs"},
+    from: {__MODULE__, :docs_dir, []},
     gzip: not code_reloading?
 
   # Code reloading can be explicitly enabled under the
@@ -62,4 +65,24 @@ defmodule HackflareWeb.Endpoint do
   plug Plug.Head
   plug Plug.Session, @session_options
   plug HackflareWeb.Router
+
+  def docs_dir do
+    release_docs = Application.app_dir(:hackflare, "priv/static/docs")
+    fallback_docs = System.get_env("HACKFLARE_DOCS_DIR", "/app/doc")
+
+    cond do
+      File.dir?(release_docs) -> release_docs
+      File.dir?(fallback_docs) -> fallback_docs
+      true -> release_docs
+    end
+  end
+
+  defp redirect_docs_trailing_slash(%Plug.Conn{request_path: "/docs/"} = conn, _opts) do
+    conn
+    |> Plug.Conn.put_resp_header("location", "/docs/index.html")
+    |> Plug.Conn.send_resp(302, "")
+    |> Plug.Conn.halt()
+  end
+
+  defp redirect_docs_trailing_slash(conn, _opts), do: conn
 end
