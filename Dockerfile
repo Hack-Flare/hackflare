@@ -40,7 +40,9 @@ RUN mix assets.deploy
 RUN mkdir -p priv/static/docs && cp -r doc/. priv/static/docs/
 
 RUN mix release --overwrite && \
-    cp -r _build/prod/rel/hackflare ./release
+    cp -r _build/prod/rel/hackflare ./release && \
+    mkdir -p release/lib/hackflare-*/priv/static/docs && \
+    cp -r doc/. release/lib/hackflare-*/priv/static/docs/
 
 FROM debian:trixie-slim AS app
 
