@@ -3,6 +3,9 @@ name: CI
 on:
   push:
     branches: [ "main" ]
+    pull_request:
+      branches: [ "main" ]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -118,7 +121,7 @@ jobs:
       - run: mix deps.audit
       - run: mix sobelow --config
 
-  type_check:
+type_check:
     name: Type Checking
     needs: [compile]
     runs-on: ubuntu-latest
@@ -126,12 +129,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
+
       - uses: erlef/setup-beam@v1
         with:
           elixir-version: ${{ env.ELIXIR_VERSION }}
           otp-version: ${{ env.OTP_VERSION }}
 
-      - uses: actions/cache/restore@v4
+      - name: Restore/Save Dialyzer PLT Cache
+        uses: actions/cache@v4
+        with:
+          path: priv/plts
+          key: ${{ runner.os }}-plt-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-plt-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-
+
+      - name: Restore Application Build
+        uses: actions/cache/restore@v4
         with:
           path: |
             deps
@@ -140,9 +153,10 @@ jobs:
           key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ github.sha }}
           fail-on-cache-miss: true
 
-      - run: mix dialyzer
-
-  test:
+      - name: Run Dialyzer
+        run: mix dialyzer
+        
+    test:
     name: Test Partition ${{ matrix.partition }}
     needs: [compile]
     runs-on: ubuntu-latest
