@@ -17,6 +17,8 @@ services:
       image: hackflare:latest
     depends_on:
       - db
+    env_file:
+      - .env
     environment:
       PHX_SERVER: "true"
       MIX_ENV: "prod"
