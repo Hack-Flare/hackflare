@@ -35,6 +35,7 @@ services:
     ports:
       - "4000:4000"
       - "53:53/udp"
+      - "53:53/tcp"
     restart: unless-stopped
 
 volumes:
