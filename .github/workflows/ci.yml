@@ -28,7 +28,7 @@ jobs:
         with:
           elixir-version: ${{ env.ELIXIR_VERSION }}
           otp-version: ${{ env.OTP_VERSION }}
-      - name: Dependancies
+      - name: Dependencies
         run: mix deps.get
       - run: mix format
       - name: Auto-commit formatted code
@@ -56,21 +56,19 @@ jobs:
           elixir-version: ${{ env.ELIXIR_VERSION }}
           otp-version: ${{ env.OTP_VERSION }}
 
-      # Notice the github.sha in the keys below to perfectly lock the cache
-      - uses: actions/cache@v4
-        with:
-          path: deps
-          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}-${{ github.sha }}
-          restore-keys: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}-
-
-      - uses: actions/cache@v4
-        with:
-          path: _build
-          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('**/mix.lock') }}-${{ github.sha }}
-          restore-keys: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('**/mix.lock') }}-
-
       - run: mix deps.get
-      - run: mix compile --warnings-as-errors
+
+      - name: Compile Elixir + Rust
+        run: mix compile --warnings-as-errors
+
+      # We save the cache here including the priv folder where the NIF lives
+      - uses: actions/cache/save@v4
+        with:
+          path: |
+            deps
+            _build
+            priv/native
+          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ github.sha }}
 
   static_analysis:
     name: Static Analysis
@@ -85,14 +83,14 @@ jobs:
           elixir-version: ${{ env.ELIXIR_VERSION }}
           otp-version: ${{ env.OTP_VERSION }}
           
-      - uses: actions/cache@v4
+      - uses: actions/cache/restore@v4
         with:
-          path: deps
-          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}-${{ github.sha }}
-      - uses: actions/cache@v4
-        with:
-          path: _build
-          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('**/mix.lock') }}-${{ github.sha }}
+          path: |
+            deps
+            _build
+            priv/native
+          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ github.sha }}
+          fail-on-cache-miss: true
 
       - run: mix credo --strict
       - run: mix deps.audit
@@ -111,14 +109,14 @@ jobs:
           elixir-version: ${{ env.ELIXIR_VERSION }}
           otp-version: ${{ env.OTP_VERSION }}
 
-      - uses: actions/cache@v4
+      - uses: actions/cache/restore@v4
         with:
-          path: deps
-          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}-${{ github.sha }}
-      - uses: actions/cache@v4
-        with:
-          path: _build
-          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('**/mix.lock') }}-${{ github.sha }}
+          path: |
+            deps
+            _build
+            priv/native
+          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ github.sha }}
+          fail-on-cache-miss: true
 
       - run: mix dialyzer
 
@@ -153,16 +151,22 @@ jobs:
           elixir-version: ${{ env.ELIXIR_VERSION }}
           otp-version: ${{ env.OTP_VERSION }}
 
-      - uses: actions/cache@v4
+      - uses: actions/cache/restore@v4
         with:
-          path: deps
-          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}-${{ github.sha }}
-      - uses: actions/cache@v4
-        with:
-          path: _build
-          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('**/mix.lock') }}-${{ github.sha }}
+          path: |
+            deps
+            _build
+            priv/native
+          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ github.sha }}
+          fail-on-cache-miss: true
 
-      - run: mkdir -p priv/repo/migrations && mix ecto.create && mix ecto.migrate
-      - env:
+      # Start dependencies before running Ecto to avoid Postgrex.SCRAM errors
+      - name: Setup Database
+        run: |
+          mkdir -p priv/repo/migrations
+          mix do app.start, ecto.create, ecto.migrate
+          
+      - name: Run Tests
+        env:
           MIX_TEST_PARTITION: ${{ matrix.partition }}
         run: mix test --partitions 4
