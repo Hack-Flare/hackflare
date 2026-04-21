@@ -28,7 +28,7 @@ COPY priv/ ./priv/
 COPY lib/ ./lib/
 COPY assets/ ./assets/
 COPY doc/ ./doc/
-COPY .env ./
+
 
 RUN --mount=type=cache,target=/root/.cargo/registry \
     --mount=type=cache,target=/root/.cargo/git \
