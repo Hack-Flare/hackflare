@@ -27,6 +27,13 @@ defmodule HackflareWeb.PageController do
   end
 
   @doc """
+  Return a lightweight response for health checks.
+  """
+  def health(conn, _params) do
+    text(conn, "ok")
+  end
+
+  @doc """
   Redirect `/docs` to the generated documentation index page.
   """
   def docs_redirect(conn, _params) do

@@ -6,4 +6,10 @@ defmodule HackflareWeb.PageControllerTest do
     assert html_response(conn, 200) =~ "HackFlare"
     assert html_response(conn, 200) =~ "Cloudflare alternative for HackClub"
   end
+
+  test "GET /health", %{conn: conn} do
+    conn = get(conn, ~p"/health")
+
+    assert response(conn, 200) == "ok"
+  end
 end
