@@ -26,7 +26,8 @@ defmodule HackflareWeb.Layouts do
           {assigns[:page_title] || "HackFlare"}
         </.live_title>
         <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
-        <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}></script>
+        <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
+        </script>
       </head>
       <body>
         {@inner_content}
@@ -203,7 +204,10 @@ defmodule HackflareWeb.Layouts do
         <!-- Header -->
         <header class="fixed top-0 left-0 right-0 z-50 navbar px-4 sm:px-6 lg:px-8 bg-black/50 backdrop-blur-md shadow-md border-b border-orange-500/20">
           <div class="flex-1">
-            <a href="/" class="flex-1 flex w-fit items-center gap-3 hover:opacity-80 transition-opacity">
+            <a
+              href="/"
+              class="flex-1 flex w-fit items-center gap-3 hover:opacity-80 transition-opacity"
+            >
               <img src={~p"/images/logo.svg"} width="48" />
               <span class="font-bold text-xl text-orange-400 hidden sm:inline">HackFlare</span>
             </a>
@@ -226,8 +230,8 @@ defmodule HackflareWeb.Layouts do
             </ul>
           </div>
         </header>
-
-        <!-- Hero Section Full Screen -->
+        
+    <!-- Hero Section Full Screen -->
         <div class="relative h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 text-white overflow-hidden flex items-center">
           <div class="w-full">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-7xl mx-auto px-8 sm:px-16 lg:px-24 h-full py-24">
@@ -240,9 +244,7 @@ defmodule HackflareWeb.Layouts do
                     </span>
                   </h1>
                   <p class="text-2xl sm:text-3xl font-bold text-gray-200 leading-tight">
-                    Built by Hackclubers
-                    <br />
-                    For Hackclubers
+                    Built by Hackclubers <br /> For Hackclubers
                   </p>
                 </div>
 
@@ -284,8 +286,8 @@ defmodule HackflareWeb.Layouts do
                   </a>
                 </div>
               </div>
-
-              <!-- Right Side: Hero Image -->
+              
+    <!-- Right Side: Hero Image -->
               <div class="flex items-center justify-center lg:justify-end">
                 <div class="relative w-full max-w-md">
                   <img
@@ -294,14 +296,15 @@ defmodule HackflareWeb.Layouts do
                     class="w-full h-auto rounded-lg shadow-2xl shadow-orange-500/30 border border-orange-500/20"
                   />
                   <!-- Glow effect behind image -->
-                  <div class="absolute inset-0 rounded-lg bg-gradient-to-r from-orange-600/20 to-transparent blur-3xl -z-10"></div>
+                  <div class="absolute inset-0 rounded-lg bg-gradient-to-r from-orange-600/20 to-transparent blur-3xl -z-10">
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-
-        <!-- Features Section -->
+        
+    <!-- Features Section -->
         <div class="relative px-8 py-24 sm:px-16 lg:px-24 bg-gradient-to-b from-black to-gray-950">
           <div class="max-w-7xl mx-auto space-y-16">
             <div class="text-center space-y-4">
@@ -318,7 +321,8 @@ defmodule HackflareWeb.Layouts do
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
               <!-- Feature 1 -->
               <div class="group relative">
-                <div class="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent rounded-lg blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100"></div>
+                <div class="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent rounded-lg blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
+                </div>
                 <div class="relative p-8 bg-gray-900/50 border border-orange-500/20 rounded-lg hover:border-orange-500/50 transition-all backdrop-blur-sm">
                   <div class="flex justify-center mb-4">
                     <div class="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg">
@@ -331,10 +335,11 @@ defmodule HackflareWeb.Layouts do
                   </p>
                 </div>
               </div>
-
-              <!-- Feature 2 -->
+              
+    <!-- Feature 2 -->
               <div class="group relative">
-                <div class="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent rounded-lg blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100"></div>
+                <div class="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent rounded-lg blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
+                </div>
                 <div class="relative p-8 bg-gray-900/50 border border-orange-500/20 rounded-lg hover:border-orange-500/50 transition-all backdrop-blur-sm">
                   <div class="flex justify-center mb-4">
                     <div class="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg">
@@ -347,10 +352,11 @@ defmodule HackflareWeb.Layouts do
                   </p>
                 </div>
               </div>
-
-              <!-- Feature 3 -->
+              
+    <!-- Feature 3 -->
               <div class="group relative">
-                <div class="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent rounded-lg blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100"></div>
+                <div class="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent rounded-lg blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
+                </div>
                 <div class="relative p-8 bg-gray-900/50 border border-orange-500/20 rounded-lg hover:border-orange-500/50 transition-all backdrop-blur-sm">
                   <div class="flex justify-center mb-4">
                     <div class="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg">
@@ -366,13 +372,14 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
-
-        <!-- CTA Section -->
+        
+    <!-- CTA Section -->
         <div class="relative px-8 py-24 sm:px-16 lg:px-24 bg-black">
           <div class="max-w-4xl mx-auto">
             <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 to-black border border-orange-500/30 p-12 sm:p-16">
               <!-- Gradient background effect -->
-              <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 via-transparent to-transparent"></div>
+              <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 via-transparent to-transparent">
+              </div>
 
               <div class="relative text-center space-y-6">
                 <h2 class="text-4xl sm:text-5xl font-black text-white">
