@@ -65,9 +65,7 @@ jobs:
           ref: main
 
       - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2
+        uses: ./.github/actions/setup-rust
 
       - uses: erlef/setup-beam@v1
         with:
