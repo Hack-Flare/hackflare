@@ -46,7 +46,7 @@ RUN mix release --overwrite && \
 FROM debian:trixie-slim AS app
 
 RUN apt-get update && \
-    apt-get install -y libstdc++6 openssl libncurses6 ca-certificates curl && \
+    apt-get install -y libstdc++6 openssl libncurses6 ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
 ENV LANG=C.UTF-8 \
@@ -60,8 +60,4 @@ USER appuser
 COPY --from=build --chown=appuser:appuser /app/release .
 
 EXPOSE 4000
-
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-  CMD curl -fsS http://localhost:4000/health || exit 1
-
 CMD ["bin/hackflare", "start"]
