@@ -3,11 +3,11 @@ defmodule Hackflare.Accounts.User do
   import Ecto.Changeset
 
   schema "users" do
-    field :slack_id, :string
-    field :email, :string
-    field :name, :string
-    field :verification_status, :string
-    field :ysws_eligible, :boolean, default: false
+    field(:slack_id, :string)
+    field(:email, :string)
+    field(:name, :string)
+    field(:verification_status, :string)
+    field(:ysws_eligible, :boolean, default: false)
 
     timestamps(type: :utc_datetime)
   end

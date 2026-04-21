@@ -1,5 +1,4 @@
 defmodule Hackflare.HackClubAuth do
-
   def config do
     Application.get_env(:hackflare, :auth)
   end

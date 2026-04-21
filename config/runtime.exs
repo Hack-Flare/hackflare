@@ -54,16 +54,18 @@ config :hackflare, Hackflare.Repo,
   database: System.get_env("DB_NAME") || "hackflare"
 
 config :hackflare, :auth,
-  client_id:
-    System.get_env("HCA_CID") || System.get_env("hca_cid") || "fuhh-you-forgot-set-this",
+  client_id: System.get_env("HCA_CID") || System.get_env("hca_cid") || "fuhh-you-forgot-set-this",
   client_secret:
     System.get_env("HCA_SEC") || System.get_env("hca_sec") || "fuhh-you-forgot-set-this-too",
   redirect_uri:
-    System.get_env("HCA_REDIR_URL") || System.get_env("hca_redir_url") || "http://localhost:4000/auth/callback",
+    System.get_env("HCA_REDIR_URL") || System.get_env("hca_redir_url") ||
+      "http://localhost:4000/auth/callback",
   base_url:
-    System.get_env("HCA_BASE_URL") || System.get_env("hca_base_url") || "https://auth.hackclub.com",
+    System.get_env("HCA_BASE_URL") || System.get_env("hca_base_url") ||
+      "https://auth.hackclub.com",
   openid_configuration_uri:
-    System.get_env("HCA_OPENID_CONFIG_URI") || System.get_env("hca_openid_config_uri") || "/.well-known/openid-configuration",
+    System.get_env("HCA_OPENID_CONFIG_URI") || System.get_env("hca_openid_config_uri") ||
+      "/.well-known/openid-configuration",
   authorization_params: [
     scope: "openid profile email slack_id verification_status"
   ],

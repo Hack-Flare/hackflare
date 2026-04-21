@@ -3,7 +3,6 @@ defmodule HackflareWeb.AuthController do
   alias Hackflare.Accounts
   alias Hackflare.HackClubAuth
 
-
   @doc """
   Initiates the Hack Club OAuth/OIDC flow.
   """
@@ -49,7 +48,8 @@ defmodule HackflareWeb.AuthController do
             conn
             |> put_flash(:info, "Welcome to HackFlare, #{user.name}!")
             |> put_session(:user_id, user.id)
-            |> configure_session(renew: true) # Good practice to rotate session on login
+            # Good practice to rotate session on login
+            |> configure_session(renew: true)
             |> redirect(to: ~p"/")
 
           {:error, _changeset} ->
