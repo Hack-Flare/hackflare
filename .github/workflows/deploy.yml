@@ -5,6 +5,7 @@ on:
     workflows: ["Build and Publish Elixir Docker Image"] 
     types:
       - completed
+  workflow_dispatch:
 
 jobs:
   deploy:
