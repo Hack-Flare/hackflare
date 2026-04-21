@@ -1,6 +1,12 @@
 defmodule Hackflare.Accounts do
-  alias Hackflare.Repo
+  @moduledoc """
+  Account-related helpers for creating and fetching users.
+
+  This module wraps common user operations used by the web controllers.
+  """
+
   alias Hackflare.Accounts.User
+  alias Hackflare.Repo
 
   def register_or_signin(profile) do
     user_params = %{

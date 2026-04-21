@@ -1,4 +1,7 @@
 defmodule Hackflare.Accounts.User do
+  @moduledoc """
+  Ecto schema for application users and related changeset helpers.
+  """
   use Ecto.Schema
   import Ecto.Changeset
 
