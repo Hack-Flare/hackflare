@@ -41,3 +41,4 @@ priv/native
 native/**/target
 
 .docker-cache
+.actrc
