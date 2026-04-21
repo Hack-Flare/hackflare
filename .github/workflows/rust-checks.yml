@@ -26,19 +26,4 @@ jobs:
 
       - name: Clippy Core Crate
         run: cd native/core && cargo clippy -- -D warnings
-
-  #auth-checks:
-  #  runs-on: ubuntu-latest
-  #  permissions:
-  #    contents: read
-  #    packages: write
-  #
-  #  steps:
-  #    - uses: actions/checkout@v6
-  #    - uses: ./.github/actions/setup-rust
-  #
-  #    - name: Check Auth Crate
-  #      run: cd native/auth && cargo check
-  #
-  #    - name: Clippy Auth Crate
-  #      run: cd native/auth && cargo clippy -- -D warnings
+        
