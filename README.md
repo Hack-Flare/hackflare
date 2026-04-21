@@ -1,5 +1,5 @@
 <div align="center">
-<img alt="resized-image (5)" src="https://github.com/user-attachments/assets/fde6f46d-d600-48fc-a12d-a074bf488e36" />
+<img alt="upscalemedia-transformed (1)" src="https://github.com/user-attachments/assets/d99965b5-523d-4878-b985-93a841477db2" />
 </div>
 
 # HackFlare
