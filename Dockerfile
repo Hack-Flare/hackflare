@@ -46,7 +46,7 @@ RUN mix release --overwrite && \
 FROM debian:trixie-slim AS app
 
 RUN apt-get update && \
-    apt-get install -y libstdc++6 openssl libncurses6 ca-certificates && \
+    apt-get install -y libstdc++6 openssl libncurses6 ca-certificates curl && \
     rm -rf /var/lib/apt/lists/*
 
 ENV LANG=C.UTF-8 \
