@@ -203,6 +203,10 @@ defmodule HackflareWeb.Layouts do
               <.icon name="hero-star" class="w-5 h-5" />
               <span>Star on GitHub</span>
             </a>
+            <a href="/auth/request" class="btn btn-accent btn-lg gap-2">
+              <.icon name="hero-lock-closed" class="w-5 h-5" />
+              <span>Sign in with Hack Club</span>
+            </a>
           </div>
         </section>
         

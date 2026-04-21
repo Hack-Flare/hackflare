@@ -69,6 +69,14 @@ defmodule HackflareWeb.Router do
     get "/docs", PageController, :docs_redirect
   end
 
+  scope "/auth", HackflareWeb do
+    pipe_through :browser
+
+    get "/request", AuthController, :request
+    get "/callback", AuthController, :callback
+    delete "/logout", AuthController, :logout
+  end
+
   # Other scopes may use custom stacks.
   # scope "/api", HackflareWeb do
   #   pipe_through :api
