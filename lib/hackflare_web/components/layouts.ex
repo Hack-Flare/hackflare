@@ -12,6 +12,30 @@ defmodule HackflareWeb.Layouts do
   embed_templates "layouts/*"
 
   @doc """
+  Renders the root layout of the application.
+  """
+  def root(assigns) do
+    ~H"""
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="csrf-token" content={get_csrf_token()} />
+        <.live_title>
+          {assigns[:page_title] || "HackFlare"}
+        </.live_title>
+        <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
+        <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}></script>
+      </head>
+      <body>
+        {@inner_content}
+      </body>
+    </html>
+    """
+  end
+
+  @doc """
   Renders your app layout.
 
   This function is typically invoked from every template,
@@ -173,112 +197,215 @@ defmodule HackflareWeb.Layouts do
 
   def home(assigns) do
     ~H"""
-    <.app flash={@flash}>
-      <div class="space-y-16">
-        <!-- Hero Section -->
-        <section class="text-center space-y-8">
-          <div class="space-y-4">
-            <h1 class="text-5xl sm:text-7xl font-extrabold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-              HackFlare
-            </h1>
-            <p class="text-xl sm:text-2xl text-base-content/70 font-light">
-              Cloudflare alternative for HackClub
-            </p>
-          </div>
-
-          <p class="text-base sm:text-lg text-base-content/60 max-w-2xl mx-auto leading-relaxed">
-            Take control of your DNS and content delivery. Simple, powerful, and built for HackClub members.
-          </p>
-
-          <div class="flex gap-4 justify-center pt-4">
-            <a href="dash/" class="btn btn-primary btn-lg gap-2">
-              <span>Get Started</span>
-              <.icon name="hero-arrow-right" class="w-5 h-5" />
-            </a>
-            <a href="/docs" class="btn btn-outline btn-lg gap-2">
-              <.icon name="hero-book-open" class="w-5 h-5" />
-              <span>View Docs</span>
-            </a>
-            <a href="https://github.com/Hack-Flare/hackflare" class="btn btn-outline btn-lg gap-2">
-              <.icon name="hero-star" class="w-5 h-5" />
-              <span>Star on GitHub</span>
-            </a>
-            <a href="/auth/request" class="btn btn-accent btn-lg gap-2">
-              <.icon name="hero-lock-closed" class="w-5 h-5" />
-              <span>Sign in with Hack Club</span>
+    <!DOCTYPE html>
+    <html>
+      <body>
+        <!-- Header -->
+        <header class="fixed top-0 left-0 right-0 z-50 navbar px-4 sm:px-6 lg:px-8 bg-black/50 backdrop-blur-md shadow-md border-b border-orange-500/20">
+          <div class="flex-1">
+            <a href="/" class="flex-1 flex w-fit items-center gap-3 hover:opacity-80 transition-opacity">
+              <img src={~p"/images/logo.svg"} width="48" />
+              <span class="font-bold text-xl text-orange-400 hidden sm:inline">HackFlare</span>
             </a>
           </div>
-        </section>
-        
-    <!-- Features Section -->
-        <section class="space-y-8">
-          <h2 class="text-3xl sm:text-4xl font-bold text-center">
-            Why HackFlare?
-          </h2>
+          <div class="flex-none gap-4">
+            <ul class="flex gap-4 items-center">
+              <li>
+                <a
+                  href="https://github.com/Hack-Flare/hackflare"
+                  class="btn btn-ghost btn-circle hover:bg-base-200"
+                >
+                  <img src={~p"/images/github.svg"} width="24" />
+                </a>
+              </li>
+              <li>
+                <a href="dash/" class="btn btn-sm btn-ghost btn-circle">
+                  <.icon name="hero-user" class="size-5" />
+                </a>
+              </li>
+            </ul>
+          </div>
+        </header>
 
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="card bg-base-300 shadow-lg hover:shadow-xl transition-shadow hover:bg-base-200">
-              <div class="card-body space-y-3">
-                <div class="flex justify-center">
-                  <div class="badge badge-primary badge-lg">
-                    <.icon name="hero-bolt" class="w-5 h-5" />
-                  </div>
+        <!-- Hero Section Full Screen -->
+        <div class="relative h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 text-white overflow-hidden flex items-center">
+          <div class="w-full">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-7xl mx-auto px-8 sm:px-16 lg:px-24 h-full py-24">
+              <!-- Left Side: Content -->
+              <div class="space-y-8 z-10">
+                <div class="space-y-6">
+                  <h1 class="text-6xl sm:text-7xl lg:text-8xl font-black leading-tight">
+                    <span class="bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 bg-clip-text text-transparent">
+                      HackFlare
+                    </span>
+                  </h1>
+                  <p class="text-2xl sm:text-3xl font-bold text-gray-200 leading-tight">
+                    Built by Hackclubers
+                    <br />
+                    For Hackclubers
+                  </p>
                 </div>
-                <h3 class="card-title text-center justify-center">Fast & Reliable</h3>
-                <p class="text-center text-sm">
-                  Lightning-fast DNS resolution and global content delivery network.
+
+                <p class="text-lg text-gray-300 leading-relaxed max-w-xl">
+                  A powerful DNS and content delivery platform built for the HackClub community. Take control, stay fast, stay secure.
                 </p>
+
+                <div class="flex flex-col sm:flex-row gap-4 pt-8">
+                  <a
+                    href="dash/"
+                    class="px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-orange-500/50 inline-flex items-center justify-center gap-2"
+                  >
+                    <span>Get Started</span>
+                    <.icon name="hero-arrow-right" class="w-5 h-5" />
+                  </a>
+                  <a
+                    href="/auth/request"
+                    class="px-8 py-4 border-2 border-orange-500 hover:bg-orange-500/10 text-orange-400 font-bold rounded-lg transition-all inline-flex items-center justify-center gap-2"
+                  >
+                    <.icon name="hero-lock-closed" class="w-5 h-5" />
+                    <span>Sign in with Hack Club</span>
+                  </a>
+                </div>
+
+                <div class="flex flex-wrap gap-4 pt-4">
+                  <a
+                    href="/docs"
+                    class="px-6 py-3 text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-2 transition-colors"
+                  >
+                    <.icon name="hero-book-open" class="w-5 h-5" />
+                    <span>Documentation</span>
+                  </a>
+                  <a
+                    href="https://github.com/Hack-Flare/hackflare"
+                    class="px-6 py-3 text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-2 transition-colors"
+                  >
+                    <.icon name="hero-star" class="w-5 h-5" />
+                    <span>Github</span>
+                  </a>
+                </div>
+              </div>
+
+              <!-- Right Side: Hero Image -->
+              <div class="flex items-center justify-center lg:justify-end">
+                <div class="relative w-full max-w-md">
+                  <img
+                    src={~p"/images/hero-globe.png"}
+                    alt="HackFlare Hero"
+                    class="w-full h-auto rounded-lg shadow-2xl shadow-orange-500/30 border border-orange-500/20"
+                  />
+                  <!-- Glow effect behind image -->
+                  <div class="absolute inset-0 rounded-lg bg-gradient-to-r from-orange-600/20 to-transparent blur-3xl -z-10"></div>
+                </div>
               </div>
             </div>
+          </div>
+        </div>
 
-            <div class="card bg-base-300 shadow-lg hover:shadow-xl transition-shadow hover:bg-base-200">
-              <div class="card-body space-y-3">
-                <div class="flex justify-center">
-                  <div class="badge badge-secondary badge-lg">
-                    <.icon name="hero-shield-check" class="w-5 h-5" />
-                  </div>
-                </div>
-                <h3 class="card-title text-center justify-center">Secure</h3>
-                <p class="text-center text-sm">
-                  Built-in DDoS protection and advanced security features.
-                </p>
-              </div>
+        <!-- Features Section -->
+        <div class="relative px-8 py-24 sm:px-16 lg:px-24 bg-gradient-to-b from-black to-gray-950">
+          <div class="max-w-7xl mx-auto space-y-16">
+            <div class="text-center space-y-4">
+              <h2 class="text-5xl sm:text-6xl font-black">
+                <span class="bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
+                  Why HackFlare?
+                </span>
+              </h2>
+              <p class="text-gray-300 text-lg max-w-2xl mx-auto">
+                Everything you need to manage your DNS and content delivery
+              </p>
             </div>
 
-            <div class="card bg-base-300 shadow-lg hover:shadow-xl transition-shadow hover:bg-base-200">
-              <div class="card-body space-y-3">
-                <div class="flex justify-center">
-                  <div class="badge badge-accent badge-lg">
-                    <.icon name="hero-cog" class="w-5 h-5" />
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <!-- Feature 1 -->
+              <div class="group relative">
+                <div class="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent rounded-lg blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100"></div>
+                <div class="relative p-8 bg-gray-900/50 border border-orange-500/20 rounded-lg hover:border-orange-500/50 transition-all backdrop-blur-sm">
+                  <div class="flex justify-center mb-4">
+                    <div class="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg">
+                      <.icon name="hero-bolt" class="w-6 h-6 text-white" />
+                    </div>
                   </div>
+                  <h3 class="text-xl font-bold text-center text-white mb-2">Lightning Fast</h3>
+                  <p class="text-center text-gray-300 text-sm">
+                    Global DNS resolution and CDN at blazing speeds.
+                  </p>
                 </div>
-                <h3 class="card-title text-center justify-center">Easy to Use</h3>
-                <p class="text-center text-sm">
-                  Intuitive dashboard for managing your domains and settings.
-                </p>
+              </div>
+
+              <!-- Feature 2 -->
+              <div class="group relative">
+                <div class="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent rounded-lg blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100"></div>
+                <div class="relative p-8 bg-gray-900/50 border border-orange-500/20 rounded-lg hover:border-orange-500/50 transition-all backdrop-blur-sm">
+                  <div class="flex justify-center mb-4">
+                    <div class="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg">
+                      <.icon name="hero-shield-check" class="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  <h3 class="text-xl font-bold text-center text-white mb-2">Battle Tested</h3>
+                  <p class="text-center text-gray-300 text-sm">
+                    Enterprise-grade DDoS protection and security features.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Feature 3 -->
+              <div class="group relative">
+                <div class="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent rounded-lg blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100"></div>
+                <div class="relative p-8 bg-gray-900/50 border border-orange-500/20 rounded-lg hover:border-orange-500/50 transition-all backdrop-blur-sm">
+                  <div class="flex justify-center mb-4">
+                    <div class="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg">
+                      <.icon name="hero-cog-6-tooth" class="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  <h3 class="text-xl font-bold text-center text-white mb-2">Built for Hackers</h3>
+                  <p class="text-center text-gray-300 text-sm">
+                    Simple, intuitive, and made by the HackClub community.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </section>
-        
-    <!-- CTA Section -->
-        <section class="card bg-base-300 border-2 border-primary/40">
-          <div class="card-body text-center space-y-4">
-            <h2 class="card-title justify-center text-2xl sm:text-3xl">
-              Ready to get started?
-            </h2>
-            <p class="text-base-content/70">
-              Join the HackClub community and start managing your DNS today.
-            </p>
-            <div class="card-actions justify-center pt-4">
-              <a href="dash/" class="btn btn-primary btn-wide">
-                Launch Dashboard
-              </a>
+        </div>
+
+        <!-- CTA Section -->
+        <div class="relative px-8 py-24 sm:px-16 lg:px-24 bg-black">
+          <div class="max-w-4xl mx-auto">
+            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 to-black border border-orange-500/30 p-12 sm:p-16">
+              <!-- Gradient background effect -->
+              <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 via-transparent to-transparent"></div>
+
+              <div class="relative text-center space-y-6">
+                <h2 class="text-4xl sm:text-5xl font-black text-white">
+                  Ready to take
+                  <span class="bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
+                    control?
+                  </span>
+                </h2>
+                <p class="text-xl text-gray-300 max-w-2xl mx-auto">
+                  Join thousands of HackClub members managing their DNS with HackFlare. It's free, it's fast, and it's built for you.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center pt-8">
+                  <a
+                    href="dash/"
+                    class="px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-orange-500/50"
+                  >
+                    Launch Dashboard
+                  </a>
+                  <a
+                    href="/docs"
+                    class="px-8 py-4 border-2 border-orange-500/50 hover:border-orange-500 text-orange-400 font-bold rounded-lg transition-all"
+                  >
+                    Read the Docs
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
-        </section>
-      </div>
-    </.app>
+        </div>
+
+        <.flash_group flash={@flash} />
+      </body>
+    </html>
     """
   end
 end
