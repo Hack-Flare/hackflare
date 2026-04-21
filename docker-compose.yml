@@ -10,6 +10,13 @@ services:
     volumes:
       - db_data:/var/lib/postgresql
     restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'pg_isready -U hackflare -d hackflare'
+      interval: 30s
+      timeout: 20s
+      retries: 20
 
   hackflare:
     image: ghcr.io/hack-flare/hackflare:latest
@@ -41,9 +48,7 @@ services:
         - 'http://127.0.0.1:4000/health'
       interval: 30s
       timeout: 10s
-      retries: 15
-      start_period: 40s
-      start_interval: 5s
+      retries: 20
 
 volumes:
   db_data:
