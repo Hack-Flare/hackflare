@@ -10,29 +10,28 @@ defmodule HackflareWeb.PageHTML do
   embed_templates "page_html/*"
 
   @doc """
-  Renders the home page using the Layouts.home component.
+  Renders a page by `template` name.
 
-  Delegates to the Layouts module for rendering the homepage with standard
-  navigation and layout structure.
+  Supported templates:
+
+    - "home.html" — Renders the home page using `Layouts.home`.
+    - "dashboard.html" — Renders the dashboard page using `Layouts.dashboard`.
 
   ## Parameters
 
-    - `"home.html"` - Template name
+    - `template` - Template name (string)
     - `assigns` - Assigns map containing variables for the template
 
   ## Returns
 
     Rendered HTML output
   """
+  def render(template, assigns)
+
   def render("home.html", assigns) do
     HackflareWeb.Layouts.home(assigns)
   end
 
-  @doc """
-  Renders the dashboard page using the Layouts.dashboard component.
-
-  Delegates to the Layouts module for rendering the dashboard view.
-  """
   def render("dashboard.html", assigns) do
     HackflareWeb.Layouts.dashboard(assigns)
   end
