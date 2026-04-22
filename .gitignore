@@ -43,3 +43,7 @@ native/**/target
 
 .docker-cache
 .actrc
+
+# Added by cargo
+
+/target

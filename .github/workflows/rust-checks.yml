@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  core-checks:
+  checks:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -21,9 +21,9 @@ jobs:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-rust
 
-      - name: Check Core Crate
-        run: cd native/core && cargo check
+      - name: Check Crates
+        run: cargo check
 
-      - name: Clippy Core Crate
-        run: cd native/core && cargo clippy -- -D warnings
+      - name: Clippy Crates
+        run: clippy -- -D warnings
         
