@@ -4,7 +4,7 @@ defmodule HackflareWeb.PageControllerTest do
   test "GET /", %{conn: conn} do
     conn = get(conn, ~p"/")
     assert html_response(conn, 200) =~ "HackFlare"
-    assert html_response(conn, 200) =~ "Built by Hackclubers"
+    assert html_response(conn, 200) =~ "Built by Hack Clubbers"
   end
 
   test "GET /health", %{conn: conn} do
