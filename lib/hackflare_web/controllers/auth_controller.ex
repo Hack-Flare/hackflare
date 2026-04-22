@@ -50,7 +50,7 @@ defmodule HackflareWeb.AuthController do
             |> put_session(:user_id, user.id)
             # Good practice to rotate session on login
             |> configure_session(renew: true)
-            |> redirect(to: ~p"/")
+            |> redirect(to: ~p"/dash")
 
           {:error, _changeset} ->
             conn
