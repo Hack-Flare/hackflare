@@ -25,5 +25,5 @@ jobs:
         run: cargo check
 
       - name: Clippy Crates
-        run: clippy -- -D warnings
+        run: cargo clippy -- -D warnings
         
