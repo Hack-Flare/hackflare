@@ -33,7 +33,7 @@ Without Docker
 iex -S mix phx.server
 ```
 
-With Docker from containers
+With Docker from prebuilt image
 ```
 docker compose up
 ```
