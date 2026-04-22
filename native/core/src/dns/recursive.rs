@@ -108,7 +108,7 @@ fn load_root_hint_servers() -> Vec<String> {
     let paths = root_hint_candidate_paths();
 
     for path in &paths {
-        if let Ok(content) = fs::read_to_string(&path) {
+        if let Ok(content) = fs::read_to_string(path) {
             let parsed = parse_root_hints(&content);
             if !parsed.is_empty() {
                 return parsed;
@@ -138,9 +138,7 @@ fn tld_from_name(name: &str) -> Option<String> {
 }
 
 fn clamp_tld_ttl(ttl_secs: u64) -> u64 {
-    ttl_secs
-        .max(TLD_DELEGATION_MIN_TTL_SECS)
-        .min(TLD_DELEGATION_MAX_TTL_SECS)
+    ttl_secs.clamp(TLD_DELEGATION_MIN_TTL_SECS, TLD_DELEGATION_MAX_TTL_SECS)
 }
 
 fn response_matches_expected(
@@ -438,15 +436,14 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
                 let (ns_names, glue_ips) =
                     extract_ns_and_glue(&resp, &authority_rrs, &additional_rrs);
 
-                if _round == 0 && !ns_names.is_empty() {
-                    if let Ok(mut roots) = ROOT_CACHE.lock() {
+                if _round == 0 && !ns_names.is_empty()
+                    && let Ok(mut roots) = ROOT_CACHE.lock() {
                         let exp = Instant::now() + Duration::from_secs(ROOT_CACHE_TTL_SECS);
                         roots.insert(
                             "__root__".to_string(),
                             (ns_names.clone(), glue_ips.clone(), exp),
                         );
                     }
-                }
 
                 if !glue_ips.is_empty() {
                     for ip in glue_ips {
