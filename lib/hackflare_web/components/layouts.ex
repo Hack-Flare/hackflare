@@ -415,4 +415,209 @@ defmodule HackflareWeb.Layouts do
     </html>
     """
   end
+
+  @doc """
+  Renders the dashboard page with sidebar navigation and content grid.
+  """
+  attr :flash, :map, default: %{}, doc: "the map of flash messages"
+
+  def dashboard(assigns) do
+    ~H"""
+    <!DOCTYPE html>
+    <html>
+      <body class="bg-gradient-to-br from-gray-950 via-black to-gray-900 text-white">
+        <div class="flex h-screen">
+          <!-- Sidebar -->
+          <aside class="w-72 bg-black/50 border-r border-orange-500/20 backdrop-blur-md p-6 overflow-y-auto">
+            <!-- Logo -->
+            <div class="flex items-center gap-3 mb-12">
+              <img src={~p"/images/logo.svg"} width="40" alt="HackFlare" />
+              <span class="font-bold text-lg text-orange-400">HackFlare</span>
+            </div>
+            
+    <!-- Navigation Menu -->
+            <nav class="space-y-2">
+              <a
+                href="#"
+                class="flex items-center gap-3 px-4 py-3 rounded-lg bg-orange-500/20 border border-orange-500/50 text-orange-400 font-semibold transition-all"
+              >
+                <.icon name="hero-home" class="w-5 h-5" />
+                <span>Home</span>
+              </a>
+              <a
+                href="#"
+                class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-900/50 hover:text-orange-400 transition-all"
+              >
+                <.icon name="hero-globe-alt" class="w-5 h-5" />
+                <span>Domains</span>
+              </a>
+              <a
+                href="#"
+                class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-900/50 hover:text-orange-400 transition-all"
+              >
+                <.icon name="hero-cog-6-tooth" class="w-5 h-5" />
+                <span>Settings</span>
+              </a>
+              <a
+                href="#"
+                class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-900/50 hover:text-orange-400 transition-all"
+              >
+                <.icon name="hero-chart-bar" class="w-5 h-5" />
+                <span>Analytics</span>
+              </a>
+              <a
+                href="#"
+                class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-900/50 hover:text-orange-400 transition-all"
+              >
+                <.icon name="hero-bell" class="w-5 h-5" />
+                <span>Notifications</span>
+              </a>
+              <a
+                href="#"
+                class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-900/50 hover:text-orange-400 transition-all"
+              >
+                <.icon name="hero-question-mark-circle" class="w-5 h-5" />
+                <span>Help</span>
+              </a>
+            </nav>
+            
+    <!-- Bottom Section -->
+            <div class="absolute bottom-6 left-6 right-6 space-y-4">
+              <a
+                href="/auth/logout"
+                method="delete"
+                class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-900/50 hover:text-red-400 transition-all w-full"
+              >
+                <.icon name="hero-arrow-left-on-rectangle" class="w-5 h-5" />
+                <span>Logout</span>
+              </a>
+            </div>
+          </aside>
+          
+    <!-- Main Content -->
+          <main class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <header class="bg-black/30 border-b border-orange-500/20 backdrop-blur-md px-8 py-6 flex items-center justify-between">
+              <div>
+                <h1 class="text-3xl font-bold text-white">Dashboard</h1>
+                <p class="text-gray-400 text-sm mt-1">Welcome to HackFlare</p>
+              </div>
+              <div class="flex items-center gap-4">
+                <button class="p-2 hover:bg-gray-900/50 rounded-lg transition-all">
+                  <.icon name="hero-bell" class="w-6 h-6 text-gray-400 hover:text-orange-400" />
+                </button>
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+                  <span class="text-white font-bold">HC</span>
+                </div>
+              </div>
+            </header>
+            
+    <!-- Content Area -->
+            <div class="flex-1 overflow-auto p-8">
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Card 1 -->
+                <div class="group relative">
+                  <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
+                  </div>
+                  <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
+                    <div>
+                      <h3 class="text-lg font-bold text-white">Quick Start</h3>
+                      <p class="text-gray-400 text-sm mt-2">Set up your first domain</p>
+                    </div>
+                    <button class="text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-2 transition-colors">
+                      <span>Get Started</span>
+                      <.icon name="hero-arrow-right" class="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                
+    <!-- Card 2 -->
+                <div class="group relative">
+                  <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
+                  </div>
+                  <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
+                    <div>
+                      <h3 class="text-lg font-bold text-white">Your Domains</h3>
+                      <p class="text-gray-400 text-sm mt-2">Manage all your domains</p>
+                    </div>
+                    <button class="text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-2 transition-colors">
+                      <span>View All</span>
+                      <.icon name="hero-arrow-right" class="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                
+    <!-- Card 3 -->
+                <div class="group relative">
+                  <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
+                  </div>
+                  <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
+                    <div>
+                      <h3 class="text-lg font-bold text-white">Analytics</h3>
+                      <p class="text-gray-400 text-sm mt-2">View your traffic statistics</p>
+                    </div>
+                    <button class="text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-2 transition-colors">
+                      <span>View Stats</span>
+                      <.icon name="hero-arrow-right" class="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                
+    <!-- Card 4 -->
+                <div class="group relative">
+                  <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
+                  </div>
+                  <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
+                    <div>
+                      <h3 class="text-lg font-bold text-white">API Access</h3>
+                      <p class="text-gray-400 text-sm mt-2">Integrate with our API</p>
+                    </div>
+                    <button class="text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-2 transition-colors">
+                      <span>API Docs</span>
+                      <.icon name="hero-arrow-right" class="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                
+    <!-- Card 5 -->
+                <div class="group relative">
+                  <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
+                  </div>
+                  <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
+                    <div>
+                      <h3 class="text-lg font-bold text-white">Support</h3>
+                      <p class="text-gray-400 text-sm mt-2">Get help when you need it</p>
+                    </div>
+                    <button class="text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-2 transition-colors">
+                      <span>Contact Us</span>
+                      <.icon name="hero-arrow-right" class="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                
+    <!-- Card 6 -->
+                <div class="group relative">
+                  <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
+                  </div>
+                  <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
+                    <div>
+                      <h3 class="text-lg font-bold text-white">Community</h3>
+                      <p class="text-gray-400 text-sm mt-2">Join our Slack community</p>
+                    </div>
+                    <button class="text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-2 transition-colors">
+                      <span>Join Now</span>
+                      <.icon name="hero-arrow-right" class="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+
+        <.flash_group flash={@flash} />
+      </body>
+    </html>
+    """
+  end
 end

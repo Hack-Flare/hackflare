@@ -27,4 +27,13 @@ defmodule HackflareWeb.PageHTML do
   def render("home.html", assigns) do
     HackflareWeb.Layouts.home(assigns)
   end
+
+  @doc """
+  Renders the dashboard page using the Layouts.dashboard component.
+
+  Delegates to the Layouts module for rendering the dashboard view.
+  """
+  def render("dashboard.html", assigns) do
+    HackflareWeb.Layouts.dashboard(assigns)
+  end
 end
