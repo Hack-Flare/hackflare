@@ -483,14 +483,16 @@ defmodule HackflareWeb.Layouts do
             
     <!-- Bottom Section -->
             <div class="absolute bottom-6 left-6 right-6 space-y-4">
-              <a
-                href="/auth/logout"
-                method="delete"
-                class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-900/50 hover:text-red-400 transition-all w-full"
-              >
-                <.icon name="hero-arrow-left-on-rectangle" class="w-5 h-5" />
-                <span>Logout</span>
-              </a>
+              <form method="post" action="/auth/logout">
+                <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+                <button
+                  type="submit"
+                  class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-900/50 hover:text-red-400 transition-all w-full"
+                >
+                  <.icon name="hero-arrow-left-on-rectangle" class="w-5 h-5" />
+                  <span>Logout</span>
+                </button>
+              </form>
             </div>
           </aside>
           

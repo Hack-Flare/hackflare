@@ -86,7 +86,7 @@ defmodule HackflareWeb.Router do
     get "/request", AuthController, :request
     get "/callback", AuthController, :callback
     delete "/logout", AuthController, :logout
-    get "/logout", AuthController, :logout
+    post "/logout", AuthController, :logout
   end
 
   # Other scopes may use custom stacks.
