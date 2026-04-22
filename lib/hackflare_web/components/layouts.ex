@@ -290,14 +290,13 @@ defmodule HackflareWeb.Layouts do
     <!-- Right Side: Hero Image -->
               <div class="flex items-center justify-center lg:justify-end">
                 <div class="relative w-full max-w-md">
+                  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-orange-500/40 blur-3xl pointer-events-none">
+                  </div>
                   <img
                     src={~p"/images/hero-globe.png"}
                     alt="HackFlare Hero"
-                    class="w-full h-auto rounded-lg shadow-2xl shadow-orange-500/30 border border-orange-500/20"
+                    class="relative w-full h-auto rounded-lg z-10"
                   />
-                  <!-- Glow effect behind image -->
-                  <div class="absolute inset-0 rounded-lg bg-gradient-to-r from-orange-600/20 to-transparent blur-3xl -z-10">
-                  </div>
                 </div>
               </div>
             </div>
