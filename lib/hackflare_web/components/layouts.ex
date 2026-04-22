@@ -230,9 +230,9 @@ defmodule HackflareWeb.Layouts do
             </ul>
           </div>
         </header>
-        
+
     <!-- Hero Section Full Screen -->
-        <div class="relative h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 text-white overflow-hidden flex items-center">
+        <div class="relative h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 text-white overflow-hidden flex items-center pt-24">
           <div class="w-full">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-7xl mx-auto px-8 sm:px-16 lg:px-24 h-full py-24">
               <!-- Left Side: Content -->
@@ -244,12 +244,12 @@ defmodule HackflareWeb.Layouts do
                     </span>
                   </h1>
                   <p class="text-2xl sm:text-3xl font-bold text-gray-200 leading-tight">
-                    Built by Hackclubers <br /> For Hackclubers
+                    Built by Hack Clubbers <br /> For Hack Clubbers
                   </p>
                 </div>
 
                 <p class="text-lg text-gray-300 leading-relaxed max-w-xl">
-                  A powerful DNS and content delivery platform built for the HackClub community. Take control, stay fast, stay secure.
+                  A powerful DNS and content delivery platform built for the Hack Club community. Take control, stay fast, stay secure.
                 </p>
 
                 <div class="flex flex-col sm:flex-row gap-4 pt-8">
@@ -286,11 +286,11 @@ defmodule HackflareWeb.Layouts do
                   </a>
                 </div>
               </div>
-              
+
     <!-- Right Side: Hero Image -->
               <div class="flex items-center justify-center lg:justify-end">
                 <div class="relative w-full max-w-md">
-                  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-orange-500/40 blur-3xl pointer-events-none">
+                  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-104 h-104 rounded-full bg-orange-500/40 blur-3xl pointer-events-none">
                   </div>
                   <img
                     src={~p"/images/hero-globe.png"}
@@ -302,7 +302,7 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
-        
+
     <!-- Features Section -->
         <div class="relative px-8 py-24 sm:px-16 lg:px-24 bg-gradient-to-b from-black to-gray-950">
           <div class="max-w-7xl mx-auto space-y-16">
@@ -334,7 +334,7 @@ defmodule HackflareWeb.Layouts do
                   </p>
                 </div>
               </div>
-              
+
     <!-- Feature 2 -->
               <div class="group relative">
                 <div class="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent rounded-lg blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
@@ -351,7 +351,7 @@ defmodule HackflareWeb.Layouts do
                   </p>
                 </div>
               </div>
-              
+
     <!-- Feature 3 -->
               <div class="group relative">
                 <div class="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent rounded-lg blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
@@ -371,7 +371,7 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
-        
+
     <!-- CTA Section -->
         <div class="relative px-8 py-24 sm:px-16 lg:px-24 bg-black">
           <div class="max-w-4xl mx-auto">
@@ -433,7 +433,7 @@ defmodule HackflareWeb.Layouts do
               <img src={~p"/images/logo.svg"} width="40" alt="HackFlare" />
               <span class="font-bold text-lg text-orange-400">HackFlare</span>
             </div>
-            
+
     <!-- Navigation Menu -->
             <nav class="space-y-2">
               <a
@@ -479,7 +479,7 @@ defmodule HackflareWeb.Layouts do
                 <span>Help</span>
               </a>
             </nav>
-            
+
     <!-- Bottom Section -->
             <div class="absolute bottom-6 left-6 right-6 space-y-4">
               <form method="post" action="/auth/logout">
@@ -494,7 +494,7 @@ defmodule HackflareWeb.Layouts do
               </form>
             </div>
           </aside>
-          
+
     <!-- Main Content -->
           <main class="flex-1 flex flex-col overflow-hidden">
             <!-- Header -->
@@ -512,7 +512,7 @@ defmodule HackflareWeb.Layouts do
                 </div>
               </div>
             </header>
-            
+
     <!-- Content Area -->
             <div class="flex-1 overflow-auto p-8">
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -531,7 +531,7 @@ defmodule HackflareWeb.Layouts do
                     </button>
                   </div>
                 </div>
-                
+
     <!-- Card 2 -->
                 <div class="group relative">
                   <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
@@ -547,7 +547,7 @@ defmodule HackflareWeb.Layouts do
                     </button>
                   </div>
                 </div>
-                
+
     <!-- Card 3 -->
                 <div class="group relative">
                   <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
@@ -563,7 +563,7 @@ defmodule HackflareWeb.Layouts do
                     </button>
                   </div>
                 </div>
-                
+
     <!-- Card 4 -->
                 <div class="group relative">
                   <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
@@ -579,7 +579,7 @@ defmodule HackflareWeb.Layouts do
                     </button>
                   </div>
                 </div>
-                
+
     <!-- Card 5 -->
                 <div class="group relative">
                   <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
@@ -595,7 +595,7 @@ defmodule HackflareWeb.Layouts do
                     </button>
                   </div>
                 </div>
-                
+
     <!-- Card 6 -->
                 <div class="group relative">
                   <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
