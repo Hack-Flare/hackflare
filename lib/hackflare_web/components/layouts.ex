@@ -269,7 +269,7 @@ defmodule HackflareWeb.Layouts do
                   </a>
                 </div>
 
-                <div class="flex flex-wrap gap-6">
+                <div class="flex flex-wrap gap-6 pt-0.5">
                   <a
                     href="/docs"
                     class="px-1 py-3 text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-2 transition-colors"
@@ -408,6 +408,122 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
+        
+    <!-- Footer -->
+        <footer class="relative px-8 py-12 sm:px-16 lg:px-24 bg-black border-t border-orange-500/20">
+          <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+              <!-- Brand -->
+              <div class="space-y-4">
+                <div class="flex items-center gap-3">
+                  <img src={~p"/images/logo.svg"} width="32" alt="HackFlare" />
+                  <span class="font-bold text-lg text-orange-400">HackFlare</span>
+                </div>
+                <p class="text-gray-400 text-sm">
+                  A powerful DNS and content delivery platform built for the Hack Club community.
+                </p>
+              </div>
+              
+    <!-- Links -->
+              <div class="space-y-4">
+                <h3 class="text-white font-semibold">Product</h3>
+                <ul class="space-y-2 text-sm">
+                  <li>
+                    <a href="/docs" class="text-gray-400 hover:text-orange-400 transition-colors">
+                      Documentation
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="https://github.com/Hack-Flare/hackflare"
+                      class="text-gray-400 hover:text-orange-400 transition-colors"
+                    >
+                      GitHub
+                    </a>
+                  </li>
+                  <li>
+                    <a href="/health" class="text-gray-400 hover:text-orange-400 transition-colors">
+                      Status
+                    </a>
+                  </li>
+                </ul>
+              </div>
+              
+    <!-- Community -->
+              <div class="space-y-4">
+                <h3 class="text-white font-semibold">Community</h3>
+                <ul class="space-y-2 text-sm">
+                  <li>
+                    <a
+                      href="https://hackclub.com"
+                      class="text-gray-400 hover:text-orange-400 transition-colors"
+                    >
+                      Hack Club
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="https://hackclub.com/slack"
+                      class="text-gray-400 hover:text-orange-400 transition-colors"
+                    >
+                      Slack
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="https://github.com/Hack-Flare/hackflare"
+                      class="text-gray-400 hover:text-orange-400 transition-colors"
+                    >
+                      Contribute
+                    </a>
+                  </li>
+                </ul>
+              </div>
+              
+    <!-- Legal -->
+              <div class="space-y-4">
+                <h3 class="text-white font-semibold">Legal</h3>
+                <ul class="space-y-2 text-sm">
+                  <li>
+                    <a href="#" class="text-gray-400 hover:text-orange-400 transition-colors">
+                      Privacy Policy
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#" class="text-gray-400 hover:text-orange-400 transition-colors">
+                      Terms of Service
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#" class="text-gray-400 hover:text-orange-400 transition-colors">
+                      Contact
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="mt-12 pt-8 border-t border-orange-500/20 flex flex-col sm:flex-row justify-between items-center">
+              <p class="text-gray-400 text-sm">
+                © 2026 HackFlare. Built with ❤️ by Hack Clubbers.
+              </p>
+              <div class="flex gap-4 mt-4 sm:mt-0">
+                <a
+                  href="https://github.com/Hack-Flare/hackflare"
+                  class="text-gray-400 hover:text-orange-400 transition-colors"
+                >
+                  <.icon name="hero-star" class="w-5 h-5" />
+                </a>
+                <a
+                  href="https://hackclub.com/slack"
+                  class="text-gray-400 hover:text-orange-400 transition-colors"
+                >
+                  <.icon name="hero-chat-bubble-left-right" class="w-5 h-5" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </footer>
 
         <.flash_group flash={@flash} />
       </body>
@@ -615,7 +731,17 @@ defmodule HackflareWeb.Layouts do
             </div>
           </main>
         </div>
-
+        <footer class="border-t border-zinc-800 py-8 text-sm text-zinc-400">
+          <div class="mx-auto flex max-w-6xl flex-col gap-4 px-6 md:flex-row md:items-center md:justify-between">
+            <p>© 2026 HackFlare. Built by Hack Clubbers.</p>
+            <nav class="flex gap-4">
+              <a href="/docs" class="hover:text-white">Docs</a>
+              <a href="/status" class="hover:text-white">Status</a>
+              <a href="/privacy" class="hover:text-white">Privacy</a>
+              <a href="https://github.com/Hack-Flare/hackflare" class="hover:text-white">GitHub</a>
+            </nav>
+          </div>
+        </footer>
         <.flash_group flash={@flash} />
       </body>
     </html>
