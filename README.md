@@ -94,5 +94,5 @@ docker compose -f docker-compose.dev.yml up
 - Live Packet Watching (for fun)
 - TMP Docker, a temporary docker for users to test stuff.
 - ISO 27001:2022 certification?
-- Fix recommendations spelling in readme.
-
+- Anti Scanning/Scraping measures
+- Custom Error Pages
