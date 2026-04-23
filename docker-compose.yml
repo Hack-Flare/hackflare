@@ -64,6 +64,7 @@ services:
     environment:
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_POLL_INTERVAL=3600 # Checks every hour
+      - DOCKER_API_VERSION=1.44
     depends_on:
       - hackflare
 
