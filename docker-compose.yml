@@ -60,7 +60,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       # This uses existing 'docker login' credentials from the host
-      - ~/.docker/config.json:/config.json:ro 
+      - /root/.docker/config.json:/config.json:ro 
     environment:
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_POLL_INTERVAL=3600 # Checks every hour
