@@ -95,7 +95,7 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
-  host = System.get_env("PHX_HOST") || "hackflare.kirze.de"
+  host = System.get_env("PHX_HOST") || "localhost:4000"
 
   config :hackflare, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
