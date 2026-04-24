@@ -13,7 +13,14 @@ concurrency:
 
 jobs:
   build-and-push-image:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      matrix:
+        include:
+          - runs-on: ubuntu-latest
+            tag-suffix: ""
+          - runs-on: self-hosted
+            tag-suffix: "-arm"
     permissions:
       contents: read
       packages: write
@@ -40,7 +47,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=sha
-            type=raw,value=latest
+            type=raw,value=latest${{ matrix.tag-suffix }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v7
