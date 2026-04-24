@@ -71,6 +71,10 @@ config :hackflare, :auth,
   ],
   strategy: Assent.Strategy.OIDC
 
+config :hackflare,
+       :slack_help_webhook_url,
+       System.get_env("SLACK_HELP_WEBHOOK_URL") || ""
+
 if System.get_env("PHX_SERVER") do
   config :hackflare, HackflareWeb.Endpoint, server: true
 end

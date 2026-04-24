@@ -83,6 +83,7 @@ defmodule HackflareWeb.Router do
     get "/dash/analytics", DashController, :analytics
     get "/dash/notifications", DashController, :notifications
     get "/dash/help", DashController, :help
+    post "/dash/help", DashController, :submit_help
   end
 
   scope "/auth", HackflareWeb do
