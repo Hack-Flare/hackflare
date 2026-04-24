@@ -5,12 +5,13 @@ defmodule Hackflare.Support do
 
   alias Hackflare.Accounts.User
 
-  @spec submit_help_request(User.t(), String.t()) ::
+  @spec submit_help_request(User.t(), binary()) ::
           :ok
-          | {:error, :empty_message}
-          | {:error, :webhook_not_configured}
-          | {:error, {:request_failed, term()}}
-          | {:error, {:webhook_rejected, non_neg_integer(), term()}}
+          | {:error,
+             :empty_message
+             | :webhook_not_configured
+             | {:request_failed, term()}
+             | {:webhook_rejected, non_neg_integer(), term()}}
   def submit_help_request(%User{} = user, message) when is_binary(message) do
     trimmed_message = String.trim(message)
     webhook_url = Application.get_env(:hackflare, :slack_help_webhook_url, "")

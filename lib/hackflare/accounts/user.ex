@@ -15,6 +15,8 @@ defmodule Hackflare.Accounts.User do
     timestamps(type: :utc_datetime)
   end
 
+  @type t :: %__MODULE__{}
+
   @doc false
   def changeset(user, attrs) do
     user
