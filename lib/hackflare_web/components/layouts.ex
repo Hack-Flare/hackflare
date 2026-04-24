@@ -230,7 +230,7 @@ defmodule HackflareWeb.Layouts do
             </ul>
           </div>
         </header>
-
+        
     <!-- Hero Section Full Screen -->
         <div class="relative h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 text-white overflow-hidden flex items-center pt-24">
           <div class="w-full">
@@ -286,7 +286,7 @@ defmodule HackflareWeb.Layouts do
                   </a>
                 </div>
               </div>
-
+              
     <!-- Right Side: Hero Image -->
               <div class="flex items-center justify-center lg:justify-end">
                 <div class="relative w-full max-w-md">
@@ -302,7 +302,7 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
-
+        
     <!-- Features Section -->
         <div class="relative px-8 py-24 sm:px-16 lg:px-24 bg-gradient-to-b from-black to-gray-950">
           <div class="max-w-7xl mx-auto space-y-16">
@@ -334,7 +334,7 @@ defmodule HackflareWeb.Layouts do
                   </p>
                 </div>
               </div>
-
+              
     <!-- Feature 2 -->
               <div class="group relative">
                 <div class="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent rounded-lg blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
@@ -351,7 +351,7 @@ defmodule HackflareWeb.Layouts do
                   </p>
                 </div>
               </div>
-
+              
     <!-- Feature 3 -->
               <div class="group relative">
                 <div class="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent rounded-lg blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
@@ -371,7 +371,7 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
-
+        
     <!-- Community proof Section -->
         <div class="relative px-8 py-24 sm:px-16 lg:px-24 bg-gradient-to-b from-black to-gray-950">
           <div class="max-w-7xl mx-auto space-y-16">
@@ -467,7 +467,7 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
-
+        
     <!-- CTA Section -->
         <div class="relative px-8 py-24 sm:px-16 lg:px-24 bg-black">
           <div class="max-w-4xl mx-auto">
@@ -504,7 +504,7 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
-
+        
     <!-- Footer -->
         <footer class="relative px-8 py-12 sm:px-16 lg:px-24 bg-black border-t border-orange-500/20">
           <div class="max-w-7xl mx-auto">
@@ -519,7 +519,7 @@ defmodule HackflareWeb.Layouts do
                   A powerful DNS and content delivery platform built for the Hack Club community.
                 </p>
               </div>
-
+              
     <!-- Links -->
               <div class="space-y-4">
                 <h3 class="text-white font-semibold">Product</h3>
@@ -544,7 +544,7 @@ defmodule HackflareWeb.Layouts do
                   </li>
                 </ul>
               </div>
-
+              
     <!-- Community -->
               <div class="space-y-4">
                 <h3 class="text-white font-semibold">Community</h3>
@@ -575,7 +575,7 @@ defmodule HackflareWeb.Layouts do
                   </li>
                 </ul>
               </div>
-
+              
     <!-- Legal -->
               <div class="space-y-4">
                 <h3 class="text-white font-semibold">Legal</h3>
@@ -631,6 +631,7 @@ defmodule HackflareWeb.Layouts do
   Renders the dashboard page with sidebar navigation and content grid.
   """
   attr :flash, :map, default: %{}, doc: "the map of flash messages"
+  attr :current_view, :atom, default: :home, doc: "active dashboard view"
 
   def dashboard(assigns) do
     ~H"""
@@ -645,53 +646,53 @@ defmodule HackflareWeb.Layouts do
               <img src={~p"/images/logo.svg"} width="40" alt="HackFlare" />
               <span class="font-bold text-lg text-orange-400">HackFlare</span>
             </div>
-
+            
     <!-- Navigation Menu -->
             <nav class="space-y-2">
               <a
-                href="#"
-                class="flex items-center gap-3 px-4 py-3 rounded-lg bg-orange-500/20 border border-orange-500/50 text-orange-400 font-semibold transition-all"
+                href={~p"/dash"}
+                class={nav_item_class(@current_view, :home)}
               >
                 <.icon name="hero-home" class="w-5 h-5" />
                 <span>Home</span>
               </a>
               <a
-                href="#"
-                class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-900/50 hover:text-orange-400 transition-all"
+                href={~p"/dash/domains"}
+                class={nav_item_class(@current_view, :domains)}
               >
                 <.icon name="hero-globe-alt" class="w-5 h-5" />
                 <span>Domains</span>
               </a>
               <a
-                href="#"
-                class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-900/50 hover:text-orange-400 transition-all"
+                href={~p"/dash/settings"}
+                class={nav_item_class(@current_view, :settings)}
               >
                 <.icon name="hero-cog-6-tooth" class="w-5 h-5" />
                 <span>Settings</span>
               </a>
               <a
-                href="#"
-                class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-900/50 hover:text-orange-400 transition-all"
+                href={~p"/dash/analytics"}
+                class={nav_item_class(@current_view, :analytics)}
               >
                 <.icon name="hero-chart-bar" class="w-5 h-5" />
                 <span>Analytics</span>
               </a>
               <a
-                href="#"
-                class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-900/50 hover:text-orange-400 transition-all"
+                href={~p"/dash/notifications"}
+                class={nav_item_class(@current_view, :notifications)}
               >
                 <.icon name="hero-bell" class="w-5 h-5" />
                 <span>Notifications</span>
               </a>
               <a
-                href="#"
-                class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-900/50 hover:text-orange-400 transition-all"
+                href={~p"/dash/help"}
+                class={nav_item_class(@current_view, :help)}
               >
                 <.icon name="hero-question-mark-circle" class="w-5 h-5" />
                 <span>Help</span>
               </a>
             </nav>
-
+            
     <!-- Bottom Section -->
             <div class="absolute bottom-6 left-6 right-6 space-y-4">
               <form method="post" action="/auth/logout">
@@ -706,14 +707,14 @@ defmodule HackflareWeb.Layouts do
               </form>
             </div>
           </aside>
-
+          
     <!-- Main Content -->
           <main class="flex-1 flex flex-col overflow-hidden">
             <!-- Header -->
             <header class="bg-black/30 border-b border-orange-500/20 backdrop-blur-md px-8 py-6 flex items-center justify-between">
               <div>
-                <h1 class="text-3xl font-bold text-white">Dashboard</h1>
-                <p class="text-gray-400 text-sm mt-1">Welcome to HackFlare</p>
+                <h1 class="text-3xl font-bold text-white">{dashboard_title(@current_view)}</h1>
+                <p class="text-gray-400 text-sm mt-1">{dashboard_subtitle(@current_view)}</p>
               </div>
               <div class="flex items-center gap-4">
                 <button class="p-2 hover:bg-gray-900/50 rounded-lg transition-all">
@@ -724,106 +725,156 @@ defmodule HackflareWeb.Layouts do
                 </div>
               </div>
             </header>
-
+            
     <!-- Content Area -->
             <div class="flex-1 overflow-auto p-8">
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Card 1 -->
-                <div class="group relative">
-                  <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
-                  </div>
-                  <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
-                    <div>
-                      <h3 class="text-lg font-bold text-white">Quick Start</h3>
-                      <p class="text-gray-400 text-sm mt-2">Set up your first domain</p>
+              <%= case @current_view do %>
+                <% :home -> %>
+                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Card 1 -->
+                    <div class="group relative">
+                      <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
+                      </div>
+                      <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
+                        <div>
+                          <h3 class="text-lg font-bold text-white">Quick Start</h3>
+                          <p class="text-gray-400 text-sm mt-2">Set up your first domain</p>
+                        </div>
+                        <button class="text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-2 transition-colors">
+                          <span>Get Started</span>
+                          <.icon name="hero-arrow-right" class="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                    <button class="text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-2 transition-colors">
-                      <span>Get Started</span>
-                      <.icon name="hero-arrow-right" class="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
+                    
     <!-- Card 2 -->
-                <div class="group relative">
-                  <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
-                  </div>
-                  <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
-                    <div>
-                      <h3 class="text-lg font-bold text-white">Your Domains</h3>
-                      <p class="text-gray-400 text-sm mt-2">Manage all your domains</p>
+                    <div class="group relative">
+                      <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
+                      </div>
+                      <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
+                        <div>
+                          <h3 class="text-lg font-bold text-white">Your Domains</h3>
+                          <p class="text-gray-400 text-sm mt-2">Manage all your domains</p>
+                        </div>
+                        <button class="text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-2 transition-colors">
+                          <span>View All</span>
+                          <.icon name="hero-arrow-right" class="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                    <button class="text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-2 transition-colors">
-                      <span>View All</span>
-                      <.icon name="hero-arrow-right" class="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
+                    
     <!-- Card 3 -->
-                <div class="group relative">
-                  <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
-                  </div>
-                  <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
-                    <div>
-                      <h3 class="text-lg font-bold text-white">Analytics</h3>
-                      <p class="text-gray-400 text-sm mt-2">View your traffic statistics</p>
+                    <div class="group relative">
+                      <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
+                      </div>
+                      <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
+                        <div>
+                          <h3 class="text-lg font-bold text-white">Analytics</h3>
+                          <p class="text-gray-400 text-sm mt-2">View your traffic statistics</p>
+                        </div>
+                        <button class="text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-2 transition-colors">
+                          <span>View Stats</span>
+                          <.icon name="hero-arrow-right" class="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                    <button class="text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-2 transition-colors">
-                      <span>View Stats</span>
-                      <.icon name="hero-arrow-right" class="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
+                    
     <!-- Card 4 -->
-                <div class="group relative">
-                  <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
-                  </div>
-                  <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
-                    <div>
-                      <h3 class="text-lg font-bold text-white">API Access</h3>
-                      <p class="text-gray-400 text-sm mt-2">Integrate with our API</p>
+                    <div class="group relative">
+                      <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
+                      </div>
+                      <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
+                        <div>
+                          <h3 class="text-lg font-bold text-white">API Access</h3>
+                          <p class="text-gray-400 text-sm mt-2">Integrate with our API</p>
+                        </div>
+                        <button class="text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-2 transition-colors">
+                          <span>API Docs</span>
+                          <.icon name="hero-arrow-right" class="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                    <button class="text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-2 transition-colors">
-                      <span>API Docs</span>
-                      <.icon name="hero-arrow-right" class="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
+                    
     <!-- Card 5 -->
-                <div class="group relative">
-                  <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
-                  </div>
-                  <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
-                    <div>
-                      <h3 class="text-lg font-bold text-white">Support</h3>
-                      <p class="text-gray-400 text-sm mt-2">Get help when you need it</p>
+                    <div class="group relative">
+                      <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
+                      </div>
+                      <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
+                        <div>
+                          <h3 class="text-lg font-bold text-white">Support</h3>
+                          <p class="text-gray-400 text-sm mt-2">Get help when you need it</p>
+                        </div>
+                        <a
+                          href={~p"/dash/help"}
+                          class="text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-2 transition-colors"
+                        >
+                          <span>Contact Us</span>
+                          <.icon name="hero-arrow-right" class="w-4 h-4" />
+                        </a>
+                      </div>
                     </div>
-                    <button class="text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-2 transition-colors">
-                      <span>Contact Us</span>
-                      <.icon name="hero-arrow-right" class="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
+                    
     <!-- Card 6 -->
-                <div class="group relative">
-                  <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
-                  </div>
-                  <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
-                    <div>
-                      <h3 class="text-lg font-bold text-white">Community</h3>
-                      <p class="text-gray-400 text-sm mt-2">Join our Slack community</p>
+                    <div class="group relative">
+                      <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
+                      </div>
+                      <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
+                        <div>
+                          <h3 class="text-lg font-bold text-white">Community</h3>
+                          <p class="text-gray-400 text-sm mt-2">Join our Slack community</p>
+                        </div>
+                        <button class="text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-2 transition-colors">
+                          <span>Join Now</span>
+                          <.icon name="hero-arrow-right" class="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                    <button class="text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-2 transition-colors">
-                      <span>Join Now</span>
-                      <.icon name="hero-arrow-right" class="w-4 h-4" />
-                    </button>
                   </div>
-                </div>
-              </div>
+                <% :domains -> %>
+                  <div class="space-y-4">
+                    <div class="p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl">
+                      <h3 class="text-xl font-bold text-white mb-2">Domains</h3>
+                      <p class="text-gray-300">Manage zones, records, and routing from one place.</p>
+                    </div>
+                    <div class="p-6 bg-gray-900/30 border border-orange-500/20 rounded-xl">
+                      <p class="text-sm text-gray-400">No domains yet. Add first domain to start.</p>
+                    </div>
+                  </div>
+                <% :settings -> %>
+                  <div class="space-y-4">
+                    <div class="p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl">
+                      <h3 class="text-xl font-bold text-white mb-2">Settings</h3>
+                      <p class="text-gray-300">
+                        Control account, API tokens, and organization defaults.
+                      </p>
+                    </div>
+                  </div>
+                <% :analytics -> %>
+                  <div class="space-y-4">
+                    <div class="p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl">
+                      <h3 class="text-xl font-bold text-white mb-2">Analytics</h3>
+                      <p class="text-gray-300">
+                        Traffic, query volume, and performance insights will appear here.
+                      </p>
+                    </div>
+                  </div>
+                <% :notifications -> %>
+                  <div class="space-y-4">
+                    <div class="p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl">
+                      <h3 class="text-xl font-bold text-white mb-2">Notifications</h3>
+                      <p class="text-gray-300">Alert channels and event subscriptions.</p>
+                    </div>
+                  </div>
+                <% :help -> %>
+                  <div class="space-y-4">
+                    <div class="p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl">
+                      <h3 class="text-xl font-bold text-white mb-2">Help</h3>
+                      <p class="text-gray-300">
+                        Get support docs, troubleshooting, and community links.
+                      </p>
+                    </div>
+                  </div>
+              <% end %>
             </div>
           </main>
         </div>
@@ -843,4 +894,40 @@ defmodule HackflareWeb.Layouts do
     </html>
     """
   end
+
+  @doc """
+  Placeholder for the Contact section UI. Add your UI code here.
+  """
+  def contact(assigns) do
+    ~H"""
+    <div class="p-8">
+      <h2 class="text-2xl font-bold mb-4">Help</h2>
+      <!-- Add your Contact section UI here -->
+    </div>
+    """
+  end
+
+  defp nav_item_class(current_view, item) when current_view == item do
+    "flex items-center gap-3 px-4 py-3 rounded-lg bg-orange-500/20 border border-orange-500/50 text-orange-400 font-semibold transition-all"
+  end
+
+  defp nav_item_class(_current_view, _item) do
+    "flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-900/50 hover:text-orange-400 transition-all"
+  end
+
+  defp dashboard_title(:home), do: "Dashboard"
+  defp dashboard_title(:domains), do: "Domains"
+  defp dashboard_title(:settings), do: "Settings"
+  defp dashboard_title(:analytics), do: "Analytics"
+  defp dashboard_title(:notifications), do: "Notifications"
+  defp dashboard_title(:help), do: "Help"
+  defp dashboard_title(_), do: "Dashboard"
+
+  defp dashboard_subtitle(:home), do: "Welcome to HackFlare"
+  defp dashboard_subtitle(:domains), do: "Manage DNS zones and records"
+  defp dashboard_subtitle(:settings), do: "Configure account and platform defaults"
+  defp dashboard_subtitle(:analytics), do: "Monitor performance and traffic"
+  defp dashboard_subtitle(:notifications), do: "Control alerts and updates"
+  defp dashboard_subtitle(:help), do: "Find docs and support resources"
+  defp dashboard_subtitle(_), do: "Welcome to HackFlare"
 end

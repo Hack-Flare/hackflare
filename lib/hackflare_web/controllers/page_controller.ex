@@ -39,8 +39,4 @@ defmodule HackflareWeb.PageController do
   def docs_redirect(conn, _params) do
     redirect(conn, to: "/docs/index.html")
   end
-
-  def dashboard(conn, _params) do
-    render(conn, :dashboard)
-  end
 end

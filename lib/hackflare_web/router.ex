@@ -77,7 +77,12 @@ defmodule HackflareWeb.Router do
   scope "/", HackflareWeb do
     pipe_through [:browser, :require_authenticated]
 
-    get "/dash", PageController, :dashboard
+    get "/dash", DashController, :home
+    get "/dash/domains", DashController, :domains
+    get "/dash/settings", DashController, :settings
+    get "/dash/analytics", DashController, :analytics
+    get "/dash/notifications", DashController, :notifications
+    get "/dash/help", DashController, :help
   end
 
   scope "/auth", HackflareWeb do
