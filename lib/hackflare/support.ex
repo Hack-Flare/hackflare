@@ -5,7 +5,7 @@ defmodule Hackflare.Support do
 
   alias Hackflare.Accounts.User
 
-  @spec submit_help_request(%User{}, String.t()) ::
+  @spec submit_help_request(User.t(), String.t()) ::
           :ok
           | {:error, :empty_message}
           | {:error, :webhook_not_configured}
