@@ -50,11 +50,7 @@ jobs:
             ${{ runner.os }}-mix-format-
 
       - name: Install Dependencies
-        run: |
-          mix local.hex --force
-          mix local.rebar --force
-          mix hex.repo update
-          mix deps.get
+        run: mix deps.get
 
       - name: Run Formatter
         run: mix format
