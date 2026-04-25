@@ -3,18 +3,17 @@ name: CI
 on:
   push:
     branches: [ "main" ]
-    paths-ignore: 
-        - "README.md"
-        - ".github/**"
-  pull_request:
-    branches: [ "main" ]
-    paths-ignore: 
+    paths-ignore:
       - "README.md"
-      - ".github/**"
+  pull_request:
+    branches: ["main"]
+    paths-ignore:
+      - "README.md"
   workflow_dispatch:
+  workflow_call:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -28,11 +27,12 @@ env:
 jobs:
   format:
     name: Auto-Format Code
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: main
 
       - uses: erlef/setup-beam@v1
         with:
@@ -67,8 +67,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: main
 
       - name: Set up Rust
         uses: ./.github/actions/setup-rust
@@ -108,8 +106,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: main
+
       - uses: erlef/setup-beam@v1
         with:
           elixir-version: ${{ env.ELIXIR_VERSION }}
@@ -134,8 +131,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: main
 
       - uses: erlef/setup-beam@v1
         with:
@@ -173,7 +168,7 @@ jobs:
         partition: [1, 2, 3, 4]
     services:
       postgres:
-        image: postgres:18
+        image: postgres:16-alpine
         env:
           POSTGRES_USER: hackflare
           POSTGRES_PASSWORD: hackflare
@@ -187,8 +182,7 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: main
+
       - uses: erlef/setup-beam@v1
         with:
           elixir-version: ${{ env.ELIXIR_VERSION }}
