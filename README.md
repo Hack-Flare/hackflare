@@ -68,6 +68,7 @@ docker compose -f docker-compose.dev.yml up
   - [x] Error Pages
   - [x] Auth System
 - [x] Docker
+- [ ] Big Haj on error pages
 
 ## Features From Recommendations
 
