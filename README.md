@@ -56,7 +56,7 @@ docker compose -f docker-compose.dev.yml up
   - [x] Backend
   - [x] ENV Setup
 - [ ] Simple Logging
-- [ ] Caching (incl. DNS caching, Edge caching, etc.)
+- [ ] Caching (incl. DNS caching, minimal site caching)
 - [ ] Proper Frontend
   - [wip] Dashboard
   - [ ] Domain Management
