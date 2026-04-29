@@ -92,10 +92,10 @@ defmodule Hackflare.Settings do
       %AppSetting{data: data} when is_map(data) -> to_atom_map(data)
       _ -> %{}
     end
-    rescue
-      Ecto.QueryError -> %{}
-      DBConnection.ConnectionError -> %{}
-      Postgrex.Error -> %{}
+  rescue
+    Ecto.QueryError -> %{}
+    DBConnection.ConnectionError -> %{}
+    Postgrex.Error -> %{}
   end
 
   def update_runtime(attrs) when is_map(attrs) do
@@ -104,10 +104,10 @@ defmodule Hackflare.Settings do
     %AppSetting{}
     |> AppSetting.changeset(%{name: @runtime_name, data: data})
     |> Repo.insert_or_update()
-    rescue
-      Ecto.QueryError -> {:error, :settings_table_missing}
-      DBConnection.ConnectionError -> {:error, :settings_table_missing}
-      Postgrex.Error -> {:error, :settings_table_missing}
+  rescue
+    Ecto.QueryError -> {:error, :settings_table_missing}
+    DBConnection.ConnectionError -> {:error, :settings_table_missing}
+    Postgrex.Error -> {:error, :settings_table_missing}
   end
 
   def restart_nameserver do
