@@ -22,7 +22,14 @@ defmodule Hackflare.Accounts.User do
   def changeset(user, attrs) do
     user
     |> cast(attrs, [:slack_id, :email, :name, :verification_status, :ysws_eligible, :is_admin])
-    |> validate_required([:slack_id, :email, :name, :verification_status, :ysws_eligible, :is_admin])
+    |> validate_required([
+      :slack_id,
+      :email,
+      :name,
+      :verification_status,
+      :ysws_eligible,
+      :is_admin
+    ])
     |> unique_constraint(:slack_id)
     |> unique_constraint(:email)
   end

@@ -5,6 +5,8 @@ defmodule HackflareWeb.AdminControllerTest do
     conn = get(conn, ~p"/admin")
 
     assert redirected_to(conn) == "/"
-    assert Phoenix.Flash.get(conn.assigns.flash, :error) == "You need to be signed in to access dash"
+
+    assert Phoenix.Flash.get(conn.assigns.flash, :error) ==
+             "You need to be signed in to access dash"
   end
 end
