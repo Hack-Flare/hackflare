@@ -19,8 +19,8 @@ defmodule Hackflare.Settings do
     import Ecto.Changeset
 
     schema "app_settings" do
-      field :name, :string
-      field :data, :map, default: %{}
+      field(:name, :string)
+      field(:data, :map, default: %{})
 
       timestamps(type: :utc_datetime)
     end
@@ -76,7 +76,8 @@ defmodule Hackflare.Settings do
       soa: %{
         mname: Map.get(soa, :mname, default_runtime().dns.soa.mname),
         rname: Map.get(soa, :rname, default_runtime().dns.soa.rname),
-        serial: parse_integer(Map.get(soa, :serial, default_runtime().dns.soa.serial), 2_026_042_000),
+        serial:
+          parse_integer(Map.get(soa, :serial, default_runtime().dns.soa.serial), 2_026_042_000),
         refresh: parse_integer(Map.get(soa, :refresh, default_runtime().dns.soa.refresh), 1800),
         retry: parse_integer(Map.get(soa, :retry, default_runtime().dns.soa.retry), 900),
         expire: parse_integer(Map.get(soa, :expire, default_runtime().dns.soa.expire), 604_800),
@@ -88,7 +89,7 @@ defmodule Hackflare.Settings do
 
   def runtime_overrides do
     try do
-      case Repo.one(from setting in AppSetting, where: setting.name == ^@runtime_name, limit: 1) do
+      case Repo.one(from(setting in AppSetting, where: setting.name == ^@runtime_name, limit: 1)) do
         %AppSetting{data: data} when is_map(data) -> to_atom_map(data)
         _ -> %{}
       end
@@ -205,6 +206,7 @@ defmodule Hackflare.Settings do
   defp to_atom_key(key) when is_binary(key), do: String.to_existing_atom(key)
 
   defp parse_integer(value, _default) when is_integer(value), do: value
+
   defp parse_integer(value, default) when is_binary(value) do
     case Integer.parse(String.trim(value)) do
       {integer, ""} -> integer
