@@ -55,7 +55,7 @@ defmodule Hackflare.Nameserver do
   @doc false
   def init(_) do
     # create manager and start nameserver via native NIF
-    config = Application.get_env(:hackflare, :dns, %{})
+    config = Hackflare.Settings.dns_config()
     export_soa_config(Map.get(config, :soa, %{}))
     mgr = Hackflare.Native.manager_new()
     # start nameserver in background
@@ -67,6 +67,10 @@ defmodule Hackflare.Nameserver do
       )
 
     {:ok, %{manager: mgr}}
+  end
+
+  def restart do
+    Supervisor.restart_child(Hackflare.Supervisor, __MODULE__)
   end
 
   defp export_soa_config(soa) when is_map(soa) do

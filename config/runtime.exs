@@ -31,6 +31,14 @@ config :hackflare, :dns, %{
   }
 }
 
+admin_emails =
+  System.get_env("HACKFLARE_ADMIN_EMAILS", "")
+  |> String.split(",", trim: true)
+  |> Enum.map(&String.trim/1)
+  |> Enum.reject(&(&1 == ""))
+
+config :hackflare, :admin_emails, admin_emails
+
 db_host_env = System.get_env("DB_HOST") || "localhost"
 db_port_env = System.get_env("DB_PORT") || "5432"
 

@@ -11,6 +11,7 @@ defmodule Hackflare.Accounts.User do
     field(:name, :string)
     field(:verification_status, :string)
     field(:ysws_eligible, :boolean, default: false)
+    field(:is_admin, :boolean, default: false)
 
     timestamps(type: :utc_datetime)
   end
@@ -20,8 +21,8 @@ defmodule Hackflare.Accounts.User do
   @doc false
   def changeset(user, attrs) do
     user
-    |> cast(attrs, [:slack_id, :email, :name, :verification_status, :ysws_eligible])
-    |> validate_required([:slack_id, :email, :name, :verification_status, :ysws_eligible])
+    |> cast(attrs, [:slack_id, :email, :name, :verification_status, :ysws_eligible, :is_admin])
+    |> validate_required([:slack_id, :email, :name, :verification_status, :ysws_eligible, :is_admin])
     |> unique_constraint(:slack_id)
     |> unique_constraint(:email)
   end

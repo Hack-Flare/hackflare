@@ -9,7 +9,7 @@ defmodule Hackflare.HackClubAuth do
   alias Assent.Strategy.OIDC
 
   def config do
-    Application.get_env(:hackflare, :auth)
+    Hackflare.Settings.auth_config()
   end
 
   def get_authorize_url(redirect_uri) do

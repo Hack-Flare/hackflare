@@ -12,6 +12,8 @@ config :hackflare, ecto_repos: [Hackflare.Repo]
 config :hackflare,
   generators: [timestamp_type: :utc_datetime]
 
+config :hackflare, :admin_emails, []
+
 config :hackflare, :dns, %{
   bind: "0.0.0.0",
   port: 53,

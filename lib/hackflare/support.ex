@@ -14,7 +14,7 @@ defmodule Hackflare.Support do
              | {:webhook_rejected, non_neg_integer(), term()}}
   def submit_help_request(%User{} = user, message) when is_binary(message) do
     trimmed_message = String.trim(message)
-    webhook_url = Application.get_env(:hackflare, :slack_help_webhook_url, "")
+    webhook_url = Hackflare.Settings.slack_help_webhook_url()
 
     cond do
       trimmed_message == "" ->

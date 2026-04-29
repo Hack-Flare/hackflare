@@ -66,6 +66,10 @@ defmodule HackflareWeb.Router do
     plug HackflareWeb.Plugs.RequireAuthenticated
   end
 
+  pipeline :require_admin do
+    plug HackflareWeb.Plugs.RequireAdmin
+  end
+
   scope "/", HackflareWeb do
     pipe_through :browser
 
@@ -84,6 +88,13 @@ defmodule HackflareWeb.Router do
     get "/dash/notifications", DashController, :notifications
     get "/dash/help", DashController, :help
     post "/dash/help", DashController, :submit_help
+  end
+
+  scope "/admin", HackflareWeb do
+    pipe_through [:browser, :require_authenticated, :require_admin]
+
+    get "/", AdminController, :index
+    post "/settings", AdminController, :update
   end
 
   scope "/auth", HackflareWeb do
