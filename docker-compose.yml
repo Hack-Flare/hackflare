@@ -22,7 +22,8 @@ services:
     image: ghcr.io/hack-flare/hackflare:latest
     pull_policy: always
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     env_file:
       - .env
     environment:
