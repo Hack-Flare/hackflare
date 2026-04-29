@@ -50,16 +50,23 @@ docker compose -f docker-compose.dev.yml up
     - [ ] Auth Integration
     - [ ] Domain Migration
     - [ ] Domain Management
-  - [ ] Frontend
 - [x] nameservers
   - [1] Amount Online
-- [ ] Auth system (hc auth)
-  - [ ] Backend
-  - [ ] Frontend
+- [x] Auth system (hc auth)
+  - [x] Backend
   - [x] ENV Setup
 - [ ] Simple Logging
 - [ ] Caching (incl. DNS caching, Edge caching, etc.)
 - [ ] Proper Frontend
+  - [wip] Dashboard
+  - [ ] Domain Management
+  - [ ] Analytics
+  - [ ] Logging
+  - [ ] Notifications
+  - [wip] Admin Panel
+  - [ ] Settings
+  - [x] Error Pages
+  - [x] Auth System
 - [x] Docker
 
 ## Features From Recommendations
