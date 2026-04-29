@@ -34,10 +34,6 @@ services:
       DB_USER: "hackflare"
       DB_PASS: "hackflare"
       DB_NAME: "hackflare"
-      HCA_CID: "9d21b18293928bd8046379ffca85cd1b"
-      HCA_SEC: "a5e95ed48ce14b66fd13fd305dcb21554e844b878839916f6d9ecd394f450117"
-      HCA_REDIR_URL: "https://hackflare.kirze.de/auth/callback"
-      SECRET_KEY_BASE: "Sx/6AL8gOMUfxLVU78lnIqghTEOe9pefhaGIOFVP3NYtBBvhFq+Yc46XFs9/3FBt"
     ports:
       - "4000:4000"
       - "53:53/udp"
