@@ -2,7 +2,7 @@
    https://tailwindcss.com/docs/configuration */
 /* tailwindcss v4 - @source and @plugin are valid directives */
 
-@import "tailwindcss" source(none);
+@import "tailwindcss";
 @source "../css";
 @source "../js";
 @source "../../lib/hackflare_web";
@@ -119,6 +119,13 @@ html {
 
   .card {
     @apply border-0;
+  }
+
+  .haj-background {
+    background-image: url('/images/big-haj.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
   }
 
   /* Smooth scrolling */
