@@ -63,7 +63,8 @@ services:
       - WATCHTOWER_POLL_INTERVAL=120 # Checks every 2 minutes
       - DOCKER_API_VERSION=1.44
     depends_on:
-      - hackflare
+      hackflare:
+        condition: service_healthy
 
 volumes:
   db_data:
