@@ -46,9 +46,9 @@ docker compose -f docker-compose.dev.yml up
 ## Needed Features for POC/MVP
 
 - [ ] DNS System
-  - [ ] Backend
+  - [wip] Backend
     - [ ] Auth Integration
-    - [ ] Domain Migration
+    - [ ] Domain Migration (cloudflare)
     - [ ] Domain Management
 - [x] nameservers
   - [1] Amount Online
@@ -69,6 +69,7 @@ docker compose -f docker-compose.dev.yml up
   - [x] Auth System
 - [x] Docker
 - [ ] Big Haj on error pages
+- [ ] Organize readme and documentation better
 
 ## Features From Recommendations
 
