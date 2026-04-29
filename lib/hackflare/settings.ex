@@ -89,7 +89,7 @@ defmodule Hackflare.Settings do
 
   def runtime_overrides do
     try do
-      case Repo.one(from(setting in AppSetting, where: setting.name == ^@runtime_name, limit: 1)) do
+      case Repo.one(from setting in AppSetting, where: setting.name == ^@runtime_name, limit: 1) do
         %AppSetting{data: data} when is_map(data) -> to_atom_map(data)
         _ -> %{}
       end
@@ -124,11 +124,20 @@ defmodule Hackflare.Settings do
 
   defp default_runtime do
     %{
-      admin_emails: System.get_env("HACKFLARE_ADMIN_EMAILS", ""),
+      admin_emails: get_admin_emails_default(),
       slack_help_webhook_url: System.get_env("SLACK_HELP_WEBHOOK_URL") || "",
       auth: default_auth(),
       dns: default_dns()
     }
+  end
+
+  defp get_admin_emails_default do
+    case Application.get_env(:hackflare, :admin_emails, nil) do
+      list when is_list(list) ->
+        Enum.map_join(list, ", ", &if(is_atom(&1), do: to_string(&1), else: &1))
+      _ ->
+        System.get_env("HACKFLARE_ADMIN_EMAILS", "")
+    end
   end
 
   defp default_auth do
