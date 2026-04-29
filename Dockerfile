@@ -60,4 +60,4 @@ USER appuser
 COPY --from=build --chown=appuser:appuser /app/release .
 
 EXPOSE 4000
-CMD ["bin/hackflare", "start"]
+CMD ["sh", "-c", "bin/hackflare eval \"Hackflare.Release.migrate()\" && exec bin/hackflare start"]
