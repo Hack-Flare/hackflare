@@ -91,7 +91,7 @@ docker compose -f docker-compose.dev.yml up
 - Passkey Auth Second Layer
 - Email Auth
 - HC AI Integration
-- HC CDN Integration
+- Custom CDN
 - gRPC and Rest API support
 - Custom DNS Records (SRV, TXT, etc.)
 - Serverless Functions (eg. DB, Workers, etc.)
