@@ -113,35 +113,63 @@ defmodule Hackflare.Settings do
     %{
       admin_emails: System.get_env("HACKFLARE_ADMIN_EMAILS", ""),
       slack_help_webhook_url: System.get_env("SLACK_HELP_WEBHOOK_URL") || "",
-      auth: %{
-        client_id: System.get_env("HCA_CID") || System.get_env("hca_cid") || "fuhh-you-forgot-set-this",
-        client_secret:
-          System.get_env("HCA_SEC") || System.get_env("hca_sec") || "fuhh-you-forgot-set-this-too",
-        redirect_uri:
-          System.get_env("HCA_REDIR_URL") || System.get_env("hca_redir_url") ||
-            "http://localhost:4000/auth/callback",
-        base_url:
-          System.get_env("HCA_BASE_URL") || System.get_env("hca_base_url") ||
-            "https://auth.hackclub.com",
-        openid_configuration_uri:
-          System.get_env("HCA_OPENID_CONFIG_URI") || System.get_env("hca_openid_config_uri") ||
-            "/.well-known/openid-configuration",
-        authorization_scope: "openid profile email slack_id verification_status"
-      },
-      dns: %{
-        bind: System.get_env("DNS_BIND") || "0.0.0.0",
-        port: System.get_env("DNS_PORT", "53"),
-        soa: %{
-          mname: System.get_env("DNS_SOA_MNAME") || "a.root-servers.net.",
-          rname: System.get_env("DNS_SOA_RNAME") || "nstld.verisign-grs.com.",
-          serial: System.get_env("DNS_SOA_SERIAL", "2026042000"),
-          refresh: System.get_env("DNS_SOA_REFRESH", "1800"),
-          retry: System.get_env("DNS_SOA_RETRY", "900"),
-          expire: System.get_env("DNS_SOA_EXPIRE", "604800"),
-          minimum: System.get_env("DNS_SOA_MINIMUM", "86400"),
-          ttl: System.get_env("DNS_SOA_TTL", "86400")
-        }
-      }
+      auth: default_auth(),
+      dns: default_dns()
+    }
+  end
+
+  defp default_auth do
+    %{
+      client_id: default_auth_client_id(),
+      client_secret: default_auth_client_secret(),
+      redirect_uri: default_auth_redirect_uri(),
+      base_url: default_auth_base_url(),
+      openid_configuration_uri: default_auth_openid_configuration_uri(),
+      authorization_scope: "openid profile email slack_id verification_status"
+    }
+  end
+
+  defp default_auth_client_id do
+    System.get_env("HCA_CID") || System.get_env("hca_cid") || "fuhh-you-forgot-set-this"
+  end
+
+  defp default_auth_client_secret do
+    System.get_env("HCA_SEC") || System.get_env("hca_sec") || "fuhh-you-forgot-set-this-too"
+  end
+
+  defp default_auth_redirect_uri do
+    System.get_env("HCA_REDIR_URL") || System.get_env("hca_redir_url") ||
+      "http://localhost:4000/auth/callback"
+  end
+
+  defp default_auth_base_url do
+    System.get_env("HCA_BASE_URL") || System.get_env("hca_base_url") ||
+      "https://auth.hackclub.com"
+  end
+
+  defp default_auth_openid_configuration_uri do
+    System.get_env("HCA_OPENID_CONFIG_URI") || System.get_env("hca_openid_config_uri") ||
+      "/.well-known/openid-configuration"
+  end
+
+  defp default_dns do
+    %{
+      bind: System.get_env("DNS_BIND") || "0.0.0.0",
+      port: System.get_env("DNS_PORT", "53"),
+      soa: default_soa()
+    }
+  end
+
+  defp default_soa do
+    %{
+      mname: System.get_env("DNS_SOA_MNAME") || "a.root-servers.net.",
+      rname: System.get_env("DNS_SOA_RNAME") || "nstld.verisign-grs.com.",
+      serial: System.get_env("DNS_SOA_SERIAL", "2026042000"),
+      refresh: System.get_env("DNS_SOA_REFRESH", "1800"),
+      retry: System.get_env("DNS_SOA_RETRY", "900"),
+      expire: System.get_env("DNS_SOA_EXPIRE", "604800"),
+      minimum: System.get_env("DNS_SOA_MINIMUM", "86400"),
+      ttl: System.get_env("DNS_SOA_TTL", "86400")
     }
   end
 
@@ -149,7 +177,7 @@ defmodule Hackflare.Settings do
     Map.merge(left, right, fn _key, left_value, right_value ->
       case {left_value, right_value} do
         {%{} = left_map, %{} = right_map} -> deep_merge(left_map, right_map)
-        {_left, right} -> right
+        {_, right} -> right
       end
     end)
   end
