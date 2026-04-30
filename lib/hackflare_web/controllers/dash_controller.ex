@@ -12,10 +12,11 @@ defmodule HackflareWeb.DashController do
   end
 
   def domains(conn, _params) do
-    zones = case DNS.list_zones() do
-      {:ok, z} -> z
-      {:error, _} -> []
-    end
+    zones =
+      case DNS.list_zones() do
+        {:ok, z} -> z
+        {:error, _} -> []
+      end
 
     render(conn, :dashboard,
       current_view: :domains,
