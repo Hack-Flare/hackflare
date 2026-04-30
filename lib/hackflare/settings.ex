@@ -101,9 +101,16 @@ defmodule Hackflare.Settings do
   def update_runtime(attrs) when is_map(attrs) do
     data = deep_merge(runtime_overrides(), to_atom_map(attrs))
 
-    %AppSetting{}
-    |> AppSetting.changeset(%{name: @runtime_name, data: data})
-    |> Repo.insert_or_update()
+    changeset =
+      %AppSetting{}
+      |> AppSetting.changeset(%{name: @runtime_name, data: data})
+
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    Repo.insert(changeset,
+      on_conflict: [set: [data: ^data, updated_at: ^now]],
+      conflict_target: [:name]
+    )
   rescue
     Ecto.QueryError -> {:error, :settings_table_missing}
     DBConnection.ConnectionError -> {:error, :settings_table_missing}

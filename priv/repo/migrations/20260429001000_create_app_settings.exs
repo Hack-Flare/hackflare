@@ -10,5 +10,11 @@ defmodule Hackflare.Repo.Migrations.CreateAppSettings do
     end
 
     create unique_index(:app_settings, [:name])
+
+    execute("""
+    INSERT INTO app_settings (name, data, inserted_at, updated_at)
+    VALUES ('runtime', '{}'::jsonb, now(), now())
+    ON CONFLICT (name) DO NOTHING;
+    """)
   end
 end

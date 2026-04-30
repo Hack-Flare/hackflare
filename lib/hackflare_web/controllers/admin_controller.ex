@@ -37,9 +37,20 @@ defmodule HackflareWeb.AdminController do
         |> put_flash(:info, "Admin settings saved.")
         |> redirect(to: ~p"/admin")
 
-      {:error, _changeset} ->
+      {:error, :settings_table_missing} ->
         conn
-        |> put_flash(:error, "Unable to save admin settings.")
+        |> put_flash(:error, "Database unavailable; settings table missing.")
+        |> redirect(to: ~p"/admin")
+
+      {:error, %Ecto.Changeset{} = cs} ->
+        error_msg =
+          case cs.errors do
+            [{_field, {msg, _opts}} | _] -> String.capitalize(msg)
+            _ -> "Unable to save admin settings."
+          end
+
+        conn
+        |> put_flash(:error, error_msg)
         |> redirect(to: ~p"/admin")
     end
   end
