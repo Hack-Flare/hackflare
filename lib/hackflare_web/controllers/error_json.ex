@@ -1,17 +1,12 @@
 defmodule HackflareWeb.ErrorJSON do
-  def render(template, assigns) do
-    conn = assigns[:conn]
-
-    info =
-      if conn do
-        HackflareWeb.RequestInfo.extract(conn)
-      else
-        %{}
+  def render(template, _assigns) do
+    detail =
+      case String.trim_trailing(template, ".json") do
+        "404" -> "Not Found"
+        "500" -> "Internal Server Error"
+        other -> other
       end
 
-    %{
-      error: template,
-      details: info
-    }
+    %{errors: %{detail: detail}}
   end
 end
