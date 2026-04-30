@@ -230,7 +230,7 @@ defmodule HackflareWeb.Layouts do
             </ul>
           </div>
         </header>
-
+        
     <!-- Hero Section Full Screen -->
         <div class="relative h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 text-white overflow-hidden flex items-center pt-24">
           <div class="w-full">
@@ -286,7 +286,7 @@ defmodule HackflareWeb.Layouts do
                   </a>
                 </div>
               </div>
-
+              
     <!-- Right Side: Hero Image -->
               <div class="flex items-center justify-center lg:justify-end">
                 <div class="relative w-full max-w-md">
@@ -302,7 +302,7 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
-
+        
     <!-- Features Section -->
         <div class="relative px-8 py-24 sm:px-16 lg:px-24 bg-gradient-to-b from-black to-gray-950">
           <div class="max-w-7xl mx-auto space-y-16">
@@ -334,7 +334,7 @@ defmodule HackflareWeb.Layouts do
                   </p>
                 </div>
               </div>
-
+              
     <!-- Feature 2 -->
               <div class="group relative">
                 <div class="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent rounded-lg blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
@@ -351,7 +351,7 @@ defmodule HackflareWeb.Layouts do
                   </p>
                 </div>
               </div>
-
+              
     <!-- Feature 3 -->
               <div class="group relative">
                 <div class="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent rounded-lg blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
@@ -371,7 +371,7 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
-
+        
     <!-- Community proof Section -->
         <div class="relative px-8 py-24 sm:px-16 lg:px-24 bg-gradient-to-b from-black to-gray-950">
           <div class="max-w-7xl mx-auto space-y-16">
@@ -467,7 +467,7 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
-
+        
     <!-- CTA Section -->
         <div class="relative px-8 py-24 sm:px-16 lg:px-24 bg-black">
           <div class="max-w-4xl mx-auto">
@@ -504,7 +504,7 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
-
+        
     <!-- Footer -->
         <footer class="relative px-8 py-12 sm:px-16 lg:px-24 bg-black border-t border-orange-500/20">
           <div class="max-w-7xl mx-auto">
@@ -519,7 +519,7 @@ defmodule HackflareWeb.Layouts do
                   A powerful DNS and content delivery platform built for the Hack Club community.
                 </p>
               </div>
-
+              
     <!-- Links -->
               <div class="space-y-4">
                 <h3 class="text-white font-semibold">Product</h3>
@@ -544,7 +544,7 @@ defmodule HackflareWeb.Layouts do
                   </li>
                 </ul>
               </div>
-
+              
     <!-- Community -->
               <div class="space-y-4">
                 <h3 class="text-white font-semibold">Community</h3>
@@ -575,7 +575,7 @@ defmodule HackflareWeb.Layouts do
                   </li>
                 </ul>
               </div>
-
+              
     <!-- Legal -->
               <div class="space-y-4">
                 <h3 class="text-white font-semibold">Legal</h3>
@@ -648,7 +648,7 @@ defmodule HackflareWeb.Layouts do
               <img src={~p"/images/logo.svg"} width="40" alt="HackFlare" />
               <span class="font-bold text-lg text-orange-400">HackFlare</span>
             </div>
-
+            
     <!-- Navigation Menu -->
             <nav class="space-y-2">
               <a
@@ -703,7 +703,7 @@ defmodule HackflareWeb.Layouts do
                 </a>
               <% end %>
             </nav>
-
+            
     <!-- Bottom Section -->
             <div class="absolute bottom-6 left-6 right-6 space-y-4">
               <form method="post" action="/auth/logout">
@@ -718,7 +718,7 @@ defmodule HackflareWeb.Layouts do
               </form>
             </div>
           </aside>
-
+          
     <!-- Main Content -->
           <main class="flex-1 flex flex-col overflow-hidden">
             <!-- Header -->
@@ -736,7 +736,7 @@ defmodule HackflareWeb.Layouts do
                 </div>
               </div>
             </header>
-
+            
     <!-- Content Area -->
             <div class="flex-1 overflow-auto p-8">
               <%= case @current_view do %>
@@ -757,7 +757,7 @@ defmodule HackflareWeb.Layouts do
                         </button>
                       </div>
                     </div>
-
+                    
     <!-- Card 2 -->
                     <div class="group relative">
                       <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
@@ -773,7 +773,7 @@ defmodule HackflareWeb.Layouts do
                         </button>
                       </div>
                     </div>
-
+                    
     <!-- Card 3 -->
                     <div class="group relative">
                       <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
@@ -789,7 +789,7 @@ defmodule HackflareWeb.Layouts do
                         </button>
                       </div>
                     </div>
-
+                    
     <!-- Card 4 -->
                     <div class="group relative">
                       <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
@@ -805,7 +805,7 @@ defmodule HackflareWeb.Layouts do
                         </button>
                       </div>
                     </div>
-
+                    
     <!-- Card 5 -->
                     <div class="group relative">
                       <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
@@ -824,7 +824,7 @@ defmodule HackflareWeb.Layouts do
                         </a>
                       </div>
                     </div>
-
+                    
     <!-- Card 6 -->
                     <div class="group relative">
                       <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
@@ -848,7 +848,9 @@ defmodule HackflareWeb.Layouts do
                     <div class="lg:col-span-1">
                       <div class="rounded-xl border border-orange-500/20 bg-gray-900/60 overflow-hidden">
                         <div class="border-b border-orange-500/15 bg-black/40 px-4 py-3">
-                          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-orange-300">Domains</p>
+                          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-orange-300">
+                            Domains
+                          </p>
                           <p class="text-xl font-bold text-white mt-1">{total_zones}</p>
                         </div>
                         <%= if Enum.empty?(@zones) do %>
@@ -875,13 +877,15 @@ defmodule HackflareWeb.Layouts do
                         <% end %>
                       </div>
                     </div>
-
-                    <!-- Right: Domain Panel Content -->
+                    
+    <!-- Right: Domain Panel Content -->
                     <div class="lg:col-span-3 space-y-4">
                       <%= if Enum.empty?(@zones) do %>
                         <div class="rounded-xl border border-dashed border-orange-500/35 bg-gray-900/50 p-12 text-center">
                           <p class="text-lg font-semibold text-white">No Domains</p>
-                          <p class="text-sm text-gray-400 mt-2">Create your first domain to get started.</p>
+                          <p class="text-sm text-gray-400 mt-2">
+                            Create your first domain to get started.
+                          </p>
                           <button
                             onclick="document.getElementById('new-zone-modal').classList.remove('hidden')"
                             class="mt-6 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-orange-400"
@@ -893,12 +897,14 @@ defmodule HackflareWeb.Layouts do
                         <%= for zone <- @zones do %>
                           <% zone_key = String.replace(zone, ".", "-") %>
                           <% records = Map.get(@zone_records || %{}, zone, []) %>
-                              <div id={"domain-#{zone_key}-panel"} class="hidden space-y-4">
+                          <div id={"domain-#{zone_key}-panel"} class="hidden space-y-4">
                             <!-- Domain Header -->
                             <div class="rounded-xl border border-orange-500/25 bg-gradient-to-r from-gray-900/80 via-gray-900/70 to-gray-800/70 p-6">
                               <div class="flex items-start justify-between gap-4">
                                 <div>
-                                  <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-300">Domain</p>
+                                  <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-300">
+                                    Domain
+                                  </p>
                                   <h3 class="mt-2 text-2xl font-bold text-white">{zone}</h3>
                                 </div>
                                 <div class="flex items-center gap-2">
@@ -917,8 +923,8 @@ defmodule HackflareWeb.Layouts do
                                 </div>
                               </div>
                             </div>
-
-                            <!-- Category Tabs -->
+                            
+    <!-- Category Tabs -->
                             <div class="rounded-xl border border-orange-500/20 bg-gray-900/60 overflow-hidden">
                               <div class="border-b border-orange-500/15 bg-black/40">
                                 <div class="flex gap-1 p-1">
@@ -936,8 +942,8 @@ defmodule HackflareWeb.Layouts do
                                   </button>
                                 </div>
                               </div>
-
-                              <!-- DNS Zones Content -->
+                              
+    <!-- DNS Zones Content -->
                               <div id={"dns-zones-#{zone_key}"} class="p-4">
                                 <div class="space-y-3">
                                   <%= if Enum.empty?(records) do %>
@@ -949,19 +955,33 @@ defmodule HackflareWeb.Layouts do
                                       <table class="min-w-full divide-y divide-orange-500/15 text-sm">
                                         <thead class="bg-black/30">
                                           <tr>
-                                            <th class="px-4 py-2 text-left font-semibold text-gray-300">Type</th>
-                                            <th class="px-4 py-2 text-left font-semibold text-gray-300">Name</th>
-                                            <th class="px-4 py-2 text-left font-semibold text-gray-300">Content</th>
-                                            <th class="px-4 py-2 text-left font-semibold text-gray-300">TTL</th>
+                                            <th class="px-4 py-2 text-left font-semibold text-gray-300">
+                                              Type
+                                            </th>
+                                            <th class="px-4 py-2 text-left font-semibold text-gray-300">
+                                              Name
+                                            </th>
+                                            <th class="px-4 py-2 text-left font-semibold text-gray-300">
+                                              Content
+                                            </th>
+                                            <th class="px-4 py-2 text-left font-semibold text-gray-300">
+                                              TTL
+                                            </th>
                                           </tr>
                                         </thead>
                                         <tbody class="divide-y divide-orange-500/10 bg-gray-900/30">
                                           <%= for record <- records do %>
                                             <tr class="hover:bg-black/30">
-                                              <td class="whitespace-nowrap px-4 py-2 font-semibold text-orange-300">{record.rtype}</td>
-                                              <td class="whitespace-nowrap px-4 py-2 text-gray-200">{record.name}</td>
+                                              <td class="whitespace-nowrap px-4 py-2 font-semibold text-orange-300">
+                                                {record.rtype}
+                                              </td>
+                                              <td class="whitespace-nowrap px-4 py-2 text-gray-200">
+                                                {record.name}
+                                              </td>
                                               <td class="px-4 py-2 text-gray-300">{record.data}</td>
-                                              <td class="whitespace-nowrap px-4 py-2 text-gray-400">{record.ttl}</td>
+                                              <td class="whitespace-nowrap px-4 py-2 text-gray-400">
+                                                {record.ttl}
+                                              </td>
                                             </tr>
                                           <% end %>
                                         </tbody>
@@ -970,14 +990,17 @@ defmodule HackflareWeb.Layouts do
                                   <% end %>
                                 </div>
                               </div>
-
-                              <!-- More Content (placeholder) -->
-                              <div id={"other-#{zone_key}"} class="hidden p-4 text-center text-sm text-gray-400">
+                              
+    <!-- More Content (placeholder) -->
+                              <div
+                                id={"other-#{zone_key}"}
+                                class="hidden p-4 text-center text-sm text-gray-400"
+                              >
                                 <p>More features coming soon (SSL, Email, etc.)</p>
                               </div>
                             </div>
-
-                            <!-- Add Record Modal -->
+                            
+    <!-- Add Record Modal -->
                             <div
                               id={"add-record-modal-#{zone_key}"}
                               class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
@@ -1051,8 +1074,8 @@ defmodule HackflareWeb.Layouts do
                             </div>
                           </div>
                         <% end %>
-
-                        <!-- Initial state: show first domain by default -->
+                        
+    <!-- Initial state: show first domain by default -->
                         <script>
                           (function() {
                             var firstDomain = document.querySelector('[data-domain-item]');
@@ -1064,8 +1087,8 @@ defmodule HackflareWeb.Layouts do
                       <% end %>
                     </div>
                   </div>
-
-                  <!-- New Domain Modal -->
+                  
+    <!-- New Domain Modal -->
                   <div
                     id="new-zone-modal"
                     class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm"
