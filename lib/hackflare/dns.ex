@@ -146,7 +146,24 @@ defmodule Hackflare.DNS do
     with {:ok, mgr} <- get_manager() do
       case Native.manager_add_record(mgr, zone_name, record_name, record_type, ttl, data) do
         true ->
+<<<<<<< HEAD
           persist_record(zone_name, record_name, record_type, ttl, data)
+=======
+          # persist record to DB
+          zone = Repo.get_by(Zone, name: zone_name)
+
+          if zone do
+            %Record{}
+            |> Record.changeset(%{
+              zone_id: zone.id,
+              name: record_name,
+              rtype: record_type,
+              ttl: ttl,
+              data: data
+            })
+            |> Repo.insert(on_conflict: :nothing)
+          end
+>>>>>>> 0131628384990b0e3356b3ae6e8309236db5a2e1
 
           {:ok, %{name: record_name, rtype: record_type, ttl: ttl, data: data}}
 
@@ -173,7 +190,17 @@ defmodule Hackflare.DNS do
     with {:ok, mgr} <- get_manager() do
       case Native.manager_remove_record(mgr, zone_name, record_name, record_type) do
         true ->
+<<<<<<< HEAD
           delete_persisted_record(zone_name, record_name, record_type)
+=======
+          # delete from DB
+          if zone = Repo.get_by(Zone, name: zone_name) do
+            from(r in Record,
+              where: r.zone_id == ^zone.id and r.name == ^record_name and r.rtype == ^record_type
+            )
+            |> Repo.delete_all()
+          end
+>>>>>>> 0131628384990b0e3356b3ae6e8309236db5a2e1
 
           {:ok, :deleted}
 

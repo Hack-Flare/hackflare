@@ -3,11 +3,11 @@ defmodule Hackflare.DNS.Record do
   import Ecto.Changeset
 
   schema "dns_records" do
-    field :name, :string
-    field :rtype, :string
-    field :ttl, :integer
-    field :data, :string
-    belongs_to :zone, Hackflare.DNS.Zone, foreign_key: :zone_id
+    field(:name, :string)
+    field(:rtype, :string)
+    field(:ttl, :integer)
+    field(:data, :string)
+    belongs_to(:zone, Hackflare.DNS.Zone, foreign_key: :zone_id)
 
     timestamps()
   end
