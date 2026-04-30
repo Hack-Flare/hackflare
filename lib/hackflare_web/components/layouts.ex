@@ -230,7 +230,7 @@ defmodule HackflareWeb.Layouts do
             </ul>
           </div>
         </header>
-        
+
     <!-- Hero Section Full Screen -->
         <div class="relative h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 text-white overflow-hidden flex items-center pt-24">
           <div class="w-full">
@@ -286,7 +286,7 @@ defmodule HackflareWeb.Layouts do
                   </a>
                 </div>
               </div>
-              
+
     <!-- Right Side: Hero Image -->
               <div class="flex items-center justify-center lg:justify-end">
                 <div class="relative w-full max-w-md">
@@ -302,7 +302,7 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
-        
+
     <!-- Features Section -->
         <div class="relative px-8 py-24 sm:px-16 lg:px-24 bg-gradient-to-b from-black to-gray-950">
           <div class="max-w-7xl mx-auto space-y-16">
@@ -334,7 +334,7 @@ defmodule HackflareWeb.Layouts do
                   </p>
                 </div>
               </div>
-              
+
     <!-- Feature 2 -->
               <div class="group relative">
                 <div class="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent rounded-lg blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
@@ -351,7 +351,7 @@ defmodule HackflareWeb.Layouts do
                   </p>
                 </div>
               </div>
-              
+
     <!-- Feature 3 -->
               <div class="group relative">
                 <div class="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent rounded-lg blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
@@ -371,7 +371,7 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
-        
+
     <!-- Community proof Section -->
         <div class="relative px-8 py-24 sm:px-16 lg:px-24 bg-gradient-to-b from-black to-gray-950">
           <div class="max-w-7xl mx-auto space-y-16">
@@ -467,7 +467,7 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
-        
+
     <!-- CTA Section -->
         <div class="relative px-8 py-24 sm:px-16 lg:px-24 bg-black">
           <div class="max-w-4xl mx-auto">
@@ -504,7 +504,7 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
-        
+
     <!-- Footer -->
         <footer class="relative px-8 py-12 sm:px-16 lg:px-24 bg-black border-t border-orange-500/20">
           <div class="max-w-7xl mx-auto">
@@ -519,7 +519,7 @@ defmodule HackflareWeb.Layouts do
                   A powerful DNS and content delivery platform built for the Hack Club community.
                 </p>
               </div>
-              
+
     <!-- Links -->
               <div class="space-y-4">
                 <h3 class="text-white font-semibold">Product</h3>
@@ -544,7 +544,7 @@ defmodule HackflareWeb.Layouts do
                   </li>
                 </ul>
               </div>
-              
+
     <!-- Community -->
               <div class="space-y-4">
                 <h3 class="text-white font-semibold">Community</h3>
@@ -575,7 +575,7 @@ defmodule HackflareWeb.Layouts do
                   </li>
                 </ul>
               </div>
-              
+
     <!-- Legal -->
               <div class="space-y-4">
                 <h3 class="text-white font-semibold">Legal</h3>
@@ -647,7 +647,7 @@ defmodule HackflareWeb.Layouts do
               <img src={~p"/images/logo.svg"} width="40" alt="HackFlare" />
               <span class="font-bold text-lg text-orange-400">HackFlare</span>
             </div>
-            
+
     <!-- Navigation Menu -->
             <nav class="space-y-2">
               <a
@@ -693,7 +693,7 @@ defmodule HackflareWeb.Layouts do
                 <span>Help</span>
               </a>
             </nav>
-            
+
     <!-- Bottom Section -->
             <div class="absolute bottom-6 left-6 right-6 space-y-4">
               <form method="post" action="/auth/logout">
@@ -708,7 +708,7 @@ defmodule HackflareWeb.Layouts do
               </form>
             </div>
           </aside>
-          
+
     <!-- Main Content -->
           <main class="flex-1 flex flex-col overflow-hidden">
             <!-- Header -->
@@ -726,7 +726,7 @@ defmodule HackflareWeb.Layouts do
                 </div>
               </div>
             </header>
-            
+
     <!-- Content Area -->
             <div class="flex-1 overflow-auto p-8">
               <%= case @current_view do %>
@@ -747,7 +747,7 @@ defmodule HackflareWeb.Layouts do
                         </button>
                       </div>
                     </div>
-                    
+
     <!-- Card 2 -->
                     <div class="group relative">
                       <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
@@ -763,7 +763,7 @@ defmodule HackflareWeb.Layouts do
                         </button>
                       </div>
                     </div>
-                    
+
     <!-- Card 3 -->
                     <div class="group relative">
                       <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
@@ -779,7 +779,7 @@ defmodule HackflareWeb.Layouts do
                         </button>
                       </div>
                     </div>
-                    
+
     <!-- Card 4 -->
                     <div class="group relative">
                       <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
@@ -795,7 +795,7 @@ defmodule HackflareWeb.Layouts do
                         </button>
                       </div>
                     </div>
-                    
+
     <!-- Card 5 -->
                     <div class="group relative">
                       <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
@@ -814,7 +814,7 @@ defmodule HackflareWeb.Layouts do
                         </a>
                       </div>
                     </div>
-                    
+
     <!-- Card 6 -->
                     <div class="group relative">
                       <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
@@ -950,48 +950,66 @@ defmodule HackflareWeb.Layouts do
                             </p>
                           </div>
                           <div class="grid gap-4 lg:grid-cols-2">
-                            <input
-                              type="text"
-                              name="settings[auth][client_id]"
-                              value={get_in(@settings, [:auth, :client_id]) || ""}
-                              class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
-                              placeholder="client id"
-                            />
-                            <input
-                              type="text"
-                              name="settings[auth][client_secret]"
-                              value={get_in(@settings, [:auth, :client_secret]) || ""}
-                              class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
-                              placeholder="client secret"
-                            />
-                            <input
-                              type="text"
-                              name="settings[auth][redirect_uri]"
-                              value={get_in(@settings, [:auth, :redirect_uri]) || ""}
-                              class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
-                              placeholder="redirect uri"
-                            />
-                            <input
-                              type="text"
-                              name="settings[auth][base_url]"
-                              value={get_in(@settings, [:auth, :base_url]) || ""}
-                              class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
-                              placeholder="base url"
-                            />
-                            <input
-                              type="text"
-                              name="settings[auth][openid_configuration_uri]"
-                              value={get_in(@settings, [:auth, :openid_configuration_uri]) || ""}
-                              class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none lg:col-span-2"
-                              placeholder="openid configuration uri"
-                            />
-                            <input
-                              type="text"
-                              name="settings[auth][authorization_scope]"
-                              value={get_in(@settings, [:auth, :authorization_scope]) || ""}
-                              class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none lg:col-span-2"
-                              placeholder="authorization scope"
-                            />
+                            <label class="block space-y-1">
+                              <span class="text-sm font-semibold text-gray-200">Client ID</span>
+                              <input
+                                type="text"
+                                name="settings[auth][client_id]"
+                                value={get_in(@settings, [:auth, :client_id]) || ""}
+                                class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                                placeholder="Your OIDC client ID"
+                              />
+                            </label>
+                            <label class="block space-y-1">
+                              <span class="text-sm font-semibold text-gray-200">Client Secret</span>
+                              <input
+                                type="text"
+                                name="settings[auth][client_secret]"
+                                value={get_in(@settings, [:auth, :client_secret]) || ""}
+                                class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                                placeholder="Your OIDC client secret"
+                              />
+                            </label>
+                            <label class="block space-y-1">
+                              <span class="text-sm font-semibold text-gray-200">Redirect URI</span>
+                              <input
+                                type="text"
+                                name="settings[auth][redirect_uri]"
+                                value={get_in(@settings, [:auth, :redirect_uri]) || ""}
+                                class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                                placeholder="https://example.com/auth/callback"
+                              />
+                            </label>
+                            <label class="block space-y-1">
+                              <span class="text-sm font-semibold text-gray-200">Base URL</span>
+                              <input
+                                type="text"
+                                name="settings[auth][base_url]"
+                                value={get_in(@settings, [:auth, :base_url]) || ""}
+                                class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                                placeholder="https://oidc.example.com"
+                              />
+                            </label>
+                            <label class="block space-y-1 lg:col-span-2">
+                              <span class="text-sm font-semibold text-gray-200">OpenID Configuration URI</span>
+                              <input
+                                type="text"
+                                name="settings[auth][openid_configuration_uri]"
+                                value={get_in(@settings, [:auth, :openid_configuration_uri]) || ""}
+                                class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                                placeholder="https://oidc.example.com/.well-known/openid-configuration"
+                              />
+                            </label>
+                            <label class="block space-y-1 lg:col-span-2">
+                              <span class="text-sm font-semibold text-gray-200">Authorization Scope</span>
+                              <input
+                                type="text"
+                                name="settings[auth][authorization_scope]"
+                                value={get_in(@settings, [:auth, :authorization_scope]) || ""}
+                                class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                                placeholder="openid profile email"
+                              />
+                            </label>
                           </div>
                         </div>
 
@@ -1003,76 +1021,106 @@ defmodule HackflareWeb.Layouts do
                             </p>
                           </div>
                           <div class="grid gap-4 lg:grid-cols-2">
-                            <input
-                              type="text"
-                              name="settings[dns][bind]"
-                              value={get_in(@settings, [:dns, :bind]) || ""}
-                              class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
-                              placeholder="bind address"
-                            />
-                            <input
-                              type="text"
-                              name="settings[dns][port]"
-                              value={get_in(@settings, [:dns, :port]) || ""}
-                              class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
-                              placeholder="port"
-                            />
-                            <input
-                              type="text"
-                              name="settings[dns][soa][mname]"
-                              value={get_in(@settings, [:dns, :soa, :mname]) || ""}
-                              class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
-                              placeholder="soa mname"
-                            />
-                            <input
-                              type="text"
-                              name="settings[dns][soa][rname]"
-                              value={get_in(@settings, [:dns, :soa, :rname]) || ""}
-                              class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
-                              placeholder="soa rname"
-                            />
-                            <input
-                              type="text"
-                              name="settings[dns][soa][serial]"
-                              value={get_in(@settings, [:dns, :soa, :serial]) || ""}
-                              class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
-                              placeholder="soa serial"
-                            />
-                            <input
-                              type="text"
-                              name="settings[dns][soa][refresh]"
-                              value={get_in(@settings, [:dns, :soa, :refresh]) || ""}
-                              class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
-                              placeholder="soa refresh"
-                            />
-                            <input
-                              type="text"
-                              name="settings[dns][soa][retry]"
-                              value={get_in(@settings, [:dns, :soa, :retry]) || ""}
-                              class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
-                              placeholder="soa retry"
-                            />
-                            <input
-                              type="text"
-                              name="settings[dns][soa][expire]"
-                              value={get_in(@settings, [:dns, :soa, :expire]) || ""}
-                              class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
-                              placeholder="soa expire"
-                            />
-                            <input
-                              type="text"
-                              name="settings[dns][soa][minimum]"
-                              value={get_in(@settings, [:dns, :soa, :minimum]) || ""}
-                              class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
-                              placeholder="soa minimum"
-                            />
-                            <input
-                              type="text"
-                              name="settings[dns][soa][ttl]"
-                              value={get_in(@settings, [:dns, :soa, :ttl]) || ""}
-                              class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
-                              placeholder="soa ttl"
-                            />
+                            <label class="block space-y-1">
+                              <span class="text-sm font-semibold text-gray-200">Bind Address</span>
+                              <input
+                                type="text"
+                                name="settings[dns][bind]"
+                                value={get_in(@settings, [:dns, :bind]) || ""}
+                                class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                                placeholder="0.0.0.0 or specific IP"
+                              />
+                            </label>
+                            <label class="block space-y-1">
+                              <span class="text-sm font-semibold text-gray-200">Port</span>
+                              <input
+                                type="text"
+                                name="settings[dns][port]"
+                                value={get_in(@settings, [:dns, :port]) || ""}
+                                class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                                placeholder="53"
+                              />
+                            </label>
+                            <label class="block space-y-1">
+                              <span class="text-sm font-semibold text-gray-200">SOA Primary Nameserver (mname)</span>
+                              <input
+                                type="text"
+                                name="settings[dns][soa][mname]"
+                                value={get_in(@settings, [:dns, :soa, :mname]) || ""}
+                                class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                                placeholder="ns1.example.com"
+                              />
+                            </label>
+                            <label class="block space-y-1">
+                              <span class="text-sm font-semibold text-gray-200">SOA Responsible Email (rname)</span>
+                              <input
+                                type="text"
+                                name="settings[dns][soa][rname]"
+                                value={get_in(@settings, [:dns, :soa, :rname]) || ""}
+                                class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                                placeholder="admin.example.com"
+                              />
+                            </label>
+                            <label class="block space-y-1">
+                              <span class="text-sm font-semibold text-gray-200">SOA Serial</span>
+                              <input
+                                type="text"
+                                name="settings[dns][soa][serial]"
+                                value={get_in(@settings, [:dns, :soa, :serial]) || ""}
+                                class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                                placeholder="2026043001"
+                              />
+                            </label>
+                            <label class="block space-y-1">
+                              <span class="text-sm font-semibold text-gray-200">SOA Refresh (seconds)</span>
+                              <input
+                                type="text"
+                                name="settings[dns][soa][refresh]"
+                                value={get_in(@settings, [:dns, :soa, :refresh]) || ""}
+                                class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                                placeholder="10800"
+                              />
+                            </label>
+                            <label class="block space-y-1">
+                              <span class="text-sm font-semibold text-gray-200">SOA Retry (seconds)</span>
+                              <input
+                                type="text"
+                                name="settings[dns][soa][retry]"
+                                value={get_in(@settings, [:dns, :soa, :retry]) || ""}
+                                class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                                placeholder="3600"
+                              />
+                            </label>
+                            <label class="block space-y-1">
+                              <span class="text-sm font-semibold text-gray-200">SOA Expire (seconds)</span>
+                              <input
+                                type="text"
+                                name="settings[dns][soa][expire]"
+                                value={get_in(@settings, [:dns, :soa, :expire]) || ""}
+                                class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                                placeholder="604800"
+                              />
+                            </label>
+                            <label class="block space-y-1">
+                              <span class="text-sm font-semibold text-gray-200">SOA Minimum TTL (seconds)</span>
+                              <input
+                                type="text"
+                                name="settings[dns][soa][minimum]"
+                                value={get_in(@settings, [:dns, :soa, :minimum]) || ""}
+                                class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                                placeholder="86400"
+                              />
+                            </label>
+                            <label class="block space-y-1">
+                              <span class="text-sm font-semibold text-gray-200">SOA TTL (seconds)</span>
+                              <input
+                                type="text"
+                                name="settings[dns][soa][ttl]"
+                                value={get_in(@settings, [:dns, :soa, :ttl]) || ""}
+                                class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                                placeholder="3600"
+                              />
+                            </label>
                           </div>
                         </div>
 
