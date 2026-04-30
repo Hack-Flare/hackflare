@@ -60,7 +60,7 @@ defmodule HackflareWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <header class="navbar px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-primary to-secondary shadow-md">
+    <header class="navbar px-4 sm:px-6 lg:px-8 bg-primary shadow-md">
       <div class="flex-1">
         <a href="/" class="flex-1 flex w-fit items-center gap-3 hover:opacity-80 transition-opacity">
           <img src={~p"/images/logo.svg"} width="48" />
@@ -202,7 +202,7 @@ defmodule HackflareWeb.Layouts do
     <html>
       <body>
         <!-- Header -->
-        <header class="fixed top-0 left-0 right-0 z-50 navbar px-4 sm:px-6 lg:px-8 bg-black/50 backdrop-blur-md shadow-md border-b border-orange-500/20">
+        <header class="fixed top-0 left-0 right-0 z-50 navbar px-4 sm:px-6 lg:px-8 bg-black/50 shadow-md border-b border-orange-500/20">
           <div class="flex-1">
             <a
               href="/"
@@ -230,88 +230,116 @@ defmodule HackflareWeb.Layouts do
             </ul>
           </div>
         </header>
-        
+
     <!-- Hero Section Full Screen -->
-        <div class="relative h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 text-white overflow-hidden flex items-center pt-24">
-          <div class="w-full">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-7xl mx-auto px-8 sm:px-16 lg:px-24 h-full py-24">
-              <!-- Left Side: Content -->
-              <div class="space-y-8 z-10">
-                <div class="space-y-6">
-                  <h1 class="text-6xl sm:text-7xl lg:text-8xl font-black leading-tight">
-                    <span class="bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 bg-clip-text text-transparent">
-                      HackFlare
-                    </span>
+        <div class="relative overflow-hidden bg-black text-white pt-28">
+          <div class="mx-auto max-w-7xl px-8 sm:px-16 lg:px-24 py-14 sm:py-16 lg:py-20">
+            <div class="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+              <div class="space-y-7">
+                <div class="inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-black/60 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-orange-300 shadow-sm">
+                  <span class="h-2 w-2 rounded-full bg-primary"></span>
+                  Cloudflare-inspired network for Hack Club
+                </div>
+
+                <div class="space-y-5 max-w-3xl">
+                  <h1 class="text-5xl sm:text-7xl lg:text-7xl font-black leading-tight text-white">
+                    Where latency stops being your problem
                   </h1>
-                  <p class="text-2xl sm:text-3xl font-bold text-gray-200 leading-tight">
-                    Built by Hack Clubbers <br /> For Hack Clubbers
+                  <p class="text-lg sm:text-xl text-gray-300 leading-relaxed max-w-2xl">
+                    HackFlare gives Hack Club members fast DNS, safer infrastructure, and a clean path from idea to global launch.
                   </p>
                 </div>
 
-                <p class="text-lg text-gray-300 leading-relaxed max-w-xl">
-                  A powerful DNS and content delivery platform built for the Hack Club community. Take control, stay fast, stay secure.
-                </p>
-
-                <div class="flex flex-col sm:flex-row gap-4 pt-6">
+                <div class="flex flex-col sm:flex-row gap-3.5">
                   <a
                     href="dash/"
-                    class="px-7 py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-orange-500/50 inline-flex items-center justify-center "
+                    class="px-7 py-3 bg-primary text-white font-bold rounded-lg hover:brightness-95 shadow-sm inline-flex items-center justify-center gap-2"
                   >
-                    <span>Get Started</span>
+                    <span>Get started</span>
                     <.icon name="hero-arrow-right" class="w-5 h-5" />
                   </a>
                   <a
                     href="/auth/request"
-                    class="px-7 py-2 border-2 border-orange-500 hover:bg-orange-500/10 text-orange-400 font-bold rounded-lg transition-all inline-flex items-center justify-center gap-2"
+                    class="px-7 py-3 border border-orange-500/40 bg-black/40 text-orange-300 font-bold rounded-lg hover:bg-orange-500/10 inline-flex items-center justify-center gap-2"
                   >
                     <.icon name="hero-lock-closed" class="w-5 h-5" />
                     <span>Sign in with Hack Club</span>
                   </a>
                 </div>
 
-                <div class="flex flex-wrap gap-6 pt-0.5">
-                  <a
-                    href="/docs"
-                    class="px-1 py-3 text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-2 transition-colors"
-                  >
-                    <.icon name="hero-book-open" class="w-5 h-5" />
-                    <span>Documentation</span>
+                <div class="flex flex-wrap gap-5 pt-1 text-sm font-semibold text-gray-400">
+                  <a href="/docs" class="inline-flex items-center gap-2 hover:text-orange-300 transition-colors">
+                    <.icon name="hero-book-open" class="w-5 h-5 text-orange-400" />
+                    <span>Docs</span>
                   </a>
-                  <a
-                    href="https://github.com/Hack-Flare/hackflare"
-                    class="px-1 py-3 text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-2 transition-colors"
-                  >
-                    <.icon name="hero-star" class="w-5 h-5" />
-                    <span>Github</span>
+                  <a href="https://github.com/Hack-Flare/hackflare" class="inline-flex items-center gap-2 hover:text-orange-300 transition-colors">
+                    <.icon name="hero-star" class="w-5 h-5 text-orange-400" />
+                    <span>GitHub</span>
                   </a>
                 </div>
               </div>
-              
-    <!-- Right Side: Hero Image -->
-              <div class="flex items-center justify-center lg:justify-end">
-                <div class="relative w-full max-w-md">
-                  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-104 h-104 rounded-full bg-orange-500/40 blur-3xl pointer-events-none">
+
+              <div class="grid gap-3.5 sm:grid-cols-3 lg:grid-cols-1 lg:justify-items-center lg:self-center">
+                <article class="w-full rounded-2xl border border-orange-500/25 bg-gray-950/90 p-5 shadow-sm lg:max-w-sm">
+                  <div class="flex items-center justify-between">
+                    <span class="inline-flex items-center rounded-full border border-orange-500/25 bg-black px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-orange-300">
+                      Connect
+                    </span>
+                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-orange-500/25 bg-black text-orange-300">
+                      <.icon name="hero-globe-alt" class="w-4 h-4" />
+                    </span>
                   </div>
-                  <img
-                    src={~p"/images/hero-globe.png"}
-                    alt="HackFlare Hero"
-                    class="relative w-full h-auto rounded-lg z-10"
-                  />
-                </div>
+                  <h2 class="mt-3 text-lg sm:text-xl font-black leading-tight text-white">
+                    Route users to the nearest edge.
+                  </h2>
+                  <p class="mt-2 text-sm leading-5 text-gray-300">
+                    Fast DNS updates and reliable routing across regions.
+                  </p>
+                </article>
+
+                <article class="w-full rounded-2xl border border-orange-500/25 bg-gray-950/90 p-5 shadow-sm lg:max-w-sm">
+                  <div class="flex items-center justify-between">
+                    <span class="inline-flex items-center rounded-full border border-orange-500/25 bg-black px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-orange-300">
+                      Protect
+                    </span>
+                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-orange-500/25 bg-black text-orange-300">
+                      <.icon name="hero-shield-check" class="w-4 h-4" />
+                    </span>
+                  </div>
+                  <h2 class="mt-3 text-lg sm:text-xl font-black leading-tight text-white">
+                    Keep critical paths stable.
+                  </h2>
+                  <p class="mt-2 text-sm leading-5 text-gray-300">
+                    Harden endpoints and stay stable under traffic spikes.
+                  </p>
+                </article>
+
+                <article class="w-full rounded-2xl border border-orange-500/25 bg-gray-950/90 p-5 shadow-sm lg:max-w-sm">
+                  <div class="flex items-center justify-between">
+                    <span class="inline-flex items-center rounded-full border border-orange-500/25 bg-black px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-orange-300">
+                      Build everywhere
+                    </span>
+                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-orange-500/25 bg-black text-orange-300">
+                      <.icon name="hero-rocket-launch" class="w-4 h-4" />
+                    </span>
+                  </div>
+                  <h2 class="mt-3 text-lg sm:text-xl font-black leading-tight text-white">
+                    Ship globally from day one.
+                  </h2>
+                  <p class="mt-2 text-sm leading-5 text-gray-300">
+                    Launch globally without rebuilding your network layer.
+                  </p>
+                </article>
               </div>
             </div>
           </div>
         </div>
-        
+
     <!-- Features Section -->
-        <div class="relative px-8 py-24 sm:px-16 lg:px-24 bg-gradient-to-b from-black to-gray-950">
+        <div class="relative px-8 py-24 sm:px-16 lg:px-24 bg-black">
           <div class="max-w-7xl mx-auto space-y-16">
             <div class="text-center space-y-4">
-              <h2 class="text-5xl sm:text-6xl font-black">
-                <span class="bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
-                  Why HackFlare?
-                </span>
-              </h2>
+              <h2 class="text-5xl sm:text-6xl font-black text-primary">Why HackFlare?</h2>
               <p class="text-gray-300 text-lg max-w-2xl mx-auto">
                 Everything you need to manage your DNS and content delivery
               </p>
@@ -320,11 +348,10 @@ defmodule HackflareWeb.Layouts do
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
               <!-- Feature 1 -->
               <div class="group relative">
-                <div class="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent rounded-lg blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
-                </div>
-                <div class="relative p-8 bg-gray-900/50 border border-orange-500/20 rounded-lg hover:border-orange-500/50 transition-all backdrop-blur-sm">
+                <div class="hidden"></div>
+                <div class="relative p-8 bg-gray-900/50 border border-orange-500/20 rounded-lg hover:border-orange-500/50 transition-all">
                   <div class="flex justify-center mb-4">
-                    <div class="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg">
+                    <div class="p-3 bg-primary rounded-lg">
                       <.icon name="hero-bolt" class="w-6 h-6 text-white" />
                     </div>
                   </div>
@@ -334,14 +361,13 @@ defmodule HackflareWeb.Layouts do
                   </p>
                 </div>
               </div>
-              
+
     <!-- Feature 2 -->
               <div class="group relative">
-                <div class="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent rounded-lg blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
-                </div>
-                <div class="relative p-8 bg-gray-900/50 border border-orange-500/20 rounded-lg hover:border-orange-500/50 transition-all backdrop-blur-sm">
+                <div class="hidden"></div>
+                <div class="relative p-8 bg-gray-900/50 border border-orange-500/20 rounded-lg hover:border-orange-500/50 transition-all">
                   <div class="flex justify-center mb-4">
-                    <div class="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg">
+                    <div class="p-3 bg-primary rounded-lg">
                       <.icon name="hero-shield-check" class="w-6 h-6 text-white" />
                     </div>
                   </div>
@@ -351,14 +377,13 @@ defmodule HackflareWeb.Layouts do
                   </p>
                 </div>
               </div>
-              
+
     <!-- Feature 3 -->
               <div class="group relative">
-                <div class="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent rounded-lg blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
-                </div>
-                <div class="relative p-8 bg-gray-900/50 border border-orange-500/20 rounded-lg hover:border-orange-500/50 transition-all backdrop-blur-sm">
+                <div class="hidden"></div>
+                <div class="relative p-8 bg-gray-900/50 border border-orange-500/20 rounded-lg hover:border-orange-500/50 transition-all">
                   <div class="flex justify-center mb-4">
-                    <div class="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg">
+                    <div class="p-3 bg-primary rounded-lg">
                       <.icon name="hero-cog-6-tooth" class="w-6 h-6 text-white" />
                     </div>
                   </div>
@@ -371,117 +396,17 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
-        
-    <!-- Community proof Section -->
-        <div class="relative px-8 py-24 sm:px-16 lg:px-24 bg-gradient-to-b from-black to-gray-950">
-          <div class="max-w-7xl mx-auto space-y-16">
-            <div class="text-center space-y-4">
-              <h2 class="text-5xl sm:text-6xl font-black">
-                <span class="bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
-                  Your favourite projects - built with Hackflare.
-                </span>
-              </h2>
-              <p class="text-gray-300 text-lg max-w-2xl mx-auto">
-                Trusted by many Hackers just like you.
-              </p>
-            </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <div class="group relative">
-                <div class="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-all">
-                </div>
-                <div class="relative h-full p-7 bg-gray-900/50 border border-orange-500/20 rounded-xl backdrop-blur-sm hover:border-orange-500/50 transition-all">
-                  <div class="flex items-center justify-between mb-6">
-                    <div class="p-2.5 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg">
-                      <.icon name="hero-globe-alt" class="w-5 h-5 text-white" />
-                    </div>
-                    <span class="text-xs text-orange-300 border border-orange-500/40 rounded-full px-3 py-1">
-                      DNS + CDN
-                    </span>
-                  </div>
-                  <h3 class="text-xl font-bold text-white mb-2">Maple Studio</h3>
-                  <p class="text-gray-300 text-sm leading-relaxed mb-6">
-                    Portfolio site serving global traffic with low-latency DNS routing and instant cache updates.
-                  </p>
-                  <a
-                    href="/docs"
-                    class="inline-flex items-center gap-2 text-orange-400 hover:text-orange-300 font-semibold transition-colors"
-                  >
-                    <span>View setup</span>
-                    <.icon name="hero-arrow-right" class="w-4 h-4" />
-                  </a>
-                </div>
-              </div>
-
-              <div class="group relative">
-                <div class="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-all">
-                </div>
-                <div class="relative h-full p-7 bg-gray-900/50 border border-orange-500/20 rounded-xl backdrop-blur-sm hover:border-orange-500/50 transition-all">
-                  <div class="flex items-center justify-between mb-6">
-                    <div class="p-2.5 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg">
-                      <.icon name="hero-server-stack" class="w-5 h-5 text-white" />
-                    </div>
-                    <span class="text-xs text-orange-300 border border-orange-500/40 rounded-full px-3 py-1">
-                      API Infra
-                    </span>
-                  </div>
-                  <h3 class="text-xl font-bold text-white mb-2">Shipyard API</h3>
-                  <p class="text-gray-300 text-sm leading-relaxed mb-6">
-                    Hackathon backend using managed records for fast deploy previews and stable API endpoints.
-                  </p>
-                  <a
-                    href="/docs"
-                    class="inline-flex items-center gap-2 text-orange-400 hover:text-orange-300 font-semibold transition-colors"
-                  >
-                    <span>View setup</span>
-                    <.icon name="hero-arrow-right" class="w-4 h-4" />
-                  </a>
-                </div>
-              </div>
-
-              <div class="group relative">
-                <div class="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-all">
-                </div>
-                <div class="relative h-full p-7 bg-gray-900/50 border border-orange-500/20 rounded-xl backdrop-blur-sm hover:border-orange-500/50 transition-all">
-                  <div class="flex items-center justify-between mb-6">
-                    <div class="p-2.5 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg">
-                      <.icon name="hero-bolt" class="w-5 h-5 text-white" />
-                    </div>
-                    <span class="text-xs text-orange-300 border border-orange-500/40 rounded-full px-3 py-1">
-                      Real-time
-                    </span>
-                  </div>
-                  <h3 class="text-xl font-bold text-white mb-2">Arcade Arena</h3>
-                  <p class="text-gray-300 text-sm leading-relaxed mb-6">
-                    Multiplayer game stack using resilient DNS failover for realtime lobbies and events.
-                  </p>
-                  <a
-                    href="/docs"
-                    class="inline-flex items-center gap-2 text-orange-400 hover:text-orange-300 font-semibold transition-colors"
-                  >
-                    <span>View setup</span>
-                    <.icon name="hero-arrow-right" class="w-4 h-4" />
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
     <!-- CTA Section -->
         <div class="relative px-8 py-24 sm:px-16 lg:px-24 bg-black">
           <div class="max-w-4xl mx-auto">
-            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 to-black border border-orange-500/30 p-12 sm:p-16">
-              <!-- Gradient background effect -->
-              <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 via-transparent to-transparent">
-              </div>
+                <div class="relative overflow-hidden rounded-2xl bg-black border border-orange-500/30 p-12 sm:p-16">
+              <div class="hidden"></div>
 
               <div class="relative text-center space-y-6">
-                <h2 class="text-4xl sm:text-5xl font-black text-white">
+                  <h2 class="text-4xl sm:text-5xl font-black text-white">
                   Ready to take
-                  <span class="bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
-                    control?
-                  </span>
+                  <span class="text-primary">control?</span>
                 </h2>
                 <p class="text-xl text-gray-300 max-w-2xl mx-auto">
                   Join thousands of HackClub members managing their DNS with HackFlare. It's free, it's fast, and it's built for you.
@@ -489,7 +414,7 @@ defmodule HackflareWeb.Layouts do
                 <div class="flex flex-col sm:flex-row gap-4 justify-center pt-8">
                   <a
                     href="dash/"
-                    class="px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-orange-500/50"
+                    class="px-8 py-4 bg-primary text-white font-bold rounded-lg hover:brightness-95 shadow-sm"
                   >
                     Launch Dashboard
                   </a>
@@ -504,10 +429,10 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
-        
+
     <!-- Footer -->
         <footer class="relative px-8 py-12 sm:px-16 lg:px-24 bg-black border-t border-orange-500/20">
-          <div class="max-w-7xl mx-auto">
+                  <div class="max-w-7xl mx-auto">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
               <!-- Brand -->
               <div class="space-y-4">
@@ -519,7 +444,7 @@ defmodule HackflareWeb.Layouts do
                   A powerful DNS and content delivery platform built for the Hack Club community.
                 </p>
               </div>
-              
+
     <!-- Links -->
               <div class="space-y-4">
                 <h3 class="text-white font-semibold">Product</h3>
@@ -544,7 +469,7 @@ defmodule HackflareWeb.Layouts do
                   </li>
                 </ul>
               </div>
-              
+
     <!-- Community -->
               <div class="space-y-4">
                 <h3 class="text-white font-semibold">Community</h3>
@@ -575,7 +500,7 @@ defmodule HackflareWeb.Layouts do
                   </li>
                 </ul>
               </div>
-              
+
     <!-- Legal -->
               <div class="space-y-4">
                 <h3 class="text-white font-semibold">Legal</h3>
@@ -639,16 +564,16 @@ defmodule HackflareWeb.Layouts do
     ~H"""
     <!DOCTYPE html>
     <html>
-      <body class="bg-gradient-to-br from-gray-950 via-black to-gray-900 text-white">
+      <body class="bg-black text-white">
         <div class="flex h-screen">
           <!-- Sidebar -->
-          <aside class="w-72 bg-black/50 border-r border-orange-500/20 backdrop-blur-md p-6 overflow-y-auto">
+          <aside class="w-72 bg-black/50 border-r border-orange-500/20 p-6 overflow-y-auto">
             <!-- Logo -->
             <div class="flex items-center gap-3 mb-12">
               <img src={~p"/images/logo.svg"} width="40" alt="HackFlare" />
               <span class="font-bold text-lg text-orange-400">HackFlare</span>
             </div>
-            
+
     <!-- Navigation Menu -->
             <nav class="space-y-2">
               <a
@@ -703,7 +628,7 @@ defmodule HackflareWeb.Layouts do
                 </a>
               <% end %>
             </nav>
-            
+
     <!-- Bottom Section -->
             <div class="absolute bottom-6 left-6 right-6 space-y-4">
               <form method="post" action="/auth/logout">
@@ -718,11 +643,11 @@ defmodule HackflareWeb.Layouts do
               </form>
             </div>
           </aside>
-          
+
     <!-- Main Content -->
           <main class="flex-1 flex flex-col overflow-hidden">
             <!-- Header -->
-            <header class="bg-black/30 border-b border-orange-500/20 backdrop-blur-md px-8 py-6 flex items-center justify-between">
+            <header class="bg-black/30 border-b border-orange-500/20 px-8 py-6 flex items-center justify-between">
               <div>
                 <h1 class="text-3xl font-bold text-white">{dashboard_title(@current_view)}</h1>
                 <p class="text-gray-400 text-sm mt-1">{dashboard_subtitle(@current_view)}</p>
@@ -731,12 +656,12 @@ defmodule HackflareWeb.Layouts do
                 <button class="p-2 hover:bg-gray-900/50 rounded-lg transition-all">
                   <.icon name="hero-bell" class="w-6 h-6 text-gray-400 hover:text-orange-400" />
                 </button>
-                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+                <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
                   <span class="text-white font-bold">HC</span>
                 </div>
               </div>
             </header>
-            
+
     <!-- Content Area -->
             <div class="flex-1 overflow-auto p-8">
               <%= case @current_view do %>
@@ -744,9 +669,8 @@ defmodule HackflareWeb.Layouts do
                   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <!-- Card 1 -->
                     <div class="group relative">
-                      <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
-                      </div>
-                      <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
+                      <div class="hidden"></div>
+                      <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all h-48 flex flex-col justify-between">
                         <div>
                           <h3 class="text-lg font-bold text-white">Quick Start</h3>
                           <p class="text-gray-400 text-sm mt-2">Set up your first domain</p>
@@ -757,12 +681,11 @@ defmodule HackflareWeb.Layouts do
                         </button>
                       </div>
                     </div>
-                    
+
     <!-- Card 2 -->
                     <div class="group relative">
-                      <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
-                      </div>
-                      <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
+                      <div class="hidden"></div>
+                      <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all h-48 flex flex-col justify-between">
                         <div>
                           <h3 class="text-lg font-bold text-white">Your Domains</h3>
                           <p class="text-gray-400 text-sm mt-2">Manage all your domains</p>
@@ -773,12 +696,11 @@ defmodule HackflareWeb.Layouts do
                         </button>
                       </div>
                     </div>
-                    
+
     <!-- Card 3 -->
                     <div class="group relative">
-                      <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
-                      </div>
-                      <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
+                      <div class="hidden"></div>
+                      <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all h-48 flex flex-col justify-between">
                         <div>
                           <h3 class="text-lg font-bold text-white">Analytics</h3>
                           <p class="text-gray-400 text-sm mt-2">View your traffic statistics</p>
@@ -789,12 +711,11 @@ defmodule HackflareWeb.Layouts do
                         </button>
                       </div>
                     </div>
-                    
+
     <!-- Card 4 -->
                     <div class="group relative">
-                      <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
-                      </div>
-                      <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
+                      <div class="hidden"></div>
+                      <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all h-48 flex flex-col justify-between">
                         <div>
                           <h3 class="text-lg font-bold text-white">API Access</h3>
                           <p class="text-gray-400 text-sm mt-2">Integrate with our API</p>
@@ -805,12 +726,11 @@ defmodule HackflareWeb.Layouts do
                         </button>
                       </div>
                     </div>
-                    
+
     <!-- Card 5 -->
                     <div class="group relative">
-                      <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
-                      </div>
-                      <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
+                      <div class="hidden"></div>
+                      <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all h-48 flex flex-col justify-between">
                         <div>
                           <h3 class="text-lg font-bold text-white">Support</h3>
                           <p class="text-gray-400 text-sm mt-2">Get help when you need it</p>
@@ -824,12 +744,11 @@ defmodule HackflareWeb.Layouts do
                         </a>
                       </div>
                     </div>
-                    
+
     <!-- Card 6 -->
                     <div class="group relative">
-                      <div class="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent rounded-xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100">
-                      </div>
-                      <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all backdrop-blur-sm h-48 flex flex-col justify-between">
+                      <div class="hidden"></div>
+                      <div class="relative p-6 bg-gray-900/50 border border-orange-500/20 rounded-xl hover:border-orange-500/50 transition-all h-48 flex flex-col justify-between">
                         <div>
                           <h3 class="text-lg font-bold text-white">Community</h3>
                           <p class="text-gray-400 text-sm mt-2">Join our Slack community</p>
@@ -877,7 +796,7 @@ defmodule HackflareWeb.Layouts do
                         <% end %>
                       </div>
                     </div>
-                    
+
     <!-- Right: Domain Panel Content -->
                     <div class="lg:col-span-3 space-y-4">
                       <%= if Enum.empty?(@zones) do %>
@@ -899,7 +818,7 @@ defmodule HackflareWeb.Layouts do
                           <% records = Map.get(@zone_records || %{}, zone, []) %>
                           <div id={"domain-#{zone_key}-panel"} class="hidden space-y-4">
                             <!-- Domain Header -->
-                            <div class="rounded-xl border border-orange-500/25 bg-gradient-to-r from-gray-900/80 via-gray-900/70 to-gray-800/70 p-6">
+                            <div class="rounded-xl border border-orange-500/25 bg-black/80 p-6">
                               <div class="flex items-start justify-between gap-4">
                                 <div>
                                   <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-300">
@@ -923,7 +842,7 @@ defmodule HackflareWeb.Layouts do
                                 </div>
                               </div>
                             </div>
-                            
+
     <!-- Category Tabs -->
                             <div class="rounded-xl border border-orange-500/20 bg-gray-900/60 overflow-hidden">
                               <div class="border-b border-orange-500/15 bg-black/40">
@@ -942,7 +861,7 @@ defmodule HackflareWeb.Layouts do
                                   </button>
                                 </div>
                               </div>
-                              
+
     <!-- DNS Zones Content -->
                               <div id={"dns-zones-#{zone_key}"} class="p-4">
                                 <div class="space-y-3">
@@ -990,7 +909,7 @@ defmodule HackflareWeb.Layouts do
                                   <% end %>
                                 </div>
                               </div>
-                              
+
     <!-- More Content (placeholder) -->
                               <div
                                 id={"other-#{zone_key}"}
@@ -999,11 +918,11 @@ defmodule HackflareWeb.Layouts do
                                 <p>More features coming soon (SSL, Email, etc.)</p>
                               </div>
                             </div>
-                            
+
     <!-- Add Record Modal -->
                             <div
                               id={"add-record-modal-#{zone_key}"}
-                              class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                              class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60"
                             >
                               <div class="w-full max-w-md rounded-xl border border-orange-500/30 bg-gray-900 p-8 shadow-2xl">
                                 <h2 class="mb-1 text-2xl font-bold text-white">Add DNS Record</h2>
@@ -1074,7 +993,7 @@ defmodule HackflareWeb.Layouts do
                             </div>
                           </div>
                         <% end %>
-                        
+
     <!-- Initial state: show first domain by default -->
                         <script>
                           (function() {
@@ -1087,11 +1006,11 @@ defmodule HackflareWeb.Layouts do
                       <% end %>
                     </div>
                   </div>
-                  
+
     <!-- New Domain Modal -->
                   <div
                     id="new-zone-modal"
-                    class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm"
+                    class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50"
                   >
                     <div class="bg-gray-900 border border-orange-500/30 rounded-xl p-8 max-w-md w-full shadow-2xl">
                       <h2 class="text-2xl font-bold text-white mb-4">Create New Zone</h2>
@@ -1217,7 +1136,7 @@ defmodule HackflareWeb.Layouts do
                         <div class="flex justify-end">
                           <button
                             type="submit"
-                            class="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-lg transition-all"
+                            class="px-6 py-3 bg-primary text-white font-semibold rounded-lg"
                           >
                             Send
                           </button>
@@ -1471,7 +1390,7 @@ defmodule HackflareWeb.Layouts do
                         <div class="flex justify-end">
                           <button
                             type="submit"
-                            class="rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-3 font-semibold text-white transition-all hover:from-orange-600 hover:to-orange-700"
+                            class="rounded-lg bg-primary px-6 py-3 font-semibold text-white"
                           >
                             Save settings
                           </button>

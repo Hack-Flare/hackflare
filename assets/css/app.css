@@ -27,26 +27,26 @@
   default: false;
   prefersdark: true;
   color-scheme: "dark";
-  --color-base-100: oklch(30.33% 0.016 252.42);
-  --color-base-200: oklch(25.26% 0.014 253.1);
-  --color-base-300: oklch(20.15% 0.012 254.09);
-  --color-base-content: oklch(97.807% 0.029 256.847);
-  --color-primary: oklch(58% 0.233 277.117);
-  --color-primary-content: oklch(96% 0.018 272.314);
-  --color-secondary: oklch(58% 0.233 277.117);
-  --color-secondary-content: oklch(96% 0.018 272.314);
-  --color-accent: oklch(60% 0.25 292.717);
-  --color-accent-content: oklch(96% 0.016 293.756);
-  --color-neutral: oklch(37% 0.044 257.287);
-  --color-neutral-content: oklch(98% 0.003 247.858);
-  --color-info: oklch(58% 0.158 241.966);
-  --color-info-content: oklch(97% 0.013 236.62);
-  --color-success: oklch(60% 0.118 184.704);
-  --color-success-content: oklch(98% 0.014 180.72);
-  --color-warning: oklch(66% 0.179 58.318);
-  --color-warning-content: oklch(98% 0.022 95.277);
-  --color-error: oklch(58% 0.253 17.585);
-  --color-error-content: oklch(96% 0.015 12.422);
+  --color-base-100: #0b1220;
+  --color-base-200: #0f1724;
+  --color-base-300: #111827;
+  --color-base-content: #e6eef8;
+  --color-primary: #F59E0B;
+  --color-primary-content: #0b1220;
+  --color-secondary: #7c3aed;
+  --color-secondary-content: #f8fafc;
+  --color-accent: #06b6d4;
+  --color-accent-content: #0b1220;
+  --color-neutral: #374151;
+  --color-neutral-content: #f8fafc;
+  --color-info: #2563eb;
+  --color-info-content: #f8fafc;
+  --color-success: #16a34a;
+  --color-success-content: #f8fafc;
+  --color-warning: #f59e0b;
+  --color-warning-content: #0b1220;
+  --color-error: #dc2626;
+  --color-error-content: #f8fafc;
   --radius-selector: 0.25rem;
   --radius-field: 0.25rem;
   --radius-box: 0.5rem;
@@ -62,26 +62,26 @@
   default: true;
   prefersdark: false;
   color-scheme: "light";
-  --color-base-100: oklch(98% 0 0);
-  --color-base-200: oklch(96% 0.001 286.375);
-  --color-base-300: oklch(92% 0.004 286.32);
-  --color-base-content: oklch(21% 0.006 285.885);
-  --color-primary: oklch(70% 0.213 47.604);
-  --color-primary-content: oklch(98% 0.016 73.684);
-  --color-secondary: oklch(55% 0.027 264.364);
-  --color-secondary-content: oklch(98% 0.002 247.839);
-  --color-accent: oklch(0% 0 0);
-  --color-accent-content: oklch(100% 0 0);
-  --color-neutral: oklch(44% 0.017 285.786);
-  --color-neutral-content: oklch(98% 0 0);
-  --color-info: oklch(62% 0.214 259.815);
-  --color-info-content: oklch(97% 0.014 254.604);
-  --color-success: oklch(70% 0.14 182.503);
-  --color-success-content: oklch(98% 0.014 180.72);
-  --color-warning: oklch(66% 0.179 58.318);
-  --color-warning-content: oklch(98% 0.022 95.277);
-  --color-error: oklch(58% 0.253 17.585);
-  --color-error-content: oklch(96% 0.015 12.422);
+  --color-base-100: #ffffff;
+  --color-base-200: #f7f7fa;
+  --color-base-300: #f1f1f5;
+  --color-base-content: #0b1220;
+  --color-primary: #F38020;
+  --color-primary-content: #ffffff;
+  --color-secondary: #6D28D9;
+  --color-secondary-content: #ffffff;
+  --color-accent: #06b6d4;
+  --color-accent-content: #ffffff;
+  --color-neutral: #374151;
+  --color-neutral-content: #ffffff;
+  --color-info: #2563eb;
+  --color-info-content: #ffffff;
+  --color-success: #16a34a;
+  --color-success-content: #ffffff;
+  --color-warning: #f59e0b;
+  --color-warning-content: #0b1220;
+  --color-error: #dc2626;
+  --color-error-content: #ffffff;
   --radius-selector: 0.25rem;
   --radius-field: 0.25rem;
   --radius-box: 0.5rem;
@@ -107,31 +107,45 @@ html {
   font-weight: 600;
 }
 
+body {
+  background-color: var(--color-base-100);
+  color: var(--color-base-content);
+}
+
+:where(.border-orange-500\/20, .border-orange-500\/25, .border-orange-500\/30, .border-orange-500\/35, .border-orange-500\/40) {
+  box-shadow: 0 18px 40px rgb(2 6 23 / 0.12);
+}
+
 /* Custom styling for better visual appeal */
+@layer base {
+  :where(button, .btn, input, select, textarea) {
+    @apply transition-colors duration-200;
+  }
+}
+
 @layer components {
   .btn {
-    @apply transition-all duration-300;
+    @apply border border-base-300 font-semibold shadow-sm;
+  }
+
+  .btn:focus {
+    @apply ring-2 ring-offset-2 ring-primary;
   }
 
   .btn:hover {
-    @apply translate-y-[-2px];
+    @apply -translate-y-px shadow-md;
   }
 
   .card {
-    @apply border-0;
+    @apply border border-base-300 bg-base-100 shadow-sm;
   }
 
-  .haj-background {
-    background-image: url('/images/big-haj.png');
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-    animation: subtleZoom 30s ease-in-out infinite alternate;
+  .navbar {
+    @apply border-b border-base-300/70 bg-base-100/95;
   }
 
-  @keyframes subtleZoom {
-    from { transform: scale(1); }
-    to { transform: scale(1.05); }
+  :where(input, select, textarea) {
+    @apply border border-base-300 bg-base-100;
   }
 
   /* Smooth scrolling */
@@ -139,18 +153,10 @@ html {
     scroll-behavior: smooth;
   }
 
-  /* Better focus states */
   @media (prefers-reduced-motion: no-preference) {
     * {
       @apply scroll-smooth;
     }
-  }
-
-  /* Dark theme enhancements */
-  [data-theme="dark"] {
-    --color-base-100: oklch(18% 0.02 252);
-    --color-base-200: oklch(22% 0.02 252);
-    --color-base-300: oklch(26% 0.03 252);
   }
 
   [data-theme="dark"] .card {
@@ -162,9 +168,3 @@ html {
   }
 }
 
-/* Custom gradient backgrounds */
-.gradient-primary-secondary {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-}
-
-/* This file is for your main application CSS */
