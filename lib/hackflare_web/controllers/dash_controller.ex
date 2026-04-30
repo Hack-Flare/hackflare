@@ -27,7 +27,11 @@ defmodule HackflareWeb.DashController do
   end
 
   def help(conn, _params) do
-    render(conn, :dashboard, current_view: :help, form_message: "", current_user: get_current_user!(conn))
+    render(conn, :dashboard,
+      current_view: :help,
+      form_message: "",
+      current_user: get_current_user!(conn)
+    )
   end
 
   def submit_help(conn, %{"help" => %{"message" => message}}) do
@@ -45,29 +49,49 @@ defmodule HackflareWeb.DashController do
       {:error, :empty_message} ->
         conn
         |> put_flash(:error, "Message cannot be empty.")
-        |> render(:dashboard, current_view: :help, form_message: message, current_user: get_current_user!(conn))
+        |> render(:dashboard,
+          current_view: :help,
+          form_message: message,
+          current_user: get_current_user!(conn)
+        )
 
       {:error, :webhook_not_configured} ->
         conn
         |> put_flash(:error, "Support channel is not configured right now.")
-        |> render(:dashboard, current_view: :help, form_message: message, current_user: get_current_user!(conn))
+        |> render(:dashboard,
+          current_view: :help,
+          form_message: message,
+          current_user: get_current_user!(conn)
+        )
 
       {:error, {:request_failed, _reason}} ->
         conn
         |> put_flash(:error, "Failed to send message to Slack.")
-        |> render(:dashboard, current_view: :help, form_message: message, current_user: get_current_user!(conn))
+        |> render(:dashboard,
+          current_view: :help,
+          form_message: message,
+          current_user: get_current_user!(conn)
+        )
 
       {:error, {:webhook_rejected, _status, _body}} ->
         conn
         |> put_flash(:error, "Slack webhook rejected the request.")
-        |> render(:dashboard, current_view: :help, form_message: message, current_user: get_current_user!(conn))
+        |> render(:dashboard,
+          current_view: :help,
+          form_message: message,
+          current_user: get_current_user!(conn)
+        )
     end
   end
 
   def submit_help(conn, _params) do
     conn
     |> put_flash(:error, "Invalid help request payload.")
-    |> render(:dashboard, current_view: :help, form_message: "", current_user: get_current_user!(conn))
+    |> render(:dashboard,
+      current_view: :help,
+      form_message: "",
+      current_user: get_current_user!(conn)
+    )
   end
 
   defp get_current_user(conn) do

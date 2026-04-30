@@ -19,7 +19,13 @@ defmodule HackflareWeb.AdminController do
       eligible_users: Enum.count(users, & &1.ysws_eligible)
     }
 
-    render(conn, :index, current_view: :admin, users: users, stats: stats, settings: settings, current_user: get_current_user!(conn))
+    render(conn, :index,
+      current_view: :admin,
+      users: users,
+      stats: stats,
+      settings: settings,
+      current_user: get_current_user!(conn)
+    )
   end
 
   def update(conn, %{"settings" => settings_params}) do
