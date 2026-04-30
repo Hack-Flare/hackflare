@@ -101,11 +101,17 @@ defmodule Hackflare.Nameserver do
     end
   rescue
     e in Postgrex.Error ->
-      if get_in(e, [:postgres, :code]) == :undefined_table do
-        IO.puts("DNS tables not migrated yet; creating fresh DNS manager")
-        Hackflare.Native.manager_new()
-      else
-        reraise e, __STACKTRACE__
+      case get_in(e, [:postgres, :code]) do
+        :undefined_table ->
+          IO.puts("DNS tables not migrated yet; creating fresh DNS manager")
+          Hackflare.Native.manager_new()
+
+        :invalid_catalog_name ->
+          IO.puts("DNS database not created yet; creating fresh DNS manager")
+          Hackflare.Native.manager_new()
+
+        _ ->
+          reraise e, __STACKTRACE__
       end
   end
 
