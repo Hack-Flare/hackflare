@@ -18,9 +18,21 @@ defmodule HackflareWeb.DashController do
         {:error, _} -> []
       end
 
+    zone_records =
+      Enum.into(zones, %{}, fn zone ->
+        records =
+          case DNS.find_records(zone) do
+            {:ok, recs} -> recs
+            {:error, _} -> []
+          end
+
+        {zone, records}
+      end)
+
     render(conn, :dashboard,
       current_view: :domains,
       zones: zones,
+      zone_records: zone_records,
       current_user: get_current_user!(conn)
     )
   end
@@ -44,6 +56,29 @@ defmodule HackflareWeb.DashController do
     conn
     |> put_flash(:error, "Invalid zone name.")
     |> redirect(to: ~p"/dash/domains")
+  end
+
+  def create_record(conn, params) do
+    zone_name = String.trim(Map.get(params, "zone_name", ""))
+    record_name = String.trim(Map.get(params, "record_name", ""))
+    record_type = String.trim(Map.get(params, "record_type", ""))
+    record_data = String.trim(Map.get(params, "record_data", ""))
+    ttl = parse_ttl(Map.get(params, "ttl", "300"))
+
+    with true <- zone_name != "",
+         true <- record_type != "",
+         true <- record_data != "",
+         true <- is_integer(ttl) and ttl > 0,
+         {:ok, _} <- DNS.add_record(zone_name, record_name, record_type, ttl, record_data) do
+      conn
+      |> put_flash(:info, "Record added to #{zone_name}.")
+      |> redirect(to: ~p"/dash/domains")
+    else
+      _ ->
+        conn
+        |> put_flash(:error, "Failed to add DNS record.")
+        |> redirect(to: ~p"/dash/domains")
+    end
   end
 
   def delete_zone(conn, %{"zone_name" => zone_name}) when is_binary(zone_name) do
@@ -172,4 +207,14 @@ defmodule HackflareWeb.DashController do
       user_id -> Accounts.get_user(user_id)
     end
   end
+
+  defp parse_ttl(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {ttl, ""} when ttl > 0 -> ttl
+      _ -> nil
+    end
+  end
+
+  defp parse_ttl(value) when is_integer(value) and value > 0, do: value
+  defp parse_ttl(_), do: nil
 end
