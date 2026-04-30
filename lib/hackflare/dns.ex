@@ -60,6 +60,10 @@ defmodule Hackflare.DNS do
     end
   end
 
+  def create_zone(zone_name, _zone_type) when is_binary(zone_name) do
+    create_zone(zone_name)
+  end
+
   def create_zone(_), do: {:error, :invalid_zone_name}
 
   @doc """

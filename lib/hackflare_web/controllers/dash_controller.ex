@@ -25,8 +25,9 @@ defmodule HackflareWeb.DashController do
     )
   end
 
-  def create_zone(conn, %{"zone_name" => zone_name}) when is_binary(zone_name) do
-    case DNS.create_zone(String.trim(zone_name)) do
+  def create_zone(conn, %{"zone_name" => zone_name, "zone_type" => zone_type})
+      when is_binary(zone_name) and is_binary(zone_type) do
+    case DNS.create_zone(String.trim(zone_name), String.trim(zone_type)) do
       {:ok, _} ->
         conn
         |> put_flash(:info, "Zone #{zone_name} created successfully.")
