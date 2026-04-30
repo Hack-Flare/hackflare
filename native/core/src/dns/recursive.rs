@@ -416,6 +416,7 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
         ROOT_HINTS.clone()
     };
     let mut qname = name.to_string();
+    let mut tried_root_fallback = false;
     for _round in 0..recursion_round_limit() {
         let qid = rand::random::<u16>();
         let req = build_query(qid, &qname, qtype);
@@ -557,6 +558,16 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
             } else {
                 debug_log(&format!("no response from {} while resolving {}", srv, qname));
             }
+        }
+
+        if next_servers.is_empty() && !tried_root_fallback && !servers.is_empty() && servers != *ROOT_HINTS {
+            tried_root_fallback = true;
+            servers = ROOT_HINTS.clone();
+            continue;
+        }
+
+        if next_servers.is_empty() && servers == *ROOT_HINTS {
+            tried_root_fallback = true;
         }
     }
     debug_log(&format!("resolution failed for {} type {}", name, qtype));
