@@ -860,7 +860,7 @@ defmodule HackflareWeb.Layouts do
                             <%= for zone <- @zones do %>
                               <% zone_key = String.replace(zone, ".", "-") %>
                               <button
-                                onclick={"document.querySelectorAll('[data-domain-item]').forEach(el => el.classList.remove('bg-orange-500/10', 'border-orange-400')); document.getElementById('domain-#{zone_key}-item').classList.add('bg-orange-500/10', 'border-orange-400'); document.getElementById('domain-panel').classList.add('hidden'); document.getElementById('domain-#{zone_key}-panel').classList.remove('hidden');"}
+                                onclick={"document.querySelectorAll('[data-domain-item]').forEach(el => el.classList.remove('bg-orange-500/10', 'border-orange-400')); document.getElementById('domain-#{zone_key}-item').classList.add('bg-orange-500/10', 'border-orange-400'); document.getElementById('domain-#{zone_key}-panel').classList.remove('hidden');"}
                                 data-domain-item
                                 class="w-full border-l-2 border-transparent px-4 py-2.5 text-left text-sm text-gray-200 hover:bg-gray-800/50 transition-all"
                                 id={"domain-#{zone_key}-item"}
