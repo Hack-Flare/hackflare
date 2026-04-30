@@ -7,6 +7,10 @@ defmodule Hackflare.DNS do
   """
 
   alias Hackflare.Native
+  alias Hackflare.Repo
+  alias Hackflare.DNS.Zone
+  alias Hackflare.DNS.Record
+  import Ecto.Query, only: [from: 2]
 
   @doc """
   Get the DNS manager instance.
@@ -52,6 +56,11 @@ defmodule Hackflare.DNS do
     with {:ok, mgr} <- get_manager() do
       case Native.manager_create_zone(mgr, zone_name) do
         true ->
+          # persist zone to DB if not exists
+          %Zone{}
+          |> Zone.changeset(%{name: zone_name})
+          |> Repo.insert(on_conflict: :nothing)
+
           {:ok, zone_name}
 
         false ->
@@ -75,6 +84,8 @@ defmodule Hackflare.DNS do
     with {:ok, mgr} <- get_manager() do
       case Native.manager_delete_zone(mgr, zone_name) do
         true ->
+          # remove from DB as well
+          from(z in Zone, where: z.name == ^zone_name) |> Repo.delete_all()
           {:ok, zone_name}
 
         false ->
@@ -135,6 +146,15 @@ defmodule Hackflare.DNS do
     with {:ok, mgr} <- get_manager() do
       case Native.manager_add_record(mgr, zone_name, record_name, record_type, ttl, data) do
         true ->
+          # persist record to DB
+          zone = Repo.get_by(Zone, name: zone_name)
+
+          if zone do
+            %Record{}
+            |> Record.changeset(%{zone_id: zone.id, name: record_name, rtype: record_type, ttl: ttl, data: data})
+            |> Repo.insert(on_conflict: :nothing)
+          end
+
           {:ok, %{name: record_name, rtype: record_type, ttl: ttl, data: data}}
 
         false ->
@@ -160,6 +180,12 @@ defmodule Hackflare.DNS do
     with {:ok, mgr} <- get_manager() do
       case Native.manager_remove_record(mgr, zone_name, record_name, record_type) do
         true ->
+          # delete from DB
+          if zone = Repo.get_by(Zone, name: zone_name) do
+            from(r in Record, where: r.zone_id == ^zone.id and r.name == ^record_name and r.rtype == ^record_type)
+            |> Repo.delete_all()
+          end
+
           {:ok, :deleted}
 
         false ->
