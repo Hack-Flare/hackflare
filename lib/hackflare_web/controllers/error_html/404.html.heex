@@ -3,7 +3,7 @@
   <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
 
   <div class="relative text-center px-6 text-white max-w-2xl w-full">
-    <h1 class="text-7xl font-bold mb-4"><%= @status %></h1>
+    <h1 class="text-7xl font-bold mb-4">{@status}</h1>
 
     <p class="text-2xl font-semibold mb-2">
       Page Not Found
@@ -15,23 +15,29 @@
     </p>
 
     <div class="space-x-4 mb-10">
-      <.link navigate="/" class="px-6 py-3 bg-white text-black rounded-xl font-semibold hover:opacity-80 transition">
+      <.link
+        navigate="/"
+        class="px-6 py-3 bg-white text-black rounded-xl font-semibold hover:opacity-80 transition"
+      >
         Home
       </.link>
 
-      <button onclick="location.reload()" class="px-6 py-3 border border-white rounded-xl hover:bg-white hover:text-black transition">
+      <button
+        onclick="location.reload()"
+        class="px-6 py-3 border border-white rounded-xl hover:bg-white hover:text-black transition"
+      >
         Retry
       </button>
     </div>
-
-    <!-- System Info Panel -->
+    
+<!-- System Info Panel -->
     <div class="text-left text-sm text-gray-300 bg-black/40 rounded-xl p-4 border border-white/10">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-2 break-all">
-        <p><span class="text-gray-400">IP:</span> <%= @client_ip %></p>
-        <p><span class="text-gray-400">Method:</span> <%= @method %></p>
-        <p><span class="text-gray-400">Path:</span> <%= @path %></p>
-        <p><span class="text-gray-400">Request ID:</span> <%= @request_id %></p>
-        <p><span class="text-gray-400">Time:</span> <%= @time %></p>
+        <p><span class="text-gray-400">IP:</span> {@client_ip}</p>
+        <p><span class="text-gray-400">Method:</span> {@method}</p>
+        <p><span class="text-gray-400">Path:</span> {@path}</p>
+        <p><span class="text-gray-400">Request ID:</span> {@request_id}</p>
+        <p><span class="text-gray-400">Time:</span> {@time}</p>
       </div>
     </div>
   </div>
