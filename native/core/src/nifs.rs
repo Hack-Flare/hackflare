@@ -1,5 +1,5 @@
 use crate::dns::engine::DnsEngine;
-use crate::dns::{DnsManager, Record as DnsRecord};
+use crate::dns::DnsManager;
 use crate::ns::{Nameserver, NsConfig};
 use rustler::{Env, NifResult, ResourceArc, Term};
 use serde_json;
@@ -36,12 +36,7 @@ fn manager_add_record(
     data: String,
 ) -> NifResult<bool> {
     let mut guard = resource.0.lock().unwrap();
-    if let Some(zone) = guard.get_zone_mut(&zone_name) {
-        zone.add_record(DnsRecord::new(name, rtype, ttl, data));
-        Ok(true)
-    } else {
-        Ok(false)
-    }
+    Ok(guard.add_record(&zone_name, &name, &rtype, ttl, &data))
 }
 
 #[rustler::nif]
@@ -52,11 +47,7 @@ fn manager_remove_record(
     rtype: String,
 ) -> NifResult<bool> {
     let mut guard = resource.0.lock().unwrap();
-    if let Some(zone) = guard.get_zone_mut(&zone_name) {
-        Ok(zone.remove_record(&name, &rtype))
-    } else {
-        Ok(false)
-    }
+    Ok(guard.remove_record(&zone_name, &name, &rtype))
 }
 
 #[rustler::nif]

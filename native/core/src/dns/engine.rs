@@ -63,7 +63,7 @@ impl DnsEngine {
         } else if qtype_str.is_empty() {
             Vec::new()
         } else {
-            self.manager.find_records(&qname, Some(qtype_str))
+            self.manager.find_answer_records(&qname, Some(qtype_str))
         };
 
         if is_ip_literal
