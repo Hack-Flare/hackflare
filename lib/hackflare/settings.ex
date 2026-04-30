@@ -108,7 +108,7 @@ defmodule Hackflare.Settings do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
     Repo.insert(changeset,
-      on_conflict: [set: [data: ^data, updated_at: ^now]],
+      on_conflict: [set: [data: data, updated_at: now]],
       conflict_target: [:name]
     )
   rescue
