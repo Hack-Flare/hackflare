@@ -843,120 +843,143 @@ defmodule HackflareWeb.Layouts do
                   </div>
                 <% :domains -> %>
                   <% total_zones = Enum.count(@zones || []) %>
-                  <% total_records =
-                    Enum.reduce(@zone_records || %{}, 0, fn {_zone, recs}, acc ->
-                      acc + Enum.count(recs || [])
-                    end) %>
-                  <div class="space-y-5">
-                    <div class="rounded-xl border border-orange-500/25 bg-gradient-to-r from-gray-900/80 via-gray-900/70 to-gray-800/70 p-6">
-                      <div class="flex flex-wrap items-start justify-between gap-4">
-                        <div>
-                          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-300">DNS Control</p>
-                          <h3 class="mt-2 text-2xl font-bold text-white">Zones and Records</h3>
-                          <p class="mt-1 text-sm text-gray-300">
-                            Cloud-style DNS manager with direct zone and record operations.
-                          </p>
+                  <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
+                    <!-- Left: Domain List Sidebar -->
+                    <div class="lg:col-span-1">
+                      <div class="rounded-xl border border-orange-500/20 bg-gray-900/60 overflow-hidden">
+                        <div class="border-b border-orange-500/15 bg-black/40 px-4 py-3">
+                          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-orange-300">Domains</p>
+                          <p class="text-xl font-bold text-white mt-1">{total_zones}</p>
                         </div>
-                        <button
-                          onclick="document.getElementById('new-zone-modal').classList.remove('hidden')"
-                          class="rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-orange-400"
-                        >
-                          + Add Zone
-                        </button>
-                      </div>
-                      <div class="mt-4 grid gap-3 sm:grid-cols-3">
-                        <div class="rounded-lg border border-orange-500/20 bg-black/30 p-3">
-                          <p class="text-xs uppercase tracking-[0.18em] text-gray-400">Total Zones</p>
-                          <p class="mt-1 text-2xl font-bold text-white">{total_zones}</p>
-                        </div>
-                        <div class="rounded-lg border border-orange-500/20 bg-black/30 p-3">
-                          <p class="text-xs uppercase tracking-[0.18em] text-gray-400">Total Records</p>
-                          <p class="mt-1 text-2xl font-bold text-white">{total_records}</p>
-                        </div>
-                        <div class="rounded-lg border border-orange-500/20 bg-black/30 p-3">
-                          <p class="text-xs uppercase tracking-[0.18em] text-gray-400">Status</p>
-                          <p class="mt-1 text-2xl font-bold text-emerald-300">Active</p>
-                        </div>
+                        <%= if Enum.empty?(@zones) do %>
+                          <div class="p-4 text-center text-sm text-gray-400">
+                            No domains yet
+                          </div>
+                        <% else %>
+                          <div class="max-h-96 overflow-y-auto">
+                            <%= for zone <- @zones do %>
+                              <% zone_key = String.replace(zone, ".", "-") %>
+                              <button
+                                onclick={"document.querySelectorAll('[data-domain-item]').forEach(el => el.classList.remove('bg-orange-500/10', 'border-orange-400')); document.getElementById('domain-#{zone_key}-item').classList.add('bg-orange-500/10', 'border-orange-400'); document.getElementById('domain-panel').classList.add('hidden'); document.getElementById('domain-#{zone_key}-panel').classList.remove('hidden');"}
+                                data-domain-item
+                                class="w-full border-l-2 border-transparent px-4 py-2.5 text-left text-sm text-gray-200 hover:bg-gray-800/50 transition-all"
+                                id={"domain-#{zone_key}-item"}
+                              >
+                                <p class="font-semibold truncate">{zone}</p>
+                                <p class="text-xs text-gray-500 mt-0.5">
+                                  {Enum.count(Map.get(@zone_records || %{}, zone, []))} records
+                                </p>
+                              </button>
+                            <% end %>
+                          </div>
+                        <% end %>
                       </div>
                     </div>
 
-                    <%= if Enum.empty?(@zones) do %>
-                      <div class="rounded-xl border border-dashed border-orange-500/35 bg-gray-900/50 p-10 text-center">
-                        <p class="text-base text-gray-300">No zones yet.</p>
-                        <p class="mt-1 text-sm text-gray-400">Create your first domain zone to start routing traffic.</p>
-                        <button
-                          onclick="document.getElementById('new-zone-modal').classList.remove('hidden')"
-                          class="mt-5 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-orange-400"
-                        >
-                          Create Zone
-                        </button>
-                      </div>
-                    <% else %>
-                      <div class="space-y-4">
+                    <!-- Right: Domain Panel Content -->
+                    <div class="lg:col-span-3 space-y-4">
+                      <%= if Enum.empty?(@zones) do %>
+                        <div class="rounded-xl border border-dashed border-orange-500/35 bg-gray-900/50 p-12 text-center">
+                          <p class="text-lg font-semibold text-white">No Domains</p>
+                          <p class="text-sm text-gray-400 mt-2">Create your first domain to get started.</p>
+                          <button
+                            onclick="document.getElementById('new-zone-modal').classList.remove('hidden')"
+                            class="mt-6 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-orange-400"
+                          >
+                            + Add Domain
+                          </button>
+                        </div>
+                      <% else %>
                         <%= for zone <- @zones do %>
                           <% zone_key = String.replace(zone, ".", "-") %>
                           <% records = Map.get(@zone_records || %{}, zone, []) %>
-                          <div class="overflow-hidden rounded-xl border border-orange-500/15 bg-gray-900/55">
-                            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-orange-500/15 bg-black/25 px-4 py-3">
-                              <div>
-                                <h4 class="text-lg font-bold text-white">{zone}</h4>
-                                <p class="text-xs uppercase tracking-[0.16em] text-gray-400">{Enum.count(records)} records</p>
-                              </div>
-                              <div class="flex items-center gap-2">
-                                <button
-                                  onclick={"document.getElementById('zone-" <> zone_key <> "-records').classList.toggle('hidden')"}
-                                  class="rounded-md border border-blue-400/30 bg-blue-600/20 px-3 py-1.5 text-xs font-semibold text-blue-100 transition-all hover:bg-blue-600/35"
-                                >
-                                  Toggle Records
-                                </button>
-                                <button
-                                  onclick={"document.getElementById('add-record-modal-" <> zone_key <> "').classList.remove('hidden')"}
-                                  class="rounded-md border border-emerald-400/30 bg-emerald-600/20 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition-all hover:bg-emerald-600/35"
-                                >
-                                  + Add Record
-                                </button>
-                                <button
-                                  onclick={"if(confirm('Delete zone " <> zone <> "?')) { window.location.href = '/dash/domains/delete/" <> zone_key <> "' }"}
-                                  class="rounded-md border border-red-400/30 bg-red-600/20 px-3 py-1.5 text-xs font-semibold text-red-100 transition-all hover:bg-red-600/35"
-                                >
-                                  Delete Zone
-                                </button>
+                              <div id={"domain-#{zone_key}-panel"} class="hidden space-y-4">
+                            <!-- Domain Header -->
+                            <div class="rounded-xl border border-orange-500/25 bg-gradient-to-r from-gray-900/80 via-gray-900/70 to-gray-800/70 p-6">
+                              <div class="flex items-start justify-between gap-4">
+                                <div>
+                                  <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-300">Domain</p>
+                                  <h3 class="mt-2 text-2xl font-bold text-white">{zone}</h3>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                  <button
+                                    onclick={"document.getElementById('add-record-modal-#{zone_key}').classList.remove('hidden')"}
+                                    class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-emerald-500"
+                                  >
+                                    + Add Record
+                                  </button>
+                                  <button
+                                    onclick={"if(confirm(\"Delete domain #{zone}?\")) { window.location.href = \"/dash/domains/delete/#{zone_key}\" }"}
+                                    class="rounded-lg bg-red-600/50 px-4 py-2 text-sm font-semibold text-red-100 transition-all hover:bg-red-600"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
                               </div>
                             </div>
 
-                            <div id={"zone-" <> zone_key <> "-records"} class="hidden p-4">
-                              <%= if Enum.empty?(records) do %>
-                                <div class="rounded-lg border border-dashed border-orange-500/30 bg-black/20 px-4 py-5 text-sm text-gray-400">
-                                  No records in this zone.
+                            <!-- Category Tabs -->
+                            <div class="rounded-xl border border-orange-500/20 bg-gray-900/60 overflow-hidden">
+                              <div class="border-b border-orange-500/15 bg-black/40">
+                                <div class="flex gap-1 p-1">
+                                  <button
+                                    onclick={"document.getElementById('dns-zones-#{zone_key}').classList.remove('hidden'); document.getElementById('other-#{zone_key}').classList.add('hidden');"}
+                                    class="flex-1 rounded-lg bg-orange-500 px-3 py-2 text-sm font-semibold text-white transition-all hover:bg-orange-400"
+                                  >
+                                    DNS Zones
+                                  </button>
+                                  <button
+                                    onclick={"document.getElementById('other-#{zone_key}').classList.remove('hidden'); document.getElementById('dns-zones-#{zone_key}').classList.add('hidden');"}
+                                    class="flex-1 rounded-lg bg-gray-700/50 px-3 py-2 text-sm font-semibold text-gray-200 transition-all hover:bg-gray-600/50"
+                                  >
+                                    More (Soon)
+                                  </button>
                                 </div>
-                              <% else %>
-                                <div class="overflow-x-auto rounded-lg border border-orange-500/20">
-                                  <table class="min-w-full divide-y divide-orange-500/15 text-sm">
-                                    <thead class="bg-black/30">
-                                      <tr>
-                                        <th class="px-4 py-2 text-left font-semibold text-gray-300">Type</th>
-                                        <th class="px-4 py-2 text-left font-semibold text-gray-300">Name</th>
-                                        <th class="px-4 py-2 text-left font-semibold text-gray-300">Content</th>
-                                        <th class="px-4 py-2 text-left font-semibold text-gray-300">TTL</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-orange-500/10 bg-gray-900/30">
-                                      <%= for record <- records do %>
-                                        <tr class="hover:bg-black/30">
-                                          <td class="whitespace-nowrap px-4 py-2 font-semibold text-orange-300">{record.rtype}</td>
-                                          <td class="whitespace-nowrap px-4 py-2 text-gray-200">{record.name}</td>
-                                          <td class="px-4 py-2 text-gray-300">{record.data}</td>
-                                          <td class="whitespace-nowrap px-4 py-2 text-gray-400">{record.ttl}</td>
-                                        </tr>
-                                      <% end %>
-                                    </tbody>
-                                  </table>
+                              </div>
+
+                              <!-- DNS Zones Content -->
+                              <div id={"dns-zones-#{zone_key}"} class="p-4">
+                                <div class="space-y-3">
+                                  <%= if Enum.empty?(records) do %>
+                                    <div class="rounded-lg border border-dashed border-orange-500/30 bg-black/20 px-4 py-6 text-center text-sm text-gray-400">
+                                      No records in this domain yet.
+                                    </div>
+                                  <% else %>
+                                    <div class="overflow-x-auto rounded-lg border border-orange-500/20">
+                                      <table class="min-w-full divide-y divide-orange-500/15 text-sm">
+                                        <thead class="bg-black/30">
+                                          <tr>
+                                            <th class="px-4 py-2 text-left font-semibold text-gray-300">Type</th>
+                                            <th class="px-4 py-2 text-left font-semibold text-gray-300">Name</th>
+                                            <th class="px-4 py-2 text-left font-semibold text-gray-300">Content</th>
+                                            <th class="px-4 py-2 text-left font-semibold text-gray-300">TTL</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-orange-500/10 bg-gray-900/30">
+                                          <%= for record <- records do %>
+                                            <tr class="hover:bg-black/30">
+                                              <td class="whitespace-nowrap px-4 py-2 font-semibold text-orange-300">{record.rtype}</td>
+                                              <td class="whitespace-nowrap px-4 py-2 text-gray-200">{record.name}</td>
+                                              <td class="px-4 py-2 text-gray-300">{record.data}</td>
+                                              <td class="whitespace-nowrap px-4 py-2 text-gray-400">{record.ttl}</td>
+                                            </tr>
+                                          <% end %>
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  <% end %>
                                 </div>
-                              <% end %>
+                              </div>
+
+                              <!-- More Content (placeholder) -->
+                              <div id={"other-#{zone_key}"} class="hidden p-4 text-center text-sm text-gray-400">
+                                <p>More features coming soon (SSL, Email, etc.)</p>
+                              </div>
                             </div>
 
+                            <!-- Add Record Modal -->
                             <div
-                              id={"add-record-modal-" <> zone_key}
+                              id={"add-record-modal-#{zone_key}"}
                               class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
                             >
                               <div class="w-full max-w-md rounded-xl border border-orange-500/30 bg-gray-900 p-8 shadow-2xl">
@@ -1011,7 +1034,7 @@ defmodule HackflareWeb.Layouts do
                                   <div class="flex gap-3 pt-1">
                                     <button
                                       type="button"
-                                      onclick={"document.getElementById('add-record-modal-" <> zone_key <> "').classList.add('hidden')"}
+                                      onclick={"document.getElementById('add-record-modal-#{zone_key}').classList.add('hidden')"}
                                       class="flex-1 rounded-lg bg-gray-800 px-4 py-2 text-sm font-semibold text-gray-200 transition-all hover:bg-gray-700"
                                     >
                                       Cancel
@@ -1028,11 +1051,21 @@ defmodule HackflareWeb.Layouts do
                             </div>
                           </div>
                         <% end %>
-                      </div>
-                    <% end %>
+
+                        <!-- Initial state: show first domain by default -->
+                        <script>
+                          (function() {
+                            var firstDomain = document.querySelector('[data-domain-item]');
+                            if (firstDomain) {
+                              firstDomain.click();
+                            }
+                          })();
+                        </script>
+                      <% end %>
+                    </div>
                   </div>
 
-    <!-- New Zone Modal -->
+                  <!-- New Domain Modal -->
                   <div
                     id="new-zone-modal"
                     class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm"
