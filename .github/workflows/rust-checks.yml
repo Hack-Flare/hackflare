@@ -11,7 +11,7 @@ on:
   workflow_call:
 
 concurrency:
-  group: build-and-push
+  group: rust-checks-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
