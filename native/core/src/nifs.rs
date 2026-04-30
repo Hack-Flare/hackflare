@@ -108,6 +108,32 @@ fn manager_start_nameserver(
     Ok(true)
 }
 
+#[rustler::nif]
+fn manager_save_to_file(
+    resource: ResourceArc<DnsManagerResource>,
+    path: String,
+) -> NifResult<bool> {
+    let guard = resource.0.lock().unwrap();
+    match guard.save_to_file(&path) {
+        Ok(_) => Ok(true),
+        Err(e) => {
+            eprintln!("Failed to save DNS manager to {}: {}", path, e);
+            Ok(false)
+        }
+    }
+}
+
+#[rustler::nif]
+fn manager_load_from_file(path: String) -> NifResult<Option<ResourceArc<DnsManagerResource>>> {
+    match crate::dns::DnsManager::load_from_file(&path) {
+        Ok(mgr) => Ok(Some(ResourceArc::new(DnsManagerResource(Mutex::new(mgr))))),
+        Err(e) => {
+            eprintln!("Failed to load DNS manager from {}: {}", path, e);
+            Ok(None)
+        }
+    }
+}
+
 #[allow(non_local_definitions)]
 pub fn init(env: Env, _info: Term) -> bool {
     let _ = rustler::resource!(DnsManagerResource, env);

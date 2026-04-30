@@ -246,4 +246,45 @@ defmodule Hackflare.Native do
     `:nif_not_loaded` - If the native library is not compiled/loaded
   """
   def manager_start_nameserver(_mgr, _bind, _port), do: :erlang.nif_error(:nif_not_loaded)
+
+  @doc """
+  Saves the DNS manager state to a JSON file.
+
+  Persists all zones and records to disk for recovery after restart.
+
+  ## Parameters
+
+    - `mgr` - DNS manager reference
+    - `path` - File path to save to (e.g., "/data/dns_zones.json")
+
+  ## Returns
+
+    `true` - Save succeeded
+    `false` - Save failed (logged to stderr with details)
+
+  ## Errors
+
+    `:nif_not_loaded` - If the native library is not compiled/loaded
+  """
+  def manager_save_to_file(_mgr, _path), do: :erlang.nif_error(:nif_not_loaded)
+
+  @doc """
+  Loads a DNS manager from a previously saved JSON file.
+
+  Restores all zones and records from a persisted state file.
+
+  ## Parameters
+
+    - `path` - File path to load from (e.g., "/data/dns_zones.json")
+
+  ## Returns
+
+    DNS manager reference (opaque term) if load succeeded
+    `nil` - If load failed (logged to stderr with details)
+
+  ## Errors
+
+    `:nif_not_loaded` - If the native library is not compiled/loaded
+  """
+  def manager_load_from_file(_path), do: :erlang.nif_error(:nif_not_loaded)
 end

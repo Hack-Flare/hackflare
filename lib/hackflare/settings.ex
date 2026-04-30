@@ -73,6 +73,7 @@ defmodule Hackflare.Settings do
     %{
       bind: Map.get(dns, :bind, default_runtime().dns.bind),
       port: parse_integer(Map.get(dns, :port, default_runtime().dns.port), 53),
+      zones_file: Map.get(dns, :zones_file, default_runtime().dns.zones_file),
       soa: %{
         mname: Map.get(soa, :mname, default_runtime().dns.soa.mname),
         rname: Map.get(soa, :rname, default_runtime().dns.soa.rname),
@@ -182,6 +183,7 @@ defmodule Hackflare.Settings do
     %{
       bind: System.get_env("DNS_BIND") || "0.0.0.0",
       port: System.get_env("DNS_PORT", "53"),
+      zones_file: System.get_env("DNS_ZONES_FILE") || "_build/dns_zones.json",
       soa: default_soa()
     }
   end

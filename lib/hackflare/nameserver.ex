@@ -57,7 +57,11 @@ defmodule Hackflare.Nameserver do
     # create manager and start nameserver via native NIF
     config = Hackflare.Settings.dns_config()
     export_soa_config(Map.get(config, :soa, %{}))
-    mgr = Hackflare.Native.manager_new()
+
+    # Try to load zones from disk, or create fresh manager
+    zones_file = Map.get(config, :zones_file, "_build/dns_zones.json")
+    mgr = load_or_create_manager(zones_file)
+
     # start nameserver in background
     _ =
       Hackflare.Native.manager_start_nameserver(
@@ -66,7 +70,53 @@ defmodule Hackflare.Nameserver do
         Map.get(config, :port, 53)
       )
 
-    {:ok, %{manager: mgr}}
+    # Schedule periodic saves every 5 minutes
+    schedule_save(zones_file)
+
+    {:ok, %{manager: mgr, zones_file: zones_file}}
+  end
+
+  @impl true
+  def handle_info(:save_zones, state) do
+    _ = save_zones(state)
+    schedule_save(state.zones_file)
+    {:noreply, state}
+  end
+
+  def handle_info(_msg, state) do
+    {:noreply, state}
+  end
+
+  @impl true
+  def terminate(_reason, state) do
+    _ = save_zones(state)
+    :ok
+  end
+
+  defp load_or_create_manager(zones_file) do
+    case Hackflare.Native.manager_load_from_file(zones_file) do
+      mgr when is_reference(mgr) ->
+        IO.puts("Loaded DNS zones from #{zones_file}")
+        mgr
+
+      nil ->
+        IO.puts("Creating fresh DNS manager (no zones file at #{zones_file})")
+        Hackflare.Native.manager_new()
+    end
+  end
+
+  defp save_zones(%{manager: mgr, zones_file: zones_file}) do
+    case Hackflare.Native.manager_save_to_file(mgr, zones_file) do
+      true ->
+        :ok
+
+      false ->
+        :ok
+    end
+  end
+
+  defp schedule_save(_zones_file) do
+    Process.send_after(self(), :save_zones, 5 * 60 * 1000)
   end
 
   def restart do
