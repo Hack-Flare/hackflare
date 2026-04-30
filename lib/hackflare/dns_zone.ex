@@ -3,9 +3,9 @@ defmodule Hackflare.DNS.Zone do
   import Ecto.Changeset
 
   schema "dns_zones" do
-    field :name, :string
-    field :type, :string, default: "root"
-    has_many :records, Hackflare.DNS.Record, foreign_key: :zone_id
+    field(:name, :string)
+    field(:type, :string, default: "root")
+    has_many(:records, Hackflare.DNS.Record, foreign_key: :zone_id)
 
     timestamps()
   end

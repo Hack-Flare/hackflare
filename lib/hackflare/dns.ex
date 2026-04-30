@@ -151,7 +151,13 @@ defmodule Hackflare.DNS do
 
           if zone do
             %Record{}
-            |> Record.changeset(%{zone_id: zone.id, name: record_name, rtype: record_type, ttl: ttl, data: data})
+            |> Record.changeset(%{
+              zone_id: zone.id,
+              name: record_name,
+              rtype: record_type,
+              ttl: ttl,
+              data: data
+            })
             |> Repo.insert(on_conflict: :nothing)
           end
 
@@ -182,7 +188,9 @@ defmodule Hackflare.DNS do
         true ->
           # delete from DB
           if zone = Repo.get_by(Zone, name: zone_name) do
-            from(r in Record, where: r.zone_id == ^zone.id and r.name == ^record_name and r.rtype == ^record_type)
+            from(r in Record,
+              where: r.zone_id == ^zone.id and r.name == ^record_name and r.rtype == ^record_type
+            )
             |> Repo.delete_all()
           end
 
