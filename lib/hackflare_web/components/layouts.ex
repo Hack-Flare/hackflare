@@ -633,6 +633,7 @@ defmodule HackflareWeb.Layouts do
   attr :flash, :map, default: %{}, doc: "the map of flash messages"
   attr :current_view, :atom, default: :home, doc: "active dashboard view"
   attr :form_message, :string, default: "", doc: "help form message"
+  attr :current_user, :any, default: nil, doc: "the current authenticated user"
 
   def dashboard(assigns) do
     ~H"""
@@ -692,6 +693,15 @@ defmodule HackflareWeb.Layouts do
                 <.icon name="hero-question-mark-circle" class="w-5 h-5" />
                 <span>Help</span>
               </a>
+              <%= if @current_user && Hackflare.Accounts.admin_user?(@current_user) do %>
+                <a
+                  href={~p"/admin"}
+                  class={nav_item_class(@current_view, :admin)}
+                >
+                  <.icon name="hero-cog-8-tooth" class="w-5 h-5" />
+                  <span>Admin Panel</span>
+                </a>
+              <% end %>
             </nav>
 
     <!-- Bottom Section -->

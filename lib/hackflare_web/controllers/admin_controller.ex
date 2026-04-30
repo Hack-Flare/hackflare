@@ -19,7 +19,7 @@ defmodule HackflareWeb.AdminController do
       eligible_users: Enum.count(users, & &1.ysws_eligible)
     }
 
-    render(conn, :index, current_view: :admin, users: users, stats: stats, settings: settings)
+    render(conn, :index, current_view: :admin, users: users, stats: stats, settings: settings, current_user: get_current_user!(conn))
   end
 
   def update(conn, %{"settings" => settings_params}) do
@@ -42,5 +42,12 @@ defmodule HackflareWeb.AdminController do
     conn
     |> put_flash(:error, "Invalid settings payload.")
     |> redirect(to: ~p"/admin")
+  end
+
+  defp get_current_user!(conn) do
+    case get_session(conn, :user_id) do
+      nil -> nil
+      user_id -> Accounts.get_user(user_id)
+    end
   end
 end
