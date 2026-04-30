@@ -101,7 +101,13 @@ defmodule Hackflare.Nameserver do
     end
   rescue
     e in Postgrex.Error ->
-      case get_in(e, [:postgres, :code]) do
+      code =
+        case e.postgres do
+          m when is_map(m) -> Map.get(m, :code)
+          _ -> nil
+        end
+
+      case code do
         :undefined_table ->
           IO.puts("DNS tables not migrated yet; creating fresh DNS manager")
           Hackflare.Native.manager_new()
