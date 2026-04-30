@@ -4,6 +4,7 @@ defmodule HackflareWeb.DashController do
   """
   use HackflareWeb, :controller
   alias Hackflare.Accounts
+  alias Hackflare.DNS
   alias Hackflare.Support
 
   def home(conn, _params) do
@@ -11,7 +12,63 @@ defmodule HackflareWeb.DashController do
   end
 
   def domains(conn, _params) do
-    render(conn, :dashboard, current_view: :domains, current_user: get_current_user!(conn))
+    zones = case DNS.list_zones() do
+      {:ok, z} -> z
+      {:error, _} -> []
+    end
+
+    render(conn, :dashboard,
+      current_view: :domains,
+      zones: zones,
+      current_user: get_current_user!(conn)
+    )
+  end
+
+  def create_zone(conn, %{"zone_name" => zone_name}) when is_binary(zone_name) do
+    case DNS.create_zone(String.trim(zone_name)) do
+      {:ok, _} ->
+        conn
+        |> put_flash(:info, "Zone #{zone_name} created successfully.")
+        |> redirect(to: ~p"/dash/domains")
+
+      {:error, _reason} ->
+        conn
+        |> put_flash(:error, "Failed to create zone #{zone_name}.")
+        |> redirect(to: ~p"/dash/domains")
+    end
+  end
+
+  def create_zone(conn, _params) do
+    conn
+    |> put_flash(:error, "Invalid zone name.")
+    |> redirect(to: ~p"/dash/domains")
+  end
+
+  def delete_zone(conn, %{"zone_name" => zone_name}) when is_binary(zone_name) do
+    zone_name_decoded = String.replace(zone_name, "-", ".")
+
+    case DNS.delete_zone(zone_name_decoded) do
+      {:ok, _} ->
+        conn
+        |> put_flash(:info, "Zone #{zone_name_decoded} deleted successfully.")
+        |> redirect(to: ~p"/dash/domains")
+
+      {:error, :zone_not_found} ->
+        conn
+        |> put_flash(:error, "Zone #{zone_name_decoded} not found.")
+        |> redirect(to: ~p"/dash/domains")
+
+      {:error, _reason} ->
+        conn
+        |> put_flash(:error, "Failed to delete zone #{zone_name_decoded}.")
+        |> redirect(to: ~p"/dash/domains")
+    end
+  end
+
+  def delete_zone(conn, _params) do
+    conn
+    |> put_flash(:error, "Invalid zone name.")
+    |> redirect(to: ~p"/dash/domains")
   end
 
   def settings(conn, _params) do

@@ -83,6 +83,8 @@ defmodule HackflareWeb.Router do
 
     get "/dash", DashController, :home
     get "/dash/domains", DashController, :domains
+    post "/dash/domains/create", DashController, :create_zone
+    get "/dash/domains/delete/:zone_name", DashController, :delete_zone
     get "/dash/settings", DashController, :settings
     get "/dash/analytics", DashController, :analytics
     get "/dash/notifications", DashController, :notifications

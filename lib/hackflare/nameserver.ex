@@ -77,6 +77,11 @@ defmodule Hackflare.Nameserver do
   end
 
   @impl true
+  def handle_call({:get_manager}, _from, state) do
+    {:reply, state.manager, state}
+  end
+
+  @impl true
   def handle_info(:save_zones, state) do
     _ = save_zones(state)
     schedule_save(state.zones_file)
