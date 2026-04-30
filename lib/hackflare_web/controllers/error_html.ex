@@ -6,6 +6,7 @@ defmodule HackflareWeb.ErrorHTML do
   def render(template, assigns) do
     conn = assigns[:conn]
     status = String.trim_trailing(template, ".html")
+
     defaults = %{
       client_ip: "unknown",
       method: "unknown",
