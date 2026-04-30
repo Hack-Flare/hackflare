@@ -126,6 +126,12 @@ html {
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
+    animation: subtleZoom 30s ease-in-out infinite alternate;
+  }
+
+  @keyframes subtleZoom {
+    from { transform: scale(1); }
+    to { transform: scale(1.05); }
   }
 
   /* Smooth scrolling */
