@@ -31,7 +31,7 @@ MIX_TEST_PARTITION=1 mix test --partitions 4
 Database setup used in CI before tests:
 
 ```bash
-mix do app.start, ecto.create, ecto.migrate
+mix do app.start + ecto.create + ecto.migrate
 ```
 
 ## High-level architecture

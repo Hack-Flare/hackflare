@@ -201,7 +201,7 @@ jobs:
       - name: Setup Database
         run: |
           mkdir -p priv/repo/migrations
-          mix do app.start, ecto.create, ecto.migrate
+          mix do app.start + ecto.create + ecto.migrate
           
       - name: Run Tests
         env:

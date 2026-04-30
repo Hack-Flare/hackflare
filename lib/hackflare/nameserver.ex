@@ -99,6 +99,14 @@ defmodule Hackflare.Nameserver do
         IO.puts("Loaded DNS zones from DB (#{length(zones_list)} zones)")
         mgr
     end
+  rescue
+    e in Postgrex.Error ->
+      if get_in(e, [:postgres, :code]) == :undefined_table do
+        IO.puts("DNS tables not migrated yet; creating fresh DNS manager")
+        Hackflare.Native.manager_new()
+      else
+        reraise e, __STACKTRACE__
+      end
   end
 
   defp populate_manager_from_zones(zones) do
