@@ -1,5 +1,6 @@
 use crate::dns::engine::{encode_name_labels_vec, parse_qname};
 use once_cell::sync::Lazy;
+use rand::seq::SliceRandom;
 use std::collections::HashMap;
 type CacheKey = (String, u16);
 type CacheValue = (Vec<u8>, Instant);
@@ -13,26 +14,81 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 const ROOT_SERVERS: [&str; 13] = [
-    "198.41.0.4",
-    "199.9.14.201",
-    "192.33.4.12",
-    "199.7.91.13",
-    "192.203.230.10",
-    "192.5.5.241",
-    "192.112.36.4",
-    "198.97.190.53",
-    "192.36.148.17",
-    "192.58.128.30",
-    "193.0.14.129",
-    "199.7.83.42",
-    "202.12.27.33",
+    "198.41.0.4",      // A
+    "170.247.170.2",   // B (Updated)
+    "192.33.4.12",     // C
+    "199.7.91.13",     // D
+    "192.203.230.10",  // E
+    "192.5.5.241",     // F
+    "192.112.36.4",    // G
+    "198.97.190.53",   // H
+    "192.36.148.17",   // I
+    "192.58.128.30",   // J
+    "193.0.14.129",    // K
+    "199.7.83.42",     // L
+    "202.12.27.33",    // M
 ];
 
-const UDP_ATTEMPTS_PER_SERVER: usize = 2;
-const UDP_ATTEMPT_TIMEOUT_MS: u64 = 1500;
+
+const DEFAULT_UDP_ATTEMPTS_PER_SERVER: usize = 4;
+const DEFAULT_UDP_ATTEMPT_TIMEOUT_MS: u64 = 2500;
 const ROOT_CACHE_TTL_SECS: u64 = 86400;
 const TLD_DELEGATION_MIN_TTL_SECS: u64 = 3600;
 const TLD_DELEGATION_MAX_TTL_SECS: u64 = 86400;
+const DEFAULT_RECURSION_ROUNDS: usize = 8;
+
+fn env_u64(name: &str, default: u64) -> u64 {
+    env::var(name)
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .unwrap_or(default)
+}
+
+fn env_usize(name: &str, default: usize) -> usize {
+    env::var(name)
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(default)
+}
+
+fn udp_attempts_per_server() -> usize {
+    env_usize("HACKFLARE_DNS_UDP_ATTEMPTS", DEFAULT_UDP_ATTEMPTS_PER_SERVER).max(1)
+}
+
+fn udp_attempt_timeout() -> Duration {
+    Duration::from_millis(env_u64(
+        "HACKFLARE_DNS_UDP_TIMEOUT_MS",
+        DEFAULT_UDP_ATTEMPT_TIMEOUT_MS,
+    ))
+}
+
+fn recursion_round_limit() -> usize {
+    env_usize("HACKFLARE_DNS_RECURSION_ROUNDS", DEFAULT_RECURSION_ROUNDS).max(1)
+}
+
+fn recursion_debug_enabled() -> bool {
+    env::var("HACKFLARE_DNS_RECURSION_DEBUG")
+        .ok()
+        .map(|v| {
+            let val = v.trim().to_ascii_lowercase();
+            val == "1" || val == "true" || val == "yes" || val == "on"
+        })
+        .unwrap_or(false)
+}
+
+fn debug_log(msg: &str) {
+    if recursion_debug_enabled() {
+        eprintln!("[hackflare:dns:recursive] {}", msg);
+    }
+}
+
+fn socket_target(addr: &str) -> String {
+    if addr.contains(':') && !addr.starts_with('[') {
+        format!("[{}]:53", addr)
+    } else {
+        format!("{}:53", addr)
+    }
+}
 
 fn build_query(id: u16, qname: &str, qtype: u16) -> Vec<u8> {
     let mut out = Vec::new();
@@ -184,13 +240,15 @@ fn send_recv(
     qname: &str,
     qtype: u16,
 ) -> Option<Vec<u8>> {
-    let target = format!("{}:53", addr);
+    let target = socket_target(addr);
     let expected_ip: IpAddr = addr.parse().ok()?;
     let mut buf = [0u8; 4096];
+    let attempts = udp_attempts_per_server();
+    let timeout = udp_attempt_timeout();
 
-    for _ in 0..UDP_ATTEMPTS_PER_SERVER {
+    for _ in 0..attempts {
         let _ = sock.send_to(msg, &target).ok()?;
-        let deadline = Instant::now() + Duration::from_millis(UDP_ATTEMPT_TIMEOUT_MS);
+        let deadline = Instant::now() + timeout;
 
         loop {
             if Instant::now() >= deadline {
@@ -243,7 +301,7 @@ fn parse_rrs(buf: &[u8], mut pos: usize, count: usize) -> Option<Vec<(u16, usize
 }
 
 fn tcp_send_recv(addr: &str, msg: &[u8]) -> Option<Vec<u8>> {
-    let target = format!("{}:53", addr);
+    let target = socket_target(addr);
     let sockaddr = target.parse().ok()?;
     let mut stream = TcpStream::connect_timeout(&sockaddr, Duration::from_secs(3)).ok()?;
     stream.set_read_timeout(Some(Duration::from_secs(4))).ok()?;
@@ -311,7 +369,7 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
         return None;
     }
     let sock = UdpSocket::bind(("0.0.0.0", 0)).ok()?;
-    let _ = sock.set_read_timeout(Some(Duration::from_millis(UDP_ATTEMPT_TIMEOUT_MS)));
+    let _ = sock.set_read_timeout(Some(udp_attempt_timeout()));
 
     static CACHE: Lazy<Mutex<HashMap<CacheKey, CacheValue>>> =
         Lazy::new(|| Mutex::new(HashMap::new()));
@@ -358,11 +416,13 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
         ROOT_HINTS.clone()
     };
     let mut qname = name.to_string();
-    for _round in 0..6 {
+    for _round in 0..recursion_round_limit() {
         let qid = rand::random::<u16>();
         let req = build_query(qid, &qname, qtype);
         let mut next_servers: Vec<String> = Vec::new();
-        for srv in &servers {
+        let mut round_servers = servers.clone();
+        round_servers.shuffle(&mut rand::rng());
+        for srv in &round_servers {
             let mut resp_opt = send_recv(&sock, srv, &req, qid, &qname, qtype);
             if resp_opt.is_none() {
                 resp_opt = tcp_send_recv(srv, &req);
@@ -379,6 +439,7 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
                     resp = tcp_resp;
                 }
                 if resp.len() < 12 {
+                    debug_log(&format!("short response from {} while resolving {}", srv, qname));
                     continue;
                 }
                 let ancount = u16::from_be_bytes([resp[6], resp[7]]) as usize;
@@ -397,6 +458,7 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
                                 let exp = Instant::now() + Duration::from_secs((*ttl).into());
                                 c.insert((name.to_string(), qtype), (resp.clone(), exp));
                             }
+                            debug_log(&format!("resolved {} type {} via {}", name, qtype, srv));
                             return Some(resp.clone());
                         }
                         if let Some(mt) = min_ttl {
@@ -479,6 +541,8 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
                     }
                 }
                 if !next_servers.is_empty() {
+                    next_servers.sort();
+                    next_servers.dedup();
                     if _round == 0
                         && let Some(tld) = requested_tld.as_ref()
                         && let Ok(mut delegations) = DELEGATION_CACHE.lock()
@@ -490,8 +554,11 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
                     servers = next_servers.clone();
                     break;
                 }
+            } else {
+                debug_log(&format!("no response from {} while resolving {}", srv, qname));
             }
         }
     }
+    debug_log(&format!("resolution failed for {} type {}", name, qtype));
     None
 }

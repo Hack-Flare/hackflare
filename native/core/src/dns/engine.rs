@@ -139,6 +139,13 @@ impl DnsEngine {
                 }
                 return Some(resp);
             }
+
+            return Some(build_servfail(
+                id,
+                req_flags,
+                self.recursion_enabled,
+                &req[12..pos + 4],
+            ));
         }
 
         let mut resp: Vec<u8> = Vec::new();
@@ -230,6 +237,26 @@ fn build_nxdomain_with_soa(
     } else {
         resp.extend_from_slice(&0u16.to_be_bytes());
     }
+
+    resp
+}
+
+fn build_servfail(id: u16, req_flags: u16, recursion_enabled: bool, question_section: &[u8]) -> Vec<u8> {
+    let mut resp: Vec<u8> = Vec::new();
+    resp.extend_from_slice(&id.to_be_bytes());
+
+    let mut flags: u16 = 0x8000;
+    flags |= req_flags & 0x0100;
+    if recursion_enabled {
+        flags |= 0x0080;
+    }
+    flags |= 2;
+    resp.extend_from_slice(&flags.to_be_bytes());
+    resp.extend_from_slice(&1u16.to_be_bytes());
+    resp.extend_from_slice(&0u16.to_be_bytes());
+    resp.extend_from_slice(&0u16.to_be_bytes());
+    resp.extend_from_slice(&0u16.to_be_bytes());
+    resp.extend_from_slice(question_section);
 
     resp
 }
