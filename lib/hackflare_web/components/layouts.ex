@@ -633,7 +633,7 @@ defmodule HackflareWeb.Layouts do
   attr :flash, :map, default: %{}, doc: "the map of flash messages"
   attr :current_view, :atom, default: :home, doc: "active dashboard view"
   attr :form_message, :string, default: "", doc: "help form message"
-  attr :current_user, :any, default: nil, doc: "the current authenticated user" 
+  attr :current_user, :any, default: nil, doc: "the current authenticated user"
 
   def dashboard(assigns) do
     ~H"""
