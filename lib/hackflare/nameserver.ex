@@ -95,28 +95,7 @@ defmodule Hackflare.Nameserver do
         Hackflare.Native.manager_new()
 
       zones_list when is_list(zones_list) ->
-<<<<<<< HEAD
         mgr = populate_manager_from_zones(zones_list)
-=======
-        mgr = Hackflare.Native.manager_new()
-
-        for zone <- zones_list do
-          _ = Hackflare.Native.manager_create_zone(mgr, zone.name)
-
-          for rec <- zone.records do
-            _ =
-              Hackflare.Native.manager_add_record(
-                mgr,
-                zone.name,
-                rec.name,
-                rec.rtype,
-                rec.ttl,
-                rec.data
-              )
-          end
-        end
-
->>>>>>> 0131628384990b0e3356b3ae6e8309236db5a2e1
         IO.puts("Loaded DNS zones from DB (#{length(zones_list)} zones)")
         mgr
     end
