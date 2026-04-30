@@ -114,7 +114,15 @@ defmodule Hackflare.Nameserver do
 
   defp add_zone_records_to_manager(mgr, zone) do
     Enum.each(zone.records, fn rec ->
-      _ = Hackflare.Native.manager_add_record(mgr, zone.name, rec.name, rec.rtype, rec.ttl, rec.data)
+      _ =
+        Hackflare.Native.manager_add_record(
+          mgr,
+          zone.name,
+          rec.name,
+          rec.rtype,
+          rec.ttl,
+          rec.data
+        )
     end)
   end
 
