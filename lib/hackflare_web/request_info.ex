@@ -1,6 +1,8 @@
 defmodule HackflareWeb.RequestInfo do
   import Plug.Conn
 
+  @moduledoc false
+
   def extract(conn) do
     %{
       client_ip: format_ip(conn.remote_ip),
