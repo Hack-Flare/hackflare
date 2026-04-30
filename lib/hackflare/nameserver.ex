@@ -86,7 +86,7 @@ defmodule Hackflare.Nameserver do
     :ok
   end
 
-  defp load_manager_from_db() do
+  defp load_manager_from_db do
     zones = Hackflare.Repo.all(Hackflare.DNS.Zone) |> Hackflare.Repo.preload(:records)
 
     case zones do
@@ -95,19 +95,27 @@ defmodule Hackflare.Nameserver do
         Hackflare.Native.manager_new()
 
       zones_list when is_list(zones_list) ->
-        mgr = Hackflare.Native.manager_new()
-
-        for zone <- zones_list do
-          _ = Hackflare.Native.manager_create_zone(mgr, zone.name)
-
-          for rec <- zone.records do
-            _ = Hackflare.Native.manager_add_record(mgr, zone.name, rec.name, rec.rtype, rec.ttl, rec.data)
-          end
-        end
-
+        mgr = populate_manager_from_zones(zones_list)
         IO.puts("Loaded DNS zones from DB (#{length(zones_list)} zones)")
         mgr
     end
+  end
+
+  defp populate_manager_from_zones(zones) do
+    mgr = Hackflare.Native.manager_new()
+
+    Enum.each(zones, fn zone ->
+      _ = Hackflare.Native.manager_create_zone(mgr, zone.name)
+      add_zone_records_to_manager(mgr, zone)
+    end)
+
+    mgr
+  end
+
+  defp add_zone_records_to_manager(mgr, zone) do
+    Enum.each(zone.records, fn rec ->
+      _ = Hackflare.Native.manager_add_record(mgr, zone.name, rec.name, rec.rtype, rec.ttl, rec.data)
+    end)
   end
 
   # File-based save/load removed; persistence handled by DB

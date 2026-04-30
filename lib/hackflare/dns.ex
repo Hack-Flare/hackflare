@@ -6,10 +6,10 @@ defmodule Hackflare.DNS do
   wrapping the low-level Rust NIF calls from Hackflare.Native.
   """
 
+  alias Hackflare.DNS.Record
+  alias Hackflare.DNS.Zone
   alias Hackflare.Native
   alias Hackflare.Repo
-  alias Hackflare.DNS.Zone
-  alias Hackflare.DNS.Record
   import Ecto.Query, only: [from: 2]
 
   @doc """
@@ -146,14 +146,7 @@ defmodule Hackflare.DNS do
     with {:ok, mgr} <- get_manager() do
       case Native.manager_add_record(mgr, zone_name, record_name, record_type, ttl, data) do
         true ->
-          # persist record to DB
-          zone = Repo.get_by(Zone, name: zone_name)
-
-          if zone do
-            %Record{}
-            |> Record.changeset(%{zone_id: zone.id, name: record_name, rtype: record_type, ttl: ttl, data: data})
-            |> Repo.insert(on_conflict: :nothing)
-          end
+          persist_record(zone_name, record_name, record_type, ttl, data)
 
           {:ok, %{name: record_name, rtype: record_type, ttl: ttl, data: data}}
 
@@ -180,11 +173,7 @@ defmodule Hackflare.DNS do
     with {:ok, mgr} <- get_manager() do
       case Native.manager_remove_record(mgr, zone_name, record_name, record_type) do
         true ->
-          # delete from DB
-          if zone = Repo.get_by(Zone, name: zone_name) do
-            from(r in Record, where: r.zone_id == ^zone.id and r.name == ^record_name and r.rtype == ^record_type)
-            |> Repo.delete_all()
-          end
+          delete_persisted_record(zone_name, record_name, record_type)
 
           {:ok, :deleted}
 
@@ -211,4 +200,27 @@ defmodule Hackflare.DNS do
   end
 
   def handle_query(_), do: {:error, :invalid_query}
+
+  defp persist_record(zone_name, record_name, record_type, ttl, data) do
+    with %Zone{} = zone <- Repo.get_by(Zone, name: zone_name) do
+      %Record{}
+      |> Record.changeset(%{
+        zone_id: zone.id,
+        name: record_name,
+        rtype: record_type,
+        ttl: ttl,
+        data: data
+      })
+      |> Repo.insert(on_conflict: :nothing)
+    end
+  end
+
+  defp delete_persisted_record(zone_name, record_name, record_type) do
+    with %Zone{} = zone <- Repo.get_by(Zone, name: zone_name) do
+      from(r in Record,
+        where: r.zone_id == ^zone.id and r.name == ^record_name and r.rtype == ^record_type
+      )
+      |> Repo.delete_all()
+    end
+  end
 end
