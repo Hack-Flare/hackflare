@@ -72,6 +72,8 @@ docker compose -f docker-compose.dev.yml up
 - [x] Big Haj on error pages
 - [semi-complete] Organize readme and documentation better
 
+After Phase 1 the repo will be open sourced.
+
 ### Phase 2 (Post MVP)
 - [ ] DDoS Protection
 - [ ] Load Balancing
