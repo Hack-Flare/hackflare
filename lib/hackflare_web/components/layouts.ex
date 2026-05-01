@@ -230,7 +230,7 @@ defmodule HackflareWeb.Layouts do
             </ul>
           </div>
         </header>
-        
+
     <!-- Hero Section Full Screen -->
         <div class="relative overflow-hidden bg-black text-white pt-28">
           <div class="mx-auto max-w-7xl px-8 sm:px-16 lg:px-24 py-14 sm:py-16 lg:py-20">
@@ -340,7 +340,7 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
-        
+
     <!-- Features Section -->
         <div class="relative px-8 py-24 sm:px-16 lg:px-24 bg-black">
           <div class="max-w-7xl mx-auto space-y-16">
@@ -367,7 +367,7 @@ defmodule HackflareWeb.Layouts do
                   </p>
                 </div>
               </div>
-              
+
     <!-- Feature 2 -->
               <div class="group relative">
                 <div class="hidden"></div>
@@ -383,7 +383,7 @@ defmodule HackflareWeb.Layouts do
                   </p>
                 </div>
               </div>
-              
+
     <!-- Feature 3 -->
               <div class="group relative">
                 <div class="hidden"></div>
@@ -402,7 +402,7 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
-        
+
     <!-- CTA Section -->
         <div class="relative px-8 py-24 sm:px-16 lg:px-24 bg-black">
           <div class="max-w-4xl mx-auto">
@@ -434,7 +434,7 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
-        
+
     <!-- Footer -->
         <footer class="relative px-8 py-12 sm:px-16 lg:px-24 bg-black border-t border-orange-500/20">
           <div class="max-w-7xl mx-auto">
@@ -449,7 +449,7 @@ defmodule HackflareWeb.Layouts do
                   A powerful DNS and content delivery platform built for the Hack Club community.
                 </p>
               </div>
-              
+
     <!-- Links -->
               <div class="space-y-4">
                 <h3 class="text-white font-semibold">Product</h3>
@@ -474,7 +474,7 @@ defmodule HackflareWeb.Layouts do
                   </li>
                 </ul>
               </div>
-              
+
     <!-- Community -->
               <div class="space-y-4">
                 <h3 class="text-white font-semibold">Community</h3>
@@ -505,7 +505,7 @@ defmodule HackflareWeb.Layouts do
                   </li>
                 </ul>
               </div>
-              
+
     <!-- Legal -->
               <div class="space-y-4">
                 <h3 class="text-white font-semibold">Legal</h3>
@@ -564,6 +564,8 @@ defmodule HackflareWeb.Layouts do
   attr :current_view, :atom, default: :home, doc: "active dashboard view"
   attr :form_message, :string, default: "", doc: "help form message"
   attr :current_user, :any, default: nil, doc: "the current authenticated user"
+  attr :zones, :list, default: [], doc: "list of DNS zones"
+  attr :zone_records, :map, default: %{}, doc: "map of zone names to their records"
 
   def dashboard(assigns) do
     ~H"""
@@ -578,7 +580,7 @@ defmodule HackflareWeb.Layouts do
               <img src={~p"/images/logo.svg"} width="40" alt="HackFlare" />
               <span class="font-bold text-lg text-orange-400">HackFlare</span>
             </div>
-            
+
     <!-- Navigation Menu -->
             <nav class="space-y-2">
               <a
@@ -633,7 +635,7 @@ defmodule HackflareWeb.Layouts do
                 </a>
               <% end %>
             </nav>
-            
+
     <!-- Bottom Section -->
             <div class="absolute bottom-6 left-6 right-6 space-y-4">
               <form method="post" action="/auth/logout">
@@ -648,7 +650,7 @@ defmodule HackflareWeb.Layouts do
               </form>
             </div>
           </aside>
-          
+
     <!-- Main Content -->
           <main class="flex-1 flex flex-col overflow-hidden">
             <!-- Header -->
@@ -666,7 +668,7 @@ defmodule HackflareWeb.Layouts do
                 </div>
               </div>
             </header>
-            
+
     <!-- Content Area -->
             <div class="flex-1 overflow-auto p-8">
               <%= case @current_view do %>
@@ -686,7 +688,7 @@ defmodule HackflareWeb.Layouts do
                         </button>
                       </div>
                     </div>
-                    
+
     <!-- Card 2 -->
                     <div class="group relative">
                       <div class="hidden"></div>
@@ -701,7 +703,7 @@ defmodule HackflareWeb.Layouts do
                         </button>
                       </div>
                     </div>
-                    
+
     <!-- Card 3 -->
                     <div class="group relative">
                       <div class="hidden"></div>
@@ -716,7 +718,7 @@ defmodule HackflareWeb.Layouts do
                         </button>
                       </div>
                     </div>
-                    
+
     <!-- Card 4 -->
                     <div class="group relative">
                       <div class="hidden"></div>
@@ -731,7 +733,7 @@ defmodule HackflareWeb.Layouts do
                         </button>
                       </div>
                     </div>
-                    
+
     <!-- Card 5 -->
                     <div class="group relative">
                       <div class="hidden"></div>
@@ -749,7 +751,7 @@ defmodule HackflareWeb.Layouts do
                         </a>
                       </div>
                     </div>
-                    
+
     <!-- Card 6 -->
                     <div class="group relative">
                       <div class="hidden"></div>
@@ -802,7 +804,7 @@ defmodule HackflareWeb.Layouts do
                         <% end %>
                       </div>
                     </div>
-                    
+
     <!-- Right: Domain Panel Content -->
                     <div class="lg:col-span-3 space-y-4">
                       <%= if Enum.empty?(@zones) do %>
@@ -878,7 +880,7 @@ defmodule HackflareWeb.Layouts do
                                 </div>
                               </div>
                             </div>
-                            
+
     <!-- Category Tabs -->
                             <div class="rounded-xl border border-orange-500/20 bg-gray-900/60 overflow-hidden">
                               <div class="border-b border-orange-500/15 bg-black/40">
@@ -897,7 +899,7 @@ defmodule HackflareWeb.Layouts do
                                   </button>
                                 </div>
                               </div>
-                              
+
     <!-- DNS Zones Content -->
                               <div id={"dns-zones-#{zone_key}"} class="p-4">
                                 <div class="space-y-3">
@@ -945,7 +947,7 @@ defmodule HackflareWeb.Layouts do
                                   <% end %>
                                 </div>
                               </div>
-                              
+
     <!-- More Content (placeholder) -->
                               <div
                                 id={"other-#{zone_key}"}
@@ -954,7 +956,7 @@ defmodule HackflareWeb.Layouts do
                                 <p>More features coming soon (SSL, Email, etc.)</p>
                               </div>
                             </div>
-                            
+
     <!-- Add Record Modal -->
                             <div
                               id={"add-record-modal-#{zone_key}"}
@@ -1029,7 +1031,7 @@ defmodule HackflareWeb.Layouts do
                             </div>
                           </div>
                         <% end %>
-                        
+
     <!-- Initial state: show first domain by default -->
                         <script>
                           (function() {
@@ -1042,7 +1044,7 @@ defmodule HackflareWeb.Layouts do
                       <% end %>
                     </div>
                   </div>
-                  
+
     <!-- New Domain Modal -->
                   <div
                     id="new-zone-modal"
