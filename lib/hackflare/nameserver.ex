@@ -125,8 +125,10 @@ defmodule Hackflare.Nameserver do
     mgr = Hackflare.Native.manager_new()
 
     Enum.each(zones, fn zone ->
-      _ = Hackflare.Native.manager_create_zone(mgr, zone.name)
-      add_zone_records_to_manager(mgr, zone)
+      if Map.get(zone, :ns_verified, false) do
+        _ = Hackflare.Native.manager_create_zone(mgr, zone.name)
+        add_zone_records_to_manager(mgr, zone)
+      end
     end)
 
     mgr

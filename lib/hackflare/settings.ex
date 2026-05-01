@@ -88,6 +88,23 @@ defmodule Hackflare.Settings do
     }
   end
 
+  def nameservers do
+    # Nameservers can be configured at runtime under :dns.nameservers as a list
+    # or via HACKFLARE_NAMESERVERS env comma-separated string
+    runtime()
+    |> Map.get(:dns, %{})
+    |> Map.get(:nameservers, [])
+    |> case do
+      list when is_list(list) -> list
+      s when is_binary(s) -> String.split(s, ",", trim: true) |> Enum.map(&String.trim/1)
+      _ ->
+        case System.get_env("HACKFLARE_NAMESERVERS", "") do
+          "" -> []
+          env -> String.split(env, ",", trim: true) |> Enum.map(&String.trim/1)
+        end
+    end
+  end
+
   def runtime_overrides do
     case Repo.one(from(setting in AppSetting, where: setting.name == ^@runtime_name, limit: 1)) do
       %AppSetting{data: data} when is_map(data) -> to_atom_map(data)

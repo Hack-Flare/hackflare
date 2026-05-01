@@ -5,6 +5,8 @@ defmodule HackflareWeb.DashController do
   use HackflareWeb, :controller
   alias Hackflare.Accounts
   alias Hackflare.DNS
+  alias Hackflare.DNS.Zone
+  alias Hackflare.Repo
   alias Hackflare.Support
 
   def home(conn, _params) do
@@ -12,21 +14,11 @@ defmodule HackflareWeb.DashController do
   end
 
   def domains(conn, _params) do
-    zones =
-      case DNS.list_zones() do
-        {:ok, z} -> z
-        {:error, _} -> []
-      end
+    zones = Repo.all(Zone) |> Repo.preload(:records)
 
     zone_records =
       Enum.into(zones, %{}, fn zone ->
-        records =
-          case DNS.find_records(zone) do
-            {:ok, recs} -> recs
-            {:error, _} -> []
-          end
-
-        {zone, records}
+        {zone.name, zone.records}
       end)
 
     render(conn, :dashboard,
@@ -42,7 +34,7 @@ defmodule HackflareWeb.DashController do
     case DNS.create_zone(String.trim(zone_name), String.trim(zone_type)) do
       {:ok, _} ->
         conn
-        |> put_flash(:info, "Zone #{zone_name} created successfully.")
+        |> put_flash(:info, "Zone #{zone_name} created. Verify nameservers before adding records.")
         |> redirect(to: ~p"/dash/domains")
 
       {:error, _reason} ->
@@ -79,6 +71,41 @@ defmodule HackflareWeb.DashController do
         |> put_flash(:error, "Failed to add DNS record.")
         |> redirect(to: ~p"/dash/domains")
     end
+  end
+
+  def reverify_zone(conn, %{"zone_name" => zone_name}) when is_binary(zone_name) do
+    case DNS.verify_zone_nameservers(String.trim(zone_name)) do
+      {:ok, :verified} ->
+        conn
+        |> put_flash(:info, "Nameservers for #{zone_name} verified.")
+        |> redirect(to: ~p"/dash/domains")
+
+      {:error, :zone_not_found} ->
+        conn
+        |> put_flash(:error, "Zone #{zone_name} not found.")
+        |> redirect(to: ~p"/dash/domains")
+
+      {:error, :nameservers_mismatch} ->
+        conn
+        |> put_flash(:error, "Nameservers for #{zone_name} do not match the expected set yet.")
+        |> redirect(to: ~p"/dash/domains")
+
+      {:error, :no_configured_nameservers} ->
+        conn
+        |> put_flash(:error, "No expected nameservers are configured.")
+        |> redirect(to: ~p"/dash/domains")
+
+      {:error, _reason} ->
+        conn
+        |> put_flash(:error, "Failed to verify nameservers for #{zone_name}.")
+        |> redirect(to: ~p"/dash/domains")
+    end
+  end
+
+  def reverify_zone(conn, _params) do
+    conn
+    |> put_flash(:error, "Invalid zone name.")
+    |> redirect(to: ~p"/dash/domains")
   end
 
   def delete_zone(conn, %{"zone_name" => zone_name}) when is_binary(zone_name) do

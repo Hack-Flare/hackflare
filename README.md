@@ -51,6 +51,7 @@ docker compose -f docker-compose.dev.yml up
     - [ ] Auth Integration
     - [ ] Domain Migration (cloudflare)
     - [ ] Domain Management
+      - Domains stay in a pending state until their NS delegation is verified, and record edits are blocked until then.
 - [x] nameservers
   - [1] Amount Online
 - [x] Auth system (hc auth)

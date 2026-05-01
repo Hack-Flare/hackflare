@@ -5,6 +5,7 @@ defmodule Hackflare.Repo.Migrations.CreateDnsZonesAndRecords do
     create table(:dns_zones) do
       add :name, :string, null: false
       add :type, :string, null: false, default: "root"
+      add :ns_verified, :boolean, null: false, default: false
 
       timestamps()
     end

@@ -53,20 +53,13 @@ defmodule Hackflare.DNS do
   Returns `{:ok, zone_name}` on success, `{:error, reason}` on failure.
   """
   def create_zone(zone_name) when is_binary(zone_name) do
-    with {:ok, mgr} <- get_manager() do
-      case Native.manager_create_zone(mgr, zone_name) do
-        true ->
-          # persist zone to DB if not exists
-          %Zone{}
-          |> Zone.changeset(%{name: zone_name})
-          |> Repo.insert(on_conflict: :nothing)
+    # Persist the zone but mark it unverified. We will only create the zone
+    # in the running DNS manager after nameserver delegation is verified.
+    %Zone{}
+    |> Zone.changeset(%{name: zone_name})
+    |> Repo.insert(on_conflict: :nothing)
 
-          {:ok, zone_name}
-
-        false ->
-          {:error, :failed_to_create_zone}
-      end
-    end
+    {:ok, zone_name}
   end
 
   def create_zone(_), do: {:error, :invalid_zone_name}
@@ -143,16 +136,15 @@ defmodule Hackflare.DNS do
   def add_record(zone_name, record_name, record_type, ttl, data)
       when is_binary(zone_name) and is_binary(record_name) and is_binary(record_type) and
              is_integer(ttl) and ttl > 0 and is_binary(data) do
-    with {:ok, mgr} <- get_manager() do
-      case Native.manager_add_record(mgr, zone_name, record_name, record_type, ttl, data) do
-        true ->
-          persist_record(zone_name, record_name, record_type, ttl, data)
+    with {:ok, _zone} <- ensure_zone_verified(zone_name),
+         {:ok, mgr} <- get_manager(),
+         true <- Native.manager_add_record(mgr, zone_name, record_name, record_type, ttl, data) do
+      persist_record(zone_name, record_name, record_type, ttl, data)
 
-          {:ok, %{name: record_name, rtype: record_type, ttl: ttl, data: data}}
-
-        false ->
-          {:error, :failed_to_add_record}
-      end
+      {:ok, %{name: record_name, rtype: record_type, ttl: ttl, data: data}}
+    else
+      false -> {:error, :failed_to_add_record}
+      {:error, _reason} = error -> error
     end
   end
 
@@ -170,16 +162,15 @@ defmodule Hackflare.DNS do
   """
   def remove_record(zone_name, record_name, record_type)
       when is_binary(zone_name) and is_binary(record_name) and is_binary(record_type) do
-    with {:ok, mgr} <- get_manager() do
-      case Native.manager_remove_record(mgr, zone_name, record_name, record_type) do
-        true ->
-          delete_persisted_record(zone_name, record_name, record_type)
+    with {:ok, _zone} <- ensure_zone_verified(zone_name),
+         {:ok, mgr} <- get_manager(),
+         true <- Native.manager_remove_record(mgr, zone_name, record_name, record_type) do
+      delete_persisted_record(zone_name, record_name, record_type)
 
-          {:ok, :deleted}
-
-        false ->
-          {:error, :record_not_found}
-      end
+      {:ok, :deleted}
+    else
+      false -> {:error, :record_not_found}
+      {:error, _reason} = error -> error
     end
   end
 
@@ -221,6 +212,74 @@ defmodule Hackflare.DNS do
         where: r.zone_id == ^zone.id and r.name == ^record_name and r.rtype == ^record_type
       )
       |> Repo.delete_all()
+    end
+  end
+
+  defp ensure_zone_verified(zone_name) do
+    case Repo.get_by(Zone, name: zone_name) do
+      %Zone{ns_verified: true} = zone -> {:ok, zone}
+      %Zone{} -> {:error, :ns_not_verified}
+      nil -> {:error, :zone_not_found}
+    end
+  end
+
+  @doc """
+  Verify that a zone's NS delegation matches the configured nameservers.
+
+  If verification succeeds the zone will be marked `ns_verified: true` and the
+  zone + its records will be created/loaded into the running DNS manager.
+
+  Returns `{:ok, :verified}` on success or `{:error, reason}` on failure.
+  """
+  def verify_zone_nameservers(zone_name) when is_binary(zone_name) do
+    expected = Hackflare.Settings.nameservers() |> Enum.map(&String.downcase/1)
+
+    case Repo.get_by(Zone, name: zone_name) do
+      nil ->
+        {:error, :zone_not_found}
+
+      %Zone{} = zone ->
+        # Query NS records using the Erlang resolver
+        try do
+          ns_raw = :inet_res.lookup(String.to_charlist(zone_name), :in, :ns)
+
+          ns_list =
+            ns_raw
+            |> Enum.map(&List.to_string/1)
+            |> Enum.map(&String.trim_trailing(&1, "."))
+            |> Enum.map(&String.downcase/1)
+
+          if expected == [] do
+            {:error, :no_configured_nameservers}
+          else
+            matched =
+              Enum.all?(expected, fn e ->
+                Enum.any?(ns_list, fn n -> n == e or String.ends_with?(n, e) end)
+              end)
+
+            if matched do
+              # mark as verified and create zone in manager + add persisted records
+              zone
+              |> Ecto.Changeset.change(ns_verified: true)
+              |> Repo.update()
+
+              with {:ok, mgr} <- get_manager() do
+                _ = Native.manager_create_zone(mgr, zone_name)
+                zone = Repo.preload(zone, :records)
+
+                Enum.each(zone.records, fn rec ->
+                  _ = Native.manager_add_record(mgr, zone.name, rec.name, rec.rtype, rec.ttl, rec.data)
+                end)
+              end
+
+              {:ok, :verified}
+            else
+              {:error, :nameservers_mismatch}
+            end
+          end
+        rescue
+          _ -> {:error, :dns_lookup_failed}
+        end
     end
   end
 end

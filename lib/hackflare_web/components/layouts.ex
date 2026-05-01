@@ -230,7 +230,7 @@ defmodule HackflareWeb.Layouts do
             </ul>
           </div>
         </header>
-        
+
     <!-- Hero Section Full Screen -->
         <div class="relative overflow-hidden bg-black text-white pt-28">
           <div class="mx-auto max-w-7xl px-8 sm:px-16 lg:px-24 py-14 sm:py-16 lg:py-20">
@@ -340,7 +340,7 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
-        
+
     <!-- Features Section -->
         <div class="relative px-8 py-24 sm:px-16 lg:px-24 bg-black">
           <div class="max-w-7xl mx-auto space-y-16">
@@ -367,7 +367,7 @@ defmodule HackflareWeb.Layouts do
                   </p>
                 </div>
               </div>
-              
+
     <!-- Feature 2 -->
               <div class="group relative">
                 <div class="hidden"></div>
@@ -383,7 +383,7 @@ defmodule HackflareWeb.Layouts do
                   </p>
                 </div>
               </div>
-              
+
     <!-- Feature 3 -->
               <div class="group relative">
                 <div class="hidden"></div>
@@ -402,7 +402,7 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
-        
+
     <!-- CTA Section -->
         <div class="relative px-8 py-24 sm:px-16 lg:px-24 bg-black">
           <div class="max-w-4xl mx-auto">
@@ -434,7 +434,7 @@ defmodule HackflareWeb.Layouts do
             </div>
           </div>
         </div>
-        
+
     <!-- Footer -->
         <footer class="relative px-8 py-12 sm:px-16 lg:px-24 bg-black border-t border-orange-500/20">
           <div class="max-w-7xl mx-auto">
@@ -449,7 +449,7 @@ defmodule HackflareWeb.Layouts do
                   A powerful DNS and content delivery platform built for the Hack Club community.
                 </p>
               </div>
-              
+
     <!-- Links -->
               <div class="space-y-4">
                 <h3 class="text-white font-semibold">Product</h3>
@@ -474,7 +474,7 @@ defmodule HackflareWeb.Layouts do
                   </li>
                 </ul>
               </div>
-              
+
     <!-- Community -->
               <div class="space-y-4">
                 <h3 class="text-white font-semibold">Community</h3>
@@ -505,7 +505,7 @@ defmodule HackflareWeb.Layouts do
                   </li>
                 </ul>
               </div>
-              
+
     <!-- Legal -->
               <div class="space-y-4">
                 <h3 class="text-white font-semibold">Legal</h3>
@@ -578,7 +578,7 @@ defmodule HackflareWeb.Layouts do
               <img src={~p"/images/logo.svg"} width="40" alt="HackFlare" />
               <span class="font-bold text-lg text-orange-400">HackFlare</span>
             </div>
-            
+
     <!-- Navigation Menu -->
             <nav class="space-y-2">
               <a
@@ -633,7 +633,7 @@ defmodule HackflareWeb.Layouts do
                 </a>
               <% end %>
             </nav>
-            
+
     <!-- Bottom Section -->
             <div class="absolute bottom-6 left-6 right-6 space-y-4">
               <form method="post" action="/auth/logout">
@@ -648,7 +648,7 @@ defmodule HackflareWeb.Layouts do
               </form>
             </div>
           </aside>
-          
+
     <!-- Main Content -->
           <main class="flex-1 flex flex-col overflow-hidden">
             <!-- Header -->
@@ -666,7 +666,7 @@ defmodule HackflareWeb.Layouts do
                 </div>
               </div>
             </header>
-            
+
     <!-- Content Area -->
             <div class="flex-1 overflow-auto p-8">
               <%= case @current_view do %>
@@ -686,7 +686,7 @@ defmodule HackflareWeb.Layouts do
                         </button>
                       </div>
                     </div>
-                    
+
     <!-- Card 2 -->
                     <div class="group relative">
                       <div class="hidden"></div>
@@ -701,7 +701,7 @@ defmodule HackflareWeb.Layouts do
                         </button>
                       </div>
                     </div>
-                    
+
     <!-- Card 3 -->
                     <div class="group relative">
                       <div class="hidden"></div>
@@ -716,7 +716,7 @@ defmodule HackflareWeb.Layouts do
                         </button>
                       </div>
                     </div>
-                    
+
     <!-- Card 4 -->
                     <div class="group relative">
                       <div class="hidden"></div>
@@ -731,7 +731,7 @@ defmodule HackflareWeb.Layouts do
                         </button>
                       </div>
                     </div>
-                    
+
     <!-- Card 5 -->
                     <div class="group relative">
                       <div class="hidden"></div>
@@ -749,7 +749,7 @@ defmodule HackflareWeb.Layouts do
                         </a>
                       </div>
                     </div>
-                    
+
     <!-- Card 6 -->
                     <div class="group relative">
                       <div class="hidden"></div>
@@ -784,16 +784,17 @@ defmodule HackflareWeb.Layouts do
                         <% else %>
                           <div class="max-h-96 overflow-y-auto">
                             <%= for zone <- @zones do %>
-                              <% zone_key = String.replace(zone, ".", "-") %>
+                              <% zone_name = zone.name %>
+                              <% zone_key = String.replace(zone_name, ".", "-") %>
                               <button
                                 onclick={"document.querySelectorAll('[data-domain-item]').forEach(el => el.classList.remove('bg-orange-500/10', 'border-orange-400')); document.getElementById('domain-#{zone_key}-item').classList.add('bg-orange-500/10', 'border-orange-400'); document.getElementById('domain-#{zone_key}-panel').classList.remove('hidden');"}
                                 data-domain-item
                                 class="w-full border-l-2 border-transparent px-4 py-2.5 text-left text-sm text-gray-200 hover:bg-gray-800/50 transition-all"
                                 id={"domain-#{zone_key}-item"}
                               >
-                                <p class="font-semibold truncate">{zone}</p>
+                                <p class="font-semibold truncate">{zone_name}</p>
                                 <p class="text-xs text-gray-500 mt-0.5">
-                                  {Enum.count(Map.get(@zone_records || %{}, zone, []))} records
+                                  {Enum.count(Map.get(@zone_records || %{}, zone_name, []))} records
                                 </p>
                               </button>
                             <% end %>
@@ -801,7 +802,7 @@ defmodule HackflareWeb.Layouts do
                         <% end %>
                       </div>
                     </div>
-                    
+
     <!-- Right: Domain Panel Content -->
                     <div class="lg:col-span-3 space-y-4">
                       <%= if Enum.empty?(@zones) do %>
@@ -819,8 +820,9 @@ defmodule HackflareWeb.Layouts do
                         </div>
                       <% else %>
                         <%= for zone <- @zones do %>
-                          <% zone_key = String.replace(zone, ".", "-") %>
-                          <% records = Map.get(@zone_records || %{}, zone, []) %>
+                          <% zone_name = zone.name %>
+                          <% zone_key = String.replace(zone_name, ".", "-") %>
+                          <% records = Map.get(@zone_records || %{}, zone_name, []) %>
                           <div id={"domain-#{zone_key}-panel"} class="hidden space-y-4">
                             <!-- Domain Header -->
                             <div class="rounded-xl border border-orange-500/25 bg-black/80 p-6">
@@ -829,17 +831,41 @@ defmodule HackflareWeb.Layouts do
                                   <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-300">
                                     Domain
                                   </p>
-                                  <h3 class="mt-2 text-2xl font-bold text-white">{zone}</h3>
+                                  <h3 class="mt-2 text-2xl font-bold text-white">{zone_name}</h3>
+                                  <p class={[
+                                    "mt-2 text-sm font-medium",
+                                    zone.ns_verified && "text-emerald-300",
+                                    !zone.ns_verified && "text-amber-300"
+                                  ]}>
+                                    {if zone.ns_verified,
+                                      do: "Nameservers verified",
+                                      else: "Waiting for nameserver verification"}
+                                  </p>
                                 </div>
                                 <div class="flex items-center gap-2">
+                                  <form method="post" action={~p"/dash/domains/reverify"} class="inline">
+                                    <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+                                    <input type="hidden" name="zone_name" value={zone_name} />
+                                    <button
+                                      type="submit"
+                                      class="rounded-lg bg-amber-600/80 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-amber-500"
+                                    >
+                                      Re-verify
+                                    </button>
+                                  </form>
                                   <button
                                     onclick={"document.getElementById('add-record-modal-#{zone_key}').classList.remove('hidden')"}
-                                    class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-emerald-500"
+                                    class={[
+                                      "rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all",
+                                      zone.ns_verified && "bg-emerald-600 hover:bg-emerald-500",
+                                      !zone.ns_verified && "cursor-not-allowed bg-emerald-900/50 opacity-60"
+                                    ]}
+                                    disabled={!zone.ns_verified}
                                   >
                                     + Add Record
                                   </button>
                                   <button
-                                    onclick={"if(confirm(\"Delete domain #{zone}?\")) { window.location.href = \"/dash/domains/delete/#{zone_key}\" }"}
+                                    onclick={"if(confirm(\"Delete domain #{zone_name}?\")) { window.location.href = \"/dash/domains/delete/#{zone_key}\" }"}
                                     class="rounded-lg bg-red-600/50 px-4 py-2 text-sm font-semibold text-red-100 transition-all hover:bg-red-600"
                                   >
                                     Delete
@@ -847,7 +873,7 @@ defmodule HackflareWeb.Layouts do
                                 </div>
                               </div>
                             </div>
-                            
+
     <!-- Category Tabs -->
                             <div class="rounded-xl border border-orange-500/20 bg-gray-900/60 overflow-hidden">
                               <div class="border-b border-orange-500/15 bg-black/40">
@@ -866,7 +892,7 @@ defmodule HackflareWeb.Layouts do
                                   </button>
                                 </div>
                               </div>
-                              
+
     <!-- DNS Zones Content -->
                               <div id={"dns-zones-#{zone_key}"} class="p-4">
                                 <div class="space-y-3">
@@ -914,7 +940,7 @@ defmodule HackflareWeb.Layouts do
                                   <% end %>
                                 </div>
                               </div>
-                              
+
     <!-- More Content (placeholder) -->
                               <div
                                 id={"other-#{zone_key}"}
@@ -923,7 +949,7 @@ defmodule HackflareWeb.Layouts do
                                 <p>More features coming soon (SSL, Email, etc.)</p>
                               </div>
                             </div>
-                            
+
     <!-- Add Record Modal -->
                             <div
                               id={"add-record-modal-#{zone_key}"}
@@ -931,7 +957,7 @@ defmodule HackflareWeb.Layouts do
                             >
                               <div class="w-full max-w-md rounded-xl border border-orange-500/30 bg-gray-900 p-8 shadow-2xl">
                                 <h2 class="mb-1 text-2xl font-bold text-white">Add DNS Record</h2>
-                                <p class="mb-4 text-sm text-gray-400">Zone: {zone}</p>
+                                <p class="mb-4 text-sm text-gray-400">Zone: {zone_name}</p>
                                 <form
                                   method="post"
                                   action={~p"/dash/domains/records/create"}
@@ -939,7 +965,7 @@ defmodule HackflareWeb.Layouts do
                                   onsubmit={"document.getElementById('add-record-modal-" <> zone_key <> "').classList.add('hidden')"}
                                 >
                                   <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
-                                  <input type="hidden" name="zone_name" value={zone} />
+                                  <input type="hidden" name="zone_name" value={zone_name} />
 
                                   <input
                                     type="text"
@@ -998,7 +1024,7 @@ defmodule HackflareWeb.Layouts do
                             </div>
                           </div>
                         <% end %>
-                        
+
     <!-- Initial state: show first domain by default -->
                         <script>
                           (function() {
@@ -1011,7 +1037,7 @@ defmodule HackflareWeb.Layouts do
                       <% end %>
                     </div>
                   </div>
-                  
+
     <!-- New Domain Modal -->
                   <div
                     id="new-zone-modal"
