@@ -17,21 +17,33 @@ impl DnsEngine {
     }
 
     pub fn handle_query(&self, req: &[u8]) -> Option<Vec<u8>> {
+        // Ensure we return a response when possible to avoid clients
+        // falling back to TCP due to UDP timeouts on malformed queries.
         if req.len() < 12 {
-            return None;
+            let id = if req.len() >= 2 { u16::from_be_bytes([req[0], req[1]]) } else { 0 };
+            let req_flags = if req.len() >= 4 { u16::from_be_bytes([req[2], req[3]]) } else { 0 };
+            return Some(build_servfail(id, req_flags, self.recursion_enabled, &[]));
         }
 
         let id = u16::from_be_bytes([req[0], req[1]]);
         let qdcount = u16::from_be_bytes([req[4], req[5]]);
         if qdcount == 0 {
-            return None;
+            let req_flags = u16::from_be_bytes([req[2], req[3]]);
+            return Some(build_servfail(id, req_flags, self.recursion_enabled, &req[12..]));
         }
 
         let mut pos = 12usize;
-        let (qname, new_pos) = parse_qname(req, pos)?;
+        let (qname, new_pos) = match parse_qname(req, pos) {
+            Some((n, p)) => (n, p),
+            None => {
+                let req_flags = u16::from_be_bytes([req[2], req[3]]);
+                return Some(build_servfail(id, req_flags, self.recursion_enabled, &req[12..]));
+            }
+        };
         pos = new_pos;
         if pos + 4 > req.len() {
-            return None;
+            let req_flags = u16::from_be_bytes([req[2], req[3]]);
+            return Some(build_servfail(id, req_flags, self.recursion_enabled, &req[12..pos]));
         }
         let qtype = u16::from_be_bytes([req[pos], req[pos + 1]]);
         let _qclass = u16::from_be_bytes([req[pos + 2], req[pos + 3]]);
