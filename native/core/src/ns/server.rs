@@ -34,14 +34,29 @@ impl Nameserver {
         loop {
             let mut len_buf = [0u8; 2];
             if let Err(e) = stream.read_exact(&mut len_buf) {
-                eprintln!("TCP read length failed from {}: {}", peer, e);
-                return;
+                match e.kind() {
+                    io::ErrorKind::UnexpectedEof | io::ErrorKind::ConnectionReset | io::ErrorKind::BrokenPipe => {
+                        // client closed connection or reset it; treat as normal
+                        return;
+                    }
+                    _ => {
+                        eprintln!("TCP read length failed from {}: {}", peer, e);
+                        return;
+                    }
+                }
             }
             let len = u16::from_be_bytes(len_buf) as usize;
             let mut msg = vec![0u8; len];
             if let Err(e) = stream.read_exact(&mut msg) {
-                eprintln!("TCP read msg failed from {}: {}", peer, e);
-                return;
+                match e.kind() {
+                    io::ErrorKind::UnexpectedEof | io::ErrorKind::ConnectionReset | io::ErrorKind::BrokenPipe => {
+                        return;
+                    }
+                    _ => {
+                        eprintln!("TCP read msg failed from {}: {}", peer, e);
+                        return;
+                    }
+                }
             }
 
             if let Some(engine) = &engine {
@@ -59,8 +74,13 @@ impl Nameserver {
                     }
                     None => {
                         if let Err(e) = stream.write_all(&0u16.to_be_bytes()) {
-                            eprintln!("TCP write empty failed to {}: {}", peer, e);
-                            return;
+                            match e.kind() {
+                                io::ErrorKind::BrokenPipe | io::ErrorKind::ConnectionReset => return,
+                                _ => {
+                                    eprintln!("TCP write empty failed to {}: {}", peer, e);
+                                    return;
+                                }
+                            }
                         }
                     }
                 }
@@ -98,10 +118,10 @@ impl Nameserver {
                             let send_sock = sock.clone();
                             let engine = udp_engine.clone();
                             thread::spawn(move || {
-                                if let Some(engine) = &engine
-                                    && let Some(resp) = engine.handle_query(&req)
-                                {
-                                    let _ = send_sock.send_to(&resp, src);
+                                if let Some(engine) = &engine {
+                                    if let Some(resp) = engine.handle_query(&req) {
+                                        let _ = send_sock.send_to(&resp, src);
+                                    }
                                 }
                             });
                         }
