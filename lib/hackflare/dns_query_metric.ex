@@ -4,8 +4,8 @@ defmodule Hackflare.DnsQueryMetric do
 
   @primary_key {:id, :integer, autogenerate: false}
   schema "dns_query_metrics" do
-    field :udp_count, :integer, default: 0
-    field :tcp_count, :integer, default: 0
+    field(:udp_count, :integer, default: 0)
+    field(:tcp_count, :integer, default: 0)
 
     timestamps()
   end
