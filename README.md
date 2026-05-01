@@ -100,11 +100,11 @@ After Phase 1 the repo will be open sourced.
 - [ ] Custom DNS Records (SRV, TXT, etc.)
 
 ### Phase 4
-- Email Routing and Sending
-- Slack Bot
-- Live Packet Watching (for fun)
-- Pages
-- SSL certificates
+- [] Email Routing and Sending
+- [] Slack Bot
+- [] Live Packet Watching (for fun)
+- [] Pages
+- [] SSL certificates
 
 ### Extra/Not sure when
 - [ ] TMP Docker, a temporary docker for users to test stuff.
