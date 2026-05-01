@@ -4,7 +4,7 @@ defmodule Hackflare.Metrics do
   """
   alias Hackflare.DnsQueryMetric
   alias Hackflare.Repo
-  import Ecto.Query, only: [from: 2]
+  
 
   def get_metrics do
     case Repo.get(DnsQueryMetric, 1) do

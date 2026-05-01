@@ -5,11 +5,34 @@ use std::net::{SocketAddr, TcpListener, TcpStream, UdpSocket};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
+use once_cell::sync::Lazy;
+use std::sync::atomic::{AtomicU64, Ordering};
 use postgres::{Client, NoTls};
+use serde_json::json;
 
 pub struct Nameserver {
     pub config: NsConfig,
     pub engine: Option<Arc<DnsEngine>>,
+}
+
+static UDP_COUNT: Lazy<AtomicU64> = Lazy::new(|| AtomicU64::new(0));
+static TCP_COUNT: Lazy<AtomicU64> = Lazy::new(|| AtomicU64::new(0));
+
+fn s_log(level: &str, message: &str, peer: Option<SocketAddr>) {
+    let ts = match std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
+        Ok(d) => d.as_secs(),
+        Err(_) => 0,
+    };
+    let mut obj = serde_json::Map::new();
+    obj.insert("ts".to_string(), json!(ts));
+    obj.insert("level".to_string(), json!(level));
+    obj.insert("msg".to_string(), json!(message));
+    if let Some(p) = peer {
+        obj.insert("peer".to_string(), json!(p.to_string()));
+    }
+    if let Ok(s) = serde_json::to_string(&obj) {
+        eprintln!("{}", s);
+    }
 }
 
 impl Nameserver {
@@ -41,7 +64,7 @@ impl Nameserver {
                         return;
                     }
                     _ => {
-                        eprintln!("TCP read length failed from {}: {}", peer, e);
+                        s_log("error", &format!("TCP read length failed: {}", e), Some(peer));
                         return;
                     }
                 }
@@ -54,7 +77,7 @@ impl Nameserver {
                         return;
                     }
                     _ => {
-                        eprintln!("TCP read msg failed from {}: {}", peer, e);
+                        s_log("error", &format!("TCP read msg failed: {}", e), Some(peer));
                         return;
                     }
                 }
@@ -74,11 +97,11 @@ impl Nameserver {
                     Some(resp) => {
                         let rlen = (resp.len() as u16).to_be_bytes();
                         if let Err(e) = stream.write_all(&rlen) {
-                            eprintln!("TCP write len failed to {}: {}", peer, e);
+                            s_log("error", &format!("TCP write len failed: {}", e), Some(peer));
                             return;
                         }
                         if let Err(e) = stream.write_all(&resp) {
-                            eprintln!("TCP write resp failed to {}: {}", peer, e);
+                            s_log("error", &format!("TCP write resp failed: {}", e), Some(peer));
                             return;
                         }
                     }
@@ -87,7 +110,7 @@ impl Nameserver {
                             match e.kind() {
                                 io::ErrorKind::BrokenPipe | io::ErrorKind::ConnectionReset => return,
                                 _ => {
-                                    eprintln!("TCP write empty failed to {}: {}", peer, e);
+                                    s_log("error", &format!("TCP write empty failed: {}", e), Some(peer));
                                     return;
                                 }
                             }
@@ -95,7 +118,7 @@ impl Nameserver {
                     }
                 }
             } else {
-                eprintln!("No engine configured; closing TCP connection from {}", peer);
+                s_log("warn", "No engine configured; closing TCP connection", Some(peer));
                 return;
             }
         }
@@ -127,14 +150,8 @@ impl Nameserver {
                             let req = buf[..amt].to_vec();
                             let send_sock = sock.clone();
                             let engine = udp_engine.clone();
-                            // increment UDP metric asynchronously
-                            if let Ok(db_url) = std::env::var("DATABASE_URL") {
-                                let _ = thread::spawn(move || {
-                                    if let Ok(mut client) = Client::connect(&db_url, NoTls) {
-                                        let _ = client.execute("INSERT INTO dns_query_metrics (id, udp_count, tcp_count, inserted_at, updated_at) VALUES (1, 1, 0, now(), now()) ON CONFLICT (id) DO UPDATE SET udp_count = dns_query_metrics.udp_count + 1, updated_at = now()", &[]);
-                                    }
-                                });
-                            }
+                            // increment UDP metric in-memory
+                            UDP_COUNT.fetch_add(1, Ordering::Relaxed);
 
                             thread::spawn(move || {
                                 if let Some(engine) = &engine {
@@ -148,7 +165,7 @@ impl Nameserver {
                             thread::sleep(Duration::from_millis(1));
                         }
                         Err(e) => {
-                            eprintln!("UDP recv error: {}", e);
+                            s_log("error", &format!("UDP recv error: {}", e), None);
                             thread::sleep(Duration::from_millis(5));
                         }
                     }
@@ -170,12 +187,35 @@ impl Nameserver {
                         });
                     }
                     Err(e) => {
-                        eprintln!("TCP accept error: {}", e);
+                        s_log("error", &format!("TCP accept error: {}", e), None);
                     }
                 }
             }
             Ok(())
         });
+
+        // Background flusher: periodically persist accumulated counters to DB
+        if let Ok(db_url) = std::env::var("DATABASE_URL") {
+            let dbu = db_url.clone();
+            thread::spawn(move || {
+                loop {
+                    thread::sleep(Duration::from_secs(5));
+                    let u = UDP_COUNT.swap(0, Ordering::Relaxed);
+                    let t = TCP_COUNT.swap(0, Ordering::Relaxed);
+                    if u == 0 && t == 0 {
+                        continue;
+                    }
+                    if let Ok(mut client) = Client::connect(&dbu, NoTls) {
+                        let q = format!(
+                            "INSERT INTO dns_query_metrics (id, udp_count, tcp_count, inserted_at, updated_at) VALUES (1, {u}, {t}, now(), now()) ON CONFLICT (id) DO UPDATE SET udp_count = dns_query_metrics.udp_count + {u}, tcp_count = dns_query_metrics.tcp_count + {t}, updated_at = now()"
+                        );
+                        let _ = client.execute(&q, &[]);
+                    } else {
+                        s_log("warn", "Failed to connect to DB for metrics flush", None);
+                    }
+                }
+            });
+        }
 
         let _ = udp_handle.join();
         let _ = tcp_handle.join();

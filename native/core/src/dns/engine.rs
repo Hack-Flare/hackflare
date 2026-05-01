@@ -27,6 +27,9 @@ impl DnsEngine {
 
         let id = u16::from_be_bytes([req[0], req[1]]);
         let qdcount = u16::from_be_bytes([req[4], req[5]]);
+        let ancount = u16::from_be_bytes([req[6], req[7]]);
+        let nscount = u16::from_be_bytes([req[8], req[9]]);
+        let arcount = u16::from_be_bytes([req[10], req[11]]);
         if qdcount == 0 {
             let req_flags = u16::from_be_bytes([req[2], req[3]]);
             return Some(build_servfail(id, req_flags, self.recursion_enabled, &req[12..]));
@@ -37,6 +40,7 @@ impl DnsEngine {
             Some((n, p)) => (n, p),
             None => {
                 let req_flags = u16::from_be_bytes([req[2], req[3]]);
+                // Append OPT if present
                 return Some(build_servfail(id, req_flags, self.recursion_enabled, &req[12..]));
             }
         };
@@ -47,6 +51,42 @@ impl DnsEngine {
         }
         let qtype = u16::from_be_bytes([req[pos], req[pos + 1]]);
         let _qclass = u16::from_be_bytes([req[pos + 2], req[pos + 3]]);
+
+        // Parse additional section for EDNS OPT
+        let mut client_edns_size: usize = 0;
+        let mut client_do: bool = false;
+        let pos_after_question = pos + 4;
+        let mut rr_pos = pos_after_question;
+        // skip answer and authority RRs (usually zero in queries)
+        let mut skip_rrs = ancount as usize + nscount as usize;
+        for _ in 0..skip_rrs {
+            if rr_pos >= req.len() { break; }
+            if let Some((_name, newp)) = parse_qname(req, rr_pos) {
+                rr_pos = newp;
+            } else { break; }
+            if rr_pos + 10 > req.len() { break; }
+            let rdlen = u16::from_be_bytes([req[rr_pos + 8], req[rr_pos + 9]]) as usize;
+            rr_pos += 10 + rdlen;
+        }
+        // parse additional records
+        for _ in 0..(arcount as usize) {
+            if rr_pos >= req.len() { break; }
+            if let Some((_name, newp)) = parse_qname(req, rr_pos) {
+                rr_pos = newp;
+            } else { break; }
+            if rr_pos + 10 > req.len() { break; }
+            let typ = u16::from_be_bytes([req[rr_pos], req[rr_pos + 1]]);
+            let class = u16::from_be_bytes([req[rr_pos + 2], req[rr_pos + 3]]);
+            let ttl = u32::from_be_bytes([req[rr_pos + 4], req[rr_pos + 5], req[rr_pos + 6], req[rr_pos + 7]]);
+            let rdlen = u16::from_be_bytes([req[rr_pos + 8], req[rr_pos + 9]]) as usize;
+            rr_pos += 10;
+            if typ == 41 {
+                client_edns_size = class as usize;
+                // DO bit is in lower 16 bits of ttl (bit 15)
+                client_do = (ttl & 0x8000) != 0;
+            }
+            rr_pos += rdlen;
+        }
 
         let qtype_str = map_qtype(qtype);
 
@@ -86,23 +126,19 @@ impl DnsEngine {
             if !ptrs.is_empty() {
                 recs = ptrs;
             } else {
-                return Some(build_nxdomain_with_soa(
-                    id,
-                    req_flags,
-                    self.recursion_enabled,
-                    &req[12..pos + 4],
-                ));
+                let mut r = build_nxdomain_with_soa(id, req_flags, self.recursion_enabled, &req[12..pos + 4]);
+                if client_edns_size > 0 {
+                    append_opt(&mut r, client_edns_size, client_do);
+                }
+                return Some(r);
             }
         }
 
         let label_count = qname.split('.').filter(|label| !label.is_empty()).count();
         if recs.is_empty() && reverse_name.is_none() && label_count < 2 {
-            return Some(build_nxdomain_with_soa(
-                id,
-                req_flags,
-                self.recursion_enabled,
-                &req[12..pos + 4],
-            ));
+            let mut r = build_nxdomain_with_soa(id, req_flags, self.recursion_enabled, &req[12..pos + 4]);
+            if client_edns_size > 0 { append_opt(&mut r, client_edns_size, client_do); }
+            return Some(r);
         }
 
         let req_flags = u16::from_be_bytes([req[2], req[3]]);
@@ -152,12 +188,9 @@ impl DnsEngine {
                 return Some(resp);
             }
 
-            return Some(build_servfail(
-                id,
-                req_flags,
-                self.recursion_enabled,
-                &req[12..pos + 4],
-            ));
+                let mut r = build_servfail(id, req_flags, self.recursion_enabled, &req[12..pos + 4]);
+                if client_edns_size > 0 { append_opt(&mut r, client_edns_size, client_do); }
+                return Some(r);
         }
 
         let mut resp: Vec<u8> = Vec::new();
@@ -172,11 +205,12 @@ impl DnsEngine {
         if self.recursion_enabled {
             flags |= 0x0080;
         }
+        let ar_out = if client_edns_size > 0 { 1u16 } else { 0u16 };
         resp.extend_from_slice(&flags.to_be_bytes());
         resp.extend_from_slice(&1u16.to_be_bytes());
         resp.extend_from_slice(&(recs.len() as u16).to_be_bytes());
         resp.extend_from_slice(&0u16.to_be_bytes());
-        resp.extend_from_slice(&0u16.to_be_bytes());
+        resp.extend_from_slice(&ar_out.to_be_bytes());
 
         resp.extend_from_slice(&req[12..pos + 4]);
 
@@ -193,6 +227,10 @@ impl DnsEngine {
             } else {
                 resp.extend_from_slice(&0u16.to_be_bytes());
             }
+        }
+
+        if client_edns_size > 0 {
+            append_opt(&mut resp, client_edns_size, client_do);
         }
 
         Some(resp)
@@ -445,6 +483,22 @@ pub(crate) fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)>
 pub(crate) fn encode_name_labels(name: &str) -> Vec<u8> {
     let ascii = domain_to_ascii(name).unwrap_or_else(|_| name.to_string());
     encode_name_labels_vec(&ascii)
+}
+
+fn append_opt(resp: &mut Vec<u8>, client_size: usize, client_do: bool) {
+    let server_size: u16 = std::env::var("HACKFLARE_DNS_UDP_SIZE")
+        .ok()
+        .and_then(|v| v.parse::<u16>().ok())
+        .unwrap_or(4096u16);
+    let size = std::cmp::min(server_size, client_size as u16);
+    // OPT RR: name (root), type 41, class = udp payload size, ttl = (extended rcode<<24)|(version<<16)|flags
+    let flags: u16 = if client_do { 0x8000 } else { 0 };
+    resp.extend_from_slice(&[0u8]); // root name
+    resp.extend_from_slice(&41u16.to_be_bytes());
+    resp.extend_from_slice(&size.to_be_bytes());
+    let ttl: u32 = ((0u32) << 24) | ((0u32) << 16) | (flags as u32);
+    resp.extend_from_slice(&ttl.to_be_bytes());
+    resp.extend_from_slice(&0u16.to_be_bytes());
 }
 
 pub(crate) fn encode_name_labels_vec(name: &str) -> Vec<u8> {
