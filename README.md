@@ -42,8 +42,9 @@ Dev Docker Which builds the image locally
 ```
 docker compose -f docker-compose.dev.yml up
 ```
+## Roadmap
 
-## Needed Features for POC/MVP
+### Phase 1 (MVP/POC)
 
 - [ ] DNS System
   - [wip] Backend
@@ -69,39 +70,42 @@ docker compose -f docker-compose.dev.yml up
   - [x] Auth System
 - [x] Docker
 - [x] Big Haj on error pages
-- [ ] Organize readme and documentation better
+- [semi-complete] Organize readme and documentation better
 
-## Features From Recommendations
+### Phase 2 (Post MVP)
+- [ ] DDoS Protection
+- [ ] Load Balancing
+- [ ] Clerk Integration
+- [ ] Tunneling
+- [ ] Node Based Nameservers (All can connect to main server through api)
+- [ ] Dynamic Firewall (Optional)
+- [ ] Custom CDN
+- [ ] Email Notifications
+- [ ] Analytics
+- [ ] Performance Monitoring
+- [ ] SSL/TLS Management
+- [ ] API Support (gRPC and REST)
+- [ ] Team Management
+- [ ] Live Logging
 
-- Node Based Nameservers (All can connect to main server through api)
-- Dynamic Firewall (Optional)
-- DDoS Protection
-- Load Balancing
-- Proxy w/ multiple ips
-- Possible IPv6, - maybe limit to HCB donors
-- Tunneling
-- Cloudflare migration tool
-- Sharing Support (for domains and teams)
-- turnstile support
-- Auto block suspicious traffic and ip ranges 
-- Live Logging
-- Performance monitoring
+### Phase 3 
+- [ ] Proxying
+- [ ] IPv6 Support
+- [ ] Serverless Functions
+- [ ] Workers
+- [ ] Turnstile Support
+- [ ] Suspicious Traffic Detection and Blocking
+- [ ] Custom DNS Records (SRV, TXT, etc.)
+
+### Phase 4
 - Email Routing and Sending
-- Email Notifications
-- Passkey Auth Second Layer
-- Email Auth
-- HC AI Integration
-- Custom CDN
-- gRPC and Rest API support
-- Custom DNS Records (SRV, TXT, etc.)
-- Serverless Functions (eg. DB, Workers, etc.)
-- Pages
-- Analytics
-- SSL/TLS Management
-- SSL certificates?
 - Slack Bot
 - Live Packet Watching (for fun)
-- TMP Docker, a temporary docker for users to test stuff.
-- ISO 27001:2022 certification?
-- Anti Scanning/Scraping measures
-- Custom Error Pages
+- Pages
+- SSL certificates
+
+### Extra/Not sure when
+- [ ] TMP Docker, a temporary docker for users to test stuff.
+- [ ] ISO 27001:2022 certification?
+- [ ] Anti Scanning/Scraping measures
+- [ ] Custom Error Pages
