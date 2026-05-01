@@ -34,7 +34,10 @@ defmodule HackflareWeb.DashController do
     case DNS.create_zone(String.trim(zone_name), String.trim(zone_type)) do
       {:ok, _} ->
         conn
-        |> put_flash(:info, "Zone #{zone_name} created. Verify nameservers before adding records.")
+        |> put_flash(
+          :info,
+          "Zone #{zone_name} created. Verify nameservers before adding records."
+        )
         |> redirect(to: ~p"/dash/domains")
 
       {:error, _reason} ->
