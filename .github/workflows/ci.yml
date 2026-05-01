@@ -158,6 +158,24 @@ jobs:
 
       - name: Run Dialyzer
         run: mix dialyzer
+
+  rust-checks:
+    needs: [compile]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-rust
+
+      - name: Check Crates
+        run: cargo check
+
+      - name: Clippy Crates
+        run: cargo clippy -- -D warnings
+        
         
   test:
     name: Test Partition ${{ matrix.partition }}
