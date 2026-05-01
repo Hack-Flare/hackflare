@@ -95,8 +95,12 @@ defmodule Hackflare.Settings do
     |> Map.get(:dns, %{})
     |> Map.get(:nameservers, [])
     |> case do
-      list when is_list(list) -> list
-      s when is_binary(s) -> String.split(s, ",", trim: true) |> Enum.map(&String.trim/1)
+      list when is_list(list) ->
+        list
+
+      s when is_binary(s) ->
+        String.split(s, ",", trim: true) |> Enum.map(&String.trim/1)
+
       _ ->
         case System.get_env("HACKFLARE_NAMESERVERS", "") do
           "" -> []

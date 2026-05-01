@@ -268,7 +268,15 @@ defmodule Hackflare.DNS do
                 zone = Repo.preload(zone, :records)
 
                 Enum.each(zone.records, fn rec ->
-                  _ = Native.manager_add_record(mgr, zone.name, rec.name, rec.rtype, rec.ttl, rec.data)
+                  _ =
+                    Native.manager_add_record(
+                      mgr,
+                      zone.name,
+                      rec.name,
+                      rec.rtype,
+                      rec.ttl,
+                      rec.data
+                    )
                 end)
               end
 
