@@ -1152,6 +1152,32 @@ defmodule HackflareWeb.Layouts do
                 <% :admin -> %>
                   <div class="space-y-6">
                     <div class="rounded-xl border border-orange-500/20 bg-gray-900/40 p-6">
+                      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div class="rounded-xl border border-orange-500/20 bg-gray-900/50 p-4">
+                          <p class="text-sm uppercase tracking-wide text-gray-400">UDP Queries</p>
+                          <p class="mt-3 text-2xl font-black text-white">{@metrics && @metrics.udp_count || 0}</p>
+                        </div>
+                        <div class="rounded-xl border border-orange-500/20 bg-gray-900/50 p-4">
+                          <p class="text-sm uppercase tracking-wide text-gray-400">TCP Queries</p>
+                          <p class="mt-3 text-2xl font-black text-white">{@metrics && @metrics.tcp_count || 0}</p>
+                        </div>
+                        <div class="rounded-xl border border-orange-500/20 bg-gray-900/50 p-4">
+                          <p class="text-sm uppercase tracking-wide text-gray-400">UDP/TCP Ratio</p>
+                          <p class="mt-3 text-2xl font-black text-white">
+                            {
+                              (fn ->
+                                udp = if @metrics, do: (@metrics.udp_count || 0), else: 0
+                                tcp = if @metrics, do: (@metrics.tcp_count || 0), else: 0
+                                cond do
+                                  udp == 0 and tcp == 0 -> "—"
+                                  tcp == 0 -> "∞"
+                                  true -> Float.round(udp / tcp, 2)
+                                end
+                              end).()
+                            }
+                          </p>
+                        </div>
+                      </div>
                       <div class="flex items-start justify-between gap-4">
                         <div>
                           <h3 class="text-xl font-bold text-white">Runtime Settings</h3>

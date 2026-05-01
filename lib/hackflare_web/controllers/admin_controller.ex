@@ -23,6 +23,7 @@ defmodule HackflareWeb.AdminController do
       current_view: :admin,
       users: users,
       stats: stats,
+      metrics: Hackflare.Metrics.get_metrics(),
       settings: settings,
       current_user: get_current_user!(conn)
     )

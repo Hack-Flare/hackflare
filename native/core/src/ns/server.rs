@@ -5,6 +5,7 @@ use std::net::{SocketAddr, TcpListener, TcpStream, UdpSocket};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
+use postgres::{Client, NoTls};
 
 pub struct Nameserver {
     pub config: NsConfig,
@@ -57,6 +58,15 @@ impl Nameserver {
                         return;
                     }
                 }
+            }
+
+            // increment TCP metric asynchronously
+            if let Ok(db_url) = std::env::var("DATABASE_URL") {
+                let _ = thread::spawn(move || {
+                    if let Ok(mut client) = Client::connect(&db_url, NoTls) {
+                        let _ = client.execute("INSERT INTO dns_query_metrics (id, udp_count, tcp_count, inserted_at, updated_at) VALUES (1, 0, 1, now(), now()) ON CONFLICT (id) DO UPDATE SET tcp_count = dns_query_metrics.tcp_count + 1, updated_at = now()", &[]);
+                    }
+                });
             }
 
             if let Some(engine) = &engine {
@@ -117,6 +127,15 @@ impl Nameserver {
                             let req = buf[..amt].to_vec();
                             let send_sock = sock.clone();
                             let engine = udp_engine.clone();
+                            // increment UDP metric asynchronously
+                            if let Ok(db_url) = std::env::var("DATABASE_URL") {
+                                let _ = thread::spawn(move || {
+                                    if let Ok(mut client) = Client::connect(&db_url, NoTls) {
+                                        let _ = client.execute("INSERT INTO dns_query_metrics (id, udp_count, tcp_count, inserted_at, updated_at) VALUES (1, 1, 0, now(), now()) ON CONFLICT (id) DO UPDATE SET udp_count = dns_query_metrics.udp_count + 1, updated_at = now()", &[]);
+                                    }
+                                });
+                            }
+
                             thread::spawn(move || {
                                 if let Some(engine) = &engine {
                                     if let Some(resp) = engine.handle_query(&req) {
