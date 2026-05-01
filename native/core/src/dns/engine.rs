@@ -58,7 +58,7 @@ impl DnsEngine {
         let pos_after_question = pos + 4;
         let mut rr_pos = pos_after_question;
         // skip answer and authority RRs (usually zero in queries)
-        let mut skip_rrs = ancount as usize + nscount as usize;
+        let skip_rrs = ancount as usize + nscount as usize;
         for _ in 0..skip_rrs {
             if rr_pos >= req.len() { break; }
             if let Some((_name, newp)) = parse_qname(req, rr_pos) {
@@ -496,7 +496,7 @@ fn append_opt(resp: &mut Vec<u8>, client_size: usize, client_do: bool) {
     resp.extend_from_slice(&[0u8]); // root name
     resp.extend_from_slice(&41u16.to_be_bytes());
     resp.extend_from_slice(&size.to_be_bytes());
-    let ttl: u32 = ((0u32) << 24) | ((0u32) << 16) | (flags as u32);
+    let ttl: u32 = flags as u32;
     resp.extend_from_slice(&ttl.to_be_bytes());
     resp.extend_from_slice(&0u16.to_be_bytes());
 }

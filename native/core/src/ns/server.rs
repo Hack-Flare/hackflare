@@ -154,10 +154,10 @@ impl Nameserver {
                             UDP_COUNT.fetch_add(1, Ordering::Relaxed);
 
                             thread::spawn(move || {
-                                if let Some(engine) = &engine {
-                                    if let Some(resp) = engine.handle_query(&req) {
-                                        let _ = send_sock.send_to(&resp, src);
-                                    }
+                                if let Some(engine) = &engine
+                                    && let Some(resp) = engine.handle_query(&req)
+                                {
+                                    let _ = send_sock.send_to(&resp, src);
                                 }
                             });
                         }
