@@ -8,7 +8,8 @@ defmodule HackflareWeb.LayoutsTest do
       render_component(&HackflareWeb.Layouts.dashboard/1,
         current_view: :domains,
         current_user: nil,
-        zones: [%{name: "example.com", ns_verified: false}]
+        zones: [%{name: "example.com", ns_verified: false}],
+        zone_records: %{"example.com" => []}
       )
 
     assert html =~ "Re-verify"
