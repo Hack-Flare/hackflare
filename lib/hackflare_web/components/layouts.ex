@@ -91,7 +91,10 @@ defmodule HackflareWeb.Layouts do
   """
   def auth_menu(assigns) do
     ~H"""
-    <a href="/dash" class="btn btn-sm rounded-full border-base-300/70 bg-base-200/70 px-4 hover:bg-base-300">
+    <a
+      href="/dash"
+      class="btn btn-sm rounded-full border-base-300/70 bg-base-200/70 px-4 hover:bg-base-300"
+    >
       <.icon name="hero-user" class="size-5" />
     </a>
     """

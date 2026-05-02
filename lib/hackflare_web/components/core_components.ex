@@ -498,8 +498,8 @@ defmodule HackflareWeb.CoreComponents do
   end
 
   def udp_tcp_ratio(metrics) do
-    udp = metrics && metrics.udp_count || 0
-    tcp = metrics && metrics.tcp_count || 0
+    udp = (metrics && metrics.udp_count) || 0
+    tcp = (metrics && metrics.tcp_count) || 0
 
     cond do
       udp == 0 and tcp == 0 -> "—"

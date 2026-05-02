@@ -56,8 +56,6 @@
       </aside>
 
       <main class="flex flex-1 flex-col overflow-hidden">
-
-        
         <header class="flex items-center justify-between border-b border-orange-500/20 bg-black/30 px-8 py-6">
           <div>
             <h1 class="text-3xl font-bold text-white">{dashboard_title(@current_view)}</h1>
@@ -140,7 +138,10 @@
                       <h3 class="text-lg font-bold text-white">Support</h3>
                       <p class="mt-2 text-sm text-gray-400">Get help when you need it</p>
                     </div>
-                    <a href={~p"/dash/help"} class="flex items-center gap-2 font-semibold text-orange-400 transition-colors hover:text-orange-300">
+                    <a
+                      href={~p"/dash/help"}
+                      class="flex items-center gap-2 font-semibold text-orange-400 transition-colors hover:text-orange-300"
+                    >
                       <span>Contact Us</span>
                       <.icon name="hero-arrow-right" class="h-4 w-4" />
                     </a>
@@ -161,16 +162,16 @@
                   </div>
                 </div>
               </div>
-
             <% :domains -> %>
               <% total_zones = Enum.count(@zones || []) %>
-              
+
               <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
-                
                 <div class="lg:col-span-1">
                   <div class="overflow-hidden rounded-xl border border-orange-500/20 bg-gray-900/60">
                     <div class="border-b border-orange-500/15 bg-black/40 px-4 py-3">
-                      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-orange-300">Domains</p>
+                      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-orange-300">
+                        Domains
+                      </p>
                       <p class="mt-1 text-xl font-bold text-white">{total_zones}</p>
                     </div>
                     <%= if Enum.empty?(@zones) do %>
@@ -187,7 +188,9 @@
                             class="w-full border-l-2 border-transparent px-4 py-2.5 text-left text-sm text-gray-200 transition-all hover:bg-gray-800/50"
                           >
                             <p class="truncate font-semibold">{zone_name}</p>
-                            <p class="mt-0.5 text-xs text-gray-500">{Enum.count(Map.get(@zone_records || %{}, zone_name, []))} records</p>
+                            <p class="mt-0.5 text-xs text-gray-500">
+                              {Enum.count(Map.get(@zone_records || %{}, zone_name, []))} records
+                            </p>
                           </button>
                         <% end %>
                       </div>
@@ -199,8 +202,15 @@
                   <%= if Enum.empty?(@zones) do %>
                     <div class="rounded-xl border border-dashed border-orange-500/35 bg-gray-900/50 p-12 text-center">
                       <p class="text-lg font-semibold text-white">No Domains</p>
-                      <p class="mt-2 text-sm text-gray-400">Create your first domain to get started.</p>
-                      <button onclick="document.getElementById('new-zone-modal').classList.remove('hidden')" class="mt-6 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-orange-400">+ Add Domain</button>
+                      <p class="mt-2 text-sm text-gray-400">
+                        Create your first domain to get started.
+                      </p>
+                      <button
+                        onclick="document.getElementById('new-zone-modal').classList.remove('hidden')"
+                        class="mt-6 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-orange-400"
+                      >
+                        + Add Domain
+                      </button>
                     </div>
                   <% else %>
                     <%= for zone <- @zones do %>
@@ -211,34 +221,53 @@
                         <div class="rounded-xl border border-orange-500/25 bg-black/80 p-6">
                           <div class="flex items-start justify-between gap-4">
                             <div>
-                              <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-300">Domain</p>
+                              <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-300">
+                                Domain
+                              </p>
                               <h3 class="mt-2 text-2xl font-bold text-white">{zone_name}</h3>
                               <p class={[
                                 "mt-2 text-sm font-medium",
                                 zone.ns_verified && "text-emerald-300",
                                 !zone.ns_verified && "text-amber-300"
                               ]}>
-                                {if zone.ns_verified, do: "Nameservers verified", else: "Waiting for nameserver verification"}
+                                {if zone.ns_verified,
+                                  do: "Nameservers verified",
+                                  else: "Waiting for nameserver verification"}
                               </p>
                             </div>
                             <div class="flex items-center gap-2">
-                              <form method="post" action={~p"/dash/domains/reverify"} class="inline">
+                              <form
+                                method="post"
+                                action={~p"/dash/domains/reverify"}
+                                class="inline"
+                              >
                                 <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
                                 <input type="hidden" name="zone_name" value={zone_name} />
-                                <button type="submit" class="rounded-lg bg-amber-600/80 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-amber-500">Re-verify</button>
+                                <button
+                                  type="submit"
+                                  class="rounded-lg bg-amber-600/80 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-amber-500"
+                                >
+                                  Re-verify
+                                </button>
                               </form>
                               <button
                                 onclick={"document.getElementById('add-record-modal-#{zone_key}').classList.remove('hidden')"}
                                 class={[
                                   "rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all",
                                   zone.ns_verified && "bg-emerald-600 hover:bg-emerald-500",
-                                  !zone.ns_verified && "cursor-not-allowed bg-emerald-900/50 opacity-60"
+                                  !zone.ns_verified &&
+                                    "cursor-not-allowed bg-emerald-900/50 opacity-60"
                                 ]}
                                 disabled={!zone.ns_verified}
                               >
                                 + Add Record
                               </button>
-                              <button onclick={"if(confirm(\"Delete domain #{zone_name}?\")) { window.location.href = \"/dash/domains/delete/#{zone_key}\" }"} class="rounded-lg bg-red-600/50 px-4 py-2 text-sm font-semibold text-red-100 transition-all hover:bg-red-600">Delete</button>
+                              <button
+                                onclick={"if(confirm(\"Delete domain #{zone_name}?\")) { window.location.href = \"/dash/domains/delete/#{zone_key}\" }"}
+                                class="rounded-lg bg-red-600/50 px-4 py-2 text-sm font-semibold text-red-100 transition-all hover:bg-red-600"
+                              >
+                                Delete
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -246,33 +275,59 @@
                         <div class="overflow-hidden rounded-xl border border-orange-500/20 bg-gray-900/60">
                           <div class="border-b border-orange-500/15 bg-black/40">
                             <div class="flex gap-1 p-1">
-                              <button onclick={"document.getElementById('dns-zones-#{zone_key}').classList.remove('hidden'); document.getElementById('other-#{zone_key}').classList.add('hidden');"} class="flex-1 rounded-lg bg-orange-500 px-3 py-2 text-sm font-semibold text-white transition-all hover:bg-orange-400">DNS Zones</button>
-                              <button onclick={"document.getElementById('other-#{zone_key}').classList.remove('hidden'); document.getElementById('dns-zones-#{zone_key}').classList.add('hidden');"} class="flex-1 rounded-lg bg-gray-700/50 px-3 py-2 text-sm font-semibold text-gray-200 transition-all hover:bg-gray-600/50">More (Soon)</button>
+                              <button
+                                onclick={"document.getElementById('dns-zones-#{zone_key}').classList.remove('hidden'); document.getElementById('other-#{zone_key}').classList.add('hidden');"}
+                                class="flex-1 rounded-lg bg-orange-500 px-3 py-2 text-sm font-semibold text-white transition-all hover:bg-orange-400"
+                              >
+                                DNS Zones
+                              </button>
+                              <button
+                                onclick={"document.getElementById('other-#{zone_key}').classList.remove('hidden'); document.getElementById('dns-zones-#{zone_key}').classList.add('hidden');"}
+                                class="flex-1 rounded-lg bg-gray-700/50 px-3 py-2 text-sm font-semibold text-gray-200 transition-all hover:bg-gray-600/50"
+                              >
+                                More (Soon)
+                              </button>
                             </div>
                           </div>
 
                           <div id={"dns-zones-#{zone_key}"} class="p-4">
                             <div class="space-y-3">
                               <%= if Enum.empty?(records) do %>
-                                <div class="rounded-lg border border-dashed border-orange-500/30 bg-black/20 px-4 py-6 text-center text-sm text-gray-400">No records in this domain yet.</div>
+                                <div class="rounded-lg border border-dashed border-orange-500/30 bg-black/20 px-4 py-6 text-center text-sm text-gray-400">
+                                  No records in this domain yet.
+                                </div>
                               <% else %>
                                 <div class="overflow-x-auto rounded-lg border border-orange-500/20">
                                   <table class="min-w-full divide-y divide-orange-500/15 text-sm">
                                     <thead class="bg-black/30">
                                       <tr>
-                                        <th class="px-4 py-2 text-left font-semibold text-gray-300">Type</th>
-                                        <th class="px-4 py-2 text-left font-semibold text-gray-300">Name</th>
-                                        <th class="px-4 py-2 text-left font-semibold text-gray-300">Content</th>
-                                        <th class="px-4 py-2 text-left font-semibold text-gray-300">TTL</th>
+                                        <th class="px-4 py-2 text-left font-semibold text-gray-300">
+                                          Type
+                                        </th>
+                                        <th class="px-4 py-2 text-left font-semibold text-gray-300">
+                                          Name
+                                        </th>
+                                        <th class="px-4 py-2 text-left font-semibold text-gray-300">
+                                          Content
+                                        </th>
+                                        <th class="px-4 py-2 text-left font-semibold text-gray-300">
+                                          TTL
+                                        </th>
                                       </tr>
                                     </thead>
                                     <tbody class="divide-y divide-orange-500/10 bg-gray-900/30">
                                       <%= for record <- records do %>
                                         <tr class="hover:bg-black/30">
-                                          <td class="whitespace-nowrap px-4 py-2 font-semibold text-orange-300">{record.rtype}</td>
-                                          <td class="whitespace-nowrap px-4 py-2 text-gray-200">{record.name}</td>
+                                          <td class="whitespace-nowrap px-4 py-2 font-semibold text-orange-300">
+                                            {record.rtype}
+                                          </td>
+                                          <td class="whitespace-nowrap px-4 py-2 text-gray-200">
+                                            {record.name}
+                                          </td>
                                           <td class="px-4 py-2 text-gray-300">{record.data}</td>
-                                          <td class="whitespace-nowrap px-4 py-2 text-gray-400">{record.ttl}</td>
+                                          <td class="whitespace-nowrap px-4 py-2 text-gray-400">
+                                            {record.ttl}
+                                          </td>
                                         </tr>
                                       <% end %>
                                     </tbody>
@@ -282,21 +337,40 @@
                             </div>
                           </div>
 
-                          <div id={"other-#{zone_key}"} class="hidden p-4 text-center text-sm text-gray-400">
+                          <div
+                            id={"other-#{zone_key}"}
+                            class="hidden p-4 text-center text-sm text-gray-400"
+                          >
                             <p>More features coming soon (SSL, Email, etc.)</p>
                           </div>
                         </div>
 
-                        <div id={"add-record-modal-#{zone_key}"} class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/60">
+                        <div
+                          id={"add-record-modal-#{zone_key}"}
+                          class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/60"
+                        >
                           <div class="w-full max-w-md rounded-xl border border-orange-500/30 bg-gray-900 p-8 shadow-2xl">
                             <h2 class="mb-1 text-2xl font-bold text-white">Add DNS Record</h2>
                             <p class="mb-4 text-sm text-gray-400">Zone: {zone_name}</p>
-                            <form method="post" action={~p"/dash/domains/records/create"} class="space-y-4" onsubmit={"document.getElementById('add-record-modal-" <> zone_key <> "').classList.add('hidden')"}>
+                            <form
+                              method="post"
+                              action={~p"/dash/domains/records/create"}
+                              class="space-y-4"
+                              onsubmit={"document.getElementById('add-record-modal-" <> zone_key <> "').classList.add('hidden')"}
+                            >
                               <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
                               <input type="hidden" name="zone_name" value={zone_name} />
-                              <input type="text" name="record_name" placeholder="Record name: @, www, api" class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" />
+                              <input
+                                type="text"
+                                name="record_name"
+                                placeholder="Record name: @, www, api"
+                                class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                              />
                               <div class="grid grid-cols-2 gap-3">
-                                <select name="record_type" class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none">
+                                <select
+                                  name="record_type"
+                                  class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                                >
                                   <option value="A">A</option>
                                   <option value="AAAA">AAAA</option>
                                   <option value="CNAME">CNAME</option>
@@ -304,12 +378,36 @@
                                   <option value="TXT">TXT</option>
                                   <option value="NS">NS</option>
                                 </select>
-                                <input type="number" name="ttl" min="1" value="300" required class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" />
+                                <input
+                                  type="number"
+                                  name="ttl"
+                                  min="1"
+                                  value="300"
+                                  required
+                                  class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                                />
                               </div>
-                              <input type="text" name="record_data" placeholder="Record content" required class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" />
+                              <input
+                                type="text"
+                                name="record_data"
+                                placeholder="Record content"
+                                required
+                                class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                              />
                               <div class="flex gap-3 pt-1">
-                                <button type="button" onclick={"document.getElementById('add-record-modal-#{zone_key}').classList.add('hidden')"} class="flex-1 rounded-lg bg-gray-800 px-4 py-2 text-sm font-semibold text-gray-200 transition-all hover:bg-gray-700">Cancel</button>
-                                <button type="submit" class="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-emerald-500">Save Record</button>
+                                <button
+                                  type="button"
+                                  onclick={"document.getElementById('add-record-modal-#{zone_key}').classList.add('hidden')"}
+                                  class="flex-1 rounded-lg bg-gray-800 px-4 py-2 text-sm font-semibold text-gray-200 transition-all hover:bg-gray-700"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="submit"
+                                  class="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-emerald-500"
+                                >
+                                  Save Record
+                                </button>
                               </div>
                             </form>
                           </div>
@@ -329,23 +427,49 @@
                 </div>
               </div>
 
-              <div class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50" id="new-zone-modal">
+              <div
+                class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50"
+                id="new-zone-modal"
+              >
                 <div class="w-full max-w-md rounded-xl border border-orange-500/30 bg-gray-900 p-8 shadow-2xl">
                   <h2 class="mb-4 text-2xl font-bold text-white">Create New Zone</h2>
-                  <form method="post" action={~p"/dash/domains/create"} class="space-y-4" onsubmit="document.getElementById('new-zone-modal').classList.add('hidden')">
+                  <form
+                    method="post"
+                    action={~p"/dash/domains/create"}
+                    class="space-y-4"
+                    onsubmit="document.getElementById('new-zone-modal').classList.add('hidden')"
+                  >
                     <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
                     <div>
-                      <label class="mb-2 block text-sm font-semibold text-gray-200">Zone Name</label>
-                      <input type="text" name="zone_name" placeholder="example.com" required class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" />
-                      <p class="mt-1 text-xs text-gray-400">Enter the domain name for this zone</p>
+                      <label class="mb-2 block text-sm font-semibold text-gray-200">
+                        Zone Name
+                      </label>
+                      <input
+                        type="text"
+                        name="zone_name"
+                        placeholder="example.com"
+                        required
+                        class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                      />
+                      <p class="mt-1 text-xs text-gray-400">
+                        Enter the domain name for this zone
+                      </p>
                     </div>
                     <div>
-                      <label class="mb-2 block text-sm font-semibold text-gray-200">Zone Type</label>
-                      <select name="zone_type" id="zone-type" class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none">
+                      <label class="mb-2 block text-sm font-semibold text-gray-200">
+                        Zone Type
+                      </label>
+                      <select
+                        name="zone_type"
+                        id="zone-type"
+                        class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                      >
                         <option value="root" selected>Root domain (apex)</option>
                         <option value="subdomain">Subdomain (full name)</option>
                       </select>
-                      <p class="mt-1 text-xs text-gray-400">Choose whether this zone is an apex/root domain or a subdomain.</p>
+                      <p class="mt-1 text-xs text-gray-400">
+                        Choose whether this zone is an apex/root domain or a subdomain.
+                      </p>
                     </div>
                     <script>
                       (function() {
@@ -364,29 +488,41 @@
                       })();
                     </script>
                     <div class="flex gap-3 pt-4">
-                      <button type="button" onclick="document.getElementById('new-zone-modal').classList.add('hidden')" class="flex-1 rounded-lg bg-gray-800 px-4 py-2 font-semibold text-gray-200 transition-all hover:bg-gray-700">Cancel</button>
-                      <button type="submit" class="flex-1 rounded-lg bg-orange-600 px-4 py-2 font-semibold text-white transition-all hover:bg-orange-700">Create Zone</button>
+                      <button
+                        type="button"
+                        onclick="document.getElementById('new-zone-modal').classList.add('hidden')"
+                        class="flex-1 rounded-lg bg-gray-800 px-4 py-2 font-semibold text-gray-200 transition-all hover:bg-gray-700"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        class="flex-1 rounded-lg bg-orange-600 px-4 py-2 font-semibold text-white transition-all hover:bg-orange-700"
+                      >
+                        Create Zone
+                      </button>
                     </div>
                   </form>
                 </div>
               </div>
-
             <% :settings -> %>
               <div class="space-y-4">
                 <div class="rounded-xl border border-orange-500/20 bg-gray-900/50 p-6">
                   <h3 class="mb-2 text-xl font-bold text-white">Settings</h3>
-                  <p class="text-gray-300">Control account, API tokens, and organization defaults.</p>
+                  <p class="text-gray-300">
+                    Control account, API tokens, and organization defaults.
+                  </p>
                 </div>
               </div>
-
             <% :analytics -> %>
               <div class="space-y-4">
                 <div class="rounded-xl border border-orange-500/20 bg-gray-900/50 p-6">
                   <h3 class="mb-2 text-xl font-bold text-white">Analytics</h3>
-                  <p class="text-gray-300">Traffic, query volume, and performance insights will appear here.</p>
+                  <p class="text-gray-300">
+                    Traffic, query volume, and performance insights will appear here.
+                  </p>
                 </div>
               </div>
-
             <% :notifications -> %>
               <div class="space-y-4">
                 <div class="rounded-xl border border-orange-500/20 bg-gray-900/50 p-6">
@@ -394,17 +530,20 @@
                   <p class="text-gray-300">Alert channels and event subscriptions.</p>
                 </div>
               </div>
-
             <% :help -> %>
               <div class="space-y-4">
                 <div class="rounded-xl border border-orange-500/20 bg-gray-900/50 p-6">
                   <h3 class="mb-2 text-xl font-bold text-white">Help</h3>
-                  <p class="text-gray-300">Get support docs, troubleshooting, and community links.</p>
+                  <p class="text-gray-300">
+                    Get support docs, troubleshooting, and community links.
+                  </p>
                 </div>
                 <div class="rounded-xl border border-orange-500/20 bg-gray-900/30 p-6">
                   <form method="post" action={~p"/dash/help"} class="space-y-4">
                     <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
-                    <label class="block text-sm font-semibold text-gray-200" for="help_message">Send us your concerns and questions!</label>
+                    <label class="block text-sm font-semibold text-gray-200" for="help_message">
+                      Send us your concerns and questions!
+                    </label>
                     <textarea
                       id="help_message"
                       name="help[message]"
@@ -414,23 +553,31 @@
                       required
                     ><%= @form_message %></textarea>
                     <div class="flex justify-end">
-                      <button type="submit" class="rounded-lg bg-primary px-6 py-3 font-semibold text-white">Send</button>
+                      <button
+                        type="submit"
+                        class="rounded-lg bg-primary px-6 py-3 font-semibold text-white"
+                      >
+                        Send
+                      </button>
                     </div>
                   </form>
                 </div>
               </div>
-
             <% :admin -> %>
               <div class="space-y-6">
                 <div class="rounded-xl border border-orange-500/20 bg-gray-900/40 p-6">
                   <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div class="rounded-xl border border-orange-500/20 bg-gray-900/50 p-4">
                       <p class="text-sm uppercase tracking-wide text-gray-400">UDP Queries</p>
-                      <p class="mt-3 text-2xl font-black text-white">{(@metrics && @metrics.udp_count) || 0}</p>
+                      <p class="mt-3 text-2xl font-black text-white">
+                        {(@metrics && @metrics.udp_count) || 0}
+                      </p>
                     </div>
                     <div class="rounded-xl border border-orange-500/20 bg-gray-900/50 p-4">
                       <p class="text-sm uppercase tracking-wide text-gray-400">TCP Queries</p>
-                      <p class="mt-3 text-2xl font-black text-white">{(@metrics && @metrics.tcp_count) || 0}</p>
+                      <p class="mt-3 text-2xl font-black text-white">
+                        {(@metrics && @metrics.tcp_count) || 0}
+                      </p>
                     </div>
                     <div class="rounded-xl border border-orange-500/20 bg-gray-900/50 p-4">
                       <p class="text-sm uppercase tracking-wide text-gray-400">UDP/TCP Ratio</p>
@@ -442,9 +589,13 @@
                   <div class="flex items-start justify-between gap-4">
                     <div>
                       <h3 class="text-xl font-bold text-white">Runtime Settings</h3>
-                      <p class="mt-1 text-sm text-gray-400">These values override the app's env defaults and can be changed from here.</p>
+                      <p class="mt-1 text-sm text-gray-400">
+                        These values override the app's env defaults and can be changed from here.
+                      </p>
                     </div>
-                    <p class="text-xs uppercase tracking-[0.3em] text-orange-300">Comma-separated emails</p>
+                    <p class="text-xs uppercase tracking-[0.3em] text-orange-300">
+                      Comma-separated emails
+                    </p>
                   </div>
 
                   <form method="post" action={~p"/admin/settings"} class="mt-6 space-y-8">
@@ -453,44 +604,99 @@
                     <div class="grid gap-6 lg:grid-cols-2">
                       <label class="block space-y-2">
                         <span class="text-sm font-semibold text-gray-200">Admin emails</span>
-                        <textarea name="settings[admin_emails]" rows="3" class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" placeholder="admin1@example.com, admin2@example.com"><%= @settings.admin_emails || "" %></textarea>
+                        <textarea
+                          name="settings[admin_emails]"
+                          rows="3"
+                          class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                          placeholder="admin1@example.com, admin2@example.com"
+                        ><%= @settings.admin_emails || "" %></textarea>
                       </label>
 
                       <label class="block space-y-2">
-                        <span class="text-sm font-semibold text-gray-200">Slack help webhook</span>
-                        <input type="text" name="settings[slack_help_webhook_url]" value={@settings.slack_help_webhook_url || ""} class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" placeholder="https://hooks.slack.com/..." />
+                        <span class="text-sm font-semibold text-gray-200">
+                          Slack help webhook
+                        </span>
+                        <input
+                          type="text"
+                          name="settings[slack_help_webhook_url]"
+                          value={@settings.slack_help_webhook_url || ""}
+                          class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                          placeholder="https://hooks.slack.com/..."
+                        />
                       </label>
                     </div>
 
                     <div class="space-y-4 rounded-lg border border-orange-500/10 bg-black/20 p-4">
                       <div>
                         <h4 class="text-base font-bold text-white">Auth</h4>
-                        <p class="text-sm text-gray-400">OIDC settings used for Hack Club sign-in.</p>
+                        <p class="text-sm text-gray-400">
+                          OIDC settings used for Hack Club sign-in.
+                        </p>
                       </div>
                       <div class="grid gap-4 lg:grid-cols-2">
                         <label class="block space-y-1">
                           <span class="text-sm font-semibold text-gray-200">Client ID</span>
-                          <input type="text" name="settings[auth][client_id]" value={get_in(@settings, [:auth, :client_id]) || ""} class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" placeholder="Your OIDC client ID" />
+                          <input
+                            type="text"
+                            name="settings[auth][client_id]"
+                            value={get_in(@settings, [:auth, :client_id]) || ""}
+                            class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                            placeholder="Your OIDC client ID"
+                          />
                         </label>
                         <label class="block space-y-1">
                           <span class="text-sm font-semibold text-gray-200">Client Secret</span>
-                          <input type="text" name="settings[auth][client_secret]" value={get_in(@settings, [:auth, :client_secret]) || ""} class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" placeholder="Your OIDC client secret" />
+                          <input
+                            type="text"
+                            name="settings[auth][client_secret]"
+                            value={get_in(@settings, [:auth, :client_secret]) || ""}
+                            class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                            placeholder="Your OIDC client secret"
+                          />
                         </label>
                         <label class="block space-y-1">
                           <span class="text-sm font-semibold text-gray-200">Redirect URI</span>
-                          <input type="text" name="settings[auth][redirect_uri]" value={get_in(@settings, [:auth, :redirect_uri]) || ""} class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" placeholder="https://example.com/auth/callback" />
+                          <input
+                            type="text"
+                            name="settings[auth][redirect_uri]"
+                            value={get_in(@settings, [:auth, :redirect_uri]) || ""}
+                            class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                            placeholder="https://example.com/auth/callback"
+                          />
                         </label>
                         <label class="block space-y-1">
                           <span class="text-sm font-semibold text-gray-200">Base URL</span>
-                          <input type="text" name="settings[auth][base_url]" value={get_in(@settings, [:auth, :base_url]) || ""} class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" placeholder="https://oidc.example.com" />
+                          <input
+                            type="text"
+                            name="settings[auth][base_url]"
+                            value={get_in(@settings, [:auth, :base_url]) || ""}
+                            class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                            placeholder="https://oidc.example.com"
+                          />
                         </label>
                         <label class="block space-y-1 lg:col-span-2">
-                          <span class="text-sm font-semibold text-gray-200">OpenID Configuration URI</span>
-                          <input type="text" name="settings[auth][openid_configuration_uri]" value={get_in(@settings, [:auth, :openid_configuration_uri]) || ""} class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" placeholder="https://oidc.example.com/.well-known/openid-configuration" />
+                          <span class="text-sm font-semibold text-gray-200">
+                            OpenID Configuration URI
+                          </span>
+                          <input
+                            type="text"
+                            name="settings[auth][openid_configuration_uri]"
+                            value={get_in(@settings, [:auth, :openid_configuration_uri]) || ""}
+                            class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                            placeholder="https://oidc.example.com/.well-known/openid-configuration"
+                          />
                         </label>
                         <label class="block space-y-1 lg:col-span-2">
-                          <span class="text-sm font-semibold text-gray-200">Authorization Scope</span>
-                          <input type="text" name="settings[auth][authorization_scope]" value={get_in(@settings, [:auth, :authorization_scope]) || ""} class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" placeholder="openid profile email" />
+                          <span class="text-sm font-semibold text-gray-200">
+                            Authorization Scope
+                          </span>
+                          <input
+                            type="text"
+                            name="settings[auth][authorization_scope]"
+                            value={get_in(@settings, [:auth, :authorization_scope]) || ""}
+                            class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                            placeholder="openid profile email"
+                          />
                         </label>
                       </div>
                     </div>
@@ -498,54 +704,135 @@
                     <div class="space-y-4 rounded-lg border border-orange-500/10 bg-black/20 p-4">
                       <div>
                         <h4 class="text-base font-bold text-white">DNS</h4>
-                        <p class="text-sm text-gray-400">These values restart the nameserver when saved.</p>
+                        <p class="text-sm text-gray-400">
+                          These values restart the nameserver when saved.
+                        </p>
                       </div>
                       <div class="grid gap-4 lg:grid-cols-2">
                         <label class="block space-y-1">
                           <span class="text-sm font-semibold text-gray-200">Bind Address</span>
-                          <input type="text" name="settings[dns][bind]" value={get_in(@settings, [:dns, :bind]) || ""} class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" placeholder="0.0.0.0 or specific IP" />
+                          <input
+                            type="text"
+                            name="settings[dns][bind]"
+                            value={get_in(@settings, [:dns, :bind]) || ""}
+                            class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                            placeholder="0.0.0.0 or specific IP"
+                          />
                         </label>
                         <label class="block space-y-1">
                           <span class="text-sm font-semibold text-gray-200">Port</span>
-                          <input type="text" name="settings[dns][port]" value={get_in(@settings, [:dns, :port]) || ""} class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" placeholder="53" />
+                          <input
+                            type="text"
+                            name="settings[dns][port]"
+                            value={get_in(@settings, [:dns, :port]) || ""}
+                            class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                            placeholder="53"
+                          />
                         </label>
                         <label class="block space-y-1">
-                          <span class="text-sm font-semibold text-gray-200">SOA Primary Nameserver (mname)</span>
-                          <input type="text" name="settings[dns][soa][mname]" value={get_in(@settings, [:dns, :soa, :mname]) || ""} class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" placeholder="ns1.example.com" />
+                          <span class="text-sm font-semibold text-gray-200">
+                            SOA Primary Nameserver (mname)
+                          </span>
+                          <input
+                            type="text"
+                            name="settings[dns][soa][mname]"
+                            value={get_in(@settings, [:dns, :soa, :mname]) || ""}
+                            class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                            placeholder="ns1.example.com"
+                          />
                         </label>
                         <label class="block space-y-1">
-                          <span class="text-sm font-semibold text-gray-200">SOA Responsible Email (rname)</span>
-                          <input type="text" name="settings[dns][soa][rname]" value={get_in(@settings, [:dns, :soa, :rname]) || ""} class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" placeholder="admin.example.com" />
+                          <span class="text-sm font-semibold text-gray-200">
+                            SOA Responsible Email (rname)
+                          </span>
+                          <input
+                            type="text"
+                            name="settings[dns][soa][rname]"
+                            value={get_in(@settings, [:dns, :soa, :rname]) || ""}
+                            class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                            placeholder="admin.example.com"
+                          />
                         </label>
                         <label class="block space-y-1">
                           <span class="text-sm font-semibold text-gray-200">SOA Serial</span>
-                          <input type="text" name="settings[dns][soa][serial]" value={get_in(@settings, [:dns, :soa, :serial]) || ""} class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" placeholder="2026043001" />
+                          <input
+                            type="text"
+                            name="settings[dns][soa][serial]"
+                            value={get_in(@settings, [:dns, :soa, :serial]) || ""}
+                            class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                            placeholder="2026043001"
+                          />
                         </label>
                         <label class="block space-y-1">
-                          <span class="text-sm font-semibold text-gray-200">SOA Refresh (seconds)</span>
-                          <input type="text" name="settings[dns][soa][refresh]" value={get_in(@settings, [:dns, :soa, :refresh]) || ""} class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" placeholder="10800" />
+                          <span class="text-sm font-semibold text-gray-200">
+                            SOA Refresh (seconds)
+                          </span>
+                          <input
+                            type="text"
+                            name="settings[dns][soa][refresh]"
+                            value={get_in(@settings, [:dns, :soa, :refresh]) || ""}
+                            class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                            placeholder="10800"
+                          />
                         </label>
                         <label class="block space-y-1">
-                          <span class="text-sm font-semibold text-gray-200">SOA Retry (seconds)</span>
-                          <input type="text" name="settings[dns][soa][retry]" value={get_in(@settings, [:dns, :soa, :retry]) || ""} class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" placeholder="3600" />
+                          <span class="text-sm font-semibold text-gray-200">
+                            SOA Retry (seconds)
+                          </span>
+                          <input
+                            type="text"
+                            name="settings[dns][soa][retry]"
+                            value={get_in(@settings, [:dns, :soa, :retry]) || ""}
+                            class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                            placeholder="3600"
+                          />
                         </label>
                         <label class="block space-y-1">
-                          <span class="text-sm font-semibold text-gray-200">SOA Expire (seconds)</span>
-                          <input type="text" name="settings[dns][soa][expire]" value={get_in(@settings, [:dns, :soa, :expire]) || ""} class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" placeholder="604800" />
+                          <span class="text-sm font-semibold text-gray-200">
+                            SOA Expire (seconds)
+                          </span>
+                          <input
+                            type="text"
+                            name="settings[dns][soa][expire]"
+                            value={get_in(@settings, [:dns, :soa, :expire]) || ""}
+                            class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                            placeholder="604800"
+                          />
                         </label>
                         <label class="block space-y-1">
-                          <span class="text-sm font-semibold text-gray-200">SOA Minimum TTL (seconds)</span>
-                          <input type="text" name="settings[dns][soa][minimum]" value={get_in(@settings, [:dns, :soa, :minimum]) || ""} class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" placeholder="86400" />
+                          <span class="text-sm font-semibold text-gray-200">
+                            SOA Minimum TTL (seconds)
+                          </span>
+                          <input
+                            type="text"
+                            name="settings[dns][soa][minimum]"
+                            value={get_in(@settings, [:dns, :soa, :minimum]) || ""}
+                            class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                            placeholder="86400"
+                          />
                         </label>
                         <label class="block space-y-1">
-                          <span class="text-sm font-semibold text-gray-200">SOA TTL (seconds)</span>
-                          <input type="text" name="settings[dns][soa][ttl]" value={get_in(@settings, [:dns, :soa, :ttl]) || ""} class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" placeholder="3600" />
+                          <span class="text-sm font-semibold text-gray-200">
+                            SOA TTL (seconds)
+                          </span>
+                          <input
+                            type="text"
+                            name="settings[dns][soa][ttl]"
+                            value={get_in(@settings, [:dns, :soa, :ttl]) || ""}
+                            class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                            placeholder="3600"
+                          />
                         </label>
                       </div>
                     </div>
 
                     <div class="flex justify-end">
-                      <button type="submit" class="rounded-lg bg-primary px-6 py-3 font-semibold text-white">Save settings</button>
+                      <button
+                        type="submit"
+                        class="rounded-lg bg-primary px-6 py-3 font-semibold text-white"
+                      >
+                        Save settings
+                      </button>
                     </div>
                   </form>
                 </div>
@@ -589,23 +876,32 @@
                       <tbody class="divide-y divide-orange-500/10">
                         <%= if Enum.empty?(@users) do %>
                           <tr>
-                            <td colspan="5" class="px-6 py-10 text-center text-gray-400">No users have signed in yet.</td>
+                            <td colspan="5" class="px-6 py-10 text-center text-gray-400">
+                              No users have signed in yet.
+                            </td>
                           </tr>
                         <% else %>
                           <%= for user <- @users do %>
                             <tr class="bg-black/10 text-gray-100">
                               <td class="px-6 py-4 font-medium">{user.name}</td>
                               <td class="px-6 py-4 text-gray-300">{user.email}</td>
-                              <td class="px-6 py-4 text-gray-300">{user.verification_status || "unknown"}</td>
+                              <td class="px-6 py-4 text-gray-300">
+                                {user.verification_status || "unknown"}
+                              </td>
                               <td class="px-6 py-4">
                                 <span class={[
                                   "inline-flex rounded-full px-3 py-1 text-xs font-semibold",
-                                  if(user.is_admin, do: "bg-orange-500/20 text-orange-300", else: "bg-gray-800 text-gray-300")
+                                  if(user.is_admin,
+                                    do: "bg-orange-500/20 text-orange-300",
+                                    else: "bg-gray-800 text-gray-300"
+                                  )
                                 ]}>
                                   {if user.is_admin, do: "Admin", else: "User"}
                                 </span>
                               </td>
-                              <td class="px-6 py-4 text-gray-300">{if user.ysws_eligible, do: "Yes", else: "No"}</td>
+                              <td class="px-6 py-4 text-gray-300">
+                                {if user.ysws_eligible, do: "Yes", else: "No"}
+                              </td>
                             </tr>
                           <% end %>
                         <% end %>
