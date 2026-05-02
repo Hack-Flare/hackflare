@@ -41,12 +41,12 @@
           <% end %>
         </nav>
 
-        <div class="absolute bottom-6 left-6 right-6 space-y-4">
-          <form method="post" action="/auth/logout">
+        <div class="absolute bottom-6 left-6 right-6">
+          <form method="post" action="/auth/logout" class="flex">
             <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
             <button
               type="submit"
-              class="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-gray-300 transition-all hover:bg-gray-900/50 hover:text-red-400"
+              class="ml-auto inline-flex items-center gap-3 rounded-lg bg-transparent px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-gray-900/50 hover:text-red-400"
             >
               <.icon name="hero-arrow-left-on-rectangle" class="h-5 w-5" />
               <span>Logout</span>
