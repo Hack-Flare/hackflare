@@ -46,11 +46,11 @@ docker compose -f docker-compose.dev.yml up
 
 ### Phase 1 (MVP/POC)
 
-- [ ] DNS System
+- [wip] DNS System
   - [wip] Backend
-    - [ ] Auth Integration
+    - [x] Auth Integration
     - [ ] Domain Migration (cloudflare)
-    - [ ] Domain Management
+    - [wip] Domain Management
       - Domains stay in a pending state until their NS delegation is verified, and record edits are blocked until then.
 - [x] nameservers
   - [1] Amount Online
@@ -58,11 +58,9 @@ docker compose -f docker-compose.dev.yml up
   - [x] Backend
   - [x] ENV Setup
 - [ ] Simple Logging
-- [ ] Caching (incl. DNS caching, minimal site caching)
-- [ ] Proper Frontend
+- [wip] Proper Frontend
   - [wip] Dashboard
   - [ ] Domain Management
-  - [ ] Analytics
   - [ ] Logging
   - [ ] Notifications
   - [wip] Admin Panel
@@ -76,6 +74,7 @@ docker compose -f docker-compose.dev.yml up
 After Phase 1 the repo will be open sourced.
 
 ### Phase 2 (Post MVP)
+- [ ] Caching (incl. DNS caching, minimal site caching)
 - [ ] DDoS Protection
 - [ ] Load Balancing
 - [ ] Clerk Integration
