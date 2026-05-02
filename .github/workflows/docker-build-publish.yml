@@ -25,8 +25,8 @@ jobs:
         include:
           - runs-on: ubuntu-latest
             tag-suffix: ""
-          - runs-on: self-hosted
-            tag-suffix: "-arm"
+          #- runs-on: self-hosted
+          #  tag-suffix: "-arm"
     permissions:
       contents: read
       packages: write
