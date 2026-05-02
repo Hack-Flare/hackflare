@@ -184,7 +184,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        partition: [1, 2, 3, 4]
+        partition: [1, 2, 3, 4, 5, 6]
     services:
       postgres:
         image: postgres:16-alpine
@@ -224,4 +224,4 @@ jobs:
       - name: Run Tests
         env:
           MIX_TEST_PARTITION: ${{ matrix.partition }}
-        run: mix test --partitions 4
+        run: mix test --partitions 6
