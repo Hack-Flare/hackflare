@@ -27,17 +27,17 @@
   default: false;
   prefersdark: true;
   color-scheme: "dark";
-  --color-base-100: #0b1220;
-  --color-base-200: #0f1724;
-  --color-base-300: #111827;
-  --color-base-content: #e6eef8;
-  --color-primary: #F59E0B;
+  --color-base-100: #0c1424;
+  --color-base-200: #111b2d;
+  --color-base-300: #172338;
+  --color-base-content: #e5eef9;
+  --color-primary: #f59e0b;
   --color-primary-content: #0b1220;
-  --color-secondary: #7c3aed;
+  --color-secondary: #38bdf8;
   --color-secondary-content: #f8fafc;
-  --color-accent: #06b6d4;
+  --color-accent: #22d3ee;
   --color-accent-content: #0b1220;
-  --color-neutral: #374151;
+  --color-neutral: #334155;
   --color-neutral-content: #f8fafc;
   --color-info: #2563eb;
   --color-info-content: #f8fafc;
@@ -62,17 +62,17 @@
   default: true;
   prefersdark: false;
   color-scheme: "light";
-  --color-base-100: #ffffff;
-  --color-base-200: #f7f7fa;
-  --color-base-300: #f1f1f5;
-  --color-base-content: #0b1220;
-  --color-primary: #F38020;
+  --color-base-100: #fbf7ef;
+  --color-base-200: #f5efe3;
+  --color-base-300: #eadfcd;
+  --color-base-content: #0f172a;
+  --color-primary: #f97316;
   --color-primary-content: #ffffff;
-  --color-secondary: #6D28D9;
+  --color-secondary: #2563eb;
   --color-secondary-content: #ffffff;
-  --color-accent: #06b6d4;
+  --color-accent: #0ea5e9;
   --color-accent-content: #ffffff;
-  --color-neutral: #374151;
+  --color-neutral: #334155;
   --color-neutral-content: #ffffff;
   --color-info: #2563eb;
   --color-info-content: #ffffff;
@@ -104,7 +104,7 @@
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
 html {
-  font-weight: 600;
+  font-weight: 500;
 }
 
 body {
@@ -141,7 +141,7 @@ body {
   }
 
   .navbar {
-    @apply border-b border-base-300/70 bg-base-100/95;
+    @apply border-b border-base-300/70 bg-base-100/90 backdrop-blur;
   }
 
   :where(input, select, textarea) {
@@ -160,7 +160,7 @@ body {
   }
 
   [data-theme="dark"] .card {
-    @apply bg-base-300;
+    @apply bg-base-200;
   }
 
   [data-theme="dark"] .badge {

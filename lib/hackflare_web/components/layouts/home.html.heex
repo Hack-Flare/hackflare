@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+  <body class="bg-base-100 text-base-content">
+    <div class="min-h-screen">
+      <header class="sticky top-0 z-50 border-b border-base-300/80 bg-base-100/90 backdrop-blur">
+        <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+          <a href="/" class="flex items-center gap-3 transition-opacity hover:opacity-80">
+            <img src={~p"/images/logo.svg"} width="42" alt="HackFlare" />
+            <div class="hidden sm:block">
+              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-secondary">
+                Hack Club Dns System
+              </p>
+              <p class="text-lg font-extrabold tracking-tight text-base-content">HackFlare</p>
+            </div>
+          </a>
+
+          <nav class="flex items-center gap-2 sm:gap-3">
+            <a
+              href="/docs"
+              class="hidden rounded-full border border-base-300 bg-base-200/70 px-4 py-2 text-sm font-semibold text-base-content transition-colors hover:border-secondary/50 hover:bg-secondary/10 sm:inline-flex"
+            >
+              Docs
+            </a>
+            <a
+              href="https://github.com/Hack-Flare/hackflare"
+              class="rounded-full border border-base-300 bg-base-200/70 p-2 transition-colors hover:border-primary/50 hover:bg-primary/10"
+              aria-label="GitHub"
+            >
+              <img src={~p"/images/github.svg"} width="22" alt="GitHub" />
+            </a>
+            <a
+              href="/auth/request"
+              class="rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-content transition-colors hover:opacity-90"
+            >
+              Sign in
+            </a>
+          </nav>
+        </div>
+      </header>
+
+      <main>
+        <section class="px-4 pb-8 pt-12 sm:px-6 sm:pt-16 lg:px-8">
+          <div class="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+            <div class="space-y-7">
+              <div class="inline-flex items-center gap-2 rounded-full border border-secondary/25 bg-secondary/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.22em] text-secondary">
+                <span class="size-2 rounded-full bg-primary"></span>
+                Made for Hack Clubbers
+              </div>
+
+              <div class="space-y-5">
+                <h1 class="max-w-3xl text-5xl font-black leading-[0.95] tracking-tight text-base-content sm:text-6xl lg:text-7xl">
+                  Hack Club DNS with Cloudflare like functionality.
+                </h1>
+                <p class="max-w-2xl text-lg leading-8 text-base-content/75 sm:text-xl">
+                  HackFlare keeps the serious network stuff fast and reliable, but the vibe stays playful, clear, and easy for students to ship with.
+                </p>
+              </div>
+
+              <div class="flex flex-col gap-3 sm:flex-row">
+                <a
+                  href="/dash"
+                  class="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 font-bold text-primary-content transition-transform hover:-translate-y-0.5"
+                >
+                  Open dashboard
+                  <.icon name="hero-arrow-right" class="size-5" />
+                </a>
+                <a
+                  href="/auth/request"
+                  class="inline-flex items-center justify-center gap-2 rounded-full border border-base-300 bg-base-200/70 px-6 py-3 font-bold text-base-content transition-colors hover:border-secondary/40 hover:bg-secondary/10"
+                >
+                  <.icon name="hero-lock-closed" class="size-5" />
+                  Sign in with Hack Club
+                </a>
+              </div>
+
+              <div class="flex flex-wrap gap-3 text-sm font-semibold text-base-content/65">
+                <span class="rounded-full border border-base-300 bg-base-200/60 px-4 py-2">Fast DNS</span>
+                <span class="rounded-full border border-base-300 bg-base-200/60 px-4 py-2">Student-built</span>
+                <span class="rounded-full border border-base-300 bg-base-200/60 px-4 py-2">Docs first</span>
+                <span class="rounded-full border border-base-300 bg-base-200/60 px-4 py-2">Cloudflare-style control</span>
+              </div>
+            </div>
+
+            <div class="relative">
+              <div class="absolute -left-4 -top-4 hidden h-20 w-20 rounded-[1.5rem] border border-primary/30 bg-primary/10 sm:block"></div>
+              <div class="absolute -bottom-4 right-6 hidden h-16 w-16 rounded-full border border-secondary/30 bg-secondary/10 sm:block"></div>
+              <div class="rounded-[2rem] border border-base-300 bg-base-100 p-5 shadow-sm sm:p-6">
+                <div class="flex items-start justify-between gap-4 border-b border-base-300 pb-4">
+                  <div>
+                    <p class="text-xs font-bold uppercase tracking-[0.24em] text-secondary">Control room</p>
+                    <h2 class="mt-1 text-xl font-extrabold tracking-tight">hackflare.net</h2>
+                    <p class="mt-1 text-sm text-base-content/65">A clean dashboard for the stuff that powers the web.</p>
+                  </div>
+                  <span class="rounded-full border border-success/20 bg-success/10 px-3 py-1 text-xs font-bold text-success">
+                    Online
+                  </span>
+                </div>
+
+                <div class="mt-5 space-y-3">
+                  <div class="flex items-center justify-between rounded-2xl border border-base-300 bg-base-200/70 px-4 py-3">
+                    <div class="flex items-center gap-3">
+                      <span class="inline-flex size-10 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
+                        <.icon name="hero-globe-alt" class="size-5" />
+                      </span>
+                      <div>
+                        <p class="font-bold">DNS response time</p>
+                        <p class="text-sm text-base-content/60">Across the network</p>
+                      </div>
+                    </div>
+                    <p class="text-lg font-black text-primary">42ms</p>
+                  </div>
+
+                  <div class="grid gap-3 sm:grid-cols-2">
+                    <div class="rounded-2xl border border-base-300 bg-base-200/70 p-4">
+                      <p class="text-xs font-bold uppercase tracking-[0.22em] text-base-content/50">Verified zones</p>
+                      <p class="mt-2 text-3xl font-black tracking-tight">12</p>
+                    </div>
+                    <div class="rounded-2xl border border-base-300 bg-base-200/70 p-4">
+                      <p class="text-xs font-bold uppercase tracking-[0.22em] text-base-content/50">Deploy style</p>
+                      <p class="mt-2 text-3xl font-black tracking-tight">Simple</p>
+                    </div>
+                  </div>
+
+                  <div class="rounded-2xl border border-base-300 bg-base-200/60 p-4">
+                    <div class="flex items-center justify-between text-sm font-semibold text-base-content/70">
+                      <span>Live signal</span>
+                    </div>
+                    <div class="mt-3 space-y-2">
+                      <div class="flex items-center justify-between rounded-xl bg-base-100 px-3 py-2">
+                        <span class="text-sm">Route to edge</span>
+                        <span class="text-sm font-bold text-secondary">On</span>
+                      </div>
+                      <div class="flex items-center justify-between rounded-xl bg-base-100 px-3 py-2">
+                        <span class="text-sm">Nameserver check</span>
+                        <span class="text-sm font-bold text-success">Ready</span>
+                      </div>
+                      <div class="flex items-center justify-between rounded-xl bg-base-100 px-3 py-2">
+                        <span class="text-sm">Docs + support</span>
+                        <span class="text-sm font-bold text-primary">Open</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="px-4 py-12 sm:px-6 lg:px-8">
+          <div class="mx-auto max-w-7xl">
+            <div class="grid gap-4 md:grid-cols-3">
+              <article class="rounded-[1.5rem] border border-base-300 bg-base-100 p-6 shadow-sm">
+                <div class="inline-flex size-12 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+                  <.icon name="hero-bolt" class="size-6" />
+                </div>
+                <h3 class="mt-5 text-xl font-extrabold tracking-tight">Fast by default</h3>
+                <p class="mt-2 text-sm leading-6 text-base-content/70">
+                  DNS updates, routing, and edge-friendly behavior without making us fight the UI.
+                </p>
+              </article>
+
+              <article class="rounded-[1.5rem] border border-base-300 bg-base-100 p-6 shadow-sm">
+                <div class="inline-flex size-12 items-center justify-center rounded-2xl border border-secondary/20 bg-secondary/10 text-secondary">
+                  <.icon name="hero-shield-check" class="size-6" />
+                </div>
+                <h3 class="mt-5 text-xl font-extrabold tracking-tight">Calm, clear controls</h3>
+                <p class="mt-2 text-sm leading-6 text-base-content/70">
+                  Approachable, with good structure, a trustworthy interface.
+                </p>
+              </article>
+
+              <article class="rounded-[1.5rem] border border-base-300 bg-base-100 p-6 shadow-sm">
+                <div class="inline-flex size-12 items-center justify-center rounded-2xl border border-accent/20 bg-accent/10 text-accent">
+                  <.icon name="hero-presentation-chart-bar" class="size-6" />
+                </div>
+                <h3 class="mt-5 text-xl font-extrabold tracking-tight">Built to be shared</h3>
+                <p class="mt-2 text-sm leading-6 text-base-content/70">
+                  Easy to explain, easy to demo, and not dressed up like an enterprise dashboard from 2019.
+                </p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="px-4 py-12 sm:px-6 lg:px-8">
+          <div class="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[0.85fr_1.15fr] lg:items-stretch">
+            <div class="rounded-[2rem] border border-base-300 bg-base-200/60 p-8 shadow-sm">
+              <p class="text-xs font-bold uppercase tracking-[0.24em] text-secondary">What it feels like</p>
+              <h2 class="mt-3 text-3xl font-black tracking-tight">A serious tool with Hack Club energy.</h2>
+              <p class="mt-4 text-base leading-7 text-base-content/70">
+                HackFlare should feel like something made by Hack Club members: bold enough to be memorable, simple enough to use, and solid enough to trust.
+              </p>
+
+              <div class="mt-6 space-y-3">
+                <div class="flex items-start gap-3 rounded-2xl border border-base-300 bg-base-100 p-4">
+                  <span class="mt-0.5 inline-flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <.icon name="hero-sparkles" class="size-5" />
+                  </span>
+                  <div>
+                    <p class="font-bold">Hack Club first</p>
+                    <p class="text-sm text-base-content/65">Friendly copy, playful edges, and a layout that does not feel corporate.</p>
+                  </div>
+                </div>
+                <div class="flex items-start gap-3 rounded-2xl border border-base-300 bg-base-100 p-4">
+                  <span class="mt-0.5 inline-flex size-9 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
+                    <.icon name="hero-globe-alt" class="size-5" />
+                  </span>
+                  <div>
+                    <p class="font-bold">Cloudflare-inspired</p>
+                    <p class="text-sm text-base-content/65">Structured, confident, and tuned for infrastructure instead of fluff.</p>
+                  </div>
+                </div>
+                <div class="flex items-start gap-3 rounded-2xl border border-base-300 bg-base-100 p-4">
+                  <span class="mt-0.5 inline-flex size-9 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                    <.icon name="hero-user-group" class="size-5" />
+                  </span>
+                  <div>
+                    <p class="font-bold">Made to invite people in</p>
+                    <p class="text-sm text-base-content/65">Dns management that's easy to use and fun to explore.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-[2rem] border border-base-300 bg-base-100 p-8 shadow-sm">
+              <div class="flex items-center justify-between border-b border-base-300 pb-4">
+                <div>
+                  <p class="text-xs font-bold uppercase tracking-[0.24em] text-base-content/50">Live board</p>
+                  <h2 class="mt-1 text-2xl font-black tracking-tight">From idea to edge</h2>
+                </div>
+                <span class="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+                  Ready
+                </span>
+              </div>
+
+              <div class="mt-6 grid gap-4 sm:grid-cols-2">
+                <div class="rounded-2xl border border-base-300 bg-base-200/70 p-4">
+                  <p class="text-xs font-bold uppercase tracking-[0.22em] text-base-content/50">Step 1</p>
+                  <p class="mt-2 text-lg font-extrabold tracking-tight">Create a zone</p>
+                  <p class="mt-1 text-sm text-base-content/65">Start with a domain you already own.</p>
+                </div>
+                <div class="rounded-2xl border border-base-300 bg-base-200/70 p-4">
+                  <p class="text-xs font-bold uppercase tracking-[0.22em] text-base-content/50">Step 2</p>
+                  <p class="mt-2 text-lg font-extrabold tracking-tight">Add records</p>
+                  <p class="mt-1 text-sm text-base-content/65">A, AAAA, CNAME, and the other usual stuff.</p>
+                </div>
+                <div class="rounded-2xl border border-base-300 bg-base-200/70 p-4">
+                  <p class="text-xs font-bold uppercase tracking-[0.22em] text-base-content/50">Step 3</p>
+                  <p class="mt-2 text-lg font-extrabold tracking-tight">Verify nameservers</p>
+                  <p class="mt-1 text-sm text-base-content/65">Clear feedback when the DNS side is ready.</p>
+                </div>
+                <div class="rounded-2xl border border-base-300 bg-base-200/70 p-4">
+                  <p class="text-xs font-bold uppercase tracking-[0.22em] text-base-content/50">Step 4</p>
+                  <p class="mt-2 text-lg font-extrabold tracking-tight">Ship it</p>
+                  <p class="mt-1 text-sm text-base-content/65">Once it's live, the rest should feel boring in a good way.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="px-4 py-12 sm:px-6 lg:px-8">
+          <div class="mx-auto max-w-6xl rounded-[2rem] border border-primary/20 bg-base-200/70 p-8 sm:p-12">
+            <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+              <div class="max-w-2xl space-y-4">
+                <p class="text-xs font-bold uppercase tracking-[0.24em] text-secondary">Get moving</p>
+                <h2 class="text-4xl font-black tracking-tight sm:text-5xl">
+                  Ready to make your project feel bigger?
+                </h2>
+                <p class="text-lg leading-8 text-base-content/70">
+                  Open the dashboard, sign in with Hack Club, and start turning the DNS side of your project into something that feels real.
+                </p>
+              </div>
+
+              <div class="flex flex-col gap-3 sm:flex-row">
+                <a
+                  href="/dash"
+                  class="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 font-bold text-primary-content transition-opacity hover:opacity-90"
+                >
+                  Launch dashboard
+                </a>
+                <a
+                  href="/docs"
+                  class="inline-flex items-center justify-center rounded-full border border-base-300 bg-base-100 px-6 py-3 font-bold text-base-content transition-colors hover:border-secondary/40 hover:bg-secondary/10"
+                >
+                  Read docs
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="border-t border-base-300 px-4 py-10 sm:px-6 lg:px-8">
+        <div class="mx-auto flex max-w-7xl flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div class="space-y-2">
+            <div class="flex items-center gap-3">
+              <img src={~p"/images/logo.svg"} width="30" alt="HackFlare" />
+              <span class="text-lg font-extrabold tracking-tight">HackFlare</span>
+            </div>
+            <p class="text-sm text-base-content/65">
+              Built by Hack Clubbers, for Hack Clubbers.
+            </p>
+          </div>
+
+          <div class="flex flex-wrap gap-3 text-sm font-semibold text-base-content/65">
+            <a href="/docs" class="hover:text-primary">Docs</a>
+            <a href="https://github.com/Hack-Flare/hackflare" class="hover:text-primary">GitHub</a>
+            <a href="https://hackclub.com" class="hover:text-primary">Hack Club</a>
+            <a href="/health" class="hover:text-primary">Status</a>
+          </div>
+        </div>
+      </footer>
+
+      <.flash_group flash={@flash} />
+    </div>
+  </body>
+</html>

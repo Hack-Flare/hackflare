@@ -1,0 +1,37 @@
+<header class="sticky top-0 z-50 border-b border-base-300/70 bg-base-100/90 backdrop-blur">
+  <div class="navbar mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="flex-1">
+      <a href="/" class="flex w-fit items-center gap-3 transition-opacity hover:opacity-80">
+        <img src={~p"/images/logo.svg"} width="44" alt="HackFlare" />
+        <span class="hidden text-xl font-extrabold tracking-tight text-primary sm:inline">
+          HackFlare
+        </span>
+      </a>
+    </div>
+    <div class="flex-none gap-4">
+      <ul class="flex items-center gap-3">
+        <li>
+          <a
+            href="https://github.com/Hack-Flare/hackflare"
+            class="btn btn-ghost btn-circle border-base-300/70 bg-base-200/70 hover:bg-base-300"
+          >
+            <img src={~p"/images/github.svg"} width="24" alt="GitHub" />
+          </a>
+        </li>
+        <li>
+          <.auth_menu current_scope={@current_scope} />
+        </li>
+      </ul>
+    </div>
+  </div>
+</header>
+
+<main class="min-h-screen">
+  <div class="px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+    <div class="mx-auto max-w-6xl">
+      {render_slot(@inner_block)}
+    </div>
+  </div>
+</main>
+
+<.flash_group flash={@flash} />

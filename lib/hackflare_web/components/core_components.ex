@@ -496,4 +496,15 @@ defmodule HackflareWeb.CoreComponents do
   def translate_errors(errors, field) when is_list(errors) do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
   end
+
+  def udp_tcp_ratio(metrics) do
+    udp = metrics && metrics.udp_count || 0
+    tcp = metrics && metrics.tcp_count || 0
+
+    cond do
+      udp == 0 and tcp == 0 -> "—"
+      tcp == 0 -> "∞"
+      true -> Float.round(udp / tcp, 2)
+    end
+  end
 end
