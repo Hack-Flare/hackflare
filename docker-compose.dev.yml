@@ -28,7 +28,7 @@ services:
       db:
         condition: service_healthy
     env_file:
-      - .env
+      - .env.example
     environment:
       PHX_SERVER: "true"
       MIX_ENV: "prod"
