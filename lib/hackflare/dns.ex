@@ -79,27 +79,30 @@ defmodule Hackflare.DNS do
         {:error, :zone_not_found}
 
       %Zone{ns_verified: true} = _zone ->
-        # Zone is verified (in DNS manager), delete from both places
-        with {:ok, mgr} <- get_manager() do
-          case Native.manager_delete_zone(mgr, zone_name) do
-            true ->
-              # remove from DB as well
-              from(z in Zone, where: z.name == ^zone_name) |> Repo.delete_all()
-              {:ok, zone_name}
-
-            false ->
-              {:error, :failed_to_delete_zone}
-          end
-        end
+        delete_verified_zone(zone_name)
 
       %Zone{ns_verified: false} = _zone ->
-        # Zone is not verified (not in DNS manager), just delete from DB
-        from(z in Zone, where: z.name == ^zone_name) |> Repo.delete_all()
+        delete_zone_from_db(zone_name)
         {:ok, zone_name}
     end
   end
 
   def delete_zone(_), do: {:error, :invalid_zone_name}
+
+  defp delete_verified_zone(zone_name) do
+    with {:ok, mgr} <- get_manager(),
+         true <- Native.manager_delete_zone(mgr, zone_name) do
+      delete_zone_from_db(zone_name)
+      {:ok, zone_name}
+    else
+      false -> {:error, :failed_to_delete_zone}
+      {:error, _reason} = error -> error
+    end
+  end
+
+  defp delete_zone_from_db(zone_name) do
+    from(z in Zone, where: z.name == ^zone_name) |> Repo.delete_all()
+  end
 
   @doc """
   List all records in a zone, optionally filtered by name and/or type.
