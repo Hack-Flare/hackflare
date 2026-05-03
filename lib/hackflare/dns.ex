@@ -74,16 +74,28 @@ defmodule Hackflare.DNS do
   Returns `{:ok, zone_name}` on success, `{:error, reason}` on failure.
   """
   def delete_zone(zone_name) when is_binary(zone_name) do
-    with {:ok, mgr} <- get_manager() do
-      case Native.manager_delete_zone(mgr, zone_name) do
-        true ->
-          # remove from DB as well
-          from(z in Zone, where: z.name == ^zone_name) |> Repo.delete_all()
-          {:ok, zone_name}
+    case Repo.get_by(Zone, name: zone_name) do
+      nil ->
+        {:error, :zone_not_found}
 
-        false ->
-          {:error, :zone_not_found}
-      end
+      %Zone{ns_verified: true} = _zone ->
+        # Zone is verified (in DNS manager), delete from both places
+        with {:ok, mgr} <- get_manager() do
+          case Native.manager_delete_zone(mgr, zone_name) do
+            true ->
+              # remove from DB as well
+              from(z in Zone, where: z.name == ^zone_name) |> Repo.delete_all()
+              {:ok, zone_name}
+
+            false ->
+              {:error, :failed_to_delete_zone}
+          end
+        end
+
+      %Zone{ns_verified: false} = _zone ->
+        # Zone is not verified (not in DNS manager), just delete from DB
+        from(z in Zone, where: z.name == ^zone_name) |> Repo.delete_all()
+        {:ok, zone_name}
     end
   end
 
