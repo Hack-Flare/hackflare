@@ -65,7 +65,6 @@ jobs:
 
   compile:
     name: Compile Application
-    needs: [format]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -103,7 +102,7 @@ jobs:
 
   static_analysis:
     name: Static Analysis
-    needs: [compile]
+    needs: [compile, format]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -128,7 +127,7 @@ jobs:
 
   type_check:
     name: Type Checking
-    needs: [compile]
+    needs: [compile, format]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -160,7 +159,7 @@ jobs:
         run: mix dialyzer
 
   rust-checks:
-    needs: [compile]
+    needs: [compile, format]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -179,7 +178,7 @@ jobs:
         
   test:
     name: Test Partition ${{ matrix.partition }}
-    needs: [compile]
+    needs: [compile, format]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
