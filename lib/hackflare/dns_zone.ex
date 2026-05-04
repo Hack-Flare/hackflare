@@ -3,6 +3,7 @@ defmodule Hackflare.DNS.Zone do
   import Ecto.Changeset
 
   schema "dns_zones" do
+    belongs_to(:user, Hackflare.Accounts.User)
     field(:name, :string)
     field(:type, :string, default: "root")
     field(:ns_verified, :boolean, default: false)
@@ -13,7 +14,7 @@ defmodule Hackflare.DNS.Zone do
 
   def changeset(zone, attrs) do
     zone
-    |> cast(attrs, [:name, :type, :ns_verified])
+    |> cast(attrs, [:user_id, :name, :type, :ns_verified])
     |> validate_required([:name])
     |> unique_constraint(:name)
   end

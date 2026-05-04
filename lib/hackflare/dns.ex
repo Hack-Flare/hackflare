@@ -6,6 +6,7 @@ defmodule Hackflare.DNS do
   wrapping the low-level Rust NIF calls from Hackflare.Native.
   """
 
+  alias Hackflare.Accounts
   alias Hackflare.DNS.Record
   alias Hackflare.DNS.Zone
   alias Hackflare.Native
@@ -53,19 +54,28 @@ defmodule Hackflare.DNS do
   Returns `{:ok, zone_name}` on success, `{:error, reason}` on failure.
   """
   def create_zone(zone_name) when is_binary(zone_name) do
-    # Persist the zone but mark it unverified. We will only create the zone
-    # in the running DNS manager after nameserver delegation is verified.
-    %Zone{}
-    |> Zone.changeset(%{name: zone_name})
-    |> Repo.insert(on_conflict: :nothing)
-
-    {:ok, zone_name}
+    create_zone(zone_name, "root", nil)
   end
 
   def create_zone(_), do: {:error, :invalid_zone_name}
 
-  def create_zone(zone_name, _zone_type) when is_binary(zone_name) do
-    create_zone(zone_name)
+  def create_zone(zone_name, zone_type) when is_binary(zone_name) and is_binary(zone_type) do
+    create_zone(zone_name, zone_type, nil)
+  end
+
+  def create_zone(zone_name, zone_type, current_user)
+      when is_binary(zone_name) and is_binary(zone_type) do
+    zone_attrs =
+      %{name: zone_name, type: zone_type}
+      |> maybe_put_user_id(current_user)
+
+    # Persist the zone but mark it unverified. We will only create the zone
+    # in the running DNS manager after nameserver delegation is verified.
+    %Zone{}
+    |> Zone.changeset(zone_attrs)
+    |> Repo.insert(on_conflict: :nothing)
+
+    {:ok, zone_name}
   end
 
   @doc """
@@ -74,25 +84,29 @@ defmodule Hackflare.DNS do
   Returns `{:ok, zone_name}` on success, `{:error, reason}` on failure.
   """
   def delete_zone(zone_name) when is_binary(zone_name) do
-    case Repo.get_by(Zone, name: zone_name) do
-      nil ->
-        {:error, :zone_not_found}
-
-      %Zone{ns_verified: true} = _zone ->
-        delete_verified_zone(zone_name)
-
-      %Zone{ns_verified: false} = _zone ->
-        delete_zone_from_db(zone_name)
-        {:ok, zone_name}
-    end
+    delete_zone(zone_name, nil)
   end
 
   def delete_zone(_), do: {:error, :invalid_zone_name}
 
-  defp delete_verified_zone(zone_name) do
+  def delete_zone(zone_name, current_user) when is_binary(zone_name) do
+    case get_zone(zone_name, current_user) do
+      nil ->
+        {:error, :zone_not_found}
+
+      %Zone{ns_verified: true} = zone ->
+        delete_verified_zone(zone)
+
+      %Zone{ns_verified: false} = zone ->
+        delete_zone_from_db(zone)
+        {:ok, zone_name}
+    end
+  end
+
+  defp delete_verified_zone(%Zone{name: zone_name} = zone) do
     with {:ok, mgr} <- get_manager(),
          true <- Native.manager_delete_zone(mgr, zone_name) do
-      delete_zone_from_db(zone_name)
+      delete_zone_from_db(zone)
       {:ok, zone_name}
     else
       false -> {:error, :failed_to_delete_zone}
@@ -100,8 +114,8 @@ defmodule Hackflare.DNS do
     end
   end
 
-  defp delete_zone_from_db(zone_name) do
-    from(z in Zone, where: z.name == ^zone_name) |> Repo.delete_all()
+  defp delete_zone_from_db(%Zone{id: zone_id}) do
+    from(z in Zone, where: z.id == ^zone_id) |> Repo.delete_all()
   end
 
   @doc """
@@ -151,10 +165,10 @@ defmodule Hackflare.DNS do
   def add_record(zone_name, record_name, record_type, ttl, data)
       when is_binary(zone_name) and is_binary(record_name) and is_binary(record_type) and
              is_integer(ttl) and ttl > 0 and is_binary(data) do
-    with {:ok, _zone} <- ensure_zone_verified(zone_name),
+    with {:ok, zone} <- ensure_zone_verified(zone_name, nil),
          {:ok, mgr} <- get_manager(),
          true <- Native.manager_add_record(mgr, zone_name, record_name, record_type, ttl, data) do
-      persist_record(zone_name, record_name, record_type, ttl, data)
+      persist_record(zone, record_name, record_type, ttl, data)
 
       {:ok, %{name: record_name, rtype: record_type, ttl: ttl, data: data}}
     else
@@ -164,6 +178,23 @@ defmodule Hackflare.DNS do
   end
 
   def add_record(_, _, _, _, _), do: {:error, :invalid_record_params}
+
+  def add_record(zone_name, record_name, record_type, ttl, data, current_user)
+      when is_binary(zone_name) and is_binary(record_name) and is_binary(record_type) and
+             is_integer(ttl) and ttl > 0 and is_binary(data) do
+    with {:ok, zone} <- ensure_zone_verified(zone_name, current_user),
+         {:ok, mgr} <- get_manager(),
+         true <- Native.manager_add_record(mgr, zone_name, record_name, record_type, ttl, data) do
+      persist_record(zone, record_name, record_type, ttl, data)
+
+      {:ok, %{name: record_name, rtype: record_type, ttl: ttl, data: data}}
+    else
+      false -> {:error, :failed_to_add_record}
+      {:error, _reason} = error -> error
+    end
+  end
+
+  def add_record(_, _, _, _, _, _), do: {:error, :invalid_record_params}
 
   @doc """
   Remove a DNS record from a zone.
@@ -177,10 +208,10 @@ defmodule Hackflare.DNS do
   """
   def remove_record(zone_name, record_name, record_type)
       when is_binary(zone_name) and is_binary(record_name) and is_binary(record_type) do
-    with {:ok, _zone} <- ensure_zone_verified(zone_name),
+    with {:ok, zone} <- ensure_zone_verified(zone_name, nil),
          {:ok, mgr} <- get_manager(),
          true <- Native.manager_remove_record(mgr, zone_name, record_name, record_type) do
-      delete_persisted_record(zone_name, record_name, record_type)
+      delete_persisted_record(zone, record_name, record_type)
 
       {:ok, :deleted}
     else
@@ -207,31 +238,27 @@ defmodule Hackflare.DNS do
 
   def handle_query(_), do: {:error, :invalid_query}
 
-  defp persist_record(zone_name, record_name, record_type, ttl, data) do
-    with %Zone{} = zone <- Repo.get_by(Zone, name: zone_name) do
-      %Record{}
-      |> Record.changeset(%{
-        zone_id: zone.id,
-        name: record_name,
-        rtype: record_type,
-        ttl: ttl,
-        data: data
-      })
-      |> Repo.insert(on_conflict: :nothing)
-    end
+  defp persist_record(%Zone{id: zone_id}, record_name, record_type, ttl, data) do
+    %Record{}
+    |> Record.changeset(%{
+      zone_id: zone_id,
+      name: record_name,
+      rtype: record_type,
+      ttl: ttl,
+      data: data
+    })
+    |> Repo.insert(on_conflict: :nothing)
   end
 
-  defp delete_persisted_record(zone_name, record_name, record_type) do
-    with %Zone{} = zone <- Repo.get_by(Zone, name: zone_name) do
-      from(r in Record,
-        where: r.zone_id == ^zone.id and r.name == ^record_name and r.rtype == ^record_type
-      )
-      |> Repo.delete_all()
-    end
+  defp delete_persisted_record(%Zone{id: zone_id}, record_name, record_type) do
+    from(r in Record,
+      where: r.zone_id == ^zone_id and r.name == ^record_name and r.rtype == ^record_type
+    )
+    |> Repo.delete_all()
   end
 
-  defp ensure_zone_verified(zone_name) do
-    case Repo.get_by(Zone, name: zone_name) do
+  defp ensure_zone_verified(zone_name, current_user) do
+    case get_zone(zone_name, current_user) do
       %Zone{ns_verified: true} = zone -> {:ok, zone}
       %Zone{} -> {:error, :ns_not_verified}
       nil -> {:error, :zone_not_found}
@@ -247,9 +274,13 @@ defmodule Hackflare.DNS do
   Returns `{:ok, :verified}` on success or `{:error, reason}` on failure.
   """
   def verify_zone_nameservers(zone_name) when is_binary(zone_name) do
+    verify_zone_nameservers(zone_name, nil)
+  end
+
+  def verify_zone_nameservers(zone_name, current_user) when is_binary(zone_name) do
     expected = Hackflare.Settings.nameservers() |> Enum.map(&String.downcase/1)
 
-    case Repo.get_by(Zone, name: zone_name) do
+    case get_zone(zone_name, current_user) do
       nil ->
         {:error, :zone_not_found}
 
@@ -304,5 +335,26 @@ defmodule Hackflare.DNS do
           _ -> {:error, :dns_lookup_failed}
         end
     end
+  end
+
+  defp maybe_put_user_id(attrs, %Accounts.User{id: user_id}) when is_integer(user_id) do
+    Map.put(attrs, :user_id, user_id)
+  end
+
+  defp maybe_put_user_id(attrs, _current_user), do: attrs
+
+  defp get_zone(zone_name, nil) do
+    Repo.get_by(Zone, name: zone_name)
+  end
+
+  defp get_zone(zone_name, %Accounts.User{} = current_user) do
+    query =
+      if Accounts.admin_user?(current_user) do
+        from(z in Zone, where: z.name == ^zone_name)
+      else
+        from(z in Zone, where: z.name == ^zone_name and z.user_id == ^current_user.id)
+      end
+
+    Repo.one(query)
   end
 end

@@ -8,13 +8,15 @@ defmodule HackflareWeb.DashController do
   alias Hackflare.DNS.Zone
   alias Hackflare.Repo
   alias Hackflare.Support
+  import Ecto.Query, only: [from: 2]
 
   def home(conn, _params) do
     render(conn, :dashboard, current_view: :home, current_user: get_current_user!(conn))
   end
 
   def domains(conn, _params) do
-    zones = Repo.all(Zone) |> Repo.preload(:records)
+    current_user = get_current_user!(conn)
+    zones = user_zones(current_user)
 
     zone_records =
       Enum.into(zones, %{}, fn zone ->
@@ -31,18 +33,15 @@ defmodule HackflareWeb.DashController do
 
   def create_zone(conn, %{"zone_name" => zone_name, "zone_type" => zone_type})
       when is_binary(zone_name) and is_binary(zone_type) do
-    case DNS.create_zone(String.trim(zone_name), String.trim(zone_type)) do
+    current_user = get_current_user!(conn)
+
+    case DNS.create_zone(String.trim(zone_name), String.trim(zone_type), current_user) do
       {:ok, _} ->
         conn
         |> put_flash(
           :info,
           "Zone #{zone_name} created. Verify nameservers before adding records."
         )
-        |> redirect(to: ~p"/dash/domains")
-
-      {:error, _reason} ->
-        conn
-        |> put_flash(:error, "Failed to create zone #{zone_name}.")
         |> redirect(to: ~p"/dash/domains")
     end
   end
@@ -54,6 +53,7 @@ defmodule HackflareWeb.DashController do
   end
 
   def create_record(conn, params) do
+    current_user = get_current_user!(conn)
     zone_name = String.trim(Map.get(params, "zone_name", ""))
     record_name = String.trim(Map.get(params, "record_name", ""))
     record_type = String.trim(Map.get(params, "record_type", ""))
@@ -64,7 +64,7 @@ defmodule HackflareWeb.DashController do
          true <- record_type != "",
          true <- record_data != "",
          true <- is_integer(ttl) and ttl > 0,
-         {:ok, _} <- DNS.add_record(zone_name, record_name, record_type, ttl, record_data) do
+          {:ok, _} <- DNS.add_record(zone_name, record_name, record_type, ttl, record_data, current_user) do
       conn
       |> put_flash(:info, "Record added to #{zone_name}.")
       |> redirect(to: ~p"/dash/domains")
@@ -77,7 +77,9 @@ defmodule HackflareWeb.DashController do
   end
 
   def reverify_zone(conn, %{"zone_name" => zone_name}) when is_binary(zone_name) do
-    case DNS.verify_zone_nameservers(String.trim(zone_name)) do
+    current_user = get_current_user!(conn)
+
+    case DNS.verify_zone_nameservers(String.trim(zone_name), current_user) do
       {:ok, :verified} ->
         conn
         |> put_flash(:info, "Nameservers for #{zone_name} verified.")
@@ -113,8 +115,9 @@ defmodule HackflareWeb.DashController do
 
   def delete_zone(conn, %{"zone_name" => zone_name}) when is_binary(zone_name) do
     zone_name_decoded = String.replace(zone_name, "-", ".")
+    current_user = get_current_user!(conn)
 
-    case DNS.delete_zone(zone_name_decoded) do
+    case DNS.delete_zone(zone_name_decoded, current_user) do
       {:ok, _} ->
         conn
         |> put_flash(:info, "Zone #{zone_name_decoded} deleted successfully.")
@@ -247,4 +250,16 @@ defmodule HackflareWeb.DashController do
 
   defp parse_ttl(value) when is_integer(value) and value > 0, do: value
   defp parse_ttl(_), do: nil
+
+  defp user_zones(%{is_admin: true}) do
+    Repo.all(Zone) |> Repo.preload(:records)
+  end
+
+  defp user_zones(%{id: user_id}) do
+    from(z in Zone, where: z.user_id == ^user_id)
+    |> Repo.all()
+    |> Repo.preload(:records)
+  end
+
+  defp user_zones(_current_user), do: []
 end
