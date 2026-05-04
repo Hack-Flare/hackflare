@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM ghcr.io/tainers/hackflare-builder:alpine AS build
+FROM ghcr.io/tainers/hackflare-builder AS build
 
 WORKDIR /app
 
