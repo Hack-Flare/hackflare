@@ -92,12 +92,7 @@ defmodule HackflareWeb.DashController do
 
       {:error, :nameservers_mismatch} ->
         conn
-        |> put_flash(:error, "Nameservers for #{zone_name} do not match the expected set yet.")
-        |> redirect(to: ~p"/dash/domains")
-
-      {:error, :no_configured_nameservers} ->
-        conn
-        |> put_flash(:error, "No expected nameservers are configured.")
+        |> put_flash(:error, "Nameservers for #{zone_name} must be under *.ns.kirze.de.")
         |> redirect(to: ~p"/dash/domains")
 
       {:error, _reason} ->

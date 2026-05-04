@@ -266,7 +266,10 @@ defmodule Hackflare.DNS do
   end
 
   @doc """
-  Verify that a zone's NS delegation matches the configured nameservers.
+  Verify that a zone's NS delegation uses Hackflare nameservers.
+
+  A delegation is considered valid when all delegated NS hostnames match the
+  pattern `<label>.ns.kirze.de` (case-insensitive).
 
   If verification succeeds the zone will be marked `ns_verified: true` and the
   zone + its records will be created/loaded into the running DNS manager.
@@ -278,8 +281,6 @@ defmodule Hackflare.DNS do
   end
 
   def verify_zone_nameservers(zone_name, current_user) when is_binary(zone_name) do
-    expected = Hackflare.Settings.nameservers() |> Enum.map(&String.downcase/1)
-
     case get_zone(zone_name, current_user) do
       nil ->
         {:error, :zone_not_found}
@@ -295,41 +296,38 @@ defmodule Hackflare.DNS do
             |> Enum.map(&String.trim_trailing(&1, "."))
             |> Enum.map(&String.downcase/1)
 
-          if expected == [] do
-            {:error, :no_configured_nameservers}
-          else
-            matched =
-              Enum.all?(expected, fn e ->
-                Enum.any?(ns_list, fn n -> n == e or String.ends_with?(n, e) end)
+          matched =
+            ns_list != [] and
+              Enum.all?(ns_list, fn ns ->
+                String.match?(ns, ~r/^[a-z0-9-]+\.ns\.kirze\.de$/)
               end)
 
-            if matched do
-              # mark as verified and create zone in manager + add persisted records
-              zone
-              |> Ecto.Changeset.change(ns_verified: true)
-              |> Repo.update()
+          if matched do
+            # mark as verified and create zone in manager + add persisted records
+            zone
+            |> Ecto.Changeset.change(ns_verified: true)
+            |> Repo.update()
 
-              with {:ok, mgr} <- get_manager() do
-                _ = Native.manager_create_zone(mgr, zone_name)
-                zone = Repo.preload(zone, :records)
+            with {:ok, mgr} <- get_manager() do
+              _ = Native.manager_create_zone(mgr, zone_name)
+              zone = Repo.preload(zone, :records)
 
-                Enum.each(zone.records, fn rec ->
-                  _ =
-                    Native.manager_add_record(
-                      mgr,
-                      zone.name,
-                      rec.name,
-                      rec.rtype,
-                      rec.ttl,
-                      rec.data
-                    )
-                end)
-              end
-
-              {:ok, :verified}
-            else
-              {:error, :nameservers_mismatch}
+              Enum.each(zone.records, fn rec ->
+                _ =
+                  Native.manager_add_record(
+                    mgr,
+                    zone.name,
+                    rec.name,
+                    rec.rtype,
+                    rec.ttl,
+                    rec.data
+                  )
+              end)
             end
+
+            {:ok, :verified}
+          else
+            {:error, :nameservers_mismatch}
           end
         rescue
           _ -> {:error, :dns_lookup_failed}
