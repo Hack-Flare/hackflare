@@ -50,7 +50,7 @@ WORKDIR /app
 RUN adduser -D -u 1000 appuser
 USER appuser
 
-COPY --from=build --chown=appuser:appuser /app/release .
+COPY --from=build /app/release .
 
 EXPOSE 4000
 
