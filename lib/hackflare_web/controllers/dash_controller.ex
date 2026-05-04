@@ -64,7 +64,8 @@ defmodule HackflareWeb.DashController do
          true <- record_type != "",
          true <- record_data != "",
          true <- is_integer(ttl) and ttl > 0,
-          {:ok, _} <- DNS.add_record(zone_name, record_name, record_type, ttl, record_data, current_user) do
+         {:ok, _} <-
+           DNS.add_record(zone_name, record_name, record_type, ttl, record_data, current_user) do
       conn
       |> put_flash(:info, "Record added to #{zone_name}.")
       |> redirect(to: ~p"/dash/domains")
