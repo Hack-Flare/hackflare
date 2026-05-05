@@ -67,7 +67,7 @@ docker compose -f docker-compose.dev.yml up
   - [ ] Settings
   - [x] Error Pages
   - [x] Auth System
-  - [x] Docker
+- [x] Docker
 - [x] Big Haj on error pages
 - [semi-complete] Organize readme and documentation better
 
