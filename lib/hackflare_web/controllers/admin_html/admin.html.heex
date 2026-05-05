@@ -9,7 +9,10 @@
         </div>
 
         <nav class="space-y-2">
-          <a href={~p"/admin"} class="flex items-center gap-3 rounded-lg border border-orange-500/50 bg-orange-500/20 px-4 py-3 font-semibold text-orange-400">
+          <a
+            href={~p"/admin"}
+            class="flex items-center gap-3 rounded-lg border border-orange-500/50 bg-orange-500/20 px-4 py-3 font-semibold text-orange-400"
+          >
             <.icon name="hero-cog-8-tooth" class="h-5 w-5" />
             <span>Overview</span>
           </a>
@@ -21,11 +24,17 @@
             <.icon name="hero-magnifying-glass" class="h-5 w-5" />
             <span>Domain Search</span>
           </button>
-          <a href="#runtime-settings" class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-300 transition-all hover:bg-gray-900/50 hover:text-orange-400">
+          <a
+            href="#runtime-settings"
+            class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-300 transition-all hover:bg-gray-900/50 hover:text-orange-400"
+          >
             <.icon name="hero-adjustments-horizontal" class="h-5 w-5" />
             <span>Runtime Settings</span>
           </a>
-          <a href={~p"/dash"} class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-300 transition-all hover:bg-gray-900/50 hover:text-orange-400">
+          <a
+            href={~p"/dash"}
+            class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-300 transition-all hover:bg-gray-900/50 hover:text-orange-400"
+          >
             <.icon name="hero-arrow-left" class="h-5 w-5" />
             <span>Back to Dashboard</span>
           </a>
@@ -36,7 +45,9 @@
         <header class="flex items-center justify-between border-b border-orange-500/20 bg-black/30 px-8 py-6">
           <div>
             <h1 class="text-3xl font-bold text-white">Admin Panel</h1>
-            <p class="mt-1 text-sm text-gray-400">Manage platform settings and edit any domain.</p>
+            <p class="mt-1 text-sm text-gray-400">
+              Manage platform settings and edit any domain.
+            </p>
           </div>
           <div class="flex items-center gap-4">
             <div class="rounded-lg border border-orange-500/20 bg-black/30 px-4 py-2 text-sm text-gray-300">
@@ -72,7 +83,9 @@
             <div class="flex items-start justify-between gap-4">
               <div>
                 <h3 class="text-xl font-bold text-white">Domain Search</h3>
-                <p class="mt-1 text-sm text-gray-400">Search any domain and jump into the user dashboard editor.</p>
+                <p class="mt-1 text-sm text-gray-400">
+                  Search any domain and jump into the user dashboard editor.
+                </p>
               </div>
               <button
                 type="button"
@@ -105,7 +118,9 @@
                     >
                       <div>
                         <p class="font-semibold text-white">{zone.name}</p>
-                        <p class="mt-0.5 text-xs text-gray-400">{Enum.count(zone.records)} records</p>
+                        <p class="mt-0.5 text-xs text-gray-400">
+                          {Enum.count(zone.records)} records
+                        </p>
                       </div>
                       <span class="rounded-full border border-orange-500/20 bg-black/30 px-3 py-1 text-xs font-semibold text-orange-300">
                         Edit
@@ -117,7 +132,10 @@
             </div>
           </div>
 
-          <div id="runtime-settings" class="space-y-4 rounded-lg border border-orange-500/10 bg-black/20 p-4">
+          <div
+            id="runtime-settings"
+            class="space-y-4 rounded-lg border border-orange-500/10 bg-black/20 p-4"
+          >
             <div class="flex items-start justify-between gap-4">
               <div>
                 <h3 class="text-xl font-bold text-white">Runtime Settings</h3>
@@ -203,7 +221,9 @@
                     />
                   </label>
                   <label class="block space-y-1 lg:col-span-2">
-                    <span class="text-sm font-semibold text-gray-200">OpenID Configuration URI</span>
+                    <span class="text-sm font-semibold text-gray-200">
+                      OpenID Configuration URI
+                    </span>
                     <input
                       type="text"
                       name="settings[auth][openid_configuration_uri]"
@@ -228,7 +248,9 @@
               <div class="space-y-4 rounded-lg border border-orange-500/10 bg-black/20 p-4">
                 <div>
                   <h4 class="text-base font-bold text-white">DNS</h4>
-                  <p class="text-sm text-gray-400">These values restart the nameserver when saved.</p>
+                  <p class="text-sm text-gray-400">
+                    These values restart the nameserver when saved.
+                  </p>
                 </div>
                 <div class="grid gap-4 lg:grid-cols-2">
                   <label class="block space-y-1">
@@ -252,7 +274,9 @@
                     />
                   </label>
                   <label class="block space-y-1">
-                    <span class="text-sm font-semibold text-gray-200">SOA Primary Nameserver (mname)</span>
+                    <span class="text-sm font-semibold text-gray-200">
+                      SOA Primary Nameserver (mname)
+                    </span>
                     <input
                       type="text"
                       name="settings[dns][soa][mname]"
@@ -262,7 +286,9 @@
                     />
                   </label>
                   <label class="block space-y-1">
-                    <span class="text-sm font-semibold text-gray-200">SOA Responsible Email (rname)</span>
+                    <span class="text-sm font-semibold text-gray-200">
+                      SOA Responsible Email (rname)
+                    </span>
                     <input
                       type="text"
                       name="settings[dns][soa][rname]"
