@@ -15,7 +15,7 @@ defmodule Hackflare.DNS.Zone do
   def changeset(zone, attrs) do
     zone
     |> cast(attrs, [:user_id, :name, :type, :ns_verified])
-    |> validate_required([:name])
+    |> validate_required([:user_id, :name])
     |> unique_constraint(:name)
   end
 end

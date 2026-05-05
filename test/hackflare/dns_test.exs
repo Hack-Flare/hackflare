@@ -28,11 +28,11 @@ defmodule Hackflare.DNSTest do
   end
 
   describe "delete_zone/1" do
-    test "deletes unverified zones (not in DNS manager)" do
+    test "deletes unverified zones (not in DNS manager)", %{user: user} do
       zone_name = "unverified.test"
 
       # Create an unverified zone
-      assert {:ok, ^zone_name} = DNS.create_zone(zone_name)
+      assert {:ok, ^zone_name} = DNS.create_zone(zone_name, "root", user)
 
       # Verify it exists in DB but not verified
       zone = Repo.get_by(Zone, name: zone_name)
@@ -51,19 +51,19 @@ defmodule Hackflare.DNSTest do
       other_zone = "other.test"
 
       assert {:ok, ^owned_zone} = DNS.create_zone(owned_zone, "root", user)
-      assert {:ok, ^other_zone} = DNS.create_zone(other_zone)
+      assert {:error, :owner_required} = DNS.create_zone(other_zone)
 
       owned_zone_row = Repo.get_by!(Zone, name: owned_zone)
-      other_zone_row = Repo.get_by!(Zone, name: other_zone)
 
       assert owned_zone_row.user_id == user.id
-      assert is_nil(other_zone_row.user_id)
 
       assert {:ok, ^owned_zone} = DNS.delete_zone(owned_zone, user)
+
+      assert {:error, :owner_required} = DNS.create_zone(other_zone)
       assert {:error, :zone_not_found} = DNS.delete_zone(other_zone, user)
 
       refute Repo.get_by(Zone, name: owned_zone)
-      assert Repo.get_by(Zone, name: other_zone)
+      refute Repo.get_by(Zone, name: other_zone)
     end
 
     test "returns error for non-existent zones" do
@@ -73,6 +73,13 @@ defmodule Hackflare.DNSTest do
     test "returns error for invalid zone names" do
       assert {:error, :invalid_zone_name} = DNS.delete_zone(nil)
       assert {:error, :invalid_zone_name} = DNS.delete_zone(123)
+    end
+  end
+
+  describe "create_zone/3" do
+    test "requires an owner" do
+      assert {:error, :owner_required} = DNS.create_zone("orphan.test")
+      assert {:error, :owner_required} = DNS.create_zone("orphan.test", "root")
     end
   end
 end

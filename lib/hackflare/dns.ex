@@ -52,30 +52,37 @@ defmodule Hackflare.DNS do
   Create a new DNS zone.
 
   Returns `{:ok, zone_name}` on success, `{:error, reason}` on failure.
+  Zones must be owned by a signed-in user.
   """
   def create_zone(zone_name) when is_binary(zone_name) do
-    create_zone(zone_name, "root", nil)
+    {:error, :owner_required}
   end
 
   def create_zone(_), do: {:error, :invalid_zone_name}
 
   def create_zone(zone_name, zone_type) when is_binary(zone_name) and is_binary(zone_type) do
-    create_zone(zone_name, zone_type, nil)
+    {:error, :owner_required}
   end
 
   def create_zone(zone_name, zone_type, current_user)
       when is_binary(zone_name) and is_binary(zone_type) do
-    zone_attrs =
-      %{name: zone_name, type: zone_type}
-      |> maybe_put_user_id(current_user)
+    if is_nil(current_user) do
+      {:error, :owner_required}
+    else
+      zone_attrs =
+        %{name: zone_name, type: zone_type}
+        |> maybe_put_user_id(current_user)
 
-    # Persist the zone but mark it unverified. We will only create the zone
-    # in the running DNS manager after nameserver delegation is verified.
-    %Zone{}
-    |> Zone.changeset(zone_attrs)
-    |> Repo.insert(on_conflict: :nothing)
-
-    {:ok, zone_name}
+      # Persist the zone but mark it unverified. We will only create the zone
+      # in the running DNS manager after nameserver delegation is verified.
+      %Zone{}
+      |> Zone.changeset(zone_attrs)
+      |> Repo.insert(on_conflict: :nothing)
+      |> case do
+        {:ok, _zone} -> {:ok, zone_name}
+        {:error, reason} -> {:error, reason}
+      end
+    end
   end
 
   @doc """

@@ -43,6 +43,16 @@ defmodule HackflareWeb.DashController do
           "Zone #{zone_name} created. Verify nameservers before adding records."
         )
         |> redirect(to: ~p"/dash/domains")
+
+      {:error, :owner_required} ->
+        conn
+        |> put_flash(:error, "You must be signed in to create a domain.")
+        |> redirect(to: ~p"/dash/domains")
+
+      {:error, _reason} ->
+        conn
+        |> put_flash(:error, "Failed to create domain #{zone_name}.")
+        |> redirect(to: ~p"/dash/domains")
     end
   end
 
