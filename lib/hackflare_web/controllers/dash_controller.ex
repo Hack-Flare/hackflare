@@ -14,9 +14,10 @@ defmodule HackflareWeb.DashController do
     render(conn, :dashboard, current_view: :home, current_user: get_current_user!(conn))
   end
 
-  def domains(conn, _params) do
+  def domains(conn, params) do
     current_user = get_current_user!(conn)
     zones = user_zones(current_user)
+    selected_zone = normalize_selected_zone(params)
 
     zone_records =
       Enum.into(zones, %{}, fn zone ->
@@ -27,6 +28,7 @@ defmodule HackflareWeb.DashController do
       current_view: :domains,
       zones: zones,
       zone_records: zone_records,
+      selected_zone: selected_zone,
       current_user: get_current_user!(conn)
     )
   end
@@ -256,6 +258,12 @@ defmodule HackflareWeb.DashController do
 
   defp parse_ttl(value) when is_integer(value) and value > 0, do: value
   defp parse_ttl(_), do: nil
+
+  defp normalize_selected_zone(%{"zone_name" => zone_name}) when is_binary(zone_name) do
+    String.trim(zone_name)
+  end
+
+  defp normalize_selected_zone(_params), do: nil
 
   defp user_zones(%{is_admin: true}) do
     Repo.all(Zone) |> Repo.preload(:records)

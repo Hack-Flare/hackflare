@@ -6,14 +6,18 @@ defmodule HackflareWeb.AdminController do
   use HackflareWeb, :controller
 
   alias Hackflare.Accounts
+  alias Hackflare.DNS.Zone
+  alias Hackflare.Repo
   alias Hackflare.Settings
 
   def index(conn, _params) do
     users = Accounts.list_users()
     settings = Settings.runtime()
+    zones = Repo.all(Zone) |> Repo.preload([:records, :user])
 
     stats = %{
       total_users: length(users),
+      total_domains: length(zones),
       admin_users: Enum.count(users, &Accounts.admin_user?/1),
       verified_users: Enum.count(users, &(&1.verification_status == "verified")),
       eligible_users: Enum.count(users, & &1.ysws_eligible)
@@ -22,6 +26,7 @@ defmodule HackflareWeb.AdminController do
     render(conn, :index,
       current_view: :admin,
       users: users,
+      zones: zones,
       stats: stats,
       metrics: Hackflare.Metrics.get_metrics(),
       settings: settings,

@@ -5,10 +5,12 @@ defmodule HackflareWeb.AdminHTML do
 
   use HackflareWeb, :html
 
+  embed_templates "admin_html/*"
+
   @doc """
-  Renders the admin panel using the dashboard layout.
+  Renders the admin panel.
   """
   def render("index.html", assigns) do
-    HackflareWeb.Layouts.dashboard(assigns)
+    admin(assigns)
   end
 end
