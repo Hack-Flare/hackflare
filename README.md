@@ -111,3 +111,7 @@ After Phase 1 the repo will be open sourced.
 - [ ] ISO 27001:2022 certification?
 - [ ] Anti Scanning/Scraping measures
 - [ ] Custom Error Pages
+- [ ] Captcha
+  - [ ] Core working
+  - [ ] IP scanning (VPNs, proxies etc.)
+  - [ ] JS/React SDK
