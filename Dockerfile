@@ -34,20 +34,21 @@ RUN mkdir -p priv/static/docs && \
 RUN mix release --overwrite && \
     cp -r _build/prod/rel/hackflare /app/release
 
-FROM alpine:3.20 AS app
+FROM debian:bookworm-slim AS app
 
-RUN apk add --no-cache \
-    libstdc++ \
-    openssl \
-    ncurses-libs \
-    ca-certificates
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libstdc++6 \
+    libssl3 \
+    ncurses-bin \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV LANG=C.UTF-8 \
     PORT=4000
 
 WORKDIR /app
 
-RUN adduser -D -u 1000 appuser
+RUN adduser --disabled-password --uid 1000 appuser
 USER appuser
 
 COPY --from=build /app/release .
