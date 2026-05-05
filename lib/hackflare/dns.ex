@@ -288,7 +288,14 @@ defmodule Hackflare.DNS do
       %Zone{} = zone ->
         # Query NS records using the Erlang resolver
         try do
-          ns_raw = :inet_res.lookup(String.to_charlist(zone_name), :in, :ns)
+          ns_raw =
+            :inet_res.lookup(
+              String.to_charlist(zone_name),
+              :in,
+              :ns,
+              resolver_opts(),
+              2_000
+            )
 
           ns_list =
             ns_raw
@@ -340,6 +347,12 @@ defmodule Hackflare.DNS do
   end
 
   defp maybe_put_user_id(attrs, _current_user), do: attrs
+
+  defp resolver_opts do
+    [
+      nameservers: [{{1, 1, 1, 1}, 53}, {{8, 8, 8, 8}, 53}]
+    ]
+  end
 
   defp get_zone(zone_name, nil) do
     Repo.get_by(Zone, name: zone_name)
