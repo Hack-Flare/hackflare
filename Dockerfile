@@ -1,26 +1,34 @@
-# syntax=docker/dockerfile:1.7
+FROM elixir:1.19-slim AS build
 
-FROM ghcr.io/tainers/hackflare-builder AS build
+RUN apt-get update && \
+    apt-get install -y build-essential git curl libssl-dev pkg-config
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+ENV MIX_ENV=prod \
+    LANG=C.UTF-8 
 
 WORKDIR /app
+RUN mix local.hex --force && mix local.rebar --force
 
 COPY mix.exs mix.lock ./
-COPY config config
-
 RUN --mount=type=cache,target=/root/.cargo/registry \
     --mount=type=cache,target=/root/.cargo/git \
     mix deps.get --only prod
 
-COPY native native
+COPY config/ ./config/
+COPY native/ ./native/
 
 RUN --mount=type=cache,target=/root/.cargo/registry \
     --mount=type=cache,target=/root/.cargo/git \
     mix deps.compile
 
-COPY lib lib
-COPY priv priv
-COPY assets assets
-COPY doc doc
+COPY priv/ ./priv/
+COPY lib/ ./lib/
+COPY assets/ ./assets/
+COPY doc/ ./doc/
+
 
 RUN --mount=type=cache,target=/root/.cargo/registry \
     --mount=type=cache,target=/root/.cargo/git \
@@ -28,31 +36,28 @@ RUN --mount=type=cache,target=/root/.cargo/registry \
 
 RUN mix assets.deploy
 
-RUN mkdir -p priv/static/docs && \
-    cp -r doc/. priv/static/docs/
+# Ensure generated ExDoc HTML is packaged into `priv/static/docs`
+# so Plug.Static (served from priv/static) will serve it in the release.
+RUN mkdir -p priv/static/docs && cp -r doc/. priv/static/docs/
 
 RUN mix release --overwrite && \
-    cp -r _build/prod/rel/hackflare /app/release
+    cp -r _build/prod/rel/hackflare ./release
 
-FROM debian:bookworm-slim AS app
+FROM debian:trixie-slim AS app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libstdc++6 \
-    libssl3 \
-    ncurses-bin \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y libstdc++6 openssl libncurses6 ca-certificates curl && \
+    rm -rf /var/lib/apt/lists/*
 
 ENV LANG=C.UTF-8 \
     PORT=4000
 
 WORKDIR /app
-
-RUN adduser --disabled-password --uid 1000 appuser
+RUN useradd -m -u 1000 appuser && \
+    chown -R appuser:appuser /app
 USER appuser
 
-COPY --from=build /app/release .
+COPY --from=build --chown=appuser:appuser /app/release .
 
 EXPOSE 4000
-
 CMD ["sh", "-c", "bin/hackflare eval \"Hackflare.Release.migrate()\" && exec bin/hackflare start"]
