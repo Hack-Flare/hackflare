@@ -207,7 +207,9 @@
                   <%= if Enum.empty?(@zones) do %>
                     <div class="rounded-xl border border-dashed border-orange-500/35 bg-gray-900/50 p-12 text-center">
                       <p class="text-lg font-semibold text-white">No Domains</p>
-                      <p class="mt-2 text-sm text-gray-400">Create your first domain to get started.</p>
+                      <p class="mt-2 text-sm text-gray-400">
+                        Create your first domain to get started.
+                      </p>
                       <button
                         onclick="document.getElementById('new-zone-modal').classList.remove('hidden')"
                         class="mt-6 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-orange-400"
@@ -221,25 +223,39 @@
                       <% zone_key = String.replace(zone_name, ".", "-") %>
                       <% records = Map.get(@zone_records || %{}, zone_name, []) %>
                       <% is_selected = Map.get(assigns, :selected_zone) == zone_name %>
-                      <div id={"domain-#{zone_key}-panel"} class={[is_selected && "space-y-4", !is_selected && "hidden space-y-4"]}>
+                      <div
+                        id={"domain-#{zone_key}-panel"}
+                        class={[is_selected && "space-y-4", !is_selected && "hidden space-y-4"]}
+                      >
                         <div class="rounded-xl border border-orange-500/25 bg-black/80 p-6">
                           <div class="flex items-start justify-between gap-4">
                             <div>
-                              <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-300">Domain</p>
+                              <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-300">
+                                Domain
+                              </p>
                               <h3 class="mt-2 text-2xl font-bold text-white">{zone_name}</h3>
                               <p class={[
                                 "mt-2 text-sm font-medium",
                                 zone.ns_verified && "text-emerald-300",
                                 !zone.ns_verified && "text-amber-300"
                               ]}>
-                                {if zone.ns_verified, do: "Nameservers verified", else: "Waiting for nameserver verification"}
+                                {if zone.ns_verified,
+                                  do: "Nameservers verified",
+                                  else: "Waiting for nameserver verification"}
                               </p>
                             </div>
                             <div class="flex items-center gap-2">
-                              <form method="post" action={~p"/dash/domains/reverify"} class="inline">
+                              <form
+                                method="post"
+                                action={~p"/dash/domains/reverify"}
+                                class="inline"
+                              >
                                 <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
                                 <input type="hidden" name="zone_name" value={zone_name} />
-                                <button type="submit" class="rounded-lg bg-amber-600/80 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-amber-500">
+                                <button
+                                  type="submit"
+                                  class="rounded-lg bg-amber-600/80 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-amber-500"
+                                >
                                   Re-verify
                                 </button>
                               </form>
@@ -248,7 +264,8 @@
                                 class={[
                                   "rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all",
                                   zone.ns_verified && "bg-emerald-600 hover:bg-emerald-500",
-                                  !zone.ns_verified && "cursor-not-allowed bg-emerald-900/50 opacity-60"
+                                  !zone.ns_verified &&
+                                    "cursor-not-allowed bg-emerald-900/50 opacity-60"
                                 ]}
                                 disabled={!zone.ns_verified}
                               >
@@ -292,19 +309,33 @@
                                 <table class="min-w-full divide-y divide-orange-500/15 text-sm">
                                   <thead class="bg-black/30">
                                     <tr>
-                                      <th class="px-4 py-2 text-left font-semibold text-gray-300">Type</th>
-                                      <th class="px-4 py-2 text-left font-semibold text-gray-300">Name</th>
-                                      <th class="px-4 py-2 text-left font-semibold text-gray-300">Content</th>
-                                      <th class="px-4 py-2 text-left font-semibold text-gray-300">TTL</th>
+                                      <th class="px-4 py-2 text-left font-semibold text-gray-300">
+                                        Type
+                                      </th>
+                                      <th class="px-4 py-2 text-left font-semibold text-gray-300">
+                                        Name
+                                      </th>
+                                      <th class="px-4 py-2 text-left font-semibold text-gray-300">
+                                        Content
+                                      </th>
+                                      <th class="px-4 py-2 text-left font-semibold text-gray-300">
+                                        TTL
+                                      </th>
                                     </tr>
                                   </thead>
                                   <tbody class="divide-y divide-orange-500/10 bg-gray-900/30">
                                     <%= for record <- records do %>
                                       <tr class="hover:bg-black/30">
-                                        <td class="whitespace-nowrap px-4 py-2 font-semibold text-orange-300">{record.rtype}</td>
-                                        <td class="whitespace-nowrap px-4 py-2 text-gray-200">{record.name}</td>
+                                        <td class="whitespace-nowrap px-4 py-2 font-semibold text-orange-300">
+                                          {record.rtype}
+                                        </td>
+                                        <td class="whitespace-nowrap px-4 py-2 text-gray-200">
+                                          {record.name}
+                                        </td>
                                         <td class="px-4 py-2 text-gray-300">{record.data}</td>
-                                        <td class="whitespace-nowrap px-4 py-2 text-gray-400">{record.ttl}</td>
+                                        <td class="whitespace-nowrap px-4 py-2 text-gray-400">
+                                          {record.ttl}
+                                        </td>
                                       </tr>
                                     <% end %>
                                   </tbody>
@@ -313,21 +344,40 @@
                             <% end %>
                           </div>
 
-                          <div id={"other-#{zone_key}"} class="hidden p-4 text-center text-sm text-gray-400">
+                          <div
+                            id={"other-#{zone_key}"}
+                            class="hidden p-4 text-center text-sm text-gray-400"
+                          >
                             <p>More features coming soon (SSL, Email, etc.)</p>
                           </div>
                         </div>
 
-                        <div id={"add-record-modal-#{zone_key}"} class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/60">
+                        <div
+                          id={"add-record-modal-#{zone_key}"}
+                          class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/60"
+                        >
                           <div class="w-full max-w-md rounded-xl border border-orange-500/30 bg-gray-900 p-8 shadow-2xl">
                             <h2 class="mb-1 text-2xl font-bold text-white">Add DNS Record</h2>
                             <p class="mb-4 text-sm text-gray-400">Zone: {zone_name}</p>
-                            <form method="post" action={~p"/dash/domains/records/create"} class="space-y-4" onsubmit={"document.getElementById('add-record-modal-" <> zone_key <> "').classList.add('hidden')"}>
+                            <form
+                              method="post"
+                              action={~p"/dash/domains/records/create"}
+                              class="space-y-4"
+                              onsubmit={"document.getElementById('add-record-modal-" <> zone_key <> "').classList.add('hidden')"}
+                            >
                               <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
                               <input type="hidden" name="zone_name" value={zone_name} />
-                              <input type="text" name="record_name" placeholder="Record name: @, www, api" class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" />
+                              <input
+                                type="text"
+                                name="record_name"
+                                placeholder="Record name: @, www, api"
+                                class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                              />
                               <div class="grid grid-cols-2 gap-3">
-                                <select name="record_type" class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none">
+                                <select
+                                  name="record_type"
+                                  class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                                >
                                   <option value="A">A</option>
                                   <option value="AAAA">AAAA</option>
                                   <option value="CNAME">CNAME</option>
@@ -335,12 +385,36 @@
                                   <option value="TXT">TXT</option>
                                   <option value="NS">NS</option>
                                 </select>
-                                <input type="number" name="ttl" min="1" value="300" required class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" />
+                                <input
+                                  type="number"
+                                  name="ttl"
+                                  min="1"
+                                  value="300"
+                                  required
+                                  class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                                />
                               </div>
-                              <input type="text" name="record_data" placeholder="Record content" required class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" />
+                              <input
+                                type="text"
+                                name="record_data"
+                                placeholder="Record content"
+                                required
+                                class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                              />
                               <div class="flex gap-3 pt-1">
-                                <button type="button" onclick={"document.getElementById('add-record-modal-#{zone_key}').classList.add('hidden')"} class="flex-1 rounded-lg bg-gray-800 px-4 py-2 text-sm font-semibold text-gray-200 transition-all hover:bg-gray-700">Cancel</button>
-                                <button type="submit" class="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-emerald-500">Save Record</button>
+                                <button
+                                  type="button"
+                                  onclick={"document.getElementById('add-record-modal-#{zone_key}').classList.add('hidden')"}
+                                  class="flex-1 rounded-lg bg-gray-800 px-4 py-2 text-sm font-semibold text-gray-200 transition-all hover:bg-gray-700"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="submit"
+                                  class="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-emerald-500"
+                                >
+                                  Save Record
+                                </button>
                               </div>
                             </form>
                           </div>
@@ -365,23 +439,49 @@
                 </div>
               </div>
 
-              <div class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50" id="new-zone-modal">
+              <div
+                class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50"
+                id="new-zone-modal"
+              >
                 <div class="w-full max-w-md rounded-xl border border-orange-500/30 bg-gray-900 p-8 shadow-2xl">
                   <h2 class="mb-4 text-2xl font-bold text-white">Create New Zone</h2>
-                  <form method="post" action={~p"/dash/domains/create"} class="space-y-4" onsubmit="document.getElementById('new-zone-modal').classList.add('hidden')">
+                  <form
+                    method="post"
+                    action={~p"/dash/domains/create"}
+                    class="space-y-4"
+                    onsubmit="document.getElementById('new-zone-modal').classList.add('hidden')"
+                  >
                     <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
                     <div>
-                      <label class="mb-2 block text-sm font-semibold text-gray-200">Zone Name</label>
-                      <input type="text" name="zone_name" placeholder="example.com" required class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none" />
-                      <p class="mt-1 text-xs text-gray-400">Enter the domain name for this zone</p>
+                      <label class="mb-2 block text-sm font-semibold text-gray-200">
+                        Zone Name
+                      </label>
+                      <input
+                        type="text"
+                        name="zone_name"
+                        placeholder="example.com"
+                        required
+                        class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                      />
+                      <p class="mt-1 text-xs text-gray-400">
+                        Enter the domain name for this zone
+                      </p>
                     </div>
                     <div>
-                      <label class="mb-2 block text-sm font-semibold text-gray-200">Zone Type</label>
-                      <select name="zone_type" id="zone-type" class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none">
+                      <label class="mb-2 block text-sm font-semibold text-gray-200">
+                        Zone Type
+                      </label>
+                      <select
+                        name="zone_type"
+                        id="zone-type"
+                        class="w-full rounded-lg border border-orange-500/30 bg-black/40 p-3 text-gray-100 focus:border-orange-400 focus:outline-none"
+                      >
                         <option value="root" selected>Root domain (apex)</option>
                         <option value="subdomain">Subdomain (full name)</option>
                       </select>
-                      <p class="mt-1 text-xs text-gray-400">Choose whether this zone is an apex/root domain or a subdomain.</p>
+                      <p class="mt-1 text-xs text-gray-400">
+                        Choose whether this zone is an apex/root domain or a subdomain.
+                      </p>
                     </div>
                     <script>
                       (function() {
@@ -400,8 +500,19 @@
                       })();
                     </script>
                     <div class="flex gap-3 pt-4">
-                      <button type="button" onclick="document.getElementById('new-zone-modal').classList.add('hidden')" class="flex-1 rounded-lg bg-gray-800 px-4 py-2 font-semibold text-gray-200 transition-all hover:bg-gray-700">Cancel</button>
-                      <button type="submit" class="flex-1 rounded-lg bg-orange-600 px-4 py-2 font-semibold text-white transition-all hover:bg-orange-700">Create Zone</button>
+                      <button
+                        type="button"
+                        onclick="document.getElementById('new-zone-modal').classList.add('hidden')"
+                        class="flex-1 rounded-lg bg-gray-800 px-4 py-2 font-semibold text-gray-200 transition-all hover:bg-gray-700"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        class="flex-1 rounded-lg bg-orange-600 px-4 py-2 font-semibold text-white transition-all hover:bg-orange-700"
+                      >
+                        Create Zone
+                      </button>
                     </div>
                   </form>
                 </div>
