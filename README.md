@@ -49,18 +49,16 @@ docker compose -f docker-compose.dev.yml up
 - [wip] DNS System
   - [wip] Backend
     - [x] Auth Integration
-    - [ ] Domain Migration (cloudflare)
     - [wip] Domain Management
       - Domains stay in a pending state until their NS delegation is verified, and record edits are blocked until then.
 - [x] nameservers
-  - [1] Amount Online
 - [x] Auth system (hc auth)
   - [x] Backend
   - [x] ENV Setup
 - [ ] Simple Logging
 - [wip] Proper Frontend
   - [wip] Dashboard
-  - [ ] Domain Management
+  - [wip] Domain Management
   - [ ] Logging
   - [ ] Notifications
   - [wip] Admin Panel
@@ -71,7 +69,7 @@ docker compose -f docker-compose.dev.yml up
 - [x] Big Haj on error pages
 - [semi-complete] Organize readme and documentation better
 
-After Phase 1 the repo will be open sourced.
+- [ ] Working Production
 
 ### Phase 2 (Post MVP)
 - [ ] Caching (incl. DNS caching, minimal site caching)
