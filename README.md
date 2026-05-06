@@ -44,6 +44,8 @@ docker compose -f docker-compose.dev.yml up
 ```
 ## Roadmap
 
+Feel free to submit PRs/issues for anything you want us to work on or you want to work on.
+
 ### Phase 1 (MVP/POC)
 
 - [wip] DNS System
