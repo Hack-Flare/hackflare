@@ -51,6 +51,11 @@ defmodule HackflareWeb.DashController do
         |> put_flash(:error, "You must be signed in to create a domain.")
         |> redirect(to: ~p"/dash/domains")
 
+      {:error, :zone_already_exists} ->
+        conn
+        |> put_flash(:error, "Domain #{zone_name} already exists.")
+        |> redirect(to: ~p"/dash/domains")
+
       {:error, _reason} ->
         conn
         |> put_flash(:error, "Failed to create domain #{zone_name}.")
@@ -122,23 +127,23 @@ defmodule HackflareWeb.DashController do
   end
 
   def delete_zone(conn, %{"zone_name" => zone_name}) when is_binary(zone_name) do
-    zone_name_decoded = String.replace(zone_name, "-", ".")
+    zone_name_trimmed = String.trim(zone_name)
     current_user = get_current_user!(conn)
 
-    case DNS.delete_zone(zone_name_decoded, current_user) do
+    case DNS.delete_zone(zone_name_trimmed, current_user) do
       {:ok, _} ->
         conn
-        |> put_flash(:info, "Zone #{zone_name_decoded} deleted successfully.")
+        |> put_flash(:info, "Zone #{zone_name_trimmed} deleted successfully.")
         |> redirect(to: ~p"/dash/domains")
 
       {:error, :zone_not_found} ->
         conn
-        |> put_flash(:error, "Zone #{zone_name_decoded} not found.")
+        |> put_flash(:error, "Zone #{zone_name_trimmed} not found.")
         |> redirect(to: ~p"/dash/domains")
 
       {:error, _reason} ->
         conn
-        |> put_flash(:error, "Failed to delete zone #{zone_name_decoded}.")
+        |> put_flash(:error, "Failed to delete zone #{zone_name_trimmed}.")
         |> redirect(to: ~p"/dash/domains")
     end
   end

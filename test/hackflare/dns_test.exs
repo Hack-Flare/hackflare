@@ -27,7 +27,7 @@ defmodule Hackflare.DNSTest do
     {:ok, user: user}
   end
 
-  describe "delete_zone/1" do
+  describe "delete_zone/2" do
     test "deletes unverified zones (not in DNS manager)", %{user: user} do
       zone_name = "unverified.test"
 
@@ -40,7 +40,7 @@ defmodule Hackflare.DNSTest do
       assert zone.ns_verified == false
 
       # Should be able to delete unverified zone
-      assert {:ok, ^zone_name} = DNS.delete_zone(zone_name)
+      assert {:ok, ^zone_name} = DNS.delete_zone(zone_name, user)
 
       # Zone should be gone from DB
       refute Repo.get_by(Zone, name: zone_name)
@@ -66,8 +66,8 @@ defmodule Hackflare.DNSTest do
       refute Repo.get_by(Zone, name: other_zone)
     end
 
-    test "returns error for non-existent zones" do
-      assert {:error, :zone_not_found} = DNS.delete_zone("nonexistent.test")
+    test "returns error for non-existent zones", %{user: user} do
+      assert {:error, :zone_not_found} = DNS.delete_zone("nonexistent.test", user)
     end
 
     test "returns error for invalid zone names" do
@@ -80,6 +80,31 @@ defmodule Hackflare.DNSTest do
     test "requires an owner" do
       assert {:error, :owner_required} = DNS.create_zone("orphan.test")
       assert {:error, :owner_required} = DNS.create_zone("orphan.test", "root")
+    end
+
+    test "returns conflict when zone already exists", %{user: user} do
+      zone_name = "duplicate.test"
+
+      assert {:ok, ^zone_name} = DNS.create_zone(zone_name, "root", user)
+      assert {:error, :zone_already_exists} = DNS.create_zone(zone_name, "root", user)
+    end
+  end
+
+  describe "owner-required mutating APIs" do
+    test "delete_zone/1 requires owner" do
+      assert {:error, :owner_required} = DNS.delete_zone("example.test")
+    end
+
+    test "add_record/5 requires owner" do
+      assert {:error, :owner_required} = DNS.add_record("example.test", "@", "A", 300, "1.1.1.1")
+    end
+
+    test "remove_record/3 requires owner" do
+      assert {:error, :owner_required} = DNS.remove_record("example.test", "@", "A")
+    end
+
+    test "verify_zone_nameservers/1 requires owner" do
+      assert {:error, :owner_required} = DNS.verify_zone_nameservers("example.test")
     end
   end
 end

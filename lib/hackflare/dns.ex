@@ -77,10 +77,18 @@ defmodule Hackflare.DNS do
       # in the running DNS manager after nameserver delegation is verified.
       %Zone{}
       |> Zone.changeset(zone_attrs)
-      |> Repo.insert(on_conflict: :nothing)
+      |> Repo.insert()
       |> case do
         {:ok, _zone} -> {:ok, zone_name}
-        {:error, reason} -> {:error, reason}
+        {:error, %Ecto.Changeset{} = changeset} ->
+          if zone_name_conflict?(changeset) do
+            {:error, :zone_already_exists}
+          else
+            {:error, changeset}
+          end
+
+        {:error, reason} ->
+          {:error, reason}
       end
     end
   end
@@ -91,7 +99,7 @@ defmodule Hackflare.DNS do
   Returns `{:ok, zone_name}` on success, `{:error, reason}` on failure.
   """
   def delete_zone(zone_name) when is_binary(zone_name) do
-    delete_zone(zone_name, nil)
+    {:error, :owner_required}
   end
 
   def delete_zone(_), do: {:error, :invalid_zone_name}
@@ -172,16 +180,7 @@ defmodule Hackflare.DNS do
   def add_record(zone_name, record_name, record_type, ttl, data)
       when is_binary(zone_name) and is_binary(record_name) and is_binary(record_type) and
              is_integer(ttl) and ttl > 0 and is_binary(data) do
-    with {:ok, zone} <- ensure_zone_verified(zone_name, nil),
-         {:ok, mgr} <- get_manager(),
-         true <- Native.manager_add_record(mgr, zone_name, record_name, record_type, ttl, data) do
-      persist_record(zone, record_name, record_type, ttl, data)
-
-      {:ok, %{name: record_name, rtype: record_type, ttl: ttl, data: data}}
-    else
-      false -> {:error, :failed_to_add_record}
-      {:error, _reason} = error -> error
-    end
+    {:error, :owner_required}
   end
 
   def add_record(_, _, _, _, _), do: {:error, :invalid_record_params}
@@ -215,16 +214,7 @@ defmodule Hackflare.DNS do
   """
   def remove_record(zone_name, record_name, record_type)
       when is_binary(zone_name) and is_binary(record_name) and is_binary(record_type) do
-    with {:ok, zone} <- ensure_zone_verified(zone_name, nil),
-         {:ok, mgr} <- get_manager(),
-         true <- Native.manager_remove_record(mgr, zone_name, record_name, record_type) do
-      delete_persisted_record(zone, record_name, record_type)
-
-      {:ok, :deleted}
-    else
-      false -> {:error, :record_not_found}
-      {:error, _reason} = error -> error
-    end
+    {:error, :owner_required}
   end
 
   def remove_record(_, _, _), do: {:error, :invalid_record_params}
@@ -257,13 +247,6 @@ defmodule Hackflare.DNS do
     |> Repo.insert(on_conflict: :nothing)
   end
 
-  defp delete_persisted_record(%Zone{id: zone_id}, record_name, record_type) do
-    from(r in Record,
-      where: r.zone_id == ^zone_id and r.name == ^record_name and r.rtype == ^record_type
-    )
-    |> Repo.delete_all()
-  end
-
   defp ensure_zone_verified(zone_name, current_user) do
     case get_zone(zone_name, current_user) do
       %Zone{ns_verified: true} = zone -> {:ok, zone}
@@ -284,7 +267,7 @@ defmodule Hackflare.DNS do
   Returns `{:ok, :verified}` on success or `{:error, reason}` on failure.
   """
   def verify_zone_nameservers(zone_name) when is_binary(zone_name) do
-    verify_zone_nameservers(zone_name, nil)
+    {:error, :owner_required}
   end
 
   def verify_zone_nameservers(zone_name, current_user) when is_binary(zone_name) do
@@ -359,6 +342,13 @@ defmodule Hackflare.DNS do
     [
       nameservers: [{{1, 1, 1, 1}, 53}, {{8, 8, 8, 8}, 53}]
     ]
+  end
+
+  defp zone_name_conflict?(%Ecto.Changeset{errors: errors}) do
+    Enum.any?(errors, fn
+      {:name, {_message, opts}} -> opts[:constraint] == :unique
+      _ -> false
+    end)
   end
 
   defp get_zone(zone_name, nil) do

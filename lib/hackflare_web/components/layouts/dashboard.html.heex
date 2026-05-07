@@ -271,12 +271,21 @@
                               >
                                 + Add Record
                               </button>
-                              <button
-                                onclick={"if(confirm(\"Delete domain #{zone_name}?\")) { window.location.href = \"/dash/domains/delete/#{zone_key}\" }"}
-                                class="rounded-lg bg-red-600/50 px-4 py-2 text-sm font-semibold text-red-100 transition-all hover:bg-red-600"
+                              <form
+                                method="post"
+                                action={~p"/dash/domains/delete"}
+                                class="inline"
+                                onsubmit={"return confirm('Delete domain #{zone_name}?')"}
                               >
-                                Delete
-                              </button>
+                                <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+                                <input type="hidden" name="zone_name" value={zone_name} />
+                                <button
+                                  type="submit"
+                                  class="rounded-lg bg-red-600/50 px-4 py-2 text-sm font-semibold text-red-100 transition-all hover:bg-red-600"
+                                >
+                                  Delete
+                                </button>
+                              </form>
                             </div>
                           </div>
                         </div>
