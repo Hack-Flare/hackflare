@@ -86,6 +86,8 @@ defmodule HackflareWeb.Router do
     post "/dash/domains/create", DashController, :create_zone
     post "/dash/domains/reverify", DashController, :reverify_zone
     post "/dash/domains/records/create", DashController, :create_record
+    post "/dash/domains/records/update", DashController, :update_record
+    post "/dash/domains/records/delete", DashController, :delete_record
     post "/dash/domains/delete", DashController, :delete_zone
     get "/dash/settings", DashController, :settings
     get "/dash/analytics", DashController, :analytics

@@ -219,6 +219,66 @@ defmodule Hackflare.DNS do
 
   def remove_record(_, _, _), do: {:error, :invalid_record_params}
 
+  def remove_record(zone_name, record_name, record_type, current_user)
+      when is_binary(zone_name) and is_binary(record_name) and is_binary(record_type) do
+    with {:ok, zone} <- ensure_zone_verified(zone_name, current_user),
+         {:ok, mgr} <- get_manager(),
+         true <- Native.manager_remove_record(mgr, zone_name, record_name, record_type) do
+      delete_persisted_records(zone, record_name, record_type)
+      {:ok, :deleted}
+    else
+      false -> {:error, :record_not_found}
+      {:error, _reason} = error -> error
+    end
+  end
+
+  def remove_record(_, _, _, _), do: {:error, :invalid_record_params}
+
+  @doc """
+  Update an existing DNS record in a verified zone.
+
+  The old record is identified by name and type. On success, the record is
+  replaced with the new values in both the DNS manager and database.
+  """
+  def update_record(
+        zone_name,
+        old_record_name,
+        old_record_type,
+        new_record_name,
+        new_record_type,
+        ttl,
+        data,
+        current_user
+      )
+      when is_binary(zone_name) and is_binary(old_record_name) and is_binary(old_record_type) and
+             is_binary(new_record_name) and is_binary(new_record_type) and is_integer(ttl) and
+             ttl > 0 and is_binary(data) do
+    persisted_old_record = get_persisted_record(zone_name, old_record_name, old_record_type)
+
+    with {:ok, zone} <- ensure_zone_verified(zone_name, current_user),
+         {:ok, mgr} <- get_manager(),
+         true <- Native.manager_remove_record(mgr, zone_name, old_record_name, old_record_type) do
+      case Native.manager_add_record(mgr, zone_name, new_record_name, new_record_type, ttl, data) do
+        true ->
+          delete_persisted_records(zone, old_record_name, old_record_type)
+          persist_record(zone, new_record_name, new_record_type, ttl, data)
+
+          {:ok,
+           %{name: new_record_name, rtype: new_record_type, ttl: ttl, data: data, zone: zone_name}}
+
+        false ->
+          restore_original_record(mgr, zone_name, old_record_name, old_record_type, persisted_old_record)
+
+          {:error, :failed_to_update_record}
+      end
+    else
+      false -> {:error, :record_not_found}
+      {:error, _reason} = error -> error
+    end
+  end
+
+  def update_record(_, _, _, _, _, _, _, _), do: {:error, :invalid_record_params}
+
   @doc """
   Handle a raw DNS query (for testing/debugging).
 
@@ -246,6 +306,30 @@ defmodule Hackflare.DNS do
     })
     |> Repo.insert(on_conflict: :nothing)
   end
+
+  defp delete_persisted_records(%Zone{id: zone_id}, record_name, record_type) do
+    from(r in Record,
+      where: r.zone_id == ^zone_id and r.name == ^record_name and r.rtype == ^record_type
+    )
+    |> Repo.delete_all()
+  end
+
+  defp get_persisted_record(zone_name, record_name, record_type) do
+    from(r in Record,
+      join: z in Zone,
+      on: r.zone_id == z.id,
+      where: z.name == ^zone_name and r.name == ^record_name and r.rtype == ^record_type,
+      limit: 1
+    )
+    |> Repo.one()
+  end
+
+  defp restore_original_record(mgr, zone_name, record_name, record_type, %Record{} = record) do
+    _ = Native.manager_add_record(mgr, zone_name, record_name, record_type, record.ttl, record.data)
+    :ok
+  end
+
+  defp restore_original_record(_mgr, _zone_name, _record_name, _record_type, _record), do: :ok
 
   defp ensure_zone_verified(zone_name, current_user) do
     case get_zone(zone_name, current_user) do

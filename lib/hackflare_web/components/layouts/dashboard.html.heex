@@ -330,10 +330,14 @@
                                       <th class="px-4 py-2 text-left font-semibold text-gray-300">
                                         TTL
                                       </th>
+                                      <th class="px-4 py-2 text-left font-semibold text-gray-300">
+                                        Actions
+                                      </th>
                                     </tr>
                                   </thead>
                                   <tbody class="divide-y divide-orange-500/10 bg-gray-900/30">
-                                    <%= for record <- records do %>
+                                    <%= for {record, index} <- Enum.with_index(records) do %>
+                                      <% record_key = "#{zone_key}-#{index}" %>
                                       <tr class="hover:bg-black/30">
                                         <td class="whitespace-nowrap px-4 py-2 font-semibold text-orange-300">
                                           {record.rtype}
@@ -344,6 +348,135 @@
                                         <td class="px-4 py-2 text-gray-300">{record.data}</td>
                                         <td class="whitespace-nowrap px-4 py-2 text-gray-400">
                                           {record.ttl}
+                                        </td>
+                                        <td class="whitespace-nowrap px-4 py-2">
+                                          <div class="flex items-center gap-2">
+                                            <button
+                                              type="button"
+                                              onclick={"document.getElementById('edit-record-modal-#{record_key}').classList.remove('hidden')"}
+                                              class="rounded-md bg-amber-600/80 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-amber-500"
+                                            >
+                                              Edit
+                                            </button>
+                                            <form
+                                              method="post"
+                                              action={~p"/dash/domains/records/delete"}
+                                              class="inline"
+                                              onsubmit={"return confirm('Delete #{record.rtype} #{record.name} from #{zone_name}?')"}
+                                            >
+                                              <input
+                                                type="hidden"
+                                                name="_csrf_token"
+                                                value={get_csrf_token()}
+                                              />
+                                              <input type="hidden" name="zone_name" value={zone_name} />
+                                              <input
+                                                type="hidden"
+                                                name="record_name"
+                                                value={record.name}
+                                              />
+                                              <input
+                                                type="hidden"
+                                                name="record_type"
+                                                value={record.rtype}
+                                              />
+                                              <button
+                                                type="submit"
+                                                class="rounded-md bg-red-600/80 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-red-500"
+                                              >
+                                                Delete
+                                              </button>
+                                            </form>
+                                          </div>
+                                        </td>
+                                      </tr>
+
+                                      <tr id={"edit-record-modal-#{record_key}"} class="hidden">
+                                        <td colspan="5" class="bg-black/50 p-4">
+                                          <div class="rounded-lg border border-orange-500/30 bg-gray-950/90 p-4">
+                                            <h4 class="mb-3 text-sm font-semibold text-white">
+                                              Edit {record.rtype} {record.name}
+                                            </h4>
+                                            <form
+                                              method="post"
+                                              action={~p"/dash/domains/records/update"}
+                                              class="space-y-3"
+                                              onsubmit={"document.getElementById('edit-record-modal-" <> record_key <> "').classList.add('hidden')"}
+                                            >
+                                              <input
+                                                type="hidden"
+                                                name="_csrf_token"
+                                                value={get_csrf_token()}
+                                              />
+                                              <input type="hidden" name="zone_name" value={zone_name} />
+                                              <input
+                                                type="hidden"
+                                                name="old_record_name"
+                                                value={record.name}
+                                              />
+                                              <input
+                                                type="hidden"
+                                                name="old_record_type"
+                                                value={record.rtype}
+                                              />
+                                              <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                                <input
+                                                  type="text"
+                                                  name="record_name"
+                                                  value={record.name}
+                                                  required
+                                                  class="w-full rounded-md border border-orange-500/30 bg-black/40 p-2.5 text-sm text-gray-100 focus:border-orange-400 focus:outline-none"
+                                                />
+                                                <select
+                                                  name="record_type"
+                                                  class="w-full rounded-md border border-orange-500/30 bg-black/40 p-2.5 text-sm text-gray-100 focus:border-orange-400 focus:outline-none"
+                                                >
+                                                  <option value="A" selected={record.rtype == "A"}>A</option>
+                                                  <option value="AAAA" selected={record.rtype == "AAAA"}>
+                                                    AAAA
+                                                  </option>
+                                                  <option value="CNAME" selected={record.rtype == "CNAME"}>
+                                                    CNAME
+                                                  </option>
+                                                  <option value="MX" selected={record.rtype == "MX"}>MX</option>
+                                                  <option value="TXT" selected={record.rtype == "TXT"}>TXT</option>
+                                                  <option value="NS" selected={record.rtype == "NS"}>NS</option>
+                                                </select>
+                                              </div>
+                                              <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                                <input
+                                                  type="number"
+                                                  name="ttl"
+                                                  min="1"
+                                                  value={record.ttl}
+                                                  required
+                                                  class="w-full rounded-md border border-orange-500/30 bg-black/40 p-2.5 text-sm text-gray-100 focus:border-orange-400 focus:outline-none"
+                                                />
+                                                <input
+                                                  type="text"
+                                                  name="record_data"
+                                                  value={record.data}
+                                                  required
+                                                  class="w-full rounded-md border border-orange-500/30 bg-black/40 p-2.5 text-sm text-gray-100 focus:border-orange-400 focus:outline-none"
+                                                />
+                                              </div>
+                                              <div class="flex items-center justify-end gap-2">
+                                                <button
+                                                  type="button"
+                                                  onclick={"document.getElementById('edit-record-modal-#{record_key}').classList.add('hidden')"}
+                                                  class="rounded-md bg-gray-700 px-3 py-1.5 text-xs font-semibold text-gray-100 transition-all hover:bg-gray-600"
+                                                >
+                                                  Cancel
+                                                </button>
+                                                <button
+                                                  type="submit"
+                                                  class="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-emerald-500"
+                                                >
+                                                  Save
+                                                </button>
+                                              </div>
+                                            </form>
+                                          </div>
                                         </td>
                                       </tr>
                                     <% end %>

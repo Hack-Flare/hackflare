@@ -94,6 +94,83 @@ defmodule HackflareWeb.DashController do
     end
   end
 
+  def delete_record(conn, params) do
+    current_user = get_current_user!(conn)
+    zone_name = String.trim(Map.get(params, "zone_name", ""))
+    record_name = String.trim(Map.get(params, "record_name", ""))
+    record_type = String.trim(Map.get(params, "record_type", ""))
+
+    with true <- zone_name != "",
+         true <- record_type != "",
+         {:ok, :deleted} <- DNS.remove_record(zone_name, record_name, record_type, current_user) do
+      conn
+      |> put_flash(:info, "Record removed from #{zone_name}.")
+      |> redirect(to: ~p"/dash/domains?zone_name=#{zone_name}")
+    else
+      {:error, :ns_not_verified} ->
+        conn
+        |> put_flash(:error, "Verify nameservers before editing records for #{zone_name}.")
+        |> redirect(to: ~p"/dash/domains?zone_name=#{zone_name}")
+
+      {:error, :record_not_found} ->
+        conn
+        |> put_flash(:error, "Record not found in #{zone_name}.")
+        |> redirect(to: ~p"/dash/domains?zone_name=#{zone_name}")
+
+      _ ->
+        conn
+        |> put_flash(:error, "Failed to remove DNS record.")
+        |> redirect(to: ~p"/dash/domains?zone_name=#{zone_name}")
+    end
+  end
+
+  def update_record(conn, params) do
+    current_user = get_current_user!(conn)
+    zone_name = String.trim(Map.get(params, "zone_name", ""))
+    old_record_name = String.trim(Map.get(params, "old_record_name", ""))
+    old_record_type = String.trim(Map.get(params, "old_record_type", ""))
+    new_record_name = String.trim(Map.get(params, "record_name", ""))
+    new_record_type = String.trim(Map.get(params, "record_type", ""))
+    record_data = String.trim(Map.get(params, "record_data", ""))
+    ttl = parse_ttl(Map.get(params, "ttl", "300"))
+
+    with true <- zone_name != "",
+         true <- old_record_type != "",
+         true <- new_record_type != "",
+         true <- record_data != "",
+         true <- is_integer(ttl) and ttl > 0,
+         {:ok, _} <-
+           DNS.update_record(
+             zone_name,
+             old_record_name,
+             old_record_type,
+             new_record_name,
+             new_record_type,
+             ttl,
+             record_data,
+             current_user
+           ) do
+      conn
+      |> put_flash(:info, "Record updated in #{zone_name}.")
+      |> redirect(to: ~p"/dash/domains?zone_name=#{zone_name}")
+    else
+      {:error, :ns_not_verified} ->
+        conn
+        |> put_flash(:error, "Verify nameservers before editing records for #{zone_name}.")
+        |> redirect(to: ~p"/dash/domains?zone_name=#{zone_name}")
+
+      {:error, :record_not_found} ->
+        conn
+        |> put_flash(:error, "Record not found in #{zone_name}.")
+        |> redirect(to: ~p"/dash/domains?zone_name=#{zone_name}")
+
+      _ ->
+        conn
+        |> put_flash(:error, "Failed to update DNS record.")
+        |> redirect(to: ~p"/dash/domains?zone_name=#{zone_name}")
+    end
+  end
+
   def reverify_zone(conn, %{"zone_name" => zone_name}) when is_binary(zone_name) do
     current_user = get_current_user!(conn)
 

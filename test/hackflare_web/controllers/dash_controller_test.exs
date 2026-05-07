@@ -49,4 +49,42 @@ defmodule HackflareWeb.DashControllerTest do
     assert html =~ "owned.example"
     refute html =~ "hidden.example"
   end
+
+  test "POST /dash/domains/records/delete blocks edits until nameservers are verified", %{
+    conn: conn,
+    owner: owner
+  } do
+    conn =
+      conn
+      |> init_test_session(user_id: owner.id)
+      |> post(~p"/dash/domains/records/delete", %{
+        "zone_name" => "owned.example",
+        "record_name" => "@",
+        "record_type" => "A"
+      })
+
+    assert redirected_to(conn) == ~p"/dash/domains?zone_name=owned.example"
+    assert Phoenix.Flash.get(conn.assigns.flash, :error) =~ "Verify nameservers"
+  end
+
+  test "POST /dash/domains/records/update blocks edits until nameservers are verified", %{
+    conn: conn,
+    owner: owner
+  } do
+    conn =
+      conn
+      |> init_test_session(user_id: owner.id)
+      |> post(~p"/dash/domains/records/update", %{
+        "zone_name" => "owned.example",
+        "old_record_name" => "@",
+        "old_record_type" => "A",
+        "record_name" => "www",
+        "record_type" => "A",
+        "record_data" => "1.1.1.1",
+        "ttl" => "300"
+      })
+
+    assert redirected_to(conn) == ~p"/dash/domains?zone_name=owned.example"
+    assert Phoenix.Flash.get(conn.assigns.flash, :error) =~ "Verify nameservers"
+  end
 end
