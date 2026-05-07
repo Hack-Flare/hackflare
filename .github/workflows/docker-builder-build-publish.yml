@@ -9,7 +9,7 @@ env:
   IMAGE_NAME: hack-flare/hackflare-builder
 
 concurrency:
-  group: build-and-push
+  group: build-and-push-builder
   cancel-in-progress: true
 
 jobs:
