@@ -40,6 +40,32 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Detect builder changes
+        id: builder_changes
+        run: |
+          BASE_REF="${{ github.event.repository.default_branch }}"
+          if [ -z "$BASE_REF" ]; then
+            BASE_REF="main"
+          fi
+          git fetch origin "$BASE_REF"
+          CHANGED_FILES=$(git diff --name-only "origin/$BASE_REF...HEAD")
+          if printf '%s\n' "$CHANGED_FILES" | grep -Eq '^(builder\.dockerfile|mix\.exs|mix\.lock|config/.*\.exs|native/)'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and push builder image
+        if: ${{ steps.builder_changes.outputs.changed == 'true' }}
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./builder.dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:builder
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:builder-cache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:builder-cache,mode=max
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v6
@@ -55,7 +81,11 @@ jobs:
         with:
           context: .
           push: true
+          build-args: |
+            BUILDER_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:builder
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=ghcr.io/hack-flare/hackflare:buildcache
+          cache-from: |
+            type=registry,ref=ghcr.io/hack-flare/hackflare:buildcache
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:builder-cache
           cache-to: type=registry,ref=ghcr.io/hack-flare/hackflare:buildcache,mode=max

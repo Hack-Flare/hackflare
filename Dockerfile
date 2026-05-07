@@ -1,42 +1,17 @@
-FROM elixir:1.19-slim AS build
-
-RUN apt-get update && \
-    apt-get install -y build-essential git curl libssl-dev pkg-config
-
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-ENV PATH="/root/.cargo/bin:${PATH}"
-
-ENV MIX_ENV=prod \
-    LANG=C.UTF-8 
+ARG BUILDER_IMAGE=ghcr.io/hack-flare/hackflare:builder
+FROM ${BUILDER_IMAGE} AS build
 
 WORKDIR /app
-RUN mix local.hex --force && mix local.rebar --force
-
-COPY mix.exs mix.lock ./
-RUN --mount=type=cache,target=/root/.cargo/registry \
-    --mount=type=cache,target=/root/.cargo/git \
-    mix deps.get --only prod
-
-COPY config/ ./config/
-COPY native/ ./native/
+COPY priv/ ./priv/
+COPY lib/ ./lib/
+COPY assets/ ./assets/
+COPY doc/ ./doc/
 
 RUN --mount=type=cache,target=/app/deps \
     --mount=type=cache,target=/app/_build \
     --mount=type=cache,target=/root/.cargo/registry \
     --mount=type=cache,target=/root/.cargo/git \
     mix compile
-
-COPY priv/ ./priv/
-COPY lib/ ./lib/
-COPY assets/ ./assets/
-COPY doc/ ./doc/
-
-
-RUN --mount=type=cache,target=/app/deps \
-    --mount=type=cache,target=/app/_build \
-    --mount=type=cache,target=/root/.cargo/registry \
-    --mount=type=cache,target=/root/.cargo/git \
-    mix deps.compile
 
 RUN mix assets.deploy
 
