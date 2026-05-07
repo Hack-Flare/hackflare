@@ -131,7 +131,7 @@ impl Nameserver {
 
         let udp_bind = format!("{}:{}", bind_addr, port);
         let udp_socket = UdpSocket::bind(&udp_bind)?;
-        udp_socket.set_nonblocking(true)?;
+        udp_socket.set_nonblocking(false)?;
 
         let tcp_bind = udp_bind.clone();
         let tcp_listener = TcpListener::bind(&tcp_bind)?;
@@ -171,9 +171,6 @@ impl Nameserver {
                             {
                                 UDP_INFLIGHT.fetch_sub(1, Ordering::AcqRel);
                             }
-                        }
-                        Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
-                            thread::sleep(Duration::from_millis(1));
                         }
                         Err(e) => {
                             s_log("error", &format!("UDP recv error: {}", e), None);
