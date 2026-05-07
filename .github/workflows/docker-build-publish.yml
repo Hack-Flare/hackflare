@@ -6,7 +6,7 @@ on:
   
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/hackflare
+  IMAGE_NAME: hack-flare/hackflare
 
 concurrency:
   group: build-and-push
