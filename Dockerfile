@@ -35,7 +35,7 @@ RUN useradd -m -u 1000 appuser
 RUN chown -R appuser:appuser /app
 USER appuser
 
-COPY --from=build --chown=appuser:appuser /app/release .
+COPY --from=build --chown=appuser:appuser /app/_build/prod/rel/hackflare .
 
 EXPOSE 4000
 
