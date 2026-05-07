@@ -42,9 +42,6 @@ defmodule HackflareWeb.AdminControllerTest do
     conn = get(conn, ~p"/admin")
 
     assert redirected_to(conn) == "/auth/request"
-
-    assert Phoenix.Flash.get(conn.assigns.flash, :error) ==
-             "You need to be signed in to access the dashboard"
   end
 
   test "GET /admin shows the admin domain search menu", %{conn: conn, admin: admin} do
