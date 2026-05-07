@@ -66,7 +66,9 @@ defmodule Hackflare.DNS do
 
   def create_zone(zone_name, zone_type, current_user)
       when is_binary(zone_name) and is_binary(zone_type) do
-    if is_nil(current_user), do: {:error, :owner_required}, else: insert_zone(zone_name, zone_type, current_user)
+    if is_nil(current_user),
+      do: {:error, :owner_required},
+      else: insert_zone(zone_name, zone_type, current_user)
   end
 
   defp insert_zone(zone_name, zone_type, current_user) do
@@ -83,7 +85,9 @@ defmodule Hackflare.DNS do
   defp handle_zone_insert({:ok, _zone}, zone_name), do: {:ok, zone_name}
 
   defp handle_zone_insert({:error, %Ecto.Changeset{} = changeset}, _zone_name) do
-    if zone_name_conflict?(changeset), do: {:error, :zone_already_exists}, else: {:error, changeset}
+    if zone_name_conflict?(changeset),
+      do: {:error, :zone_already_exists},
+      else: {:error, changeset}
   end
 
   defp handle_zone_insert({:error, reason}, _zone_name), do: {:error, reason}
@@ -294,7 +298,14 @@ defmodule Hackflare.DNS do
          %{name: new_record_name, rtype: new_record_type, ttl: ttl, data: data, zone: zone_name}}
 
       false ->
-        restore_original_record(mgr, zone_name, old_record_name, old_record_type, persisted_old_record)
+        restore_original_record(
+          mgr,
+          zone_name,
+          old_record_name,
+          old_record_type,
+          persisted_old_record
+        )
+
         {:error, :failed_to_update_record}
     end
   end
