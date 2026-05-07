@@ -1,4 +1,4 @@
-name: Build and Publish Main Docker Image
+name: Build and Publish Docker Builder Image
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
   
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: hack-flare/hackflare
+  IMAGE_NAME: hack-flare/hackflare-builder
 
 concurrency:
   group: build-and-push
@@ -58,6 +58,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
-            type=registry,ref=ghcr.io/hack-flare/hackflare:buildcache
-            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-builder:buildcache
-          cache-to: type=registry,ref=ghcr.io/hack-flare/hackflare:buildcache,mode=max
+            type=registry,ref=ghcr.io/hack-flare/hackflare-builder:buildcache
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:builder-cache
+          cache-to: type=registry,ref=ghcr.io/hack-flare/hackflare-builder:buildcache,mode=max

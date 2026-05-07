@@ -1,30 +1,31 @@
-FROM elixir:1.19-slim AS builder
+FROM elixir:1.19-slim
 
+# Core build deps
 RUN apt-get update && \
-    apt-get install -y build-essential git curl libssl-dev pkg-config
+    apt-get install -y \
+    build-essential \
+    git \
+    curl \
+    libssl-dev \
+    pkg-config \
+    ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-ENV PATH="/root/.cargo/bin:${PATH}"
+# Install Rust toolchain
+ENV RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/usr/local/cargo \
+    PATH=/usr/local/cargo/bin:$PATH
 
-ENV MIX_ENV=prod \
-    LANG=C.UTF-8 \
-    HEX_HTTP_TIMEOUT=120
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
+    rustup default stable
 
-WORKDIR /app
-RUN mix local.hex --force && mix local.rebar --force
+# Elixir tooling
+RUN mix local.hex --force && \
+    mix local.rebar --force
 
-COPY mix.exs mix.lock ./
-RUN --mount=type=cache,target=/root/.cargo/registry \
-    --mount=type=cache,target=/root/.cargo/git \
-    mix deps.get --only prod
+# Ensure consistent locale
+ENV LANG=C.UTF-8
 
-COPY config/ ./config/
-COPY native/ ./native/
+RUN elixir -v && rustc --version && cargo --version
 
-RUN --mount=type=cache,target=/root/.cargo/registry \
-    --mount=type=cache,target=/root/.cargo/git \
-    mix compile
-
-RUN --mount=type=cache,target=/root/.cargo/registry \
-    --mount=type=cache,target=/root/.cargo/git \
-    mix deps.compile
+WORKDIR /toolchain
