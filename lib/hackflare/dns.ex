@@ -79,7 +79,9 @@ defmodule Hackflare.DNS do
       |> Zone.changeset(zone_attrs)
       |> Repo.insert()
       |> case do
-        {:ok, _zone} -> {:ok, zone_name}
+        {:ok, _zone} ->
+          {:ok, zone_name}
+
         {:error, %Ecto.Changeset{} = changeset} ->
           if zone_name_conflict?(changeset) do
             {:error, :zone_already_exists}
