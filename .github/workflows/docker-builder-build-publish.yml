@@ -65,4 +65,7 @@ jobs:
 
   build-main-image:
     needs: build-and-push-image
+    permissions:
+      contents: read
+      packages: write
     uses: ./.github/workflows/docker-build-publish.yml
