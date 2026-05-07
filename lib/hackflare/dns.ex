@@ -315,18 +315,17 @@ defmodule Hackflare.DNS do
     with {:ok, zone} <- ensure_zone_verified(zone_name, current_user),
          {:ok, mgr} <- get_manager(),
          true <- Native.manager_remove_record(mgr, zone_name, old_record_name, old_record_type) do
-      apply_record_update(
-        mgr,
-        zone,
-        zone_name,
-        old_record_name,
-        old_record_type,
-        new_record_name,
-        new_record_type,
-        ttl,
-        data,
-        persisted_old_record
-      )
+      params = %{
+        zone_name: zone_name,
+        old_record_name: old_record_name,
+        old_record_type: old_record_type,
+        new_record_name: new_record_name,
+        new_record_type: new_record_type,
+        ttl: ttl,
+        data: data
+      }
+
+      apply_record_update(mgr, zone, params, persisted_old_record)
     else
       false -> {:error, :record_not_found}
       {:error, _reason} = error -> error
@@ -335,18 +334,17 @@ defmodule Hackflare.DNS do
 
   def update_record(_, _, _, _, _, _, _, _), do: {:error, :invalid_record_params}
 
-  defp apply_record_update(
-         mgr,
-         zone,
-         zone_name,
-         old_record_name,
-         old_record_type,
-         new_record_name,
-         new_record_type,
-         ttl,
-         data,
-         persisted_old_record
-       ) do
+  defp apply_record_update(mgr, zone, params, persisted_old_record) do
+    %{
+      zone_name: zone_name,
+      old_record_name: old_record_name,
+      old_record_type: old_record_type,
+      new_record_name: new_record_name,
+      new_record_type: new_record_type,
+      ttl: ttl,
+      data: data
+    } = params
+
     case Native.manager_add_record(mgr, zone_name, new_record_name, new_record_type, ttl, data) do
       true ->
         delete_persisted_records(zone, old_record_name, old_record_type)
