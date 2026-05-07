@@ -4,13 +4,13 @@ on:
   push:
     branches: [ "main" ]
     paths-ignore:
-      - "README.md"
+      - "**/*.md"
       - ".github/"
       - ".github/workflows/docker-build-publish.yml"
   pull_request:
     branches: ["main"]
     paths-ignore:
-      - "README.md"
+      - "**/*.md"
       - ".github/"
       - ".github/workflows/docker-build-publish.yml"
   workflow_dispatch:
