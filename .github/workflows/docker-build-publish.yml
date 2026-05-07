@@ -40,23 +40,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Detect builder changes
-        id: builder_changes
-        run: |
-          BASE_REF="${{ github.event.repository.default_branch }}"
-          if [ -z "$BASE_REF" ]; then
-            BASE_REF="main"
-          fi
-          git fetch origin "$BASE_REF"
-          CHANGED_FILES=$(git diff --name-only "origin/$BASE_REF...HEAD")
-          if printf '%s\n' "$CHANGED_FILES" | grep -Eq '^(builder\.dockerfile|.github/workflows/docker-build-publish\.yml)'; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Build and push builder image
-        if: ${{ steps.builder_changes.outputs.changed == 'true' }}
         uses: docker/build-push-action@v7
         with:
           context: .
