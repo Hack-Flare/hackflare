@@ -25,7 +25,7 @@ Use Elixir/Phoenix commands from repo root unless noted.
 CI-specific test partitioning uses:
 
 ```bash
-MIX_TEST_PARTITION=1 mix test --partitions 4
+MIX_TEST_PARTITION=1 mix test --partitions 6
 ```
 
 Database setup used in CI before tests:
