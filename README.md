@@ -6,6 +6,10 @@
 Cloudflare alternative for HackClub. Hence the name HackFlare.  
 [View Elixir Documentation](ELIXIR_DOCS.md)
 
+## Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for the roadmap.
+
 ## Stack
 
 PETRL  
