@@ -49,7 +49,7 @@ jobs:
           fi
           git fetch origin "$BASE_REF"
           CHANGED_FILES=$(git diff --name-only "origin/$BASE_REF...HEAD")
-          if printf '%s\n' "$CHANGED_FILES" | grep -Eq '^(builder\.dockerfile|mix\.exs|mix\.lock|config/.*\.exs|native/)'; then
+          if printf '%s\n' "$CHANGED_FILES" | grep -Eq '^(builder\.dockerfile|.github/workflows/docker-build-publish\.yml)'; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
