@@ -1,3 +1,65 @@
+defmodule Hackflare.DnsQueryMetric do
+  use Ecto.Schema
+  import Ecto.Changeset
+
+  @primary_key {:id, :integer, autogenerate: false}
+  schema "dns_query_metrics" do
+    field(:udp_count, :integer, default: 0)
+    field(:tcp_count, :integer, default: 0)
+
+    timestamps()
+  end
+
+  def changeset(metric, attrs) do
+    metric
+    |> cast(attrs, [:udp_count, :tcp_count])
+    |> validate_required([:udp_count, :tcp_count])
+  end
+end
+
+defmodule Hackflare.DNS.Zone do
+  use Ecto.Schema
+  import Ecto.Changeset
+
+  schema "dns_zones" do
+    belongs_to(:user, Hackflare.Accounts.User)
+    field(:name, :string)
+    field(:type, :string, default: "root")
+    field(:ns_verified, :boolean, default: false)
+    has_many(:records, Hackflare.DNS.Record, foreign_key: :zone_id)
+
+    timestamps()
+  end
+
+  def changeset(zone, attrs) do
+    zone
+    |> cast(attrs, [:user_id, :name, :type, :ns_verified])
+    |> validate_required([:user_id, :name])
+    |> unique_constraint(:name)
+  end
+end
+
+defmodule Hackflare.DNS.Record do
+  use Ecto.Schema
+  import Ecto.Changeset
+
+  schema "dns_records" do
+    field(:name, :string)
+    field(:rtype, :string)
+    field(:ttl, :integer)
+    field(:data, :string)
+    belongs_to(:zone, Hackflare.DNS.Zone, foreign_key: :zone_id)
+
+    timestamps()
+  end
+
+  def changeset(record, attrs) do
+    record
+    |> cast(attrs, [:zone_id, :name, :rtype, :ttl, :data])
+    |> validate_required([:zone_id, :name, :rtype, :ttl, :data])
+  end
+end
+
 defmodule Hackflare.DNS do
   @moduledoc """
   DNS zone and record management context.
@@ -470,5 +532,67 @@ defmodule Hackflare.DNS do
       end
 
     Repo.one(query)
+  end
+end
+
+defmodule Hackflare.DNS.Record do
+  use Ecto.Schema
+  import Ecto.Changeset
+
+  schema "dns_records" do
+    field(:name, :string)
+    field(:rtype, :string)
+    field(:ttl, :integer)
+    field(:data, :string)
+    belongs_to(:zone, Hackflare.DNS.Zone, foreign_key: :zone_id)
+
+    timestamps()
+  end
+
+  def changeset(record, attrs) do
+    record
+    |> cast(attrs, [:zone_id, :name, :rtype, :ttl, :data])
+    |> validate_required([:zone_id, :name, :rtype, :ttl, :data])
+  end
+end
+
+defmodule Hackflare.DNS.Zone do
+  use Ecto.Schema
+  import Ecto.Changeset
+
+  schema "dns_zones" do
+    belongs_to(:user, Hackflare.Accounts.User)
+    field(:name, :string)
+    field(:type, :string, default: "root")
+    field(:ns_verified, :boolean, default: false)
+    has_many(:records, Hackflare.DNS.Record, foreign_key: :zone_id)
+
+    timestamps()
+  end
+
+  def changeset(zone, attrs) do
+    zone
+    |> cast(attrs, [:user_id, :name, :type, :ns_verified])
+    |> validate_required([:user_id, :name])
+    |> unique_constraint(:name)
+  end
+end
+
+defmodule Hackflare.DnsQueryMetric do
+  use Ecto.Schema
+  import Ecto.Changeset
+
+  @primary_key {:id, :integer, autogenerate: false}
+  schema "dns_query_metrics" do
+    field(:udp_count, :integer, default: 0)
+    field(:tcp_count, :integer, default: 0)
+
+    timestamps()
+  end
+
+  def changeset(metric, attrs) do
+    metric
+    |> cast(attrs, [:udp_count, :tcp_count])
+    |> validate_required([:udp_count, :tcp_count])
   end
 end

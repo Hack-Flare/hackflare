@@ -7,7 +7,7 @@ defmodule Hackflare.Metrics do
 
   def get_metrics do
     case Repo.get(DnsQueryMetric, 1) do
-      nil -> %DnsQueryMetric{id: 1, udp_count: 0, tcp_count: 0}
+      nil -> struct(DnsQueryMetric, id: 1, udp_count: 0, tcp_count: 0)
       m -> m
     end
   end
