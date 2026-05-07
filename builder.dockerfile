@@ -28,3 +28,4 @@ RUN --mount=type=cache,target=/root/.cargo/registry \
 RUN --mount=type=cache,target=/root/.cargo/registry \
     --mount=type=cache,target=/root/.cargo/git \
     mix deps.compile
+    
