@@ -4,12 +4,14 @@ Feel free to submit PRs/issues for anything you want us to work on or you want t
 
 ### Phase 1 (MVP/POC)
 
-- [x] DNS System
+- [wip] DNS System
   - [x] Backend
     - [x] Auth Integration
     - [x] Domain Management
       - Domains stay in a pending state until their NS delegation is verified, and record edits are blocked until then.
-- [x] nameservers
+  - [ ] Needs Testing
+- [wip] nameservers
+  - [ ] Speed improvments
 - [x] Auth system (hc auth)
   - [x] Backend
   - [x] ENV Setup
@@ -25,11 +27,13 @@ Feel free to submit PRs/issues for anything you want us to work on or you want t
   - [x] Auth System
 - [x] Docker
 - [x] Big Haj on error pages
-- [semi-complete] Organize readme and documentation better
+- [x] Organize readme and documentation better
 
+:cry: Prod on its way
 - [ ] Working Production
 
 ### Phase 2 (Post MVP)
+- [ ] API
 - [ ] Caching (incl. DNS caching, minimal site caching)
 - [ ] DDoS Protection
 - [ ] Load Balancing
