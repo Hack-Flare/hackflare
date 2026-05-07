@@ -6,11 +6,13 @@ on:
     paths-ignore:
       - "README.md"
       - ".github/"
+      - ".github/workflows/docker-build-publish.yml"
   pull_request:
     branches: ["main"]
     paths-ignore:
       - "README.md"
       - ".github/"
+      - ".github/workflows/docker-build-publish.yml"
   workflow_dispatch:
   workflow_call:
 
