@@ -14,7 +14,6 @@ defmodule HackflareWeb.Plugs.RequireAuthenticated do
     case get_session(conn, :user_id) do
       nil ->
         conn
-        |> put_flash(:error, "You need to be signed in to access the dashboard")
         |> redirect(to: "/auth/request")
         |> halt()
 

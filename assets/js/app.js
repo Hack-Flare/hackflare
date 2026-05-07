@@ -46,6 +46,16 @@ liveSocket.connect()
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket
 
+// Auto-dismiss flash notifications after 2 seconds
+window.addEventListener("phx:set-autohide", (e) => {
+  const flashElement = e.target
+  setTimeout(() => {
+    if (flashElement) {
+      flashElement.style.display = "none"
+    }
+  }, 2000)
+})
+
 // The lines below enable quality of life phoenix_live_reload
 // development features:
 //
