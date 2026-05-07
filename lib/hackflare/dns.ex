@@ -66,34 +66,27 @@ defmodule Hackflare.DNS do
 
   def create_zone(zone_name, zone_type, current_user)
       when is_binary(zone_name) and is_binary(zone_type) do
-    if is_nil(current_user) do
-      {:error, :owner_required}
-    else
-      zone_attrs =
-        %{name: zone_name, type: zone_type}
-        |> maybe_put_user_id(current_user)
-
-      # Persist the zone but mark it unverified. We will only create the zone
-      # in the running DNS manager after nameserver delegation is verified.
-      %Zone{}
-      |> Zone.changeset(zone_attrs)
-      |> Repo.insert()
-      |> case do
-        {:ok, _zone} ->
-          {:ok, zone_name}
-
-        {:error, %Ecto.Changeset{} = changeset} ->
-          if zone_name_conflict?(changeset) do
-            {:error, :zone_already_exists}
-          else
-            {:error, changeset}
-          end
-
-        {:error, reason} ->
-          {:error, reason}
-      end
-    end
+    if is_nil(current_user), do: {:error, :owner_required}, else: insert_zone(zone_name, zone_type, current_user)
   end
+
+  defp insert_zone(zone_name, zone_type, current_user) do
+    zone_attrs =
+      %{name: zone_name, type: zone_type}
+      |> maybe_put_user_id(current_user)
+
+    %Zone{}
+    |> Zone.changeset(zone_attrs)
+    |> Repo.insert()
+    |> handle_zone_insert(zone_name)
+  end
+
+  defp handle_zone_insert({:ok, _zone}, zone_name), do: {:ok, zone_name}
+
+  defp handle_zone_insert({:error, %Ecto.Changeset{} = changeset}, _zone_name) do
+    if zone_name_conflict?(changeset), do: {:error, :zone_already_exists}, else: {:error, changeset}
+  end
+
+  defp handle_zone_insert({:error, reason}, _zone_name), do: {:error, reason}
 
   @doc """
   Delete a DNS zone.
@@ -260,19 +253,18 @@ defmodule Hackflare.DNS do
     with {:ok, zone} <- ensure_zone_verified(zone_name, current_user),
          {:ok, mgr} <- get_manager(),
          true <- Native.manager_remove_record(mgr, zone_name, old_record_name, old_record_type) do
-      case Native.manager_add_record(mgr, zone_name, new_record_name, new_record_type, ttl, data) do
-        true ->
-          delete_persisted_records(zone, old_record_name, old_record_type)
-          persist_record(zone, new_record_name, new_record_type, ttl, data)
-
-          {:ok,
-           %{name: new_record_name, rtype: new_record_type, ttl: ttl, data: data, zone: zone_name}}
-
-        false ->
-          restore_original_record(mgr, zone_name, old_record_name, old_record_type, persisted_old_record)
-
-          {:error, :failed_to_update_record}
-      end
+      apply_record_update(
+        mgr,
+        zone,
+        zone_name,
+        old_record_name,
+        old_record_type,
+        new_record_name,
+        new_record_type,
+        ttl,
+        data,
+        persisted_old_record
+      )
     else
       false -> {:error, :record_not_found}
       {:error, _reason} = error -> error
@@ -280,6 +272,32 @@ defmodule Hackflare.DNS do
   end
 
   def update_record(_, _, _, _, _, _, _, _), do: {:error, :invalid_record_params}
+
+  defp apply_record_update(
+         mgr,
+         zone,
+         zone_name,
+         old_record_name,
+         old_record_type,
+         new_record_name,
+         new_record_type,
+         ttl,
+         data,
+         persisted_old_record
+       ) do
+    case Native.manager_add_record(mgr, zone_name, new_record_name, new_record_type, ttl, data) do
+      true ->
+        delete_persisted_records(zone, old_record_name, old_record_type)
+        persist_record(zone, new_record_name, new_record_type, ttl, data)
+
+        {:ok,
+         %{name: new_record_name, rtype: new_record_type, ttl: ttl, data: data, zone: zone_name}}
+
+      false ->
+        restore_original_record(mgr, zone_name, old_record_name, old_record_type, persisted_old_record)
+        {:error, :failed_to_update_record}
+    end
+  end
 
   @doc """
   Handle a raw DNS query (for testing/debugging).
