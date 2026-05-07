@@ -11,6 +11,7 @@ use std::net::{IpAddr, Ipv4Addr, TcpStream, UdpSocket};
 use std::path::Path;
 use std::str;
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 
 const ROOT_SERVERS: [&str; 13] = [
@@ -36,6 +37,13 @@ const ROOT_CACHE_TTL_SECS: u64 = 86400;
 const TLD_DELEGATION_MIN_TTL_SECS: u64 = 3600;
 const TLD_DELEGATION_MAX_TTL_SECS: u64 = 86400;
 const DEFAULT_RECURSION_ROUNDS: usize = 8;
+const MAX_QUERY_CACHE_ENTRIES: usize = 10_000;
+const MAX_ROOT_CACHE_ENTRIES: usize = 256;
+const MAX_DELEGATION_CACHE_ENTRIES: usize = 1024;
+const MAX_UPSTREAM_SERVERS_PER_ROUND: usize = 8;
+const MAX_CONCURRENT_RESOLVES: usize = 128;
+
+static ACTIVE_RESOLVES: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
 
 fn env_u64(name: &str, default: u64) -> u64 {
     env::var(name)
@@ -79,6 +87,68 @@ fn recursion_debug_enabled() -> bool {
 fn debug_log(msg: &str) {
     if recursion_debug_enabled() {
         eprintln!("[hackflare:dns:recursive] {}", msg);
+    }
+}
+
+struct ResolveGuard;
+
+impl Drop for ResolveGuard {
+    fn drop(&mut self) {
+        ACTIVE_RESOLVES.fetch_sub(1, Ordering::AcqRel);
+    }
+}
+
+fn acquire_resolve_slot() -> Option<ResolveGuard> {
+    let mut current = ACTIVE_RESOLVES.load(Ordering::Acquire);
+    loop {
+        if current >= MAX_CONCURRENT_RESOLVES {
+            return None;
+        }
+        match ACTIVE_RESOLVES.compare_exchange(
+            current,
+            current + 1,
+            Ordering::AcqRel,
+            Ordering::Acquire,
+        ) {
+            Ok(_) => return Some(ResolveGuard),
+            Err(next) => current = next,
+        }
+    }
+}
+
+fn prune_query_cache(cache: &mut HashMap<CacheKey, CacheValue>) {
+    let now = Instant::now();
+    cache.retain(|_, (_, exp)| now < *exp);
+    while cache.len() > MAX_QUERY_CACHE_ENTRIES {
+        if let Some(key) = cache.keys().next().cloned() {
+            cache.remove(&key);
+        } else {
+            break;
+        }
+    }
+}
+
+fn prune_root_cache(cache: &mut HashMap<String, RootCacheValue>) {
+    let now = Instant::now();
+    cache.retain(|_, (_, _, exp)| now < *exp);
+    while cache.len() > MAX_ROOT_CACHE_ENTRIES {
+        if let Some(key) = cache.keys().next().cloned() {
+            cache.remove(&key);
+        } else {
+            break;
+        }
+    }
+}
+
+fn prune_delegation_cache(cache: &mut HashMap<String, DelegationCacheValue>) {
+    let now = Instant::now();
+    cache.retain(|_, (_, exp)| now < *exp);
+    while cache.len() > MAX_DELEGATION_CACHE_ENTRIES {
+        if let Some(key) = cache.keys().next().cloned() {
+            cache.remove(&key);
+        } else {
+            break;
+        }
     }
 }
 
@@ -368,6 +438,7 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
     if max_depth == 0 {
         return None;
     }
+    let _resolve_guard = acquire_resolve_slot()?;
     let sock = UdpSocket::bind(("0.0.0.0", 0)).ok()?;
     let _ = sock.set_read_timeout(Some(udp_attempt_timeout()));
 
@@ -380,7 +451,10 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
     static ROOT_HINTS: Lazy<Vec<String>> = Lazy::new(load_root_hint_servers);
 
     if let Ok(mut roots) = ROOT_CACHE.lock()
-        && !roots.contains_key("__root__")
+        && {
+            prune_root_cache(&mut roots);
+            !roots.contains_key("__root__")
+        }
         && !ROOT_HINTS.is_empty()
     {
         let exp = Instant::now() + Duration::from_secs(ROOT_CACHE_TTL_SECS);
@@ -390,7 +464,11 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
         );
     }
 
-    if let Ok(c) = CACHE.lock()
+    if let Ok(mut c) = CACHE.lock()
+        && {
+            prune_query_cache(&mut c);
+            true
+        }
         && let Some((data, exp)) = c.get(&(name.to_string(), qtype))
         && Instant::now() < *exp
     {
@@ -401,6 +479,15 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
 
     let mut servers: Vec<String> = if let Some(tld) = requested_tld.as_ref()
         && let Ok(delegations) = DELEGATION_CACHE.lock()
+        && {
+            drop(delegations);
+            true
+        }
+        && let Ok(mut delegations) = DELEGATION_CACHE.lock()
+        && {
+            prune_delegation_cache(&mut delegations);
+            true
+        }
         && let Some((cached, exp)) = delegations.get(tld)
         && Instant::now() < *exp
         && !cached.is_empty()
@@ -415,6 +502,9 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
     } else {
         ROOT_HINTS.clone()
     };
+    if servers.len() > MAX_UPSTREAM_SERVERS_PER_ROUND {
+        servers.truncate(MAX_UPSTREAM_SERVERS_PER_ROUND);
+    }
     let mut qname = name.to_string();
     let mut tried_root_fallback = false;
     for _round in 0..recursion_round_limit() {
@@ -423,6 +513,9 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
         let mut next_servers: Vec<String> = Vec::new();
         let mut round_servers = servers.clone();
         round_servers.shuffle(&mut rand::rng());
+        if round_servers.len() > MAX_UPSTREAM_SERVERS_PER_ROUND {
+            round_servers.truncate(MAX_UPSTREAM_SERVERS_PER_ROUND);
+        }
         for srv in &round_servers {
             let mut resp_opt = send_recv(&sock, srv, &req, qid, &qname, qtype);
             if resp_opt.is_none() {
@@ -456,6 +549,7 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
                     for (rtype, rpos, _rdlen, ttl) in &ans_rrs {
                         if *rtype == qtype {
                             if let Ok(mut c) = CACHE.lock() {
+                                prune_query_cache(&mut c);
                                 let exp = Instant::now() + Duration::from_secs((*ttl).into());
                                 c.insert((name.to_string(), qtype), (resp.clone(), exp));
                             }
@@ -544,10 +638,14 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
                 if !next_servers.is_empty() {
                     next_servers.sort();
                     next_servers.dedup();
+                    if next_servers.len() > MAX_UPSTREAM_SERVERS_PER_ROUND {
+                        next_servers.truncate(MAX_UPSTREAM_SERVERS_PER_ROUND);
+                    }
                     if _round == 0
                         && let Some(tld) = requested_tld.as_ref()
                         && let Ok(mut delegations) = DELEGATION_CACHE.lock()
                     {
+                        prune_delegation_cache(&mut delegations);
                         let ttl = clamp_tld_ttl(referral_ttl_secs);
                         let exp = Instant::now() + Duration::from_secs(ttl);
                         delegations.insert(tld.clone(), (next_servers.clone(), exp));

@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use once_cell::sync::Lazy;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use postgres::{Client, NoTls};
 use serde_json::json;
 
@@ -17,6 +17,11 @@ pub struct Nameserver {
 
 static UDP_COUNT: Lazy<AtomicU64> = Lazy::new(|| AtomicU64::new(0));
 static TCP_COUNT: Lazy<AtomicU64> = Lazy::new(|| AtomicU64::new(0));
+static UDP_INFLIGHT: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
+static TCP_INFLIGHT: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
+
+const MAX_UDP_INFLIGHT: usize = 1024;
+const MAX_TCP_INFLIGHT: usize = 512;
 
 fn s_log(level: &str, message: &str, peer: Option<SocketAddr>) {
     let ts = match std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
@@ -55,6 +60,9 @@ impl Nameserver {
         engine: Option<Arc<DnsEngine>>,
         peer: SocketAddr,
     ) {
+        let _ = stream.set_read_timeout(Some(Duration::from_secs(5)));
+        let _ = stream.set_write_timeout(Some(Duration::from_secs(5)));
+
         loop {
             let mut len_buf = [0u8; 2];
             if let Err(e) = stream.read_exact(&mut len_buf) {
@@ -83,14 +91,7 @@ impl Nameserver {
                 }
             }
 
-            // increment TCP metric asynchronously
-            if let Ok(db_url) = std::env::var("DATABASE_URL") {
-                let _ = thread::spawn(move || {
-                    if let Ok(mut client) = Client::connect(&db_url, NoTls) {
-                        let _ = client.execute("INSERT INTO dns_query_metrics (id, udp_count, tcp_count, inserted_at, updated_at) VALUES (1, 0, 1, now(), now()) ON CONFLICT (id) DO UPDATE SET tcp_count = dns_query_metrics.tcp_count + 1, updated_at = now()", &[]);
-                    }
-                });
-            }
+            TCP_COUNT.fetch_add(1, Ordering::Relaxed);
 
             if let Some(engine) = &engine {
                 match engine.handle_query(&msg) {
@@ -148,18 +149,28 @@ impl Nameserver {
                     match sock.recv_from(&mut buf) {
                         Ok((amt, src)) => {
                             let req = buf[..amt].to_vec();
+                            if UDP_INFLIGHT.fetch_add(1, Ordering::AcqRel) >= MAX_UDP_INFLIGHT {
+                                UDP_INFLIGHT.fetch_sub(1, Ordering::AcqRel);
+                                continue;
+                            }
+
                             let send_sock = sock.clone();
                             let engine = udp_engine.clone();
-                            // increment UDP metric in-memory
-                            UDP_COUNT.fetch_add(1, Ordering::Relaxed);
 
-                            thread::spawn(move || {
+                            if thread::Builder::new()
+                                .spawn(move || {
+                                UDP_COUNT.fetch_add(1, Ordering::Relaxed);
                                 if let Some(engine) = &engine
                                     && let Some(resp) = engine.handle_query(&req)
                                 {
                                     let _ = send_sock.send_to(&resp, src);
                                 }
-                            });
+                                UDP_INFLIGHT.fetch_sub(1, Ordering::AcqRel);
+                            })
+                            .is_err()
+                            {
+                                UDP_INFLIGHT.fetch_sub(1, Ordering::AcqRel);
+                            }
                         }
                         Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
                             thread::sleep(Duration::from_millis(1));
@@ -178,13 +189,23 @@ impl Nameserver {
             for stream in tcp_listener.incoming() {
                 match stream {
                     Ok(s) => {
+                        if TCP_INFLIGHT.fetch_add(1, Ordering::AcqRel) >= MAX_TCP_INFLIGHT {
+                            TCP_INFLIGHT.fetch_sub(1, Ordering::AcqRel);
+                            continue;
+                        }
                         let peer = s
                             .peer_addr()
                             .unwrap_or_else(|_| "0.0.0.0:0".parse().unwrap());
                         let eng = tcp_engine.clone();
-                        thread::spawn(move || {
+                        if thread::Builder::new()
+                            .spawn(move || {
                             Nameserver::handle_tcp_connection(s, eng, peer);
-                        });
+                            TCP_INFLIGHT.fetch_sub(1, Ordering::AcqRel);
+                        })
+                        .is_err()
+                        {
+                            TCP_INFLIGHT.fetch_sub(1, Ordering::AcqRel);
+                        }
                     }
                     Err(e) => {
                         s_log("error", &format!("TCP accept error: {}", e), None);
