@@ -20,9 +20,11 @@ RUN --mount=type=cache,target=/root/.cargo/registry \
 COPY config/ ./config/
 COPY native/ ./native/
 
-RUN --mount=type=cache,target=/root/.cargo/registry \
+RUN --mount=type=cache,target=/app/deps \
+    --mount=type=cache,target=/app/_build \
+    --mount=type=cache,target=/root/.cargo/registry \
     --mount=type=cache,target=/root/.cargo/git \
-    mix deps.compile
+    mix compile
 
 COPY priv/ ./priv/
 COPY lib/ ./lib/
@@ -30,9 +32,11 @@ COPY assets/ ./assets/
 COPY doc/ ./doc/
 
 
-RUN --mount=type=cache,target=/root/.cargo/registry \
+RUN --mount=type=cache,target=/app/deps \
+    --mount=type=cache,target=/app/_build \
+    --mount=type=cache,target=/root/.cargo/registry \
     --mount=type=cache,target=/root/.cargo/git \
-    mix compile
+    mix deps.compile
 
 RUN mix assets.deploy
 
