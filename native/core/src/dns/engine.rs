@@ -8,11 +8,21 @@ pub struct DnsEngine {
     pub recursion_enabled: bool,
 }
 
+fn recursion_enabled_from_env() -> bool {
+    env::var("HACKFLARE_DNS_RECURSION_ENABLED")
+        .ok()
+        .map(|v| {
+            let v = v.trim().to_ascii_lowercase();
+            v == "1" || v == "true" || v == "yes" || v == "on"
+        })
+        .unwrap_or(false)
+}
+
 impl DnsEngine {
     pub fn new(manager: DnsManager) -> Self {
         Self {
             manager,
-            recursion_enabled: true,
+            recursion_enabled: recursion_enabled_from_env(),
         }
     }
 
@@ -143,6 +153,12 @@ impl DnsEngine {
 
         let req_flags = u16::from_be_bytes([req[2], req[3]]);
         if recs.is_empty() {
+            if !self.recursion_enabled {
+                let mut r = build_servfail(id, req_flags, self.recursion_enabled, &req[12..pos + 4]);
+                if client_edns_size > 0 { append_opt(&mut r, client_edns_size, client_do); }
+                return Some(r);
+            }
+
             if let Some(mut resp) = crate::dns::recursive::resolve(&qname, qtype, 6) {
                 let id_bytes = id.to_be_bytes();
                 if resp.len() >= 2 {
