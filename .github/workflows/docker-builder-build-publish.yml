@@ -61,3 +61,6 @@ jobs:
             type=registry,ref=ghcr.io/hack-flare/hackflare-builder:buildcache
             type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:builder-cache
           cache-to: type=registry,ref=ghcr.io/hack-flare/hackflare-builder:buildcache,mode=max
+      
+      - name: Call workflow to build and publish main image
+        uses: ./.github/workflows/docker-build-publish.yml
