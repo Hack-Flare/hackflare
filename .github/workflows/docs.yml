@@ -41,16 +41,24 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE_REF="${{ github.event.pull_request.base.ref }}"
           else
-            BASE_REF="${{ github.event.repository.default_branch || 'main' }}"
+            BASE_REF="${{ github.event.repository.default_branch }}"
+            if [ -z "$BASE_REF" ]; then
+              BASE_REF="main"
+            fi
           fi
           echo "Comparing against origin/$BASE_REF..."
-          git fetch origin $BASE_REF
-          FILES=$(git diff --name-only origin/$BASE_REF...HEAD | grep '\.ex$' | paste -sd ' ' - || echo '')
-          echo "files=${FILES}" >> $GITHUB_OUTPUT
+          git fetch origin "$BASE_REF"
+          FILES=$(git diff --name-only "origin/$BASE_REF...HEAD" | grep '\.ex$' | paste -sd ' ' - || echo '')
+          echo "files=$FILES" >> $GITHUB_OUTPUT
+
+      - name: Install dependencies (jq)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
 
       - name: Extract and generate docs via AI
         id: ai_docs
-        if: "steps.changed_files.outputs.files != ''"
+        if: ${{ steps.changed_files.outputs.files != '' }}
         run: |
           mkdir -p /tmp/ai_docs
           echo "{}" > /tmp/ai_docs/generated.json
@@ -72,8 +80,12 @@ jobs:
                 temperature: 0.3,
                 max_tokens: 2048
               }')
+              BASE_URL="${{ secrets.OPENAI_BASE_URL }}"
+              if [ -z "$BASE_URL" ]; then
+                BASE_URL="https://api.openai.com"
+              fi
               RESPONSE=$(curl -s -X POST \
-                "${{ secrets.OPENAI_BASE_URL }}/v1/chat/completions" \
+                "$BASE_URL/v1/chat/completions" \
                 -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
                 -H "Content-Type: application/json" \
                 -d "$PAYLOAD")
@@ -84,7 +96,7 @@ jobs:
           done
 
       - name: Inject docs into files
-        if: "steps.changed_files.outputs.files != ''"
+        if: ${{ steps.changed_files.outputs.files != '' }}
         run: |
           mix escript.build 2>/dev/null || true
           elixir scripts/inject_docs.exs \
@@ -92,11 +104,11 @@ jobs:
             /tmp/ai_docs/generated.json
 
       - name: Format code
-        if: "steps.changed_files.outputs.files != ''"
+        if: ${{ steps.changed_files.outputs.files != '' }}
         run: mix format ${{ steps.changed_files.outputs.files }}
 
       - name: Commit and push changes
-        if: "steps.changed_files.outputs.files != ''"
+        if: ${{ steps.changed_files.outputs.files != '' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
