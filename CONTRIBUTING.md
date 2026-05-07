@@ -18,3 +18,5 @@ By contributing to Hackflare, you agree that:
 - Your contributions will be licensed under the same license as Hackflare
 - You retain copyright of your contributions
 - You grant Hackflare and its users a perpetual, worldwide, royalty-free license to use, modify, and distribute your contributions under the project license
+
+TLDR: Your contributions are licensed to Hackflare and its users, but you keep ownership of your work.
