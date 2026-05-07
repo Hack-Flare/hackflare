@@ -345,7 +345,9 @@ defmodule Hackflare.DNS do
   end
 
   defp restore_original_record(mgr, zone_name, record_name, record_type, %Record{} = record) do
-    _ = Native.manager_add_record(mgr, zone_name, record_name, record_type, record.ttl, record.data)
+    _ =
+      Native.manager_add_record(mgr, zone_name, record_name, record_type, record.ttl, record.data)
+
     :ok
   end
 
