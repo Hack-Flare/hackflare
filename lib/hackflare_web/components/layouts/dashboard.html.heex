@@ -369,7 +369,11 @@
                                                 name="_csrf_token"
                                                 value={get_csrf_token()}
                                               />
-                                              <input type="hidden" name="zone_name" value={zone_name} />
+                                              <input
+                                                type="hidden"
+                                                name="zone_name"
+                                                value={zone_name}
+                                              />
                                               <input
                                                 type="hidden"
                                                 name="record_name"
@@ -408,7 +412,11 @@
                                                 name="_csrf_token"
                                                 value={get_csrf_token()}
                                               />
-                                              <input type="hidden" name="zone_name" value={zone_name} />
+                                              <input
+                                                type="hidden"
+                                                name="zone_name"
+                                                value={zone_name}
+                                              />
                                               <input
                                                 type="hidden"
                                                 name="old_record_name"
@@ -431,16 +439,39 @@
                                                   name="record_type"
                                                   class="w-full rounded-md border border-orange-500/30 bg-black/40 p-2.5 text-sm text-gray-100 focus:border-orange-400 focus:outline-none"
                                                 >
-                                                  <option value="A" selected={record.rtype == "A"}>A</option>
-                                                  <option value="AAAA" selected={record.rtype == "AAAA"}>
+                                                  <option value="A" selected={record.rtype == "A"}>
+                                                    A
+                                                  </option>
+                                                  <option
+                                                    value="AAAA"
+                                                    selected={record.rtype == "AAAA"}
+                                                  >
                                                     AAAA
                                                   </option>
-                                                  <option value="CNAME" selected={record.rtype == "CNAME"}>
+                                                  <option
+                                                    value="CNAME"
+                                                    selected={record.rtype == "CNAME"}
+                                                  >
                                                     CNAME
                                                   </option>
-                                                  <option value="MX" selected={record.rtype == "MX"}>MX</option>
-                                                  <option value="TXT" selected={record.rtype == "TXT"}>TXT</option>
-                                                  <option value="NS" selected={record.rtype == "NS"}>NS</option>
+                                                  <option
+                                                    value="MX"
+                                                    selected={record.rtype == "MX"}
+                                                  >
+                                                    MX
+                                                  </option>
+                                                  <option
+                                                    value="TXT"
+                                                    selected={record.rtype == "TXT"}
+                                                  >
+                                                    TXT
+                                                  </option>
+                                                  <option
+                                                    value="NS"
+                                                    selected={record.rtype == "NS"}
+                                                  >
+                                                    NS
+                                                  </option>
                                                 </select>
                                               </div>
                                               <div class="grid grid-cols-1 gap-3 md:grid-cols-2">

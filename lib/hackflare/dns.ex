@@ -269,7 +269,13 @@ defmodule Hackflare.DNS do
            %{name: new_record_name, rtype: new_record_type, ttl: ttl, data: data, zone: zone_name}}
 
         false ->
-          restore_original_record(mgr, zone_name, old_record_name, old_record_type, persisted_old_record)
+          restore_original_record(
+            mgr,
+            zone_name,
+            old_record_name,
+            old_record_type,
+            persisted_old_record
+          )
 
           {:error, :failed_to_update_record}
       end
@@ -327,7 +333,9 @@ defmodule Hackflare.DNS do
   end
 
   defp restore_original_record(mgr, zone_name, record_name, record_type, %Record{} = record) do
-    _ = Native.manager_add_record(mgr, zone_name, record_name, record_type, record.ttl, record.data)
+    _ =
+      Native.manager_add_record(mgr, zone_name, record_name, record_type, record.ttl, record.data)
+
     :ok
   end
 
