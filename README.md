@@ -48,10 +48,10 @@ Feel free to submit PRs/issues for anything you want us to work on or you want t
 
 ### Phase 1 (MVP/POC)
 
-- [wip] DNS System
-  - [wip] Backend
+- [x] DNS System
+  - [x] Backend
     - [x] Auth Integration
-    - [wip] Domain Management
+    - [x] Domain Management
       - Domains stay in a pending state until their NS delegation is verified, and record edits are blocked until then.
 - [x] nameservers
 - [x] Auth system (hc auth)
