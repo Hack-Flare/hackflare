@@ -65,8 +65,8 @@ jobs:
           commit_message: "style: auto-format Elixir code [skip ci]"
           branch: main
 
-  compile:
-    name: Compile Application
+  main:
+    name: Run Main Checks & Compile Application
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/hack-flare/hackflare-builder:latest
@@ -79,54 +79,7 @@ jobs:
           path: deps
           key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
           restore-keys: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}-
-
-      - name: Compile Elixir + Rust
-        run: |
-          mix local.hex --force
-          mix local.rebar --force
-          mix deps.get
-          mix compile --warnings-as-errors
-
-      - name: Save unified build cache
-        uses: actions/cache/save@v5
-        with:
-          path: |
-            deps
-            _build
-            priv/native
-          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('mix.lock', 'Cargo.lock') }}
-
-  static_analysis:
-    name: Static Analysis
-    needs: [compile, format]
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/hack-flare/hackflare-builder:latest
-    steps:
-      - uses: actions/checkout@v6
-          
-      - uses: actions/cache/restore@v5
-        with:
-          path: |
-            deps
-            _build
-            priv/native
-          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('mix.lock', 'Cargo.lock') }}
-          fail-on-cache-miss: true
-
-      - run: mix credo --strict
-      - run: mix deps.audit
-      - run: mix sobelow --config
-
-  type_check:
-    name: Type Checking
-    needs: [compile, format]
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/hack-flare/hackflare-builder:latest
-    steps:
-      - uses: actions/checkout@v6
-
+      
       - name: Restore/Save Dialyzer PLT Cache
         uses: actions/cache@v5
         with:
@@ -135,21 +88,26 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-plt-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-
 
-      - name: Restore Application Build
-        uses: actions/cache/restore@v5
-        with:
-          path: |
-            deps
-            _build
-            priv/native
-          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('mix.lock', 'Cargo.lock') }}
-          fail-on-cache-miss: true
+      - name: Compile Elixir + Rust
+        run: |
+          mix local.hex --force
+          mix local.rebar --force
+          mix deps.get
+          mix compile --warnings-as-errors
 
+      # Static Analysis
+      - name: Static Analysis
+        run: mix credo --strict
+      - name: Dependency Audit
+        run: mix deps.audit
+      - name: Security Analysis
+        run: mix sobelow --config
+
+      # Type Check
       - name: Run Dialyzer
         run: mix dialyzer
 
   rust-checks:
-    needs: [compile, format]
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/hack-flare/hackflare-builder:latest
@@ -164,11 +122,10 @@ jobs:
       - name: Clippy Crates
         run: cargo clippy -- -D warnings
               
-  test:
+  tests:
     name: Test Partition ${{ matrix.partition }}
     container:
       image: ghcr.io/hack-flare/hackflare-builder:latest
-    needs: [compile, format]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
