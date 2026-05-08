@@ -8,6 +8,8 @@ use std::io;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DnsManager {
     zones: HashMap<String, Zone>,
+    #[serde(skip)]
+    records_by_name: HashMap<String, Vec<crate::dns::Record>>,
 }
 
 impl Default for DnsManager {
@@ -45,6 +47,20 @@ impl DnsManager {
     pub fn new() -> Self {
         Self {
             zones: HashMap::new(),
+            records_by_name: HashMap::new(),
+        }
+    }
+
+    fn rebuild_index(&mut self) {
+        self.records_by_name.clear();
+
+        for zone in self.zones.values() {
+            for record in &zone.records {
+                self.records_by_name
+                    .entry(record.name.clone())
+                    .or_default()
+                    .push(record.clone());
+            }
         }
     }
 
@@ -58,7 +74,11 @@ impl DnsManager {
 
     pub fn delete_zone(&mut self, name: &str) -> bool {
         let normalized = Self::normalize_name(name);
-        self.zones.remove(&normalized).is_some()
+        let removed = self.zones.remove(&normalized).is_some();
+        if removed {
+            self.rebuild_index();
+        }
+        removed
     }
 
     pub fn get_zone(&self, name: &str) -> Option<&Zone> {
@@ -88,12 +108,17 @@ impl DnsManager {
         let normalized_rtype = Self::normalize_rtype(rtype);
 
         if let Some(zone) = self.zones.get_mut(&normalized_zone) {
-            zone.add_record(crate::dns::Record::new(
+            let record = crate::dns::Record::new(
                 fqdn,
                 normalized_rtype,
                 ttl,
                 data.trim(),
-            ));
+            );
+            self.records_by_name
+                .entry(record.name.clone())
+                .or_default()
+                .push(record.clone());
+            zone.add_record(record);
             true
         } else {
             false
@@ -106,7 +131,11 @@ impl DnsManager {
         let normalized_rtype = Self::normalize_rtype(rtype);
 
         if let Some(zone) = self.zones.get_mut(&normalized_zone) {
-            zone.remove_record(&fqdn, &normalized_rtype)
+            let removed = zone.remove_record(&fqdn, &normalized_rtype);
+            if removed {
+                self.rebuild_index();
+            }
+            removed
         } else {
             false
         }
@@ -115,19 +144,19 @@ impl DnsManager {
     pub fn find_records(&self, fqdn: &str, rtype: Option<&str>) -> Vec<crate::dns::Record> {
         let normalized_name = Self::normalize_name(fqdn);
         let normalized_rtype = rtype.map(Self::normalize_rtype);
-        let mut out = Vec::new();
-        for zone in self.zones.values() {
-            for r in &zone.records {
-                if Self::normalize_name(&r.name) == normalized_name
-                    && normalized_rtype
-                        .as_deref()
-                        .is_none_or(|t| r.rtype.eq_ignore_ascii_case(t))
-                {
-                    out.push(r.clone());
-                }
-            }
-        }
-        out
+        let Some(records) = self.records_by_name.get(&normalized_name) else {
+            return Vec::new();
+        };
+
+        records
+            .iter()
+            .filter(|record| {
+                normalized_rtype
+                    .as_deref()
+                    .is_none_or(|rtype| record.rtype.eq_ignore_ascii_case(rtype))
+            })
+            .cloned()
+            .collect()
     }
 
     pub fn find_answer_records(&self, fqdn: &str, qtype: Option<&str>) -> Vec<crate::dns::Record> {
@@ -178,7 +207,8 @@ impl DnsManager {
 
     pub fn load_from_file(path: &str) -> io::Result<Self> {
         let data = fs::read_to_string(path)?;
-        let manager: DnsManager = serde_json::from_str(&data).map_err(io::Error::other)?;
+        let mut manager: DnsManager = serde_json::from_str(&data).map_err(io::Error::other)?;
+        manager.rebuild_index();
         Ok(manager)
     }
 }
@@ -237,5 +267,15 @@ mod tests {
         assert_eq!(answers[0].rtype, "CNAME");
         assert_eq!(answers[1].rtype, "A");
         assert_eq!(answers[1].name, "origin.example.com");
+    }
+
+    #[test]
+    fn delete_zone_clears_record_index() {
+        let mut manager = DnsManager::new();
+        manager.create_zone("example.com");
+        manager.add_record("example.com", "www", "A", 300, "1.2.3.4");
+
+        assert!(manager.delete_zone("example.com"));
+        assert!(manager.find_records("www.example.com", Some("A")).is_empty());
     }
 }
