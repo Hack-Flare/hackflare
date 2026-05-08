@@ -1,9 +1,33 @@
 use crate::dns::engine::{encode_name_labels, encode_name_labels_vec, parse_hex_bytes};
 use crate::dns::registry::Registry;
-use crate::dns::Record;
 use base64::Engine;
 use once_cell::sync::Lazy;
 use std::net::{Ipv4Addr, Ipv6Addr};
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Record {
+    pub name: String,
+    pub rtype: String,
+    pub ttl: u32,
+    pub data: String,
+}
+
+impl Record {
+    pub fn new(
+        name: impl Into<String>,
+        rtype: impl Into<String>,
+        ttl: u32,
+        data: impl Into<String>,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            rtype: rtype.into(),
+            ttl,
+            data: data.into(),
+        }
+    }
+}
 
 fn encode_ipv4(r: &Record) -> Option<Vec<u8>> {
     if let Ok(ip) = r.data.parse::<Ipv4Addr>() {
