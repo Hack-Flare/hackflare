@@ -34,3 +34,20 @@ impl Zone {
             .collect()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn zone_add_find_and_remove_records() {
+        let mut zone = Zone::new("example.com");
+        zone.add_record(Record::new("www.example.com", "A", 300, "1.2.3.4"));
+        zone.add_record(Record::new("www.example.com", "AAAA", 300, "2001:db8::1"));
+
+        assert_eq!(zone.find("www.example.com", None).len(), 2);
+        assert_eq!(zone.find("www.example.com", Some("A")).len(), 1);
+        assert!(zone.remove_record("www.example.com", "A"));
+        assert_eq!(zone.find("www.example.com", None).len(), 1);
+    }
+}

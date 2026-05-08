@@ -530,3 +530,72 @@ pub(crate) fn encode_name_labels_vec(name: &str) -> Vec<u8> {
     out.push(0);
     out
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::dns::DnsManager;
+
+    fn build_query(name: &str, qtype: u16) -> Vec<u8> {
+        let mut out = Vec::new();
+        out.extend_from_slice(&0x1234u16.to_be_bytes());
+        out.extend_from_slice(&0x0100u16.to_be_bytes());
+        out.extend_from_slice(&1u16.to_be_bytes());
+        out.extend_from_slice(&0u16.to_be_bytes());
+        out.extend_from_slice(&0u16.to_be_bytes());
+        out.extend_from_slice(&0u16.to_be_bytes());
+        out.extend_from_slice(&encode_name_labels_vec(name));
+        out.extend_from_slice(&qtype.to_be_bytes());
+        out.extend_from_slice(&1u16.to_be_bytes());
+        out
+    }
+
+    #[test]
+    fn helper_encoders_and_parsers_work() {
+        assert_eq!(parse_hex_bytes("0xAA bb"), Some(vec![0xaa, 0xbb]));
+        assert_eq!(encode_name_labels_vec("www.example.com"), vec![3, b'w', b'w', b'w', 7, b'e', b'x', b'a', b'm', b'p', b'l', b'e', 3, b'c', b'o', b'm', 0]);
+
+        let parsed = parse_qname(&encode_name_labels_vec("www.example.com"), 0).unwrap();
+        assert_eq!(parsed.0, "www.example.com");
+    }
+
+    #[test]
+    fn handle_query_returns_servfail_for_too_short_request() {
+        let engine = DnsEngine {
+            manager: DnsManager::new(),
+            recursion_enabled: false,
+        };
+
+        let resp = engine.handle_query(&[]).expect("servfail response");
+        assert_eq!(u16::from_be_bytes([resp[2], resp[3]]) & 0x000f, 2);
+        assert_eq!(u16::from_be_bytes([resp[4], resp[5]]), 1);
+    }
+
+    #[test]
+    fn handle_query_returns_local_answer() {
+        let mut manager = DnsManager::new();
+        manager.create_zone("example.com");
+        assert!(manager.add_record("example.com", "www", "A", 300, "1.2.3.4"));
+
+        let engine = DnsEngine {
+            manager,
+            recursion_enabled: false,
+        };
+
+        let resp = engine
+            .handle_query(&build_query("www.example.com", 1))
+            .expect("dns response");
+
+        assert_eq!(u16::from_be_bytes([resp[4], resp[5]]), 1);
+        assert_eq!(u16::from_be_bytes([resp[6], resp[7]]), 1);
+
+        let (qname, pos) = parse_qname(&resp, 12).unwrap();
+        assert_eq!(qname, "www.example.com");
+        assert_eq!(u16::from_be_bytes([resp[pos], resp[pos + 1]]), 1);
+        assert_eq!(u16::from_be_bytes([resp[pos + 2], resp[pos + 3]]), 1);
+
+        let ans_pos = pos + 4;
+        assert_eq!(u16::from_be_bytes([resp[ans_pos + 2], resp[ans_pos + 3]]), 1);
+        assert_eq!(&resp[resp.len() - 4..], &[1, 2, 3, 4]);
+    }
+}

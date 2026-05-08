@@ -671,3 +671,28 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
     debug_log(&format!("resolution failed for {} type {}", name, qtype));
     None
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn helper_functions_cover_basic_recursion_utility_logic() {
+        assert_eq!(tld_from_name("WWW.Example.COM."), Some("com".to_string()));
+        assert_eq!(clamp_tld_ttl(10), TLD_DELEGATION_MIN_TTL_SECS);
+        assert_eq!(clamp_tld_ttl(999_999), TLD_DELEGATION_MAX_TTL_SECS);
+        assert_eq!(socket_target("192.0.2.1"), "192.0.2.1:53");
+        assert_eq!(socket_target("2001:db8::1"), "[2001:db8::1]:53");
+
+        let mut response = build_query(0x1234, "example.com", 1);
+        response[2] |= 0x80;
+        assert!(response_matches_expected(&response, 0x1234, "example.com", 1));
+        assert!(!response_matches_expected(&response, 0x9999, "example.com", 1));
+    }
+
+    #[test]
+    fn root_hint_parser_deduplicates_ips() {
+        let hints = parse_root_hints("; comment\n198.41.0.4 198.41.0.4\n170.247.170.2\n");
+        assert_eq!(hints, vec!["170.247.170.2".to_string(), "198.41.0.4".to_string()]);
+    }
+}

@@ -28,3 +28,23 @@ impl Registry {
         self.map.get(&name.to_uppercase())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::dns::Record;
+
+    fn encode_stub(_record: &Record) -> Option<Vec<u8>> {
+        Some(vec![1, 2, 3])
+    }
+
+    #[test]
+    fn registry_lookup_is_case_insensitive() {
+        let mut registry = Registry::new();
+        registry.register("a", encode_stub);
+
+        assert!(registry.get("A").is_some());
+        assert!(registry.get("a").is_some());
+        assert!(registry.get("missing").is_none());
+    }
+}

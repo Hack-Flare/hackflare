@@ -240,3 +240,28 @@ impl Nameserver {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::dns::{DnsEngine, DnsManager};
+
+    #[test]
+    fn nameserver_constructors_set_expected_state() {
+        let config = NsConfig {
+            bind_addr: "127.0.0.1".to_string(),
+            port: 5300,
+            zone_file: Some("zones.json".to_string()),
+        };
+
+        let empty = Nameserver::new(config);
+        assert!(empty.engine.is_none());
+        assert_eq!(empty.config.bind_addr, "127.0.0.1");
+        assert_eq!(empty.config.port, 5300);
+        assert_eq!(empty.config.zone_file.as_deref(), Some("zones.json"));
+
+        let engine = DnsEngine::new(DnsManager::new());
+        let with_engine = Nameserver::with_engine(NsConfig::default(), engine);
+        assert!(with_engine.engine.is_some());
+    }
+}

@@ -289,3 +289,101 @@ pub(crate) static REGISTRY: Lazy<Registry> = Lazy::new(|| {
 pub fn encode_by_type(typ: &str, record: &Record) -> Option<Vec<u8>> {
     REGISTRY.get(typ).and_then(|enc| enc(record))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn encodes_representative_record_types() {
+        assert_eq!(
+            encode_by_type("A", &Record::new("www.example.com", "A", 300, "1.2.3.4")),
+            Some(vec![1, 2, 3, 4])
+        );
+
+        assert_eq!(
+            encode_by_type(
+                "AAAA",
+                &Record::new("www.example.com", "AAAA", 300, "2001:db8::1")
+            ),
+            Some("2001:db8::1".parse::<std::net::Ipv6Addr>().unwrap().octets().to_vec())
+        );
+
+        assert_eq!(
+            encode_by_type(
+                "CNAME",
+                &Record::new("alias.example.com", "CNAME", 300, "target.example.com")
+            ),
+            Some(crate::dns::engine::encode_name_labels("target.example.com"))
+        );
+
+        assert_eq!(
+            encode_by_type(
+                "MX",
+                &Record::new("example.com", "MX", 300, "10 mail.example.com")
+            ),
+            Some({
+                let mut expected = vec![0, 10];
+                expected.extend_from_slice(&crate::dns::engine::encode_name_labels("mail.example.com"));
+                expected
+            })
+        );
+
+        assert_eq!(
+            encode_by_type(
+                "SOA",
+                &Record::new(
+                    "example.com",
+                    "SOA",
+                    300,
+                    "ns1.example.com hostmaster.example.com 2026042000 1800 900 604800 86400",
+                )
+            ),
+            Some({
+                let mut expected = Vec::new();
+                expected.extend_from_slice(&crate::dns::engine::encode_name_labels_vec("ns1.example.com"));
+                expected.extend_from_slice(&crate::dns::engine::encode_name_labels_vec("hostmaster.example.com"));
+                expected.extend_from_slice(&2026042000u32.to_be_bytes());
+                expected.extend_from_slice(&1800u32.to_be_bytes());
+                expected.extend_from_slice(&900u32.to_be_bytes());
+                expected.extend_from_slice(&604800u32.to_be_bytes());
+                expected.extend_from_slice(&86400u32.to_be_bytes());
+                expected
+            })
+        );
+
+        assert_eq!(
+            encode_by_type(
+                "TXT",
+                &Record::new("example.com", "TXT", 300, "hello\nworld")
+            ),
+            Some(vec![5, b'h', b'e', b'l', b'l', b'o', 5, b'w', b'o', b'r', b'l', b'd'])
+        );
+
+        assert_eq!(
+            encode_by_type(
+                "CAA",
+                &Record::new("example.com", "CAA", 300, "0 issue \"letsencrypt.org\"")
+            ),
+            Some(vec![0, 5, b'i', b's', b's', b'u', b'e', b'l', b'e', b't', b's', b'e', b'n', b'c', b'r', b'y', b'p', b't', b'.', b'o', b'r', b'g'])
+        );
+
+        assert_eq!(
+            encode_by_type(
+                "DNSKEY",
+                &Record::new("example.com", "DNSKEY", 300, "257 3 8 AQID")
+            ),
+            Some(vec![1, 1, 3, 8, 1, 2, 3])
+        );
+
+        assert_eq!(
+            encode_by_type(
+                "DS",
+                &Record::new("example.com", "DS", 300, "12345 8 2 aabbccdd")
+            ),
+            Some(vec![0x30, 0x39, 8, 2, 0xaa, 0xbb, 0xcc, 0xdd])
+        );
+
+        assert!(encode_by_type("ANY", &Record::new("example.com", "ANY", 300, "-")).is_none());
+    }
+}
