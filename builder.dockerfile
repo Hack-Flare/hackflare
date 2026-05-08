@@ -14,11 +14,15 @@ RUN apt-get update && \
     curl \
     libssl-dev \
     pkg-config \
+    unzip \
     ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
+ARG RUST_VERSION=1.87.0
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
-    rustup default stable
+    rustup toolchain install ${RUST_VERSION} && \
+    rustup default ${RUST_VERSION} && \
+    rustup component add rustfmt clippy
 
 # Elixir tooling
 RUN mix local.hex --force && \
@@ -34,8 +38,10 @@ RUN mix deps.get
 # Prime Rust crates from the workspace manifests before app source changes.
 COPY Cargo.toml Cargo.lock ./
 COPY native/core/Cargo.toml ./native/core/Cargo.toml
-COPY native/core/src ./native/core/src
-RUN cargo fetch --locked
+
+RUN mkdir -p native/core/src && \
+    touch native/core/src/lib.rs && \
+    cargo fetch --locked
 
 RUN elixir -v && rustc --version && cargo --version
 

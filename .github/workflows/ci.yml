@@ -68,6 +68,8 @@ jobs:
   compile:
     name: Compile Application
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/hack-flare/hackflare-builder:latest
     steps:
       - uses: actions/checkout@v6
 
@@ -100,12 +102,14 @@ jobs:
             deps
             _build
             priv/native
-          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ github.sha }}
+          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('mix.lock', 'Cargo.lock') }}
 
   static_analysis:
     name: Static Analysis
     needs: [compile, format]
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/hack-flare/hackflare-builder:latest
     steps:
       - uses: actions/checkout@v6
 
@@ -120,7 +124,7 @@ jobs:
             deps
             _build
             priv/native
-          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ github.sha }}
+          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('mix.lock', 'Cargo.lock') }}
           fail-on-cache-miss: true
 
       - run: mix credo --strict
@@ -131,6 +135,8 @@ jobs:
     name: Type Checking
     needs: [compile, format]
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/hack-flare/hackflare-builder:latest
     steps:
       - uses: actions/checkout@v6
 
@@ -154,7 +160,7 @@ jobs:
             deps
             _build
             priv/native
-          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ github.sha }}
+          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('mix.lock', 'Cargo.lock') }}
           fail-on-cache-miss: true
 
       - name: Run Dialyzer
@@ -163,6 +169,8 @@ jobs:
   rust-checks:
     needs: [compile, format]
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/hack-flare/hackflare-builder:latest
     permissions:
       contents: read
       packages: write
@@ -176,10 +184,11 @@ jobs:
 
       - name: Clippy Crates
         run: cargo clippy -- -D warnings
-        
-        
+              
   test:
     name: Test Partition ${{ matrix.partition }}
+    container:
+      image: ghcr.io/hack-flare/hackflare-builder:latest
     needs: [compile, format]
     runs-on: ubuntu-latest
     strategy:
@@ -214,7 +223,7 @@ jobs:
             deps
             _build
             priv/native
-          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ github.sha }}
+          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('mix.lock', 'Cargo.lock') }}
           fail-on-cache-miss: true
 
       - name: Setup Database
