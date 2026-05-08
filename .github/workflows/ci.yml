@@ -104,7 +104,7 @@ jobs:
 
   static_analysis:
     name: Static Analysis
-    needs: [compile, format]
+    needs: [compile]
     runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v6
@@ -129,7 +129,7 @@ jobs:
 
   type_check:
     name: Type Checking
-    needs: [compile, format]
+    needs: [compile]
     runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v6
@@ -161,7 +161,7 @@ jobs:
         run: mix dialyzer
 
   rust-checks:
-    needs: [compile, format]
+    needs: [compile]
     runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read
@@ -177,10 +177,9 @@ jobs:
       - name: Clippy Crates
         run: cargo clippy -- -D warnings
         
-        
   test:
     name: Test Partition ${{ matrix.partition }}
-    needs: [compile, format]
+    needs: [compile]
     runs-on: blacksmith-4vcpu-ubuntu-2404
     strategy:
       fail-fast: false
