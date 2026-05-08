@@ -34,7 +34,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: write
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v6
 
@@ -67,7 +67,7 @@ jobs:
 
   compile:
     name: Compile Application
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v6
 
@@ -105,7 +105,7 @@ jobs:
   static_analysis:
     name: Static Analysis
     needs: [compile, format]
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v6
 
@@ -130,7 +130,7 @@ jobs:
   type_check:
     name: Type Checking
     needs: [compile, format]
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v6
 
@@ -162,7 +162,7 @@ jobs:
 
   rust-checks:
     needs: [compile, format]
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read
       packages: write
@@ -181,7 +181,7 @@ jobs:
   test:
     name: Test Partition ${{ matrix.partition }}
     needs: [compile, format]
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     strategy:
       fail-fast: false
       matrix:
