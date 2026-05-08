@@ -4,14 +4,11 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 
-use crate::config::Config;
 use crate::domain::auth::{AuthError, LoginInput, RegisterInput, Session, User};
 use crate::domain::dns::{DnsError, NewRecordInput, RecordType, ResolvedRecord, Zone};
 use crate::state::AppState;
 
-pub fn build_router(config: Config) -> Router {
-    let state = AppState::new(config);
-
+pub fn build_router(state: AppState) -> Router {
     Router::new()
         .route("/health", get(health))
         .route("/api/v1/ping", get(api_ping))

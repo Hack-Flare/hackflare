@@ -11,8 +11,17 @@ Internal backend service for Hackflare.
 
 - `BACKEND_BIND_HOST` default `0.0.0.0`
 - `BACKEND_BIND_PORT` default `8080`
+- `BACKEND_DNS_BIND_HOST` default `0.0.0.0`
+- `BACKEND_DNS_BIND_PORT` default `5353`
 - `BACKEND_GATEWAY_TOKEN` required for gateway-to-backend requests
 - `DATABASE_URL` optional for now
+
+## DNS nameserver
+
+- UDP authoritative DNS server runs in the same backend process.
+- DNS answers come from `/api/v1/dns/*` managed zones/records.
+- Supported query types: `A`, `AAAA`, `CNAME`, `TXT`, `ANY`.
+- Unknown zones return `NXDOMAIN`.
 
 ## Routes
 

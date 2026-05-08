@@ -154,6 +154,18 @@ impl DnsService {
 
         output
     }
+
+    pub fn has_zone_for_name(&self, name: &str) -> bool {
+        let normalized_name = match normalize_zone_name(name) {
+            Some(value) => value,
+            None => return false,
+        };
+
+        let zones = self.zones.read().expect("zones read lock poisoned");
+        zones
+            .keys()
+            .any(|zone| normalized_name == *zone || normalized_name.ends_with(&format!(".{zone}")))
+    }
 }
 
 fn normalize_zone_name(input: &str) -> Option<String> {
