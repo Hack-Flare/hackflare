@@ -2,16 +2,14 @@ name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
     paths-ignore:
       - "**/*.md"
-      - ".github/"
       - ".github/workflows/docker-build-publish.yml"
   pull_request:
     branches: ["main"]
     paths-ignore:
       - "**/*.md"
-      - ".github/"
       - ".github/workflows/docker-build-publish.yml"
   workflow_dispatch:
   workflow_call:
@@ -24,208 +22,53 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  MIX_ENV: test
-  ELIXIR_VERSION: '1.19'
-  OTP_VERSION: '27.0'
-  # Point Mix/Hex/Rebar at the locations populated when the builder image
-  # was built (as root). GitHub Actions overrides HOME to /github/home for
-  # container jobs, so without these the pre-installed Hex/Rebar archives
-  # under /root/.mix wouldn't be discovered.
-  MIX_HOME: /root/.mix
-  HEX_HOME: /root/.hex
-  REBAR_GLOBAL_CONFIG_DIR: /root/.config/rebar3
-  REBAR_CACHE_DIR: /root/.cache/rebar3
-
 jobs:
-  format:
-    name: Auto-Format Code
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      contents: write
-      packages: read
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-    container:
-      image: ghcr.io/hack-flare/hackflare-builder:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+  backend:
+    name: Backend Rust Checks
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: Backend
     steps:
       - uses: actions/checkout@v6
 
-      - name: Restore dependencies and build cache
-        uses: actions/cache@v5
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            deps
-            _build
-          key: ${{ runner.os }}-mix-format-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-mix-format-
+          workspaces: Backend
 
-      - name: Install Dependencies
-        run: mix deps.get
+      - name: Check formatting
+        run: cargo fmt --all --check
 
-      - name: Run Formatter
-        run: mix format
+      - name: Cargo check
+        run: cargo check --all-targets
 
-      - name: Auto-commit formatted code
-        uses: stefanzweifel/git-auto-commit-action@v7
-        with:
-          commit_message: "style: auto-format Elixir code [skip ci]"
-          branch: main
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
 
-  compile:
-    name: Compile Application
-    # Compile is the long pole on the critical path: parallel Elixir compile
-    # plus a Rust NIF build via rustler both benefit from more cores.
-    runs-on: blacksmith-8vcpu-ubuntu-2404
-    container:
-      image: ghcr.io/hack-flare/hackflare-builder:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run tests
+        run: cargo test --all-features
+
+  frontend:
+    name: Frontend Bun Checks
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: Frontend
     steps:
       - uses: actions/checkout@v6
 
-      - name: Restore deps cache
-        uses: actions/cache@v5
-        with:
-          path: deps
-          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
-          restore-keys: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}-
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
 
-      - name: Compile Elixir + Rust
-        run: |
-          mix deps.get
-          mix compile --warnings-as-errors
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
-      - name: Save unified build cache
-        uses: actions/cache/save@v5
-        with:
-          path: |
-            deps
-            _build
-            priv/native
-          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ github.sha }}
+      - name: Typecheck
+        run: bunx tsc --noEmit
 
-  analysis:
-    # Combined static analysis + dialyzer. Both need the same _build / deps
-    # cache and run inside the same image, so paying container init and cache
-    # restore once is strictly cheaper than splitting them. Dialyzer is mostly
-    # single-threaded; 4vcpu is plenty.
-    name: Analysis
-    needs: [compile]
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-    container:
-      image: ghcr.io/hack-flare/hackflare-builder:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Restore Application Build
-        uses: actions/cache/restore@v5
-        with:
-          path: |
-            deps
-            _build
-            priv/native
-          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ github.sha }}
-          fail-on-cache-miss: true
-
-      - name: Restore/Save Dialyzer PLT Cache
-        uses: actions/cache@v5
-        with:
-          path: priv/plts
-          key: ${{ runner.os }}-plt-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-plt-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-
-
-      - name: Seed PLT from builder image baseline
-        # If the cache restore above didn't populate priv/plts (cold cache or
-        # mix.lock changed enough that no restore-key matched), fall back to
-        # the PLT baked into the builder image. Dialyzer will incrementally
-        # update from there, which is much faster than building from scratch.
-        run: |
-          mkdir -p priv/plts
-          if [ -d /opt/plts ] && [ -z "$(ls -A priv/plts 2>/dev/null)" ]; then
-            echo "Seeding PLT from /opt/plts baseline"
-            cp -a /opt/plts/. priv/plts/
-          fi
-
-      - run: mix credo --strict
-      - run: mix deps.audit
-      - run: mix sobelow --config
-      - run: mix dialyzer
-
-  rust-checks:
-    # Independent of `compile`: cargo check / clippy only need the Rust
-    # workspace and the cargo registry primed in the builder image, not the
-    # Elixir build cache. Starting at t=0 gets it off the critical path.
-    runs-on: blacksmith-8vcpu-ubuntu-2404
-    permissions:
-      contents: read
-      packages: write
-    container:
-      image: ghcr.io/hack-flare/hackflare-builder:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Check Crates
-        run: cargo check
-
-      - name: Clippy Crates
-        run: cargo clippy -- -D warnings
-
-  test:
-    # The previous 6-way matrix had each partition running ~1-2 test files,
-    # paying full container init + Postgres spin-up + cache restore + ecto
-    # setup per partition. With ~8 test files total, a single job using
-    # ExUnit's built-in async parallelism is faster end-to-end and cheaper.
-    name: Test
-    needs: [compile]
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-    container:
-      image: ghcr.io/hack-flare/hackflare-builder:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    env:
-      DB_HOST: postgres
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: hackflare
-          POSTGRES_PASSWORD: hackflare
-          POSTGRES_DB: hackflare
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/cache/restore@v5
-        with:
-          path: |
-            deps
-            _build
-            priv/native
-          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ github.sha }}
-          fail-on-cache-miss: true
-
-      - name: Setup Database
-        run: |
-          mkdir -p priv/repo/migrations
-          mix do app.start + ecto.create + ecto.migrate
-
-      - name: Run Tests
-        run: mix test
+      - name: Build
+        run: bun run build
