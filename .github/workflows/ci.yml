@@ -18,6 +18,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -34,14 +35,15 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: write
+      packages: read
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    container:
+      image: ghcr.io/hack-flare/hackflare-builder:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v6
-
-      - uses: erlef/setup-beam@v1
-        with:
-          elixir-version: ${{ env.ELIXIR_VERSION }}
-          otp-version: ${{ env.OTP_VERSION }}
 
       - name: Restore dependencies and build cache
         uses: actions/cache@v5
@@ -68,16 +70,13 @@ jobs:
   compile:
     name: Compile Application
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    container:
+      image: ghcr.io/hack-flare/hackflare-builder:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v6
-
-      - name: Set up Rust
-        uses: ./.github/actions/setup-rust
-
-      - uses: erlef/setup-beam@v1
-        with:
-          elixir-version: ${{ env.ELIXIR_VERSION }}
-          otp-version: ${{ env.OTP_VERSION }}
 
       - name: Restore deps cache
         uses: actions/cache@v5
@@ -106,14 +105,14 @@ jobs:
     name: Static Analysis
     needs: [compile, format]
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    container:
+      image: ghcr.io/hack-flare/hackflare-builder:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v6
 
-      - uses: erlef/setup-beam@v1
-        with:
-          elixir-version: ${{ env.ELIXIR_VERSION }}
-          otp-version: ${{ env.OTP_VERSION }}
-          
       - uses: actions/cache/restore@v5
         with:
           path: |
@@ -131,13 +130,13 @@ jobs:
     name: Type Checking
     needs: [compile, format]
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    container:
+      image: ghcr.io/hack-flare/hackflare-builder:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v6
-
-      - uses: erlef/setup-beam@v1
-        with:
-          elixir-version: ${{ env.ELIXIR_VERSION }}
-          otp-version: ${{ env.OTP_VERSION }}
 
       - name: Restore/Save Dialyzer PLT Cache
         uses: actions/cache@v5
@@ -166,22 +165,33 @@ jobs:
     permissions:
       contents: read
       packages: write
+    container:
+      image: ghcr.io/hack-flare/hackflare-builder:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-rust
 
       - name: Check Crates
         run: cargo check
 
       - name: Clippy Crates
         run: cargo clippy -- -D warnings
-        
-        
+
+
   test:
     name: Test Partition ${{ matrix.partition }}
     needs: [compile, format]
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    container:
+      image: ghcr.io/hack-flare/hackflare-builder:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      DB_HOST: postgres
     strategy:
       fail-fast: false
       matrix:
@@ -203,11 +213,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: erlef/setup-beam@v1
-        with:
-          elixir-version: ${{ env.ELIXIR_VERSION }}
-          otp-version: ${{ env.OTP_VERSION }}
-
       - uses: actions/cache/restore@v5
         with:
           path: |
@@ -221,7 +226,7 @@ jobs:
         run: |
           mkdir -p priv/repo/migrations
           mix do app.start + ecto.create + ecto.migrate
-          
+
       - name: Run Tests
         env:
           MIX_TEST_PARTITION: ${{ matrix.partition }}
