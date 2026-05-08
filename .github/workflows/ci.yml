@@ -28,6 +28,14 @@ env:
   MIX_ENV: test
   ELIXIR_VERSION: '1.19'
   OTP_VERSION: '27.0'
+  # Point Mix/Hex/Rebar at the locations populated when the builder image
+  # was built (as root). GitHub Actions overrides HOME to /github/home for
+  # container jobs, so without these the pre-installed Hex/Rebar archives
+  # under /root/.mix wouldn't be discovered.
+  MIX_HOME: /root/.mix
+  HEX_HOME: /root/.hex
+  REBAR_GLOBAL_CONFIG_DIR: /root/.config/rebar3
+  REBAR_CACHE_DIR: /root/.cache/rebar3
 
 jobs:
   format:
