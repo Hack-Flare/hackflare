@@ -65,13 +65,19 @@ jobs:
           commit_message: "style: auto-format Elixir code [skip ci]"
           branch: main
 
-  main:
-    name: Run Main Checks & Compile Application
+  compile:
+    name: Compile Application
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/hack-flare/hackflare-builder:latest
     steps:
       - uses: actions/checkout@v6
+
+      - name: Set up Rust
+        uses: ./.github/actions/setup-rust
+
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
 
       - name: Restore deps cache
         uses: actions/cache@v5
@@ -79,14 +85,6 @@ jobs:
           path: deps
           key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
           restore-keys: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}-
-      
-      - name: Restore/Save Dialyzer PLT Cache
-        uses: actions/cache@v5
-        with:
-          path: priv/plts
-          key: ${{ runner.os }}-plt-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-plt-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-
 
       - name: Compile Elixir + Rust
         run: |
@@ -95,37 +93,94 @@ jobs:
           mix deps.get
           mix compile --warnings-as-errors
 
-      # Static Analysis
-      - name: Static Analysis
-        run: mix credo --strict
-      - name: Dependency Audit
-        run: mix deps.audit
-      - name: Security Analysis
-        run: mix sobelow --config
+      - name: Save unified build cache
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            deps
+            _build
+            priv/native
+          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ github.sha }}
 
-      # Type Check
+  static_analysis:
+    name: Static Analysis
+    needs: [compile, format]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
+          
+      - uses: actions/cache/restore@v5
+        with:
+          path: |
+            deps
+            _build
+            priv/native
+          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ github.sha }}
+          fail-on-cache-miss: true
+
+      - run: mix credo --strict
+      - run: mix deps.audit
+      - run: mix sobelow --config
+
+  type_check:
+    name: Type Checking
+    needs: [compile, format]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
+
+      - name: Restore/Save Dialyzer PLT Cache
+        uses: actions/cache@v5
+        with:
+          path: priv/plts
+          key: ${{ runner.os }}-plt-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-plt-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-
+
+      - name: Restore Application Build
+        uses: actions/cache/restore@v5
+        with:
+          path: |
+            deps
+            _build
+            priv/native
+          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ github.sha }}
+          fail-on-cache-miss: true
+
       - name: Run Dialyzer
         run: mix dialyzer
 
   rust-checks:
+    needs: [compile, format]
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/hack-flare/hackflare-builder:latest
     permissions:
       contents: read
       packages: write
 
     steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-rust
+
       - name: Check Crates
         run: cargo check
 
       - name: Clippy Crates
         run: cargo clippy -- -D warnings
-              
-  tests:
+        
+        
+  test:
     name: Test Partition ${{ matrix.partition }}
-    container:
-      image: ghcr.io/hack-flare/hackflare-builder:latest
+    needs: [compile, format]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -148,13 +203,18 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
+
       - uses: actions/cache/restore@v5
         with:
           path: |
             deps
             _build
             priv/native
-          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('mix.lock', 'Cargo.lock') }}
+          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ github.sha }}
           fail-on-cache-miss: true
 
       - name: Setup Database
