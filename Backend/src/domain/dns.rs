@@ -26,6 +26,9 @@ pub enum RecordType {
     Aaaa,
     Cname,
     Txt,
+    Ns,
+    Ptr,
+    Mx,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -238,6 +241,25 @@ fn is_record_value_valid(record_type: RecordType, value: &str) -> bool {
         RecordType::Aaaa => trimmed.parse::<std::net::Ipv6Addr>().is_ok(),
         RecordType::Cname => normalize_zone_name(trimmed).is_some(),
         RecordType::Txt => trimmed.len() <= 512,
+        RecordType::Ns => normalize_zone_name(trimmed).is_some(),
+        RecordType::Ptr => normalize_zone_name(trimmed).is_some(),
+        RecordType::Mx => {
+            let mut parts = trimmed.split_whitespace();
+            let pref = parts.next();
+            let host = parts.next();
+            if parts.next().is_some() {
+                return false;
+            }
+
+            let Some(pref) = pref else {
+                return false;
+            };
+            let Some(host) = host else {
+                return false;
+            };
+
+            pref.parse::<u16>().is_ok() && normalize_zone_name(host).is_some()
+        }
     }
 }
 
@@ -324,5 +346,72 @@ mod tests {
 
         assert_eq!(txt_records.len(), 1);
         assert_eq!(a_records.len(), 1);
+    }
+
+    #[test]
+    fn validates_new_record_types() {
+        let service = DnsService::new();
+        service
+            .create_zone("example.com")
+            .expect("zone should be created");
+        service
+            .create_zone("in-addr.arpa")
+            .expect("reverse zone should be created");
+
+        service
+            .add_record(
+                "example.com",
+                NewRecordInput {
+                    name: "@".to_string(),
+                    record_type: RecordType::Ns,
+                    value: "ns1.example.com".to_string(),
+                    ttl: 300,
+                },
+            )
+            .expect("ns record should be added");
+
+        service
+            .add_record(
+                "in-addr.arpa",
+                NewRecordInput {
+                    name: "1.2.0.192.in-addr.arpa".to_string(),
+                    record_type: RecordType::Ptr,
+                    value: "host.example.com".to_string(),
+                    ttl: 300,
+                },
+            )
+            .expect("ptr record should be added");
+
+        service
+            .add_record(
+                "example.com",
+                NewRecordInput {
+                    name: "@".to_string(),
+                    record_type: RecordType::Mx,
+                    value: "10 mail.example.com".to_string(),
+                    ttl: 300,
+                },
+            )
+            .expect("mx record should be added");
+    }
+
+    #[test]
+    fn rejects_invalid_mx_record_value() {
+        let service = DnsService::new();
+        service
+            .create_zone("example.com")
+            .expect("zone should be created");
+
+        let result = service.add_record(
+            "example.com",
+            NewRecordInput {
+                name: "@".to_string(),
+                record_type: RecordType::Mx,
+                value: "mail.example.com".to_string(),
+                ttl: 300,
+            },
+        );
+
+        assert!(matches!(result, Err(DnsError::InvalidRecordValue)));
     }
 }

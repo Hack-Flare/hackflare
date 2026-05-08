@@ -40,6 +40,14 @@ fn recursion_enabled_from_env() -> bool {
         .unwrap_or(false)
 }
 
+    fn recursion_max_depth_from_env() -> usize {
+        env::var("HACKFLARE_DNS_RECURSION_MAX_DEPTH")
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
+        .map(|v| v.clamp(1, 16))
+        .unwrap_or(6)
+    }
+
 fn build_response(req: &[u8], dns: &DnsService) -> Option<Vec<u8>> {
     // follow same defensive parsing strategy as native/core: return SERVFAIL when malformed
     if req.len() < 12 {
@@ -129,13 +137,16 @@ fn build_response(req: &[u8], dns: &DnsService) -> Option<Vec<u8>> {
             "AAAA" => RecordType::Aaaa,
             "CNAME" => RecordType::Cname,
             "TXT" => RecordType::Txt,
+            "NS" => RecordType::Ns,
+            "PTR" => RecordType::Ptr,
+            "MX" => RecordType::Mx,
             _ => return Some(build_servfail(id, req_flags, recursion_enabled_from_env(), &req[12..pos+4])),
         }))
     };
 
     if is_ip_literal && recs.is_empty() {
         if let Some(rn) = reverse_name.as_ref() {
-            let ptrs = dns.find_records(rn, Some(RecordType::Cname));
+            let ptrs = dns.find_records(rn, Some(RecordType::Ptr));
             if !ptrs.is_empty() {
                 recs = ptrs;
             } else {
@@ -177,7 +188,7 @@ fn build_response(req: &[u8], dns: &DnsService) -> Option<Vec<u8>> {
             return Some(r);
         }
 
-        if let Some(mut recursive_resp) = crate::recursive::resolve(&qname, qtype, 6) {
+        if let Some(mut recursive_resp) = crate::recursive::resolve(&qname, qtype, recursion_max_depth_from_env()) {
             if client_edns_size > 0 { append_opt(&mut recursive_resp, client_edns_size, client_do); }
             return Some(recursive_resp);
         }
@@ -255,21 +266,13 @@ fn map_qtype(q: u16) -> &'static str {
 fn map_qtype_to_num(rt: &RecordType) -> u16 {
     match rt {
         RecordType::A => 1,
+        RecordType::Ns => 2,
         RecordType::Aaaa => 28,
         RecordType::Cname => 5,
+        RecordType::Ptr => 12,
+        RecordType::Mx => 15,
         RecordType::Txt => 16,
     }
-}
-
-fn parse_hex_bytes(s: &str) -> Option<Vec<u8>> {
-    let s = s.trim_start_matches("0x").replace(|c: char| c.is_whitespace(), "");
-    if s.len() % 2 != 0 { return None; }
-    let mut out = Vec::with_capacity(s.len() / 2);
-    for i in (0..s.len()).step_by(2) {
-        let byte = u8::from_str_radix(&s[i..i + 2], 16).ok()?;
-        out.push(byte);
-    }
-    Some(out)
 }
 
 fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)> {
@@ -404,6 +407,21 @@ fn encode_rdata(record_type: &RecordType, value: &str) -> Option<Vec<u8>> {
         RecordType::A => value.parse::<Ipv4Addr>().ok().map(|ip| ip.octets().to_vec()),
         RecordType::Aaaa => value.parse::<Ipv6Addr>().ok().map(|ip| ip.octets().to_vec()),
         RecordType::Cname => Some(encode_name_labels_vec(value)),
+        RecordType::Ns => Some(encode_name_labels_vec(value)),
+        RecordType::Ptr => Some(encode_name_labels_vec(value)),
+        RecordType::Mx => {
+            let mut parts = value.split_whitespace();
+            let pref = parts.next()?.parse::<u16>().ok()?;
+            let host = parts.next()?;
+            if parts.next().is_some() {
+                return None;
+            }
+
+            let mut out = Vec::new();
+            out.extend_from_slice(&pref.to_be_bytes());
+            out.extend_from_slice(&encode_name_labels_vec(host));
+            Some(out)
+        }
         RecordType::Txt => {
             let mut out = Vec::new();
             let bytes = value.as_bytes();
@@ -435,6 +453,23 @@ mod tests {
         out
     }
 
+    fn response_rcode(resp: &[u8]) -> u16 {
+        u16::from_be_bytes([resp[2], resp[3]]) & 0x000f
+    }
+
+    fn response_ancount(resp: &[u8]) -> u16 {
+        u16::from_be_bytes([resp[6], resp[7]])
+    }
+
+    fn first_answer_type(resp: &[u8]) -> Option<u16> {
+        let (_qname, pos) = super::parse_qname(resp, 12)?;
+        let answer_start = pos + 4;
+        if answer_start + 4 > resp.len() {
+            return None;
+        }
+        Some(u16::from_be_bytes([resp[answer_start + 2], resp[answer_start + 3]]))
+    }
+
     #[test]
     fn returns_a_answer_for_known_record() {
         let dns = DnsService::new();
@@ -454,12 +489,10 @@ mod tests {
         let response_bytes = build_response(&req, &dns).expect("build response");
 
         // response flags in bytes 2..4 contain rcode low 4 bits
-        let rcode = u16::from_be_bytes([response_bytes[2], response_bytes[3]]) & 0x000f;
-        assert_eq!(rcode, 0); // NoError
+        assert_eq!(response_rcode(&response_bytes), 0); // NoError
 
         // answer count is bytes 6..8
-        let ancount = u16::from_be_bytes([response_bytes[6], response_bytes[7]]);
-        assert_eq!(ancount, 1);
+        assert_eq!(response_ancount(&response_bytes), 1);
     }
 
     #[test]
@@ -467,8 +500,69 @@ mod tests {
         let dns = DnsService::new();
         let req = build_query("missing.example.com", 1);
         let response_bytes = build_response(&req, &dns).expect("build response");
-        let rcode = u16::from_be_bytes([response_bytes[2], response_bytes[3]]) & 0x000f;
-        assert_eq!(rcode, 3); // NXDomain
+        assert_eq!(response_rcode(&response_bytes), 3); // NXDomain
+    }
+
+    #[test]
+    fn supports_additional_record_types_and_any_query() {
+        let dns = DnsService::new();
+        dns.create_zone("example.com").expect("zone should create");
+        dns.create_zone("in-addr.arpa").expect("zone should create");
+
+        let records = vec![
+            ("example.com", "@", RecordType::Aaaa, "2001:db8::1", 28u16),
+            ("example.com", "@", RecordType::Cname, "alias.example.com", 5u16),
+            ("example.com", "@", RecordType::Txt, "hello", 16u16),
+            ("example.com", "@", RecordType::Ns, "ns1.example.com", 2u16),
+            ("example.com", "@", RecordType::Mx, "10 mail.example.com", 15u16),
+        ];
+
+        for (zone, name, record_type, value, _wire_type) in records {
+            dns.add_record(
+                zone,
+                NewRecordInput {
+                    name: name.to_string(),
+                    record_type,
+                    value: value.to_string(),
+                    ttl: 120,
+                },
+            )
+            .expect("record should create");
+        }
+
+        dns.add_record(
+            "in-addr.arpa",
+            NewRecordInput {
+                name: "1.2.0.192.in-addr.arpa".to_string(),
+                record_type: RecordType::Ptr,
+                value: "host.example.com".to_string(),
+                ttl: 120,
+            },
+        )
+        .expect("ptr record should create");
+
+        let checks = vec![
+            ("example.com", 28u16, 28u16),
+            ("example.com", 5u16, 5u16),
+            ("example.com", 16u16, 16u16),
+            ("example.com", 2u16, 2u16),
+            ("example.com", 15u16, 15u16),
+            ("1.2.0.192.in-addr.arpa", 12u16, 12u16),
+        ];
+
+        for (name, qtype, expected_wire_type) in checks {
+            let req = build_query(name, qtype);
+            let resp = build_response(&req, &dns).expect("build response");
+            assert_eq!(response_rcode(&resp), 0);
+            assert_eq!(response_ancount(&resp), 1);
+            assert_eq!(first_answer_type(&resp), Some(expected_wire_type));
+        }
+
+        // ANY should include all `example.com` records we inserted for that name.
+        let any_req = build_query("example.com", 255);
+        let any_resp = build_response(&any_req, &dns).expect("build any response");
+        assert_eq!(response_rcode(&any_resp), 0);
+        assert_eq!(response_ancount(&any_resp), 5);
     }
 
     #[tokio::test]
@@ -514,10 +608,8 @@ mod tests {
             .expect("recv timeout")
             .expect("recv");
         let resp = &buf[..n];
-        let rcode = u16::from_be_bytes([resp[2], resp[3]]) & 0x000f;
-        assert_eq!(rcode, 0);
-        let ancount = u16::from_be_bytes([resp[6], resp[7]]);
-        assert_eq!(ancount, 1);
+        assert_eq!(response_rcode(resp), 0);
+        assert_eq!(response_ancount(resp), 1);
     }
 
     #[tokio::test]
@@ -551,7 +643,77 @@ mod tests {
             .expect("recv timeout")
             .expect("recv");
         let resp = &buf[..n];
-        let rcode = u16::from_be_bytes([resp[2], resp[3]]) & 0x000f;
-        assert_eq!(rcode, 3);
+        assert_eq!(response_rcode(resp), 3);
+    }
+
+    #[tokio::test]
+    async fn integration_udp_record_types() {
+        use std::net::UdpSocket as StdUdp;
+        use std::sync::Arc;
+        use std::time::Duration;
+        use tokio::net::UdpSocket;
+
+        let dns = DnsService::new();
+        dns.create_zone("example.com").expect("zone should create");
+
+        let records = vec![
+            (RecordType::Aaaa, "2001:db8::1", 28u16),
+            (RecordType::Cname, "alias.example.com", 5u16),
+            (RecordType::Txt, "hello", 16u16),
+            (RecordType::Ns, "ns1.example.com", 2u16),
+            (RecordType::Mx, "10 mail.example.com", 15u16),
+        ];
+
+        for (record_type, value, _qtype) in records.iter().cloned() {
+            dns.add_record(
+                "example.com",
+                NewRecordInput {
+                    name: "@".to_string(),
+                    record_type,
+                    value: value.to_string(),
+                    ttl: 60,
+                },
+            )
+            .expect("record should create");
+        }
+
+        let dns_arc = Arc::new(dns);
+        let s = StdUdp::bind(("127.0.0.1", 0)).expect("bind temp");
+        let addr = s.local_addr().expect("local addr");
+        drop(s);
+
+        let bind_addr = addr;
+        let srv_dns = dns_arc.clone();
+        tokio::spawn(async move {
+            let _ = run_dns_server(bind_addr, srv_dns).await;
+        });
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
+
+        let client = UdpSocket::bind("0.0.0.0:0").await.expect("client bind");
+        for (_record_type, _value, qtype) in records {
+            let q = build_query("example.com", qtype);
+            client.send_to(&q, bind_addr).await.expect("send");
+            let mut buf = [0u8; 4096];
+            let (n, _) = tokio::time::timeout(Duration::from_secs(2), client.recv_from(&mut buf))
+                .await
+                .expect("recv timeout")
+                .expect("recv");
+            let resp = &buf[..n];
+            assert_eq!(response_rcode(resp), 0);
+            assert_eq!(response_ancount(resp), 1);
+            assert_eq!(first_answer_type(resp), Some(qtype));
+        }
+
+        let q_any = build_query("example.com", 255);
+        client.send_to(&q_any, bind_addr).await.expect("send");
+        let mut buf = [0u8; 4096];
+        let (n, _) = tokio::time::timeout(Duration::from_secs(2), client.recv_from(&mut buf))
+            .await
+            .expect("recv timeout")
+            .expect("recv");
+        let resp = &buf[..n];
+        assert_eq!(response_rcode(resp), 0);
+        assert_eq!(response_ancount(resp), 5);
     }
 }

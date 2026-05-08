@@ -33,6 +33,9 @@ const ROOT_CACHE_TTL_SECS: u64 = 86400;
 const TLD_DELEGATION_MIN_TTL_SECS: u64 = 3600;
 const TLD_DELEGATION_MAX_TTL_SECS: u64 = 86400;
 const DEFAULT_RECURSION_ROUNDS: usize = 8;
+const DEFAULT_RECURSION_DEADLINE_MS: u64 = 12_000;
+const MIN_QUERY_CACHE_TTL_SECS: u64 = 5;
+const MAX_QUERY_CACHE_TTL_SECS: u64 = 86_400;
 const MAX_QUERY_CACHE_ENTRIES: usize = 10_000;
 const MAX_ROOT_CACHE_ENTRIES: usize = 256;
 const MAX_DELEGATION_CACHE_ENTRIES: usize = 1024;
@@ -74,6 +77,17 @@ fn udp_attempt_timeout() -> Duration {
 
 fn recursion_round_limit() -> usize {
     env_usize("HACKFLARE_DNS_RECURSION_ROUNDS", DEFAULT_RECURSION_ROUNDS).max(1)
+}
+
+fn recursion_deadline() -> Duration {
+    Duration::from_millis(env_u64(
+        "HACKFLARE_DNS_RECURSION_DEADLINE_MS",
+        DEFAULT_RECURSION_DEADLINE_MS,
+    ))
+}
+
+fn clamp_query_cache_ttl(ttl_secs: u64) -> u64 {
+    ttl_secs.clamp(MIN_QUERY_CACHE_TTL_SECS, MAX_QUERY_CACHE_TTL_SECS)
 }
 
 fn recursion_debug_enabled() -> bool {
@@ -482,7 +496,16 @@ fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)> {
 }
 
 pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
+    let deadline = Instant::now() + recursion_deadline();
+    resolve_with_deadline(name, qtype, max_depth, deadline)
+}
+
+fn resolve_with_deadline(name: &str, qtype: u16, max_depth: usize, deadline: Instant) -> Option<Vec<u8>> {
     if max_depth == 0 {
+        return None;
+    }
+    if Instant::now() >= deadline {
+        debug_log(&format!("deadline exceeded before resolving {} type {}", name, qtype));
         return None;
     }
     let _resolve_guard = acquire_resolve_slot()?;
@@ -525,11 +548,6 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
     let requested_tld = tld_from_name(name);
 
     let mut servers: Vec<String> = if let Some(tld) = requested_tld.as_ref()
-        && let Ok(delegations) = DELEGATION_CACHE.lock()
-        && {
-            drop(delegations);
-            true
-        }
         && let Ok(mut delegations) = DELEGATION_CACHE.lock()
         && {
             prune_delegation_cache(&mut delegations);
@@ -555,6 +573,10 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
     let mut qname = name.to_string();
     let mut tried_root_fallback = false;
     for _round in 0..recursion_round_limit() {
+        if Instant::now() >= deadline {
+            debug_log(&format!("deadline exceeded while resolving {} type {}", name, qtype));
+            return None;
+        }
         let qid = rand::random::<u16>();
         let req = build_query(qid, &qname, qtype);
         let mut next_servers: Vec<String> = Vec::new();
@@ -597,7 +619,8 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
                         if *rtype == qtype {
                             if let Ok(mut c) = CACHE.lock() {
                                 prune_query_cache(&mut c);
-                                let exp = Instant::now() + Duration::from_secs((*ttl).into());
+                                let ttl_secs = clamp_query_cache_ttl((*ttl).into());
+                                let exp = Instant::now() + Duration::from_secs(ttl_secs);
                                 c.insert((name.to_string(), qtype), (resp.clone(), exp));
                             }
                             debug_log(&format!("resolved {} type {} via {}", name, qtype, srv));
@@ -655,7 +678,7 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
                     }
                 } else {
                     for nsname in ns_names {
-                        if let Some(ip_resp) = resolve(&nsname, 1, max_depth - 1)
+                        if let Some(ip_resp) = resolve_with_deadline(&nsname, 1, max_depth - 1, deadline)
                             && ip_resp.len() >= 12
                         {
                             let an = u16::from_be_bytes([ip_resp[6], ip_resp[7]]) as usize;
