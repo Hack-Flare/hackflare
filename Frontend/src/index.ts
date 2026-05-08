@@ -1,39 +1,42 @@
 import { serve } from "bun";
 import index from "./index.html";
 
+const backendBase = process.env.BACKEND_API_BASE ?? "http://127.0.0.1:8080";
+
+async function proxyToBackend(req: Request): Promise<Response> {
+  const incoming = new URL(req.url);
+  const upstreamUrl = new URL(incoming.pathname + incoming.search, backendBase);
+
+  const headers = new Headers(req.headers);
+  headers.delete("host");
+
+  const method = req.method.toUpperCase();
+  const body = method === "GET" || method === "HEAD" ? undefined : await req.arrayBuffer();
+
+  const upstream = await fetch(upstreamUrl, {
+    method,
+    headers,
+    body,
+    redirect: "manual",
+  });
+
+  return new Response(upstream.body, {
+    status: upstream.status,
+    statusText: upstream.statusText,
+    headers: upstream.headers,
+  });
+}
+
 const server = serve({
   routes: {
-    // Serve index.html for all unmatched routes.
+    "/api/v1/*": proxyToBackend,
+    "/health": proxyToBackend,
+
     "/*": index,
-
-    "/api/hello": {
-      async GET(req) {
-        return Response.json({
-          message: "Hello, world!",
-          method: "GET",
-        });
-      },
-      async PUT(req) {
-        return Response.json({
-          message: "Hello, world!",
-          method: "PUT",
-        });
-      },
-    },
-
-    "/api/hello/:name": async req => {
-      const name = req.params.name;
-      return Response.json({
-        message: `Hello, ${name}!`,
-      });
-    },
   },
 
   development: process.env.NODE_ENV !== "production" && {
-    // Enable browser hot reloading in development
     hmr: true,
-
-    // Echo console logs from the browser to the server
     console: true,
   },
 });

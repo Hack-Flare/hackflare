@@ -45,10 +45,8 @@ struct ApiPingResponse {
 
 async fn api_ping(
     State(state): State<AppState>,
-    headers: HeaderMap,
+    _headers: HeaderMap,
 ) -> Result<Json<ApiPingResponse>, StatusCode> {
-    ensure_gateway_access(&state, &headers)?;
-
     Ok(Json(ApiPingResponse {
         status: "ok",
         service: "hackflare-backend",
@@ -63,18 +61,9 @@ struct ErrorResponse {
 
 async fn register(
     State(state): State<AppState>,
-    headers: HeaderMap,
+    _headers: HeaderMap,
     Json(payload): Json<RegisterInput>,
 ) -> Result<Json<Session>, (StatusCode, Json<ErrorResponse>)> {
-    ensure_gateway_access(&state, &headers).map_err(|status| {
-        (
-            status,
-            Json(ErrorResponse {
-                error: "unauthorized",
-            }),
-        )
-    })?;
-
     state
         .auth
         .register(payload)
@@ -84,18 +73,9 @@ async fn register(
 
 async fn login(
     State(state): State<AppState>,
-    headers: HeaderMap,
+    _headers: HeaderMap,
     Json(payload): Json<LoginInput>,
 ) -> Result<Json<Session>, (StatusCode, Json<ErrorResponse>)> {
-    ensure_gateway_access(&state, &headers).map_err(|status| {
-        (
-            status,
-            Json(ErrorResponse {
-                error: "unauthorized",
-            }),
-        )
-    })?;
-
     state.auth.login(payload).map(Json).map_err(map_auth_error)
 }
 
@@ -103,15 +83,6 @@ async fn me(
     State(state): State<AppState>,
     headers: HeaderMap,
 ) -> Result<Json<User>, (StatusCode, Json<ErrorResponse>)> {
-    ensure_gateway_access(&state, &headers).map_err(|status| {
-        (
-            status,
-            Json(ErrorResponse {
-                error: "unauthorized",
-            }),
-        )
-    })?;
-
     let token = extract_bearer_token(&headers).ok_or((
         StatusCode::UNAUTHORIZED,
         Json(ErrorResponse {
@@ -136,26 +107,16 @@ struct CreateZoneRequest {
 
 async fn list_zones(
     State(state): State<AppState>,
-    headers: HeaderMap,
+    _headers: HeaderMap,
 ) -> Result<Json<Vec<Zone>>, StatusCode> {
-    ensure_gateway_access(&state, &headers)?;
     Ok(Json(state.dns.list_zones()))
 }
 
 async fn create_zone(
     State(state): State<AppState>,
-    headers: HeaderMap,
+    _headers: HeaderMap,
     Json(payload): Json<CreateZoneRequest>,
 ) -> Result<Json<Zone>, (StatusCode, Json<ErrorResponse>)> {
-    ensure_gateway_access(&state, &headers).map_err(|status| {
-        (
-            status,
-            Json(ErrorResponse {
-                error: "unauthorized",
-            }),
-        )
-    })?;
-
     state
         .dns
         .create_zone(&payload.name)
@@ -170,19 +131,10 @@ struct ZonePath {
 
 async fn add_record(
     State(state): State<AppState>,
-    headers: HeaderMap,
+    _headers: HeaderMap,
     axum::extract::Path(path): axum::extract::Path<ZonePath>,
     Json(payload): Json<NewRecordInput>,
 ) -> Result<Json<Zone>, (StatusCode, Json<ErrorResponse>)> {
-    ensure_gateway_access(&state, &headers).map_err(|status| {
-        (
-            status,
-            Json(ErrorResponse {
-                error: "unauthorized",
-            }),
-        )
-    })?;
-
     state
         .dns
         .add_record(&path.zone_name, payload)
@@ -199,10 +151,9 @@ struct FindRecordsQuery {
 
 async fn find_records(
     State(state): State<AppState>,
-    headers: HeaderMap,
+    _headers: HeaderMap,
     axum::extract::Query(query): axum::extract::Query<FindRecordsQuery>,
 ) -> Result<Json<Vec<ResolvedRecord>>, StatusCode> {
-    ensure_gateway_access(&state, &headers)?;
     Ok(Json(state.dns.find_records(&query.name, query.record_type)))
 }
 
@@ -233,60 +184,7 @@ fn map_dns_error(error: DnsError) -> (StatusCode, Json<ErrorResponse>) {
     (status, Json(ErrorResponse { error: message }))
 }
 
-fn ensure_gateway_access(state: &AppState, headers: &HeaderMap) -> Result<(), StatusCode> {
-    if !is_internal_token_valid(state.config.gateway_internal_token.as_deref(), headers) {
-        return Err(StatusCode::UNAUTHORIZED);
-    }
-
-    Ok(())
-}
-
-fn is_internal_token_valid(expected_token: Option<&str>, headers: &HeaderMap) -> bool {
-    let Some(expected) = expected_token else {
-        return false;
-    };
-
-    let Ok(Some(provided)) = headers
-        .get("x-internal-token")
-        .map(|value| value.to_str())
-        .transpose()
-    else {
-        return false;
-    };
-
-    provided == expected
-}
-
 fn extract_bearer_token(headers: &HeaderMap) -> Option<&str> {
     let raw = headers.get("authorization")?.to_str().ok()?;
     raw.strip_prefix("Bearer ")
-}
-
-#[cfg(test)]
-mod tests {
-    use super::is_internal_token_valid;
-    use axum::http::{HeaderMap, HeaderValue};
-
-    #[test]
-    fn validates_matching_token() {
-        let mut headers = HeaderMap::new();
-        headers.insert("x-internal-token", HeaderValue::from_static("secret"));
-
-        assert!(is_internal_token_valid(Some("secret"), &headers));
-    }
-
-    #[test]
-    fn rejects_wrong_token() {
-        let mut headers = HeaderMap::new();
-        headers.insert("x-internal-token", HeaderValue::from_static("wrong"));
-
-        assert!(!is_internal_token_valid(Some("secret"), &headers));
-    }
-
-    #[test]
-    fn rejects_missing_expected_token() {
-        let headers = HeaderMap::new();
-
-        assert!(!is_internal_token_valid(None, &headers));
-    }
 }
