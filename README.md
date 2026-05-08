@@ -35,3 +35,7 @@ Dev Docker Which builds the image locally
 ```
 docker compose -f docker-compose.dev.yml up
 ```
+
+## License
+
+Hackflare is licensed under Apache 2.0. See [LICENSE.md](LICENSE.md) for more details.
