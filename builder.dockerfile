@@ -30,10 +30,24 @@ RUN mix local.hex --force && \
 
 WORKDIR /app
 
-# Prime Hex dependencies from the lockfile before app source changes.
+# Prime Hex dependencies from the lockfile (prod env, used for production builds).
 COPY mix.exs mix.lock ./
 COPY config/ ./config/
 RUN mix deps.get
+
+# Bake a Dialyzer PLT into the image so CI's type-check step only has to
+# incrementally analyse project modules and any deps added since this image
+# was built. We need test-env deps (dialyxir lives there) and stub source
+# directories for `mix dialyzer --plt`. The compiled artefacts and stub
+# sources are dropped after the PLT is copied to /opt/plts so they don't
+# bloat the image or surprise downstream consumers.
+RUN mkdir -p lib test/support priv/plts && \
+    MIX_ENV=test mix deps.get && \
+    MIX_ENV=test mix deps.compile && \
+    MIX_ENV=test mix dialyzer --plt && \
+    mkdir -p /opt/plts && \
+    cp -a priv/plts/. /opt/plts/ && \
+    rm -rf lib test priv _build
 
 # Prime Rust crates from the workspace manifests before app source changes.
 COPY Cargo.toml Cargo.lock ./
@@ -43,6 +57,6 @@ RUN mkdir -p native/core/src && \
     touch native/core/src/lib.rs && \
     cargo fetch --locked
 
-RUN elixir -v && rustc --version && cargo --version
+RUN elixir -v && rustc --version && cargo --version && ls /opt/plts
 
 WORKDIR /toolchain

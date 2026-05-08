@@ -77,7 +77,9 @@ jobs:
 
   compile:
     name: Compile Application
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    # Compile is the long pole on the critical path: parallel Elixir compile
+    # plus a Rust NIF build via rustler both benefit from more cores.
+    runs-on: blacksmith-8vcpu-ubuntu-2404
     container:
       image: ghcr.io/hack-flare/hackflare-builder:latest
       credentials:
@@ -95,8 +97,6 @@ jobs:
 
       - name: Compile Elixir + Rust
         run: |
-          mix local.hex --force
-          mix local.rebar --force
           mix deps.get
           mix compile --warnings-as-errors
 
@@ -109,8 +109,12 @@ jobs:
             priv/native
           key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ github.sha }}
 
-  static_analysis:
-    name: Static Analysis
+  analysis:
+    # Combined static analysis + dialyzer. Both need the same _build / deps
+    # cache and run inside the same image, so paying container init and cache
+    # restore once is strictly cheaper than splitting them. Dialyzer is mostly
+    # single-threaded; 4vcpu is plenty.
+    name: Analysis
     needs: [compile]
     runs-on: blacksmith-4vcpu-ubuntu-2404
     container:
@@ -120,39 +124,6 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v6
-
-      - uses: actions/cache/restore@v5
-        with:
-          path: |
-            deps
-            _build
-            priv/native
-          key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ github.sha }}
-          fail-on-cache-miss: true
-
-      - run: mix credo --strict
-      - run: mix deps.audit
-      - run: mix sobelow --config
-
-  type_check:
-    name: Type Checking
-    needs: [compile]
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-    container:
-      image: ghcr.io/hack-flare/hackflare-builder:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Restore/Save Dialyzer PLT Cache
-        uses: actions/cache@v5
-        with:
-          path: priv/plts
-          key: ${{ runner.os }}-plt-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-plt-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-
 
       - name: Restore Application Build
         uses: actions/cache/restore@v5
@@ -164,12 +135,36 @@ jobs:
           key: ${{ runner.os }}-build-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ github.sha }}
           fail-on-cache-miss: true
 
-      - name: Run Dialyzer
-        run: mix dialyzer
+      - name: Restore/Save Dialyzer PLT Cache
+        uses: actions/cache@v5
+        with:
+          path: priv/plts
+          key: ${{ runner.os }}-plt-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-plt-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-
+
+      - name: Seed PLT from builder image baseline
+        # If the cache restore above didn't populate priv/plts (cold cache or
+        # mix.lock changed enough that no restore-key matched), fall back to
+        # the PLT baked into the builder image. Dialyzer will incrementally
+        # update from there, which is much faster than building from scratch.
+        run: |
+          mkdir -p priv/plts
+          if [ -d /opt/plts ] && [ -z "$(ls -A priv/plts 2>/dev/null)" ]; then
+            echo "Seeding PLT from /opt/plts baseline"
+            cp -a /opt/plts/. priv/plts/
+          fi
+
+      - run: mix credo --strict
+      - run: mix deps.audit
+      - run: mix sobelow --config
+      - run: mix dialyzer
 
   rust-checks:
-    needs: [compile]
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    # Independent of `compile`: cargo check / clippy only need the Rust
+    # workspace and the cargo registry primed in the builder image, not the
+    # Elixir build cache. Starting at t=0 gets it off the critical path.
+    runs-on: blacksmith-8vcpu-ubuntu-2404
     permissions:
       contents: read
       packages: write
@@ -187,9 +182,13 @@ jobs:
 
       - name: Clippy Crates
         run: cargo clippy -- -D warnings
-        
+
   test:
-    name: Test Partition ${{ matrix.partition }}
+    # The previous 6-way matrix had each partition running ~1-2 test files,
+    # paying full container init + Postgres spin-up + cache restore + ecto
+    # setup per partition. With ~8 test files total, a single job using
+    # ExUnit's built-in async parallelism is faster end-to-end and cheaper.
+    name: Test
     needs: [compile]
     runs-on: blacksmith-4vcpu-ubuntu-2404
     container:
@@ -199,10 +198,6 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     env:
       DB_HOST: postgres
-    strategy:
-      fail-fast: false
-      matrix:
-        partition: [1, 2, 3, 4, 5, 6]
     services:
       postgres:
         image: postgres:16-alpine
@@ -210,8 +205,6 @@ jobs:
           POSTGRES_USER: hackflare
           POSTGRES_PASSWORD: hackflare
           POSTGRES_DB: hackflare
-        ports:
-          - 5432:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -235,6 +228,4 @@ jobs:
           mix do app.start + ecto.create + ecto.migrate
 
       - name: Run Tests
-        env:
-          MIX_TEST_PARTITION: ${{ matrix.partition }}
-        run: mix test --partitions 6
+        run: mix test
