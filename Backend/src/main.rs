@@ -1,5 +1,6 @@
 mod app;
 mod config;
+mod domain;
 mod state;
 
 use crate::app::build_router;
