@@ -18,7 +18,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - runs-on: blacksmith-4vcpu-ubuntu-2404
+          - runs-on: blacksmith-8vcpu-ubuntu-2404
             tag-suffix: ""
           #- runs-on: self-hosted
           #  tag-suffix: "-arm"
