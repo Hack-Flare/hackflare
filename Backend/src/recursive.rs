@@ -3,13 +3,13 @@ use rand::seq::SliceRandom;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
-use std::io::{Read, Write};
-use std::net::{IpAddr, Ipv4Addr, TcpStream, UdpSocket};
+use std::net::{IpAddr, Ipv4Addr};
 use std::path::Path;
 use std::str;
-use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
+use tokio::net::{TcpStream, UdpSocket};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 const ROOT_SERVERS: [&str; 13] = [
     "198.41.0.4",
@@ -65,11 +65,7 @@ fn env_usize(name: &str, default: usize) -> usize {
 }
 
 fn udp_attempts_per_server() -> usize {
-    env_usize(
-        "HACKFLARE_DNS_UDP_ATTEMPTS",
-        DEFAULT_UDP_ATTEMPTS_PER_SERVER,
-    )
-    .max(1)
+    env_usize("HACKFLARE_DNS_UDP_ATTEMPTS", DEFAULT_UDP_ATTEMPTS_PER_SERVER).max(1)
 }
 
 fn udp_attempt_timeout() -> Duration {
@@ -322,7 +318,7 @@ fn response_matches_expected(
     qtype == expected_qtype
 }
 
-fn send_recv(
+async fn send_recv(
     sock: &UdpSocket,
     addr: &str,
     msg: &[u8],
@@ -337,15 +333,18 @@ fn send_recv(
     let timeout = udp_attempt_timeout();
 
     for _ in 0..attempts {
-        let _ = sock.send_to(msg, &target).ok()?;
-        let deadline = Instant::now() + timeout;
+        let _ = sock.send_to(msg, &target).await.ok()?;
+        let deadline = tokio::time::Instant::now() + timeout;
 
         loop {
-            if Instant::now() >= deadline {
+            if tokio::time::Instant::now() >= deadline {
                 break;
             }
-            match sock.recv_from(&mut buf) {
-                Ok((amt, src)) => {
+            match tokio::time::timeout(
+                timeout,
+                sock.recv_from(&mut buf)
+            ).await {
+                Ok(Ok((amt, src))) => {
                     if src.port() != 53 || src.ip() != expected_ip {
                         continue;
                     }
@@ -354,13 +353,7 @@ fn send_recv(
                         return Some(candidate.to_vec());
                     }
                 }
-                Err(ref e)
-                    if e.kind() == std::io::ErrorKind::WouldBlock
-                        || e.kind() == std::io::ErrorKind::TimedOut =>
-                {
-                    break;
-                }
-                Err(_) => break,
+                _ => break,
             }
         }
     }
@@ -390,28 +383,40 @@ fn parse_rrs(buf: &[u8], mut pos: usize, count: usize) -> Option<Vec<(u16, usize
     Some(out)
 }
 
-fn tcp_send_recv(addr: &str, msg: &[u8]) -> Option<Vec<u8>> {
+async fn tcp_send_recv(addr: &str, msg: &[u8]) -> Option<Vec<u8>> {
     let target = socket_target(addr);
-    let sockaddr = target.parse().ok()?;
-    let mut stream = TcpStream::connect_timeout(&sockaddr, Duration::from_secs(3)).ok()?;
-    stream.set_read_timeout(Some(Duration::from_secs(4))).ok()?;
-    stream
-        .set_write_timeout(Some(Duration::from_secs(4)))
+    let sockaddr: std::net::SocketAddr = target.parse().ok()?;
+    let mut stream = tokio::time::timeout(
+        Duration::from_secs(3),
+        TcpStream::connect(sockaddr)
+    ).await.ok()?
         .ok()?;
     let len = (msg.len() as u16).to_be_bytes();
-    if stream.write_all(&len).is_err() {
+    if tokio::time::timeout(
+        Duration::from_secs(4),
+        stream.write_all(&len)
+    ).await.is_err() {
         return None;
     }
-    if stream.write_all(msg).is_err() {
+    if tokio::time::timeout(
+        Duration::from_secs(4),
+        stream.write_all(msg)
+    ).await.is_err() {
         return None;
     }
     let mut lenbuf = [0u8; 2];
-    if stream.read_exact(&mut lenbuf).is_err() {
+    if tokio::time::timeout(
+        Duration::from_secs(4),
+        stream.read_exact(&mut lenbuf)
+    ).await.is_err() {
         return None;
     }
     let rlen = u16::from_be_bytes(lenbuf) as usize;
     let mut buf = vec![0u8; rlen];
-    if stream.read_exact(&mut buf).is_err() {
+    if tokio::time::timeout(
+        Duration::from_secs(4),
+        stream.read_exact(&mut buf)
+    ).await.is_err() {
         return None;
     }
     Some(buf)
@@ -455,9 +460,7 @@ fn encode_name_labels_vec(name: &str) -> Vec<u8> {
     let mut out = Vec::new();
     for label in name.split('.') {
         let l = label.len();
-        if l == 0 {
-            continue;
-        }
+        if l == 0 { continue; }
         out.push(l as u8);
         out.extend_from_slice(label.as_bytes());
     }
@@ -471,26 +474,16 @@ fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)> {
     let mut orig_pos = pos;
     let mut seen = 0usize;
     loop {
-        if pos >= buf.len() {
-            return None;
-        }
-        if seen > buf.len() {
-            return None;
-        }
+        if pos >= buf.len() { return None; }
+        if seen > buf.len() { return None; }
         let len = buf[pos];
         if len & 0xC0 == 0xC0 {
-            if pos + 1 >= buf.len() {
-                return None;
-            }
+            if pos + 1 >= buf.len() { return None; }
             let b2 = buf[pos + 1];
             let offset = ((len as u16 & 0x3F) << 8) | b2 as u16;
             let offset = offset as usize;
-            if offset >= buf.len() {
-                return None;
-            }
-            if !jumped {
-                orig_pos = pos + 2;
-            }
+            if offset >= buf.len() { return None; }
+            if !jumped { orig_pos = pos + 2; }
             pos = offset;
             jumped = true;
             seen += 1;
@@ -498,12 +491,8 @@ fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)> {
         }
         let l = len as usize;
         pos += 1;
-        if l == 0 {
-            break;
-        }
-        if pos + l > buf.len() {
-            return None;
-        }
+        if l == 0 { break; }
+        if pos + l > buf.len() { return None; }
         match std::str::from_utf8(&buf[pos..pos + l]) {
             Ok(s) => labels.push(s.to_string()),
             Err(_) => return None,
@@ -512,92 +501,99 @@ fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)> {
         seen += 1;
     }
     let name = labels.join(".");
-    if jumped {
-        Some((name, orig_pos))
-    } else {
-        Some((name, pos))
-    }
+    if jumped { Some((name, orig_pos)) } else { Some((name, pos)) }
 }
 
-pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
+pub async fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
     let deadline = Instant::now() + recursion_deadline();
-    resolve_with_deadline(name, qtype, max_depth, deadline)
+    resolve_with_deadline_impl(name, qtype, max_depth, deadline).await
 }
 
-fn resolve_with_deadline(
-    name: &str,
-    qtype: u16,
-    max_depth: usize,
-    deadline: Instant,
-) -> Option<Vec<u8>> {
+fn resolve_with_deadline_impl(name: &str, qtype: u16, max_depth: usize, deadline: Instant) -> std::pin::Pin<Box<dyn std::future::Future<Output = Option<Vec<u8>>> + Send + '_>> {
+    Box::pin(resolve_with_deadline(name, qtype, max_depth, deadline))
+}
+
+async fn resolve_with_deadline(name: &str, qtype: u16, max_depth: usize, deadline: Instant) -> Option<Vec<u8>> {
     if max_depth == 0 {
         return None;
     }
     if Instant::now() >= deadline {
-        debug_log(&format!(
-            "deadline exceeded before resolving {} type {}",
-            name, qtype
-        ));
+        debug_log(&format!("deadline exceeded before resolving {} type {}", name, qtype));
         return None;
     }
     let _resolve_guard = acquire_resolve_slot()?;
-    let sock = UdpSocket::bind(("0.0.0.0", 0)).ok()?;
-    let _ = sock.set_read_timeout(Some(udp_attempt_timeout()));
+    let sock = UdpSocket::bind(("0.0.0.0", 0)).await.ok()?;
 
-    static CACHE: Lazy<Mutex<HashMap<CacheKey, CacheValue>>> =
-        Lazy::new(|| Mutex::new(HashMap::new()));
-    static ROOT_CACHE: Lazy<Mutex<HashMap<String, RootCacheValue>>> =
-        Lazy::new(|| Mutex::new(HashMap::new()));
-    static DELEGATION_CACHE: Lazy<Mutex<HashMap<String, DelegationCacheValue>>> =
-        Lazy::new(|| Mutex::new(HashMap::new()));
+    static CACHE: Lazy<tokio::sync::Mutex<HashMap<CacheKey, CacheValue>>> =
+        Lazy::new(|| tokio::sync::Mutex::new(HashMap::new()));
+    static ROOT_CACHE: Lazy<tokio::sync::Mutex<HashMap<String, RootCacheValue>>> =
+        Lazy::new(|| tokio::sync::Mutex::new(HashMap::new()));
+    static DELEGATION_CACHE: Lazy<tokio::sync::Mutex<HashMap<String, DelegationCacheValue>>> =
+        Lazy::new(|| tokio::sync::Mutex::new(HashMap::new()));
     static ROOT_HINTS: Lazy<Vec<String>> = Lazy::new(load_root_hint_servers);
 
-    if let Ok(mut roots) = ROOT_CACHE.lock()
-        && {
-            prune_root_cache(&mut roots);
-            !roots.contains_key("__root__")
-        }
-        && !ROOT_HINTS.is_empty()
     {
-        let exp = Instant::now() + Duration::from_secs(ROOT_CACHE_TTL_SECS);
-        roots.insert(
-            "__root__".to_string(),
-            (Vec::new(), ROOT_HINTS.clone(), exp),
-        );
+        let mut roots = ROOT_CACHE.lock().await;
+        prune_root_cache(&mut roots);
+        if !roots.contains_key("__root__") && !ROOT_HINTS.is_empty() {
+            let exp = Instant::now() + Duration::from_secs(ROOT_CACHE_TTL_SECS);
+            roots.insert("__root__".to_string(), (Vec::new(), ROOT_HINTS.clone(), exp));
+        }
     }
 
-    if let Ok(mut c) = CACHE.lock()
-        && {
-            prune_query_cache(&mut c);
-            true
-        }
-        && let Some((data, exp)) = c.get(&(name.to_string(), qtype))
-        && Instant::now() < *exp
     {
-        return Some(data.clone());
+        let mut c = CACHE.lock().await;
+        prune_query_cache(&mut c);
+        if let Some((data, exp)) = c.get(&(name.to_string(), qtype)) {
+            if Instant::now() < *exp {
+                return Some(data.clone());
+            }
+        }
     }
 
     let requested_tld = tld_from_name(name);
 
-    let mut servers: Vec<String> = if let Some(tld) = requested_tld.as_ref()
-        && let Ok(mut delegations) = DELEGATION_CACHE.lock()
-        && {
-            prune_delegation_cache(&mut delegations);
-            true
+    let mut servers: Vec<String> = if let Some(tld) = requested_tld.as_ref() {
+        let mut delegations = DELEGATION_CACHE.lock().await;
+        prune_delegation_cache(&mut delegations);
+        if let Some((cached, exp)) = delegations.get(tld) {
+            if Instant::now() < *exp && !cached.is_empty() {
+                cached.clone()
+            } else {
+                let roots = ROOT_CACHE.lock().await;
+                if let Some((_ns_names, glue_ips, exp)) = roots.get("__root__") {
+                    if Instant::now() < *exp && !glue_ips.is_empty() {
+                        glue_ips.clone()
+                    } else {
+                        ROOT_HINTS.clone()
+                    }
+                } else {
+                    ROOT_HINTS.clone()
+                }
+            }
+        } else {
+            let roots = ROOT_CACHE.lock().await;
+            if let Some((_ns_names, glue_ips, exp)) = roots.get("__root__") {
+                if Instant::now() < *exp && !glue_ips.is_empty() {
+                    glue_ips.clone()
+                } else {
+                    ROOT_HINTS.clone()
+                }
+            } else {
+                ROOT_HINTS.clone()
+            }
         }
-        && let Some((cached, exp)) = delegations.get(tld)
-        && Instant::now() < *exp
-        && !cached.is_empty()
-    {
-        cached.clone()
-    } else if let Ok(roots) = ROOT_CACHE.lock()
-        && let Some((_ns_names, glue_ips, exp)) = roots.get("__root__")
-        && Instant::now() < *exp
-        && !glue_ips.is_empty()
-    {
-        glue_ips.clone()
     } else {
-        ROOT_HINTS.clone()
+        let roots = ROOT_CACHE.lock().await;
+        if let Some((_ns_names, glue_ips, exp)) = roots.get("__root__") {
+            if Instant::now() < *exp && !glue_ips.is_empty() {
+                glue_ips.clone()
+            } else {
+                ROOT_HINTS.clone()
+            }
+        } else {
+            ROOT_HINTS.clone()
+        }
     };
     if servers.len() > MAX_UPSTREAM_SERVERS_PER_ROUND {
         servers.truncate(MAX_UPSTREAM_SERVERS_PER_ROUND);
@@ -606,10 +602,7 @@ fn resolve_with_deadline(
     let mut tried_root_fallback = false;
     for _round in 0..recursion_round_limit() {
         if Instant::now() >= deadline {
-            debug_log(&format!(
-                "deadline exceeded while resolving {} type {}",
-                name, qtype
-            ));
+            debug_log(&format!("deadline exceeded while resolving {} type {}", name, qtype));
             return None;
         }
         let qid = rand::random::<u16>();
@@ -621,9 +614,9 @@ fn resolve_with_deadline(
             round_servers.truncate(MAX_UPSTREAM_SERVERS_PER_ROUND);
         }
         for srv in &round_servers {
-            let mut resp_opt = send_recv(&sock, srv, &req, qid, &qname, qtype);
+            let mut resp_opt = send_recv(&sock, srv, &req, qid, &qname, qtype).await;
             if resp_opt.is_none() {
-                resp_opt = tcp_send_recv(srv, &req);
+                resp_opt = tcp_send_recv(srv, &req).await;
             }
             if let Some(mut resp) = resp_opt {
                 let flags = if resp.len() >= 4 {
@@ -632,15 +625,12 @@ fn resolve_with_deadline(
                     0
                 };
                 if flags & 0x0200 != 0
-                    && let Some(tcp_resp) = tcp_send_recv(srv, &req)
+                    && let Some(tcp_resp) = tcp_send_recv(srv, &req).await
                 {
                     resp = tcp_resp;
                 }
                 if resp.len() < 12 {
-                    debug_log(&format!(
-                        "short response from {} while resolving {}",
-                        srv, qname
-                    ));
+                    debug_log(&format!("short response from {} while resolving {}", srv, qname));
                     continue;
                 }
                 let ancount = u16::from_be_bytes([resp[6], resp[7]]) as usize;
@@ -655,12 +645,11 @@ fn resolve_with_deadline(
                     let mut min_ttl: Option<u32> = None;
                     for (rtype, rpos, _rdlen, ttl) in &ans_rrs {
                         if *rtype == qtype {
-                            if let Ok(mut c) = CACHE.lock() {
-                                prune_query_cache(&mut c);
-                                let ttl_secs = clamp_query_cache_ttl((*ttl).into());
-                                let exp = Instant::now() + Duration::from_secs(ttl_secs);
-                                c.insert((name.to_string(), qtype), (resp.clone(), exp));
-                            }
+                            let mut c = CACHE.lock().await;
+                            prune_query_cache(&mut c);
+                            let ttl_secs = clamp_query_cache_ttl((*ttl).into());
+                            let exp = Instant::now() + Duration::from_secs(ttl_secs);
+                            c.insert((name.to_string(), qtype), (resp.clone(), exp));
                             debug_log(&format!("resolved {} type {} via {}", name, qtype, srv));
                             return Some(resp.clone());
                         }
@@ -701,10 +690,8 @@ fn resolve_with_deadline(
                 let (ns_names, glue_ips) =
                     extract_ns_and_glue(&resp, &authority_rrs, &additional_rrs);
 
-                if _round == 0
-                    && !ns_names.is_empty()
-                    && let Ok(mut roots) = ROOT_CACHE.lock()
-                {
+                if _round == 0 && !ns_names.is_empty() {
+                    let mut roots = ROOT_CACHE.lock().await;
                     let exp = Instant::now() + Duration::from_secs(ROOT_CACHE_TTL_SECS);
                     roots.insert(
                         "__root__".to_string(),
@@ -718,8 +705,7 @@ fn resolve_with_deadline(
                     }
                 } else {
                     for nsname in ns_names {
-                        if let Some(ip_resp) =
-                            resolve_with_deadline(&nsname, 1, max_depth - 1, deadline)
+                        if let Some(ip_resp) = resolve_with_deadline_impl(&nsname, 1, max_depth - 1, deadline).await
                             && ip_resp.len() >= 12
                         {
                             let an = u16::from_be_bytes([ip_resp[6], ip_resp[7]]) as usize;
@@ -754,8 +740,8 @@ fn resolve_with_deadline(
                     }
                     if _round == 0
                         && let Some(tld) = requested_tld.as_ref()
-                        && let Ok(mut delegations) = DELEGATION_CACHE.lock()
                     {
+                        let mut delegations = DELEGATION_CACHE.lock().await;
                         prune_delegation_cache(&mut delegations);
                         let ttl = clamp_tld_ttl(referral_ttl_secs);
                         let exp = Instant::now() + Duration::from_secs(ttl);
@@ -765,18 +751,11 @@ fn resolve_with_deadline(
                     break;
                 }
             } else {
-                debug_log(&format!(
-                    "no response from {} while resolving {}",
-                    srv, qname
-                ));
+                debug_log(&format!("no response from {} while resolving {}", srv, qname));
             }
         }
 
-        if next_servers.is_empty()
-            && !tried_root_fallback
-            && !servers.is_empty()
-            && servers != *ROOT_HINTS
-        {
+        if next_servers.is_empty() && !tried_root_fallback && !servers.is_empty() && servers != *ROOT_HINTS {
             tried_root_fallback = true;
             servers = ROOT_HINTS.clone();
             continue;
