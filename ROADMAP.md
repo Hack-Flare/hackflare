@@ -4,32 +4,41 @@ Feel free to submit PRs/issues for anything you want us to work on or you want t
 
 ### Phase 1 (MVP/POC)
 
-- [wip] DNS System
-  - [x] Backend
-    - [x] Auth Integration
-    - [x] Domain Management
+- [ ] DNS System
+  - [ ] Backend
+    - [ ] Auth Integration
+    - [ ] Domain Management
       - Domains stay in a pending state until their NS delegation is verified, and record edits are blocked until then.
   - [ ] Needs Testing
-- [wip] nameservers
+- [ ] nameservers
   - [ ] Speed improvments
-- [x] Auth system (hc auth)
-  - [x] Backend
-  - [x] ENV Setup
+- [ ] Auth system
+  - [ ] Backend
+    - [ ] HackClub Auth
+    - [ ] Session Management
+    - [ ] Github Auth
+    - [ ] Email Auth
+    - [ ] Password Reset
+    - [ ] Email Verification
+    - [ ] Google Auth
+  - [ ] Frontend
+    - [ ] Login/Signup Page
+    - [ ] Dashboard Auth Integration
+  - [ ] ENV Setup
 - [ ] Simple Logging
-- [wip] Proper Frontend
-  - [wip] Dashboard
-  - [wip] Domain Management
+- [ ] Proper Frontend
+  - [ ] Dashboard
+  - [ ] Domain Management
   - [ ] Logging
   - [ ] Notifications
-  - [wip] Admin Panel
+  - [ ] Admin Panel
   - [ ] Settings
-  - [x] Error Pages
-  - [x] Auth System
+  - [ ] Error Pages
+  - [ ] Auth System
 - [x] Docker
-- [x] Big Haj on error pages
-- [x] Organize readme and documentation better
+- [ ] Big Haj on error pages
+- [ ] Organize readme and documentation better
 
-:cry: Prod on its way
 - [ ] Working Production
 
 ### Phase 2 (Post MVP)
@@ -77,12 +86,12 @@ Feel free to submit PRs/issues for anything you want us to work on or you want t
 ## Stardance Phase
 All stuff here should be done in stardance
 
-- [ ] Captcha
+- [ ] Captcha // Redac1ed
   - [ ] Core working
   - [ ] IP scanning (VPNs, proxies etc.)
   - [ ] JS/React SDK
 
-- [ ] Registrar
+- [ ] Registrar // SeradedStripes
   - [ ] Domain purchasing
   - [ ] Domain management (renewals, transfers, etc.)
   - [ ] Registrar API integration
