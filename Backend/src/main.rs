@@ -1,8 +1,8 @@
 mod app;
 mod config;
 mod domain;
-mod recursive;
 mod nameserver;
+mod recursive;
 mod state;
 
 use crate::app::build_router;

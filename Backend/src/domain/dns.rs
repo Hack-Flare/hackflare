@@ -139,10 +139,10 @@ impl DnsService {
                     continue;
                 }
 
-                if let Some(expected_type) = &record_type {
-                    if &record.record_type != expected_type {
-                        continue;
-                    }
+                if let Some(expected_type) = record_type.as_ref()
+                    && &record.record_type != expected_type
+                {
+                    continue;
                 }
 
                 output.push(ResolvedRecord {

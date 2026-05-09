@@ -41,7 +41,7 @@ allowed-idents-below-min-chars = [
 max-trait-bounds = 6
 
 # Future-proofing for async-heavy systems
-await-holding-invalid-types = true
+await-holding-invalid-types = []
 
 # Commonly acceptable placeholder names
 disallowed-names = [

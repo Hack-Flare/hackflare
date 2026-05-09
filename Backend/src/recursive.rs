@@ -65,7 +65,11 @@ fn env_usize(name: &str, default: usize) -> usize {
 }
 
 fn udp_attempts_per_server() -> usize {
-    env_usize("HACKFLARE_DNS_UDP_ATTEMPTS", DEFAULT_UDP_ATTEMPTS_PER_SERVER).max(1)
+    env_usize(
+        "HACKFLARE_DNS_UDP_ATTEMPTS",
+        DEFAULT_UDP_ATTEMPTS_PER_SERVER,
+    )
+    .max(1)
 }
 
 fn udp_attempt_timeout() -> Duration {
@@ -451,7 +455,9 @@ fn encode_name_labels_vec(name: &str) -> Vec<u8> {
     let mut out = Vec::new();
     for label in name.split('.') {
         let l = label.len();
-        if l == 0 { continue; }
+        if l == 0 {
+            continue;
+        }
         out.push(l as u8);
         out.extend_from_slice(label.as_bytes());
     }
@@ -465,16 +471,26 @@ fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)> {
     let mut orig_pos = pos;
     let mut seen = 0usize;
     loop {
-        if pos >= buf.len() { return None; }
-        if seen > buf.len() { return None; }
+        if pos >= buf.len() {
+            return None;
+        }
+        if seen > buf.len() {
+            return None;
+        }
         let len = buf[pos];
         if len & 0xC0 == 0xC0 {
-            if pos + 1 >= buf.len() { return None; }
+            if pos + 1 >= buf.len() {
+                return None;
+            }
             let b2 = buf[pos + 1];
             let offset = ((len as u16 & 0x3F) << 8) | b2 as u16;
             let offset = offset as usize;
-            if offset >= buf.len() { return None; }
-            if !jumped { orig_pos = pos + 2; }
+            if offset >= buf.len() {
+                return None;
+            }
+            if !jumped {
+                orig_pos = pos + 2;
+            }
             pos = offset;
             jumped = true;
             seen += 1;
@@ -482,8 +498,12 @@ fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)> {
         }
         let l = len as usize;
         pos += 1;
-        if l == 0 { break; }
-        if pos + l > buf.len() { return None; }
+        if l == 0 {
+            break;
+        }
+        if pos + l > buf.len() {
+            return None;
+        }
         match std::str::from_utf8(&buf[pos..pos + l]) {
             Ok(s) => labels.push(s.to_string()),
             Err(_) => return None,
@@ -492,7 +512,11 @@ fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)> {
         seen += 1;
     }
     let name = labels.join(".");
-    if jumped { Some((name, orig_pos)) } else { Some((name, pos)) }
+    if jumped {
+        Some((name, orig_pos))
+    } else {
+        Some((name, pos))
+    }
 }
 
 pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
@@ -500,12 +524,20 @@ pub fn resolve(name: &str, qtype: u16, max_depth: usize) -> Option<Vec<u8>> {
     resolve_with_deadline(name, qtype, max_depth, deadline)
 }
 
-fn resolve_with_deadline(name: &str, qtype: u16, max_depth: usize, deadline: Instant) -> Option<Vec<u8>> {
+fn resolve_with_deadline(
+    name: &str,
+    qtype: u16,
+    max_depth: usize,
+    deadline: Instant,
+) -> Option<Vec<u8>> {
     if max_depth == 0 {
         return None;
     }
     if Instant::now() >= deadline {
-        debug_log(&format!("deadline exceeded before resolving {} type {}", name, qtype));
+        debug_log(&format!(
+            "deadline exceeded before resolving {} type {}",
+            name, qtype
+        ));
         return None;
     }
     let _resolve_guard = acquire_resolve_slot()?;
@@ -574,7 +606,10 @@ fn resolve_with_deadline(name: &str, qtype: u16, max_depth: usize, deadline: Ins
     let mut tried_root_fallback = false;
     for _round in 0..recursion_round_limit() {
         if Instant::now() >= deadline {
-            debug_log(&format!("deadline exceeded while resolving {} type {}", name, qtype));
+            debug_log(&format!(
+                "deadline exceeded while resolving {} type {}",
+                name, qtype
+            ));
             return None;
         }
         let qid = rand::random::<u16>();
@@ -602,7 +637,10 @@ fn resolve_with_deadline(name: &str, qtype: u16, max_depth: usize, deadline: Ins
                     resp = tcp_resp;
                 }
                 if resp.len() < 12 {
-                    debug_log(&format!("short response from {} while resolving {}", srv, qname));
+                    debug_log(&format!(
+                        "short response from {} while resolving {}",
+                        srv, qname
+                    ));
                     continue;
                 }
                 let ancount = u16::from_be_bytes([resp[6], resp[7]]) as usize;
@@ -663,14 +701,16 @@ fn resolve_with_deadline(name: &str, qtype: u16, max_depth: usize, deadline: Ins
                 let (ns_names, glue_ips) =
                     extract_ns_and_glue(&resp, &authority_rrs, &additional_rrs);
 
-                if _round == 0 && !ns_names.is_empty()
-                    && let Ok(mut roots) = ROOT_CACHE.lock() {
-                        let exp = Instant::now() + Duration::from_secs(ROOT_CACHE_TTL_SECS);
-                        roots.insert(
-                            "__root__".to_string(),
-                            (ns_names.clone(), glue_ips.clone(), exp),
-                        );
-                    }
+                if _round == 0
+                    && !ns_names.is_empty()
+                    && let Ok(mut roots) = ROOT_CACHE.lock()
+                {
+                    let exp = Instant::now() + Duration::from_secs(ROOT_CACHE_TTL_SECS);
+                    roots.insert(
+                        "__root__".to_string(),
+                        (ns_names.clone(), glue_ips.clone(), exp),
+                    );
+                }
 
                 if !glue_ips.is_empty() {
                     for ip in glue_ips {
@@ -678,7 +718,8 @@ fn resolve_with_deadline(name: &str, qtype: u16, max_depth: usize, deadline: Ins
                     }
                 } else {
                     for nsname in ns_names {
-                        if let Some(ip_resp) = resolve_with_deadline(&nsname, 1, max_depth - 1, deadline)
+                        if let Some(ip_resp) =
+                            resolve_with_deadline(&nsname, 1, max_depth - 1, deadline)
                             && ip_resp.len() >= 12
                         {
                             let an = u16::from_be_bytes([ip_resp[6], ip_resp[7]]) as usize;
@@ -724,11 +765,18 @@ fn resolve_with_deadline(name: &str, qtype: u16, max_depth: usize, deadline: Ins
                     break;
                 }
             } else {
-                debug_log(&format!("no response from {} while resolving {}", srv, qname));
+                debug_log(&format!(
+                    "no response from {} while resolving {}",
+                    srv, qname
+                ));
             }
         }
 
-        if next_servers.is_empty() && !tried_root_fallback && !servers.is_empty() && servers != *ROOT_HINTS {
+        if next_servers.is_empty()
+            && !tried_root_fallback
+            && !servers.is_empty()
+            && servers != *ROOT_HINTS
+        {
             tried_root_fallback = true;
             servers = ROOT_HINTS.clone();
             continue;
