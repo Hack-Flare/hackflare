@@ -17,6 +17,7 @@ pub fn build_router(state: AppState) -> Router {
         .route("/api/v1/auth/me", get(me))
         .route("/api/v1/dns/zones", get(list_zones).post(create_zone))
         .route("/api/v1/dns/zones/{zone_name}/records", post(add_record))
+        .route("/api/v1/dns/zones/{zone_name}/verify", post(verify_zone))
         .route("/api/v1/dns/records", get(find_records))
         .with_state(state)
 }
@@ -107,19 +108,47 @@ struct CreateZoneRequest {
 
 async fn list_zones(
     State(state): State<AppState>,
-    _headers: HeaderMap,
-) -> Result<Json<Vec<Zone>>, StatusCode> {
-    Ok(Json(state.dns.list_zones()))
+    headers: HeaderMap,
+) -> Result<Json<Vec<Zone>>, (StatusCode, Json<ErrorResponse>)> {
+    let token = extract_bearer_token(&headers).ok_or((
+        StatusCode::UNAUTHORIZED,
+        Json(ErrorResponse {
+            error: "missing_token",
+        }),
+    ))?;
+
+    let user = state.auth.get_user_by_token(token).ok_or((
+        StatusCode::UNAUTHORIZED,
+        Json(ErrorResponse {
+            error: "invalid_token",
+        }),
+    ))?;
+
+    Ok(Json(state.dns.list_zones(user.id)))
 }
 
 async fn create_zone(
     State(state): State<AppState>,
-    _headers: HeaderMap,
+    headers: HeaderMap,
     Json(payload): Json<CreateZoneRequest>,
 ) -> Result<Json<Zone>, (StatusCode, Json<ErrorResponse>)> {
+    let token = extract_bearer_token(&headers).ok_or((
+        StatusCode::UNAUTHORIZED,
+        Json(ErrorResponse {
+            error: "missing_token",
+        }),
+    ))?;
+
+    let user = state.auth.get_user_by_token(token).ok_or((
+        StatusCode::UNAUTHORIZED,
+        Json(ErrorResponse {
+            error: "invalid_token",
+        }),
+    ))?;
+
     state
         .dns
-        .create_zone(&payload.name)
+        .create_zone(&payload.name, user.id)
         .map(Json)
         .map_err(map_dns_error)
 }
@@ -131,13 +160,53 @@ struct ZonePath {
 
 async fn add_record(
     State(state): State<AppState>,
-    _headers: HeaderMap,
+    headers: HeaderMap,
     axum::extract::Path(path): axum::extract::Path<ZonePath>,
     Json(payload): Json<NewRecordInput>,
 ) -> Result<Json<Zone>, (StatusCode, Json<ErrorResponse>)> {
+    let token = extract_bearer_token(&headers).ok_or((
+        StatusCode::UNAUTHORIZED,
+        Json(ErrorResponse {
+            error: "missing_token",
+        }),
+    ))?;
+
+    let user = state.auth.get_user_by_token(token).ok_or((
+        StatusCode::UNAUTHORIZED,
+        Json(ErrorResponse {
+            error: "invalid_token",
+        }),
+    ))?;
+
     state
         .dns
-        .add_record(&path.zone_name, payload)
+        .add_record(&path.zone_name, payload, user.id)
+        .map(Json)
+        .map_err(map_dns_error)
+}
+
+async fn verify_zone(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    axum::extract::Path(path): axum::extract::Path<ZonePath>,
+) -> Result<Json<Zone>, (StatusCode, Json<ErrorResponse>)> {
+    let token = extract_bearer_token(&headers).ok_or((
+        StatusCode::UNAUTHORIZED,
+        Json(ErrorResponse {
+            error: "missing_token",
+        }),
+    ))?;
+
+    let user = state.auth.get_user_by_token(token).ok_or((
+        StatusCode::UNAUTHORIZED,
+        Json(ErrorResponse {
+            error: "invalid_token",
+        }),
+    ))?;
+
+    state
+        .dns
+        .verify_zone(&path.zone_name, user.id)
         .map(Json)
         .map_err(map_dns_error)
 }
@@ -179,6 +248,8 @@ fn map_dns_error(error: DnsError) -> (StatusCode, Json<ErrorResponse>) {
         DnsError::InvalidRecordName => (StatusCode::BAD_REQUEST, "invalid_record_name"),
         DnsError::InvalidRecordValue => (StatusCode::BAD_REQUEST, "invalid_record_value"),
         DnsError::InvalidRecordTtl => (StatusCode::BAD_REQUEST, "invalid_record_ttl"),
+        DnsError::ZoneNotVerified => (StatusCode::FORBIDDEN, "zone_not_verified"),
+        DnsError::Unauthorized => (StatusCode::FORBIDDEN, "unauthorized"),
     };
 
     (status, Json(ErrorResponse { error: message }))

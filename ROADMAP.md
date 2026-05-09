@@ -6,11 +6,11 @@ Feel free to submit PRs/issues for anything you want us to work on or you want t
 
 - [ ] DNS System
   - [ ] Backend
-    - [ ] Auth Integration
+    - [x] Auth Integration
     - [ ] Domain Management
       - Domains stay in a pending state until their NS delegation is verified, and record edits are blocked until then.
   - [ ] Needs Testing
-- [ ] nameservers
+- [x] nameservers
   - [ ] Speed improvments
 - [ ] Auth system
   - [ ] Backend

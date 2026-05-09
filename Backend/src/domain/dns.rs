@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 pub struct Zone {
     pub id: u64,
     pub name: String,
+    pub user_id: u64,
+    pub ns_verified: bool,
     pub records: Vec<DnsRecord>,
 }
 
@@ -56,6 +58,8 @@ pub enum DnsError {
     InvalidRecordName,
     InvalidRecordValue,
     InvalidRecordTtl,
+    ZoneNotVerified,
+    Unauthorized,
 }
 
 pub struct DnsService {
@@ -71,14 +75,18 @@ impl DnsService {
         }
     }
 
-    pub fn list_zones(&self) -> Vec<Zone> {
+    pub fn list_zones(&self, user_id: u64) -> Vec<Zone> {
         let zones = self.zones.read().expect("zones read lock poisoned");
-        let mut values = zones.values().cloned().collect::<Vec<_>>();
+        let mut values = zones
+            .values()
+            .filter(|zone| zone.user_id == user_id)
+            .cloned()
+            .collect::<Vec<_>>();
         values.sort_by(|a, b| a.name.cmp(&b.name));
         values
     }
 
-    pub fn create_zone(&self, name: &str) -> Result<Zone, DnsError> {
+    pub fn create_zone(&self, name: &str, user_id: u64) -> Result<Zone, DnsError> {
         let normalized = normalize_zone_name(name).ok_or(DnsError::InvalidZoneName)?;
         let mut zones = self.zones.write().expect("zones write lock poisoned");
 
@@ -89,6 +97,8 @@ impl DnsService {
         let zone = Zone {
             id: self.next_id.fetch_add(1, Ordering::Relaxed),
             name: normalized.clone(),
+            user_id,
+            ns_verified: false,
             records: Vec::new(),
         };
 
@@ -96,12 +106,22 @@ impl DnsService {
         Ok(zone)
     }
 
-    pub fn add_record(&self, zone_name: &str, input: NewRecordInput) -> Result<Zone, DnsError> {
+    pub fn add_record(&self, zone_name: &str, input: NewRecordInput, user_id: u64) -> Result<Zone, DnsError> {
         let normalized_zone = normalize_zone_name(zone_name).ok_or(DnsError::InvalidZoneName)?;
         let mut zones = self.zones.write().expect("zones write lock poisoned");
         let zone = zones
             .get_mut(&normalized_zone)
             .ok_or(DnsError::ZoneNotFound)?;
+
+        // Check ownership
+        if zone.user_id != user_id {
+            return Err(DnsError::Unauthorized);
+        }
+
+        // Check if zone is verified
+        if !zone.ns_verified {
+            return Err(DnsError::ZoneNotVerified);
+        }
 
         if input.ttl == 0 {
             return Err(DnsError::InvalidRecordTtl);
@@ -263,6 +283,24 @@ fn is_record_value_valid(record_type: RecordType, value: &str) -> bool {
     }
 }
 
+impl DnsService {
+    pub fn verify_zone(&self, zone_name: &str, user_id: u64) -> Result<Zone, DnsError> {
+        let normalized_zone = normalize_zone_name(zone_name).ok_or(DnsError::InvalidZoneName)?;
+        let mut zones = self.zones.write().expect("zones write lock poisoned");
+        let zone = zones
+            .get_mut(&normalized_zone)
+            .ok_or(DnsError::ZoneNotFound)?;
+
+        // Check ownership
+        if zone.user_id != user_id {
+            return Err(DnsError::Unauthorized);
+        }
+
+        zone.ns_verified = true;
+        Ok(zone.clone())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{DnsError, DnsService, NewRecordInput, RecordType};
@@ -272,17 +310,19 @@ mod tests {
         let service = DnsService::new();
 
         let zone = service
-            .create_zone("Example.COM")
+            .create_zone("Example.COM", 1)
             .expect("zone should be created");
 
         assert_eq!(zone.name, "example.com");
+        assert_eq!(zone.user_id, 1);
+        assert!(!zone.ns_verified);
     }
 
     #[test]
     fn rejects_invalid_zone() {
         let service = DnsService::new();
 
-        let result = service.create_zone("invalid_zone");
+        let result = service.create_zone("invalid_zone", 1);
 
         assert!(matches!(result, Err(DnsError::InvalidZoneName)));
     }
@@ -291,8 +331,13 @@ mod tests {
     fn adds_record_to_zone() {
         let service = DnsService::new();
         service
-            .create_zone("example.com")
+            .create_zone("example.com", 1)
             .expect("zone should be created");
+
+        // Verify the zone first
+        service
+            .verify_zone("example.com", 1)
+            .expect("zone should be verified");
 
         let zone = service
             .add_record(
@@ -303,6 +348,7 @@ mod tests {
                     value: "1.1.1.1".to_string(),
                     ttl: 60,
                 },
+                1,
             )
             .expect("record should be added");
 
@@ -314,8 +360,12 @@ mod tests {
     fn resolves_records_by_name_and_type() {
         let service = DnsService::new();
         service
-            .create_zone("example.com")
+            .create_zone("example.com", 1)
             .expect("zone should be created");
+
+        service
+            .verify_zone("example.com", 1)
+            .expect("zone should be verified");
 
         service
             .add_record(
@@ -326,6 +376,7 @@ mod tests {
                     value: "hello".to_string(),
                     ttl: 120,
                 },
+                1,
             )
             .expect("txt record should be added");
 
@@ -338,6 +389,7 @@ mod tests {
                     value: "8.8.8.8".to_string(),
                     ttl: 120,
                 },
+                1,
             )
             .expect("a record should be added");
 
@@ -352,11 +404,18 @@ mod tests {
     fn validates_new_record_types() {
         let service = DnsService::new();
         service
-            .create_zone("example.com")
+            .create_zone("example.com", 1)
             .expect("zone should be created");
         service
-            .create_zone("in-addr.arpa")
+            .create_zone("in-addr.arpa", 1)
             .expect("reverse zone should be created");
+
+        service
+            .verify_zone("example.com", 1)
+            .expect("zone should be verified");
+        service
+            .verify_zone("in-addr.arpa", 1)
+            .expect("reverse zone should be verified");
 
         service
             .add_record(
@@ -367,6 +426,7 @@ mod tests {
                     value: "ns1.example.com".to_string(),
                     ttl: 300,
                 },
+                1,
             )
             .expect("ns record should be added");
 
@@ -379,6 +439,7 @@ mod tests {
                     value: "host.example.com".to_string(),
                     ttl: 300,
                 },
+                1,
             )
             .expect("ptr record should be added");
 
@@ -391,6 +452,7 @@ mod tests {
                     value: "10 mail.example.com".to_string(),
                     ttl: 300,
                 },
+                1,
             )
             .expect("mx record should be added");
     }
@@ -399,8 +461,12 @@ mod tests {
     fn rejects_invalid_mx_record_value() {
         let service = DnsService::new();
         service
-            .create_zone("example.com")
+            .create_zone("example.com", 1)
             .expect("zone should be created");
+
+        service
+            .verify_zone("example.com", 1)
+            .expect("zone should be verified");
 
         let result = service.add_record(
             "example.com",
@@ -410,6 +476,7 @@ mod tests {
                 value: "mail.example.com".to_string(),
                 ttl: 300,
             },
+            1,
         );
 
         assert!(matches!(result, Err(DnsError::InvalidRecordValue)));

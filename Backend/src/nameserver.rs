@@ -647,7 +647,8 @@ mod tests {
     #[tokio::test]
     async fn returns_a_answer_for_known_record() {
         let dns = DnsService::new();
-        dns.create_zone("example.com").expect("zone should create");
+        dns.create_zone("example.com", 1).expect("zone should create");
+        dns.verify_zone("example.com", 1).expect("zone should verify");
         dns.add_record(
             "example.com",
             NewRecordInput {
@@ -656,6 +657,7 @@ mod tests {
                 value: "1.2.3.4".to_string(),
                 ttl: 60,
             },
+            1,
         )
         .expect("record should create");
 
@@ -680,8 +682,11 @@ mod tests {
     #[tokio::test]
     async fn supports_additional_record_types_and_any_query() {
         let dns = DnsService::new();
-        dns.create_zone("example.com").expect("zone should create");
-        dns.create_zone("in-addr.arpa").expect("zone should create");
+        dns.create_zone("example.com", 1).expect("zone should create");
+        dns.create_zone("in-addr.arpa", 1).expect("zone should create");
+
+        dns.verify_zone("example.com", 1).expect("zone should verify");
+        dns.verify_zone("in-addr.arpa", 1).expect("zone should verify");
 
         let records = vec![
             ("example.com", "@", RecordType::Aaaa, "2001:db8::1", 28u16),
@@ -712,6 +717,7 @@ mod tests {
                     value: value.to_string(),
                     ttl: 120,
                 },
+                1,
             )
             .expect("record should create");
         }
@@ -724,6 +730,7 @@ mod tests {
                 value: "host.example.com".to_string(),
                 ttl: 120,
             },
+            1,
         )
         .expect("ptr record should create");
 
@@ -761,7 +768,8 @@ mod tests {
         use tokio::net::UdpSocket;
 
         let dns = DnsService::new();
-        dns.create_zone("example.com").expect("zone should create");
+        dns.create_zone("example.com", 1).expect("zone should create");
+        dns.verify_zone("example.com", 1).expect("zone should verify");
         dns.add_record(
             "example.com",
             NewRecordInput {
@@ -770,6 +778,7 @@ mod tests {
                 value: "1.2.3.4".to_string(),
                 ttl: 60,
             },
+            1,
         )
         .expect("record should create");
 
@@ -842,7 +851,8 @@ mod tests {
         use tokio::net::UdpSocket;
 
         let dns = DnsService::new();
-        dns.create_zone("example.com").expect("zone should create");
+        dns.create_zone("example.com", 1).expect("zone should create");
+        dns.verify_zone("example.com", 1).expect("zone should verify");
 
         let records = vec![
             (RecordType::Aaaa, "2001:db8::1", 28u16),
@@ -861,6 +871,7 @@ mod tests {
                     value: value.to_string(),
                     ttl: 60,
                 },
+                1,
             )
             .expect("record should create");
         }
