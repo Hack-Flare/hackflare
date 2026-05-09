@@ -41,19 +41,32 @@ fn recursion_enabled_from_env() -> bool {
 }
 
 fn recursion_max_depth_from_env() -> usize {
-        env::var("HACKFLARE_DNS_RECURSION_MAX_DEPTH")
+    env::var("HACKFLARE_DNS_RECURSION_MAX_DEPTH")
         .ok()
         .and_then(|v| v.parse::<usize>().ok())
         .map(|v| v.clamp(1, 16))
         .unwrap_or(6)
-    }
+}
 
 async fn build_response(req: &[u8], dns: &DnsService) -> Option<Vec<u8>> {
     // follow same defensive parsing strategy as native/core: return SERVFAIL when malformed
     if req.len() < 12 {
-        let id = if req.len() >= 2 { u16::from_be_bytes([req[0], req[1]]) } else { 0 };
-        let req_flags = if req.len() >= 4 { u16::from_be_bytes([req[2], req[3]]) } else { 0 };
-        return Some(build_servfail(id, req_flags, recursion_enabled_from_env(), &[]));
+        let id = if req.len() >= 2 {
+            u16::from_be_bytes([req[0], req[1]])
+        } else {
+            0
+        };
+        let req_flags = if req.len() >= 4 {
+            u16::from_be_bytes([req[2], req[3]])
+        } else {
+            0
+        };
+        return Some(build_servfail(
+            id,
+            req_flags,
+            recursion_enabled_from_env(),
+            &[],
+        ));
     }
 
     let id = u16::from_be_bytes([req[0], req[1]]);
@@ -63,7 +76,12 @@ async fn build_response(req: &[u8], dns: &DnsService) -> Option<Vec<u8>> {
     let arcount = u16::from_be_bytes([req[10], req[11]]);
     if qdcount == 0 {
         let req_flags = u16::from_be_bytes([req[2], req[3]]);
-        return Some(build_servfail(id, req_flags, recursion_enabled_from_env(), &req[12..]));
+        return Some(build_servfail(
+            id,
+            req_flags,
+            recursion_enabled_from_env(),
+            &req[12..],
+        ));
     }
 
     let mut pos = 12usize;
@@ -71,7 +89,12 @@ async fn build_response(req: &[u8], dns: &DnsService) -> Option<Vec<u8>> {
     pos = new_pos;
     if pos + 4 > req.len() {
         let req_flags = u16::from_be_bytes([req[2], req[3]]);
-        return Some(build_servfail(id, req_flags, recursion_enabled_from_env(), &req[12..pos]));
+        return Some(build_servfail(
+            id,
+            req_flags,
+            recursion_enabled_from_env(),
+            &req[12..pos],
+        ));
     }
     let qtype = u16::from_be_bytes([req[pos], req[pos + 1]]);
     let _qclass = u16::from_be_bytes([req[pos + 2], req[pos + 3]]);
@@ -83,19 +106,40 @@ async fn build_response(req: &[u8], dns: &DnsService) -> Option<Vec<u8>> {
     let mut rr_pos = pos_after_question;
     let skip_rrs = ancount as usize + nscount as usize;
     for _ in 0..skip_rrs {
-        if rr_pos >= req.len() { break; }
-        if let Some((_name, newp)) = parse_qname(req, rr_pos) { rr_pos = newp; } else { break; }
-        if rr_pos + 10 > req.len() { break; }
+        if rr_pos >= req.len() {
+            break;
+        }
+        if let Some((_name, newp)) = parse_qname(req, rr_pos) {
+            rr_pos = newp;
+        } else {
+            break;
+        }
+        if rr_pos + 10 > req.len() {
+            break;
+        }
         let rdlen = u16::from_be_bytes([req[rr_pos + 8], req[rr_pos + 9]]) as usize;
         rr_pos += 10 + rdlen;
     }
     for _ in 0..(arcount as usize) {
-        if rr_pos >= req.len() { break; }
-        if let Some((_name, newp)) = parse_qname(req, rr_pos) { rr_pos = newp; } else { break; }
-        if rr_pos + 10 > req.len() { break; }
+        if rr_pos >= req.len() {
+            break;
+        }
+        if let Some((_name, newp)) = parse_qname(req, rr_pos) {
+            rr_pos = newp;
+        } else {
+            break;
+        }
+        if rr_pos + 10 > req.len() {
+            break;
+        }
         let typ = u16::from_be_bytes([req[rr_pos], req[rr_pos + 1]]);
         let class = u16::from_be_bytes([req[rr_pos + 2], req[rr_pos + 3]]);
-        let ttl = u32::from_be_bytes([req[rr_pos + 4], req[rr_pos + 5], req[rr_pos + 6], req[rr_pos + 7]]);
+        let ttl = u32::from_be_bytes([
+            req[rr_pos + 4],
+            req[rr_pos + 5],
+            req[rr_pos + 6],
+            req[rr_pos + 7],
+        ]);
         let rdlen = u16::from_be_bytes([req[rr_pos + 8], req[rr_pos + 9]]) as usize;
         rr_pos += 10;
         if typ == 41 {
@@ -127,40 +171,66 @@ async fn build_response(req: &[u8], dns: &DnsService) -> Option<Vec<u8>> {
         is_ip_literal = true;
     }
 
-    let mut recs = if qtype == 255 { // ANY
+    let mut recs = if qtype == 255 {
+        // ANY
         dns.find_records(&qname, None)
     } else if qtype_str.is_empty() {
         Vec::new()
     } else {
-        dns.find_records(&qname, Some(match qtype_str {
-            "A" => RecordType::A,
-            "AAAA" => RecordType::Aaaa,
-            "CNAME" => RecordType::Cname,
-            "TXT" => RecordType::Txt,
-            "NS" => RecordType::Ns,
-            "PTR" => RecordType::Ptr,
-            "MX" => RecordType::Mx,
-            _ => return Some(build_servfail(id, req_flags, recursion_enabled_from_env(), &req[12..pos+4])),
-        }))
+        dns.find_records(
+            &qname,
+            Some(match qtype_str {
+                "A" => RecordType::A,
+                "AAAA" => RecordType::Aaaa,
+                "CNAME" => RecordType::Cname,
+                "TXT" => RecordType::Txt,
+                "NS" => RecordType::Ns,
+                "PTR" => RecordType::Ptr,
+                "MX" => RecordType::Mx,
+                _ => {
+                    return Some(build_servfail(
+                        id,
+                        req_flags,
+                        recursion_enabled_from_env(),
+                        &req[12..pos + 4],
+                    ));
+                }
+            }),
+        )
     };
 
-    if is_ip_literal && recs.is_empty()
+    if is_ip_literal
+        && recs.is_empty()
         && let Some(rn) = reverse_name.as_ref()
     {
         let ptrs = dns.find_records(rn, Some(RecordType::Ptr));
         if !ptrs.is_empty() {
             recs = ptrs;
         } else {
-            let mut r = build_nxdomain_with_soa(id, req_flags, recursion_enabled_from_env(), &req[12..pos+4]);
-            if client_edns_size > 0 { append_opt(&mut r, client_edns_size, client_do); }
+            let mut r = build_nxdomain_with_soa(
+                id,
+                req_flags,
+                recursion_enabled_from_env(),
+                &req[12..pos + 4],
+            );
+            if client_edns_size > 0 {
+                append_opt(&mut r, client_edns_size, client_do);
+            }
             return Some(r);
         }
     }
 
     let label_count = qname.split('.').filter(|label| !label.is_empty()).count();
     if recs.is_empty() && reverse_name.is_none() && label_count < 2 {
-        let mut r = build_nxdomain_with_soa(id, req_flags, recursion_enabled_from_env(), &req[12..pos+4]);
-        if client_edns_size > 0 { append_opt(&mut r, client_edns_size, client_do); }
+        let mut r = build_nxdomain_with_soa(
+            id,
+            req_flags,
+            recursion_enabled_from_env(),
+            &req[12..pos + 4],
+        );
+        if client_edns_size > 0 {
+            append_opt(&mut r, client_edns_size, client_do);
+        }
         return Some(r);
     }
 
@@ -171,30 +241,52 @@ async fn build_response(req: &[u8], dns: &DnsService) -> Option<Vec<u8>> {
             resp.extend_from_slice(&id.to_be_bytes());
             let mut flags: u16 = 0x8000;
             flags |= req_flags & 0x0100;
-            if recursion_enabled_from_env() { flags |= 0x0080; }
+            if recursion_enabled_from_env() {
+                flags |= 0x0080;
+            }
             resp.extend_from_slice(&flags.to_be_bytes());
             resp.extend_from_slice(&1u16.to_be_bytes());
             resp.extend_from_slice(&0u16.to_be_bytes());
             resp.extend_from_slice(&0u16.to_be_bytes());
             resp.extend_from_slice(&0u16.to_be_bytes());
-            resp.extend_from_slice(&req[12..pos+4]);
-            if client_edns_size > 0 { append_opt(&mut resp, client_edns_size, client_do); }
+            resp.extend_from_slice(&req[12..pos + 4]);
+            if client_edns_size > 0 {
+                append_opt(&mut resp, client_edns_size, client_do);
+            }
             return Some(resp);
         }
 
         if !recursion_enabled_from_env() {
-            let mut r = build_nxdomain_with_soa(id, req_flags, recursion_enabled_from_env(), &req[12..pos+4]);
-            if client_edns_size > 0 { append_opt(&mut r, client_edns_size, client_do); }
+            let mut r = build_nxdomain_with_soa(
+                id,
+                req_flags,
+                recursion_enabled_from_env(),
+                &req[12..pos + 4],
+            );
+            if client_edns_size > 0 {
+                append_opt(&mut r, client_edns_size, client_do);
+            }
             return Some(r);
         }
 
-        if let Some(mut recursive_resp) = crate::recursive::resolve(&qname, qtype, recursion_max_depth_from_env()).await {
-            if client_edns_size > 0 { append_opt(&mut recursive_resp, client_edns_size, client_do); }
+        if let Some(mut recursive_resp) =
+            crate::recursive::resolve(&qname, qtype, recursion_max_depth_from_env()).await
+        {
+            if client_edns_size > 0 {
+                append_opt(&mut recursive_resp, client_edns_size, client_do);
+            }
             return Some(recursive_resp);
         }
 
-        let mut r = build_servfail(id, req_flags, recursion_enabled_from_env(), &req[12..pos+4]);
-        if client_edns_size > 0 { append_opt(&mut r, client_edns_size, client_do); }
+        let mut r = build_servfail(
+            id,
+            req_flags,
+            recursion_enabled_from_env(),
+            &req[12..pos + 4],
+        );
+        if client_edns_size > 0 {
+            append_opt(&mut r, client_edns_size, client_do);
+        }
         return Some(r);
     }
 
@@ -202,9 +294,13 @@ async fn build_response(req: &[u8], dns: &DnsService) -> Option<Vec<u8>> {
     resp.extend_from_slice(&id.to_be_bytes());
 
     let mut flags: u16 = 0x8000;
-    if !recs.is_empty() { flags |= 0x0400; }
+    if !recs.is_empty() {
+        flags |= 0x0400;
+    }
     flags |= req_flags & 0x0100;
-    if recursion_enabled_from_env() { flags |= 0x0080; }
+    if recursion_enabled_from_env() {
+        flags |= 0x0080;
+    }
     let ar_out = if client_edns_size > 0 { 1u16 } else { 0u16 };
     resp.extend_from_slice(&flags.to_be_bytes());
     resp.extend_from_slice(&1u16.to_be_bytes());
@@ -213,7 +309,7 @@ async fn build_response(req: &[u8], dns: &DnsService) -> Option<Vec<u8>> {
     resp.extend_from_slice(&ar_out.to_be_bytes());
 
     // copy question
-    resp.extend_from_slice(&req[12..pos+4]);
+    resp.extend_from_slice(&req[12..pos + 4]);
 
     for ans in recs {
         resp.extend_from_slice(&0xC00C_u16.to_be_bytes());
@@ -230,7 +326,9 @@ async fn build_response(req: &[u8], dns: &DnsService) -> Option<Vec<u8>> {
         }
     }
 
-    if client_edns_size > 0 { append_opt(&mut resp, client_edns_size, client_do); }
+    if client_edns_size > 0 {
+        append_opt(&mut resp, client_edns_size, client_do);
+    }
 
     Some(resp)
 }
@@ -281,16 +379,26 @@ fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)> {
     let mut orig_pos = pos;
     let mut seen = 0usize;
     loop {
-        if pos >= buf.len() { return None; }
-        if seen > buf.len() { return None; }
+        if pos >= buf.len() {
+            return None;
+        }
+        if seen > buf.len() {
+            return None;
+        }
         let len = buf[pos];
         if len & 0xC0 == 0xC0 {
-            if pos + 1 >= buf.len() { return None; }
+            if pos + 1 >= buf.len() {
+                return None;
+            }
             let b2 = buf[pos + 1];
             let offset = ((len as u16 & 0x3F) << 8) | b2 as u16;
             let offset = offset as usize;
-            if offset >= buf.len() { return None; }
-            if !jumped { orig_pos = pos + 2; }
+            if offset >= buf.len() {
+                return None;
+            }
+            if !jumped {
+                orig_pos = pos + 2;
+            }
             pos = offset;
             jumped = true;
             seen += 1;
@@ -298,8 +406,12 @@ fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)> {
         }
         let l = len as usize;
         pos += 1;
-        if l == 0 { break; }
-        if pos + l > buf.len() { return None; }
+        if l == 0 {
+            break;
+        }
+        if pos + l > buf.len() {
+            return None;
+        }
         match std::str::from_utf8(&buf[pos..pos + l]) {
             Ok(s) => labels.push(s.to_string()),
             Err(_) => return None,
@@ -308,14 +420,20 @@ fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)> {
         seen += 1;
     }
     let name = labels.join(".");
-    if jumped { Some((name, orig_pos)) } else { Some((name, pos)) }
+    if jumped {
+        Some((name, orig_pos))
+    } else {
+        Some((name, pos))
+    }
 }
 
 fn encode_name_labels_vec(name: &str) -> Vec<u8> {
     let mut out = Vec::new();
     for label in name.split('.') {
         let l = label.len();
-        if l == 0 { continue; }
+        if l == 0 {
+            continue;
+        }
         out.push(l as u8);
         out.extend_from_slice(label.as_bytes());
     }
@@ -324,7 +442,10 @@ fn encode_name_labels_vec(name: &str) -> Vec<u8> {
 }
 
 fn append_opt(resp: &mut Vec<u8>, client_size: usize, client_do: bool) {
-    let server_size: u16 = std::env::var("HACKFLARE_DNS_UDP_SIZE").ok().and_then(|v| v.parse::<u16>().ok()).unwrap_or(4096u16);
+    let server_size: u16 = std::env::var("HACKFLARE_DNS_UDP_SIZE")
+        .ok()
+        .and_then(|v| v.parse::<u16>().ok())
+        .unwrap_or(4096u16);
     let size = std::cmp::min(server_size, client_size as u16);
     let flags: u16 = if client_do { 0x8000 } else { 0 };
     resp.extend_from_slice(&[0u8]);
@@ -336,24 +457,51 @@ fn append_opt(resp: &mut Vec<u8>, client_size: usize, client_do: bool) {
 }
 
 fn load_soa_config() -> (String, String, u32, u32, u32, u32, u32, u32) {
-    let mname = env::var("HACKFLARE_DNS_SOA_MNAME").unwrap_or_else(|_| "a.root-servers.net.".to_string());
-    let rname = env::var("HACKFLARE_DNS_SOA_RNAME").unwrap_or_else(|_| "nstld.verisign-grs.com.".to_string());
-    let serial = env::var("HACKFLARE_DNS_SOA_SERIAL").ok().and_then(|v| v.parse::<u32>().ok()).unwrap_or(2026042000);
-    let refresh = env::var("HACKFLARE_DNS_SOA_REFRESH").ok().and_then(|v| v.parse::<u32>().ok()).unwrap_or(1800);
-    let retry = env::var("HACKFLARE_DNS_SOA_RETRY").ok().and_then(|v| v.parse::<u32>().ok()).unwrap_or(900);
-    let expire = env::var("HACKFLARE_DNS_SOA_EXPIRE").ok().and_then(|v| v.parse::<u32>().ok()).unwrap_or(604_800);
-    let minimum = env::var("HACKFLARE_DNS_SOA_MINIMUM").ok().and_then(|v| v.parse::<u32>().ok()).unwrap_or(86_400);
-    let ttl = env::var("HACKFLARE_DNS_SOA_TTL").ok().and_then(|v| v.parse::<u32>().ok()).unwrap_or(86_400);
+    let mname =
+        env::var("HACKFLARE_DNS_SOA_MNAME").unwrap_or_else(|_| "a.root-servers.net.".to_string());
+    let rname = env::var("HACKFLARE_DNS_SOA_RNAME")
+        .unwrap_or_else(|_| "nstld.verisign-grs.com.".to_string());
+    let serial = env::var("HACKFLARE_DNS_SOA_SERIAL")
+        .ok()
+        .and_then(|v| v.parse::<u32>().ok())
+        .unwrap_or(2026042000);
+    let refresh = env::var("HACKFLARE_DNS_SOA_REFRESH")
+        .ok()
+        .and_then(|v| v.parse::<u32>().ok())
+        .unwrap_or(1800);
+    let retry = env::var("HACKFLARE_DNS_SOA_RETRY")
+        .ok()
+        .and_then(|v| v.parse::<u32>().ok())
+        .unwrap_or(900);
+    let expire = env::var("HACKFLARE_DNS_SOA_EXPIRE")
+        .ok()
+        .and_then(|v| v.parse::<u32>().ok())
+        .unwrap_or(604_800);
+    let minimum = env::var("HACKFLARE_DNS_SOA_MINIMUM")
+        .ok()
+        .and_then(|v| v.parse::<u32>().ok())
+        .unwrap_or(86_400);
+    let ttl = env::var("HACKFLARE_DNS_SOA_TTL")
+        .ok()
+        .and_then(|v| v.parse::<u32>().ok())
+        .unwrap_or(86_400);
     (mname, rname, serial, refresh, retry, expire, minimum, ttl)
 }
 
-fn build_nxdomain_with_soa(id: u16, req_flags: u16, recursion_enabled: bool, question_section: &[u8]) -> Vec<u8> {
+fn build_nxdomain_with_soa(
+    id: u16,
+    req_flags: u16,
+    recursion_enabled: bool,
+    question_section: &[u8],
+) -> Vec<u8> {
     let (mname, rname, serial, refresh, retry, expire, minimum, ttl) = load_soa_config();
     let mut resp: Vec<u8> = Vec::new();
     resp.extend_from_slice(&id.to_be_bytes());
     let mut flags: u16 = 0x8000;
     flags |= req_flags & 0x0100;
-    if recursion_enabled { flags |= 0x0080; }
+    if recursion_enabled {
+        flags |= 0x0080;
+    }
     flags |= 3;
     resp.extend_from_slice(&flags.to_be_bytes());
     resp.extend_from_slice(&1u16.to_be_bytes());
@@ -374,12 +522,19 @@ fn build_nxdomain_with_soa(id: u16, req_flags: u16, recursion_enabled: bool, que
     resp
 }
 
-fn build_servfail(id: u16, req_flags: u16, recursion_enabled: bool, question_section: &[u8]) -> Vec<u8> {
+fn build_servfail(
+    id: u16,
+    req_flags: u16,
+    recursion_enabled: bool,
+    question_section: &[u8],
+) -> Vec<u8> {
     let mut resp: Vec<u8> = Vec::new();
     resp.extend_from_slice(&id.to_be_bytes());
     let mut flags: u16 = 0x8000;
     flags |= req_flags & 0x0100;
-    if recursion_enabled { flags |= 0x0080; }
+    if recursion_enabled {
+        flags |= 0x0080;
+    }
     flags |= 2;
     resp.extend_from_slice(&flags.to_be_bytes());
     resp.extend_from_slice(&1u16.to_be_bytes());
@@ -390,7 +545,15 @@ fn build_servfail(id: u16, req_flags: u16, recursion_enabled: bool, question_sec
     resp
 }
 
-fn encode_soa_rdata(mname: &str, rname: &str, serial: u32, refresh: u32, retry: u32, expire: u32, minimum: u32) -> Vec<u8> {
+fn encode_soa_rdata(
+    mname: &str,
+    rname: &str,
+    serial: u32,
+    refresh: u32,
+    retry: u32,
+    expire: u32,
+    minimum: u32,
+) -> Vec<u8> {
     let mut out = Vec::new();
     out.extend_from_slice(&encode_name_labels_vec(mname));
     out.extend_from_slice(&encode_name_labels_vec(rname));
@@ -404,8 +567,14 @@ fn encode_soa_rdata(mname: &str, rname: &str, serial: u32, refresh: u32, retry: 
 
 fn encode_rdata(record_type: &RecordType, value: &str) -> Option<Vec<u8>> {
     match record_type {
-        RecordType::A => value.parse::<Ipv4Addr>().ok().map(|ip| ip.octets().to_vec()),
-        RecordType::Aaaa => value.parse::<Ipv6Addr>().ok().map(|ip| ip.octets().to_vec()),
+        RecordType::A => value
+            .parse::<Ipv4Addr>()
+            .ok()
+            .map(|ip| ip.octets().to_vec()),
+        RecordType::Aaaa => value
+            .parse::<Ipv6Addr>()
+            .ok()
+            .map(|ip| ip.octets().to_vec()),
         RecordType::Cname => Some(encode_name_labels_vec(value)),
         RecordType::Ns => Some(encode_name_labels_vec(value)),
         RecordType::Ptr => Some(encode_name_labels_vec(value)),
@@ -425,7 +594,9 @@ fn encode_rdata(record_type: &RecordType, value: &str) -> Option<Vec<u8>> {
         RecordType::Txt => {
             let mut out = Vec::new();
             let bytes = value.as_bytes();
-            if bytes.len() > 255 { return None; }
+            if bytes.len() > 255 {
+                return None;
+            }
             out.push(bytes.len() as u8);
             out.extend_from_slice(bytes);
             Some(out)
@@ -467,7 +638,10 @@ mod tests {
         if answer_start + 4 > resp.len() {
             return None;
         }
-        Some(u16::from_be_bytes([resp[answer_start + 2], resp[answer_start + 3]]))
+        Some(u16::from_be_bytes([
+            resp[answer_start + 2],
+            resp[answer_start + 3],
+        ]))
     }
 
     #[tokio::test]
@@ -511,10 +685,22 @@ mod tests {
 
         let records = vec![
             ("example.com", "@", RecordType::Aaaa, "2001:db8::1", 28u16),
-            ("example.com", "@", RecordType::Cname, "alias.example.com", 5u16),
+            (
+                "example.com",
+                "@",
+                RecordType::Cname,
+                "alias.example.com",
+                5u16,
+            ),
             ("example.com", "@", RecordType::Txt, "hello", 16u16),
             ("example.com", "@", RecordType::Ns, "ns1.example.com", 2u16),
-            ("example.com", "@", RecordType::Mx, "10 mail.example.com", 15u16),
+            (
+                "example.com",
+                "@",
+                RecordType::Mx,
+                "10 mail.example.com",
+                15u16,
+            ),
         ];
 
         for (zone, name, record_type, value, _wire_type) in records {
@@ -560,17 +746,19 @@ mod tests {
 
         // ANY should include all `example.com` records we inserted for that name.
         let any_req = build_query("example.com", 255);
-        let any_resp = build_response(&any_req, &dns).await.expect("build any response");
+        let any_resp = build_response(&any_req, &dns)
+            .await
+            .expect("build any response");
         assert_eq!(response_rcode(&any_resp), 0);
         assert_eq!(response_ancount(&any_resp), 5);
     }
 
     #[tokio::test]
     async fn integration_known_record_udp() {
+        use std::net::UdpSocket as StdUdp;
         use std::sync::Arc;
         use std::time::Duration;
         use tokio::net::UdpSocket;
-        use std::net::UdpSocket as StdUdp;
 
         let dns = DnsService::new();
         dns.create_zone("example.com").expect("zone should create");
@@ -614,10 +802,10 @@ mod tests {
 
     #[tokio::test]
     async fn integration_nxdomain_udp() {
+        use std::net::UdpSocket as StdUdp;
         use std::sync::Arc;
         use std::time::Duration;
         use tokio::net::UdpSocket;
-        use std::net::UdpSocket as StdUdp;
 
         let dns = DnsService::new();
 
