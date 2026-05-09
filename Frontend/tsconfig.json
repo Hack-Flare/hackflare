@@ -22,7 +22,6 @@
     "noImplicitOverride": true,
 
     "baseUrl": ".",
-    // Silence deprecated-option error until TS 7.0 migration
     "ignoreDeprecations": "6.0",
     "paths": {
       "@/*": ["./src/*"]
