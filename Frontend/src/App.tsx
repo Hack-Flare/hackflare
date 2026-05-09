@@ -170,7 +170,7 @@ function DashboardShell() {
     const data = await apiRequest<Zone[]>("/api/v1/dns/zones");
     setZones(data);
     if (data && data.length > 0 && !selectedZone) {
-      setSelectedZone(data[0].name);
+      setSelectedZone(data[0]!.name);
     }
   };
 
