@@ -1,10 +1,7 @@
-import { SidebarProvider, SidebarTrigger } from "~/components/ui/sidebar"
-import { AppSidebar } from "~/components/app-sidebar"
-
-
-export default function Dashboard() {
+// app/pages/dashboard.tsx
+export default function Firewall() {
   return (
-        <div className="flex-1 p-6">
+    <div className="flex-1 p-6">
             <h2 className="text-3xl font-bold mb-8 dark:text-white">Dashboard</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-900 p-6">
@@ -21,6 +18,5 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-
   )
 }

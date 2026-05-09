@@ -42,29 +42,28 @@ const workspaces = [
 // ── Nav items ────────────────────────────────────────────────────────────────
 
 const overviewItems = [
-  { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-  { title: "Domains",   icon: Globe,           href: "/domains", badge: "3" },
+  { title: "Dashboard", icon: LayoutDashboard, href: "/dash" },
+  { title: "Domains",   icon: Globe,           href: "/dash/domains", badge: "3" },
 ]
 
 const edgeItems = [
-  { title: "Firewall", icon: ShieldAlert,    href: "/firewall", badge: "2", badgeWarn: true },
-  { title: "DNS",      icon: ArrowLeftRight, href: "/dns" },
-  { title: "Workers",  icon: Zap,            href: "/workers" },
-  { title: "Tunnel",   icon: Network,        href: "/tunnel" },
+  { title: "Firewall", icon: ShieldAlert,    href: "/dash/firewall", badge: "2", badgeWarn: true },
+  { title: "DNS",      icon: ArrowLeftRight, href: "/dash/dns" },
+  { title: "Workers",  icon: Zap,            href: "/dash/workers" },
+  { title: "Tunnel",   icon: Network,        href: "/dash/tunnel" },
 ]
 
 const analyticsItems = [
-  { title: "Traffic",     icon: BarChart2,  href: "/traffic" },
-  { title: "Performance", icon: Activity,   href: "/performance" },
-  { title: "Logs",        icon: ScrollText, href: "/logs" },
+  { title: "Traffic",     icon: BarChart2,  href: "/dash/traffic" },
+  { title: "Performance", icon: Activity,   href: "/dash/performance" },
+  { title: "Logs",        icon: ScrollText, href: "/dash/logs" },
 ]
-
 // ── User — replace with your auth context ────────────────────────────────────
 
 const user = {
-  name: "Zach Latta",
-  email: "zach@hackclub.com",
-  initials: "ZL",
+  name: "Jam",
+  email: "jam@jammy.com",
+  initials: "PUSSY",
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -73,7 +72,10 @@ export function AppSidebar() {
   const location = useLocation()
   const [activeWorkspace, setActiveWorkspace] = useState(workspaces[0])
 
-  const isActive = (href: string) => location.pathname.startsWith(href)
+  const isActive = (href: string) => {
+    if (href === "/dash") return location.pathname === "/dash"
+    return location.pathname.startsWith(href)
+  }
 
   return (
     <Sidebar>

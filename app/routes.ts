@@ -1,6 +1,20 @@
-import { type RouteConfig, index, route } from "@react-router/dev/routes"
+import { type RouteConfig, index, route, layout } from "@react-router/dev/routes"
 
 export default [
   index("routes/home.tsx"),
-  route("dash", "routes/dash.tsx"),
+
+  layout("layouts/sidebar-layout.tsx", [
+    route("dash", "routes/dash.tsx"),
+    route("dash/dns", "routes/dash/dns.tsx"),
+    route("dash/firewall", "routes/dash/firewall.tsx"),
+    route("dash/traffic", "routes/dash/traffic.tsx"),
+    route("dash/settings", "routes/dash/settings.tsx"),
+    route("dash/domains", "routes/dash/domains.tsx"),
+    route("dash/tunnel", "routes/dash/tunnel.tsx"),
+    route("dash/workers", "routes/dash/workers.tsx"),
+    route("dash/logs", "routes/dash/logs.tsx"),
+    route("dash/performance", "routes/dash/performance.tsx"),
+
+    // add more pages here as you build them
+  ]),
 ] satisfies RouteConfig

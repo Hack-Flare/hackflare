@@ -29,35 +29,62 @@ export default function Home() {
 
       <main className="flex-1">
         <section className="mx-auto max-w-6xl px-6 py-24">
-          <h1 className="max-w-205 text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-0 bg-linear-to-b from-slate-900 to-slate-600 bg-clip-text text-transparent">The DNS platform for builders.</h1>
-          <p className="max-w-160 mt-5.5 text-lg leading-relaxed text-slate-600">
+          <h1 className="max-w-205 text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-0 bg-linear-to-b from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">The DNS platform for builders.</h1>
+          <p className="max-w-160 mt-5.5 text-lg leading-relaxed text-slate-600 dark:text-slate-400">
             HackFlare helps you point your domain, manage DNS records, and ship faster.
             Built by Hack Clubbers.
           </p>
           <div className="mt-8 flex gap-3 flex-wrap">
             <Link to="/dash" className="inline-flex items-center justify-center rounded-[10px] px-[1.15rem] py-[0.7rem] bg-orange-500 text-white font-semibold text-sm hover:bg-orange-600 transition-all hover:-translate-y-0.5">Launch Dashboard</Link>
-            <a href="/docs" className="inline-flex items-center justify-center rounded-[10px] px-[1.15rem] py-[0.7rem] border border-slate-300 bg-white text-slate-900 font-semibold text-sm hover:bg-slate-100 transition-colors">Read Docs</a>
+            <a href="/docs" className="inline-flex items-center justify-center rounded-[10px] px-[1.15rem] py-[0.7rem] border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-semibold text-sm hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">Read Docs</a>
           </div>
         </section>
 
         <section id="features" className="mx-auto max-w-6xl px-6 py-16">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-8">Everything you need to manage DNS.</h2>
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-8 text-slate-900 dark:text-white">Everything you need to manage DNS.</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <article className="border border-slate-200 rounded-2xl bg-white p-6 hover:border-slate-300 hover:-translate-y-0.5 transition-all"><h3 className="font-semibold mb-2">Edge Performance</h3><p className="text-slate-600 text-sm leading-normal">Built to feel super fast and direct.</p></article>
-            <article className="border border-slate-200 rounded-2xl bg-white p-6 hover:border-slate-300 hover:-translate-y-0.5 transition-all"><h3 className="font-semibold mb-2">Good Security</h3><p className="text-slate-600 text-sm leading-normal">Great defaults, clear states and better UX.</p></article>
-            <article className="border border-slate-200 rounded-2xl bg-white p-6 hover:border-slate-300 hover:-translate-y-0.5 transition-all"><h3 className="font-semibold mb-2">Automation Friendly</h3><p className="text-slate-600 text-sm leading-normal">REST and gRPC APIs for full automation.</p></article>
-            <article className="border border-slate-200 rounded-2xl bg-white p-6 hover:border-slate-300 hover:-translate-y-0.5 transition-all"><h3 className="font-semibold mb-2">Made for Hack Club</h3><p className="text-slate-600 text-sm leading-normal">Built by the Hack Club community.</p></article>
-            <article className="border border-slate-200 rounded-2xl bg-white p-6 hover:border-slate-300 hover:-translate-y-0.5 transition-all"><h3 className="font-semibold mb-2">Docs That Help</h3><p className="text-slate-600 text-sm leading-normal">Useful docs, guides, and AI integration.</p></article>
-            <article className="border border-slate-200 rounded-2xl bg-white p-6 hover:border-slate-300 hover:-translate-y-0.5 transition-all"><h3 className="font-semibold mb-2">Global Reach</h3><p className="text-slate-600 text-sm leading-normal">A solid network that scales with projects.</p></article>
+            <article className="border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 p-6 hover:border-slate-300 dark:hover:border-slate-700 hover:-translate-y-0.5 transition-all">
+              <h3 className="font-semibold mb-2 text-slate-900 dark:text-white">Edge Performance</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm leading-normal">Built to feel super fast and direct.</p>
+            </article>
+            <article className="border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 p-6 hover:border-slate-300 dark:hover:border-slate-700 hover:-translate-y-0.5 transition-all">
+              <h3 className="font-semibold mb-2 text-slate-900 dark:text-white">Good Security</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm leading-normal">Great defaults, clear states and better UX.</p>
+            </article>
+            <article className="border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 p-6 hover:border-slate-300 dark:hover:border-slate-700 hover:-translate-y-0.5 transition-all">
+              <h3 className="font-semibold mb-2 text-slate-900 dark:text-white">Automation Friendly</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm leading-normal">REST and gRPC APIs for full automation.</p>
+            </article>
+            <article className="border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 p-6 hover:border-slate-300 dark:hover:border-slate-700 hover:-translate-y-0.5 transition-all">
+              <h3 className="font-semibold mb-2 text-slate-900 dark:text-white">Made for Hack Club</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm leading-normal">Built by the Hack Club community.</p>
+            </article>
+            <article className="border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 p-6 hover:border-slate-300 dark:hover:border-slate-700 hover:-translate-y-0.5 transition-all">
+              <h3 className="font-semibold mb-2 text-slate-900 dark:text-white">Docs That Help</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm leading-normal">Useful docs, guides, and AI integration.</p>
+            </article>
+            <article className="border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 p-6 hover:border-slate-300 dark:hover:border-slate-700 hover:-translate-y-0.5 transition-all">
+              <h3 className="font-semibold mb-2 text-slate-900 dark:text-white">Global Reach</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm leading-normal">A solid network that scales with projects.</p>
+            </article>
           </div>
         </section>
 
         <section id="how-it-works" className="mx-auto max-w-6xl px-6 py-16">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-8">Get started in minutes.</h2>
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-8 text-slate-900 dark:text-white">Get started in minutes.</h2>
           <ol className="space-y-2.5">
-            <li className="relative pl-14 py-2.5 px-4 border border-slate-200 rounded-xl bg-white"><span className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-orange-100 text-orange-700 font-bold text-xs flex items-center justify-center">1</span><strong>Sign in.</strong> Open the dashboard and authenticate.</li>
-            <li className="relative pl-14 py-2.5 px-4 border border-slate-200 rounded-xl bg-white"><span className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-orange-100 text-orange-700 font-bold text-xs flex items-center justify-center">2</span><strong>Add domains.</strong> Point nameservers to HackFlare.</li>
-            <li className="relative pl-14 py-2.5 px-4 border border-slate-200 rounded-xl bg-white"><span className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-orange-100 text-orange-700 font-bold text-xs flex items-center justify-center">3</span><strong>Manage records.</strong> Add and edit DNS entries quickly.</li>
+            <li className="relative pl-14 py-2.5 px-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-400 font-bold text-xs flex items-center justify-center">1</span>
+              <strong>Sign in.</strong> Open the dashboard and authenticate.
+            </li>
+            <li className="relative pl-14 py-2.5 px-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-400 font-bold text-xs flex items-center justify-center">2</span>
+              <strong>Add domains.</strong> Point nameservers to HackFlare.
+            </li>
+            <li className="relative pl-14 py-2.5 px-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-400 font-bold text-xs flex items-center justify-center">3</span>
+              <strong>Manage records.</strong> Add and edit DNS entries quickly.
+            </li>
           </ol>
         </section>
 
@@ -74,6 +101,5 @@ export default function Home() {
       </main>
       <Footer/>
     </div>
-    
   )
 }
