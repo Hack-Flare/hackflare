@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, Route, Routes, useLocation, BrowserRouter } from "react-router-dom";
+// Ignore missing type declarations for side-effect CSS import
+// @ts-ignore
 import "./global.css";
 import logo from "./logo.svg";
 import { Input } from "./components/ui/input";
