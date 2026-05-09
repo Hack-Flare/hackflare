@@ -544,10 +544,10 @@ async fn resolve_with_deadline(name: &str, qtype: u16, max_depth: usize, deadlin
     {
         let mut c = CACHE.lock().await;
         prune_query_cache(&mut c);
-        if let Some((data, exp)) = c.get(&(name.to_string(), qtype)) {
-            if Instant::now() < *exp {
-                return Some(data.clone());
-            }
+        if let Some((data, exp)) = c.get(&(name.to_string(), qtype))
+            && Instant::now() < *exp
+        {
+            return Some(data.clone());
         }
     }
 

@@ -144,16 +144,16 @@ async fn build_response(req: &[u8], dns: &DnsService) -> Option<Vec<u8>> {
         }))
     };
 
-    if is_ip_literal && recs.is_empty() {
-        if let Some(rn) = reverse_name.as_ref() {
-            let ptrs = dns.find_records(rn, Some(RecordType::Ptr));
-            if !ptrs.is_empty() {
-                recs = ptrs;
-            } else {
-                let mut r = build_nxdomain_with_soa(id, req_flags, recursion_enabled_from_env(), &req[12..pos+4]);
-                if client_edns_size > 0 { append_opt(&mut r, client_edns_size, client_do); }
-                return Some(r);
-            }
+    if is_ip_literal && recs.is_empty()
+        && let Some(rn) = reverse_name.as_ref()
+    {
+        let ptrs = dns.find_records(rn, Some(RecordType::Ptr));
+        if !ptrs.is_empty() {
+            recs = ptrs;
+        } else {
+            let mut r = build_nxdomain_with_soa(id, req_flags, recursion_enabled_from_env(), &req[12..pos+4]);
+            if client_edns_size > 0 { append_opt(&mut r, client_edns_size, client_do); }
+            return Some(r);
         }
     }
 
