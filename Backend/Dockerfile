@@ -1,25 +1,27 @@
-FROM rust:1.92-bookworm AS build
+FROM ghcr.io/hack-flare/hackflare-builder AS build
 
-WORKDIR /app
+WORKDIR /app/Backend
+COPY Backend ./
 
-COPY Cargo.toml Cargo.lock* ./
-RUN mkdir -p src && echo "fn main() {}" > src/main.rs && cargo build --release && rm -rf src
-
-COPY src ./src
 RUN cargo build --release
 
-FROM debian:bookworm-slim AS runtime
+FROM debian:bookworm-slim
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    libstdc++6 && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY --from=build /app/target/release/Backend /app/backend
 
-ENV BACKEND_BIND_HOST=0.0.0.0
-ENV BACKEND_BIND_PORT=8080
+RUN useradd -m appuser
 
-EXPOSE 8080
+COPY --from=build /app/Backend/target/release/hackflare /app/hackflare
 
-CMD ["/app/backend"]
+USER appuser
+
+EXPOSE 4000
+
+CMD ["./hackflare"]

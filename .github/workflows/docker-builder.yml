@@ -1,4 +1,4 @@
-name: Build and Publish Main Docker Image
+name: Builder Docker Image
 
 on:
   workflow_dispatch:
@@ -6,10 +6,10 @@ on:
   
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: hack-flare/hackflare
+  IMAGE_NAME: hack-flare/hackflare-builder
 
 concurrency:
-  group: build-and-push
+  group: build-and-push-builder
   cancel-in-progress: true
 
 jobs:
@@ -54,6 +54,7 @@ jobs:
         uses: useblacksmith/build-push-action@v2
         with:
           context: .
+          file: ./Backend/builder.dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
