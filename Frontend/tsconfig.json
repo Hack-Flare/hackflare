@@ -21,8 +21,6 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
 
-    "ignoreDeprecations": "6.0",
-
     "baseUrl": ".",
     // Silence deprecated-option error until TS 7.0 migration
     "ignoreDeprecations": "6.0",
