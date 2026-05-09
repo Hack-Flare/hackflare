@@ -1,0 +1,54 @@
+# clippy.toml
+
+# Keep argument count reasonable before warning
+too-many-arguments-threshold = 8
+
+# Prevent giant functions becoming unreadable
+too-many-lines-threshold = 120
+
+# Cognitive complexity threshold
+cognitive-complexity-threshold = 30
+
+# Encourage smaller enums
+enum-variant-size-threshold = 200
+
+# Large stack arrays warning threshold
+stack-size-threshold = 512000
+
+# Discourage excessive bool parameters
+max-fn-params-bools = 2
+
+# Avoid giant type complexity warnings too early
+type-complexity-threshold = 350
+
+# Ignore single-char binding names commonly used
+allowed-idents-below-min-chars = [
+  "i",
+  "j",
+  "k",
+  "x",
+  "y",
+  "z",
+  "id",
+  "tx",
+  "rx",
+  "db",
+  "ip",
+  "ui",
+]
+
+# Avoid excessive trait bound warnings
+max-trait-bounds = 6
+
+# Future-proofing for async-heavy systems
+await-holding-invalid-types = true
+
+# Commonly acceptable placeholder names
+disallowed-names = [
+  "foo",
+  "baz",
+  "tmp",
+]
+
+# Avoid warning spam for documentation during rapid development
+missing-docs-in-crate-items = false

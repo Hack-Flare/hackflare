@@ -4,27 +4,12 @@
 
 # HackFlare
 Cloudflare alternative for HackClub. Hence the name HackFlare.  
-[View Elixir Documentation](ELIXIR_DOCS.md)
 
 ## Roadmap
 
 See [ROADMAP.md](ROADMAP.md) for the roadmap.
 
-## Stack
-
-PETRL  
-- Phoenix
-- Elixir
-- Tailwind
-- Rust
-- liveview
-
 ## Running the project
-
-Without Docker
-```
-iex -S mix phx.server
-```
 
 With Docker from prebuilt image
 ```
