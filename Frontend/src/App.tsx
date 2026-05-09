@@ -66,7 +66,7 @@ async function apiRequest<T>(
 function HomePage() {
   return (
     <div className="flex flex-col min-h-screen bg-slate-50">
-      <header className="sticky top-0 z-50 border-b border-slate-200/60 bg-white/72 backdrop-blur-[12px]">
+      <header className="sticky top-0 z-50 border-b border-slate-200/60 bg-white/72 backdrop-blur-md">
         <div className="max-w-4xl mx-auto px-6 h-17 flex items-center justify-between gap-4">
           <a href="/" className="flex items-center gap-2.5 font-black text-base">
             <img src={logo} width={36} alt="HackFlare" />
@@ -89,8 +89,8 @@ function HomePage() {
 
       <main className="flex-1">
         <section className="max-w-4xl mx-auto px-6 py-24">
-          <h1 className="max-w-[820px] text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-0 bg-gradient-to-b from-slate-900 to-slate-600 bg-clip-text text-transparent">The DNS platform for builders.</h1>
-          <p className="max-w-[640px] mt-5.5 text-lg leading-relaxed text-slate-600">
+          <h1 className="max-w-205 text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-0 bg-linear-to-b from-slate-900 to-slate-600 bg-clip-text text-transparent">The DNS platform for builders.</h1>
+          <p className="max-w-160 mt-5.5 text-lg leading-relaxed text-slate-600">
             HackFlare helps you point your domain, manage DNS records, and ship faster.
             Built by Hack Clubbers.
           </p>
@@ -121,7 +121,7 @@ function HomePage() {
           </ol>
         </section>
 
-        <section className="bg-gradient-to-r from-red-600 via-orange-600 to-orange-500 py-16 mt-8">
+        <section className="bg-linear-to-r from-red-600 via-orange-600 to-orange-500 py-16 mt-8">
           <div className="max-w-4xl mx-auto px-6">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white max-w-2xl mb-3">Ready to take control of your DNS?</h2>
             <p className="text-lg text-white/92 max-w-xl mb-8">Join Hack Club members simplifying DNS infrastructure with HackFlare.</p>
@@ -132,6 +132,61 @@ function HomePage() {
           </div>
         </section>
       </main>
+
+      <footer className="border-t border-slate-200 bg-white">
+        <div className="max-w-4xl mx-auto px-6 py-16">
+          <div className="grid grid-cols-4 gap-8 mb-12">
+            <div>
+              <h4 className="font-semibold text-slate-900 mb-4">Product</h4>
+              <ul className="space-y-2.5 text-sm text-slate-600">
+                <li><a href="#features" className="hover:text-slate-900">Features</a></li>
+                <li><a href="/docs" className="hover:text-slate-900">Documentation</a></li>
+                <li><a href="#" className="hover:text-slate-900">Pricing</a></li>
+                <li><a href="#" className="hover:text-slate-900">Status</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-slate-900 mb-4">Company</h4>
+              <ul className="space-y-2.5 text-sm text-slate-600">
+                <li><a href="#" className="hover:text-slate-900">About</a></li>
+                <li><a href="#" className="hover:text-slate-900">Blog</a></li>
+                <li><a href="#" className="hover:text-slate-900">Careers</a></li>
+                <li><a href="#" className="hover:text-slate-900">Contact</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-slate-900 mb-4">Resources</h4>
+              <ul className="space-y-2.5 text-sm text-slate-600">
+                <li><a href="#" className="hover:text-slate-900">API Docs</a></li>
+                <li><a href="#" className="hover:text-slate-900">Guides</a></li>
+                <li><a href="#" className="hover:text-slate-900">Community</a></li>
+                <li><a href="#" className="hover:text-slate-900">Support</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-slate-900 mb-4">Legal</h4>
+              <ul className="space-y-2.5 text-sm text-slate-600">
+                <li><a href="#" className="hover:text-slate-900">Privacy</a></li>
+                <li><a href="#" className="hover:text-slate-900">Terms</a></li>
+                <li><a href="#" className="hover:text-slate-900">Security</a></li>
+                <li><a href="#" className="hover:text-slate-900">License</a></li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-slate-200 pt-8 flex items-center justify-between">
+            <div className="flex items-center gap-2 font-black text-base text-slate-900">
+              <img src={logo} width={24} alt="HackFlare" />
+              <span>HackFlare</span>
+            </div>
+            <p className="text-sm text-slate-600">© 2026 HackFlare. All rights reserved.</p>
+            <div className="flex gap-4">
+              <a href="https://github.com/Hack-Flare/hackflare" className="text-slate-600 hover:text-slate-900">Github</a>
+              <a href="https://kirze.de" className="text-slate-600 hover:text-slate-900">@Nayte</a>
+              <a href="https://vejas.zip" className="text-slate-600 hover:text-slate-900">@Vejas</a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
@@ -169,8 +224,9 @@ function DashboardShell() {
   const refreshZones = async () => {
     const data = await apiRequest<Zone[]>("/api/v1/dns/zones");
     setZones(data);
-    if (data && data.length > 0 && !selectedZone) {
-      setSelectedZone(data[0].name);
+    const firstZone = data.at(0);
+    if (firstZone && !selectedZone) {
+      setSelectedZone(firstZone.name);
     }
   };
 
@@ -275,12 +331,12 @@ function DashboardShell() {
         </div>
 
         <nav className="grid gap-0.5">
-          <Link className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${currentView === "home" ? "bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-[11px]" : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"}`} to="/dash">Home</Link>
-          <Link className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${currentView === "domains" ? "bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-[11px]" : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"}`} to="/dash/domains">Domains</Link>
-          <Link className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${currentView === "settings" ? "bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-[11px]" : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"}`} to="/dash/settings">Settings</Link>
-          <Link className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${currentView === "analytics" ? "bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-[11px]" : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"}`} to="/dash/analytics">Analytics</Link>
-          <Link className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${currentView === "notifications" ? "bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-[11px]" : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"}`} to="/dash/notifications">Notifications</Link>
-          <Link className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${currentView === "help" ? "bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-[11px]" : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"}`} to="/dash/help">Help</Link>
+          <Link className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${currentView === "home" ? "bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-2.75" : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"}`} to="/dash">Home</Link>
+          <Link className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${currentView === "domains" ? "bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-2.75" : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"}`} to="/dash/domains">Domains</Link>
+          <Link className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${currentView === "settings" ? "bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-2.75" : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"}`} to="/dash/settings">Settings</Link>
+          <Link className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${currentView === "analytics" ? "bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-2.75" : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"}`} to="/dash/analytics">Analytics</Link>
+          <Link className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${currentView === "notifications" ? "bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-2.75" : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"}`} to="/dash/notifications">Notifications</Link>
+          <Link className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${currentView === "help" ? "bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-2.75" : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"}`} to="/dash/help">Help</Link>
           <Link to="/admin" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors">Admin Panel</Link>
         </nav>
       </aside>
@@ -315,7 +371,7 @@ function DashboardShell() {
                   <button
                     key={zone.id}
                     onClick={() => setSelectedZone(zone.name)}
-                    className={`w-full text-left px-4 py-3 border-b border-slate-700 font-medium text-sm transition-colors hover:bg-slate-800 ${zone.name === (selectedZoneData?.name ?? "") ? "bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-[15px]" : "text-slate-400"}`}
+                    className={`w-full text-left px-4 py-3 border-b border-slate-700 font-medium text-sm transition-colors hover:bg-slate-800 ${zone.name === (selectedZoneData?.name ?? "") ? "bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-3.75" : "text-slate-400"}`}
                   >
                     <strong className="block text-slate-100">{zone.name}</strong>
                     <small className="text-slate-500 text-xs">{zone.records.length} records</small>
@@ -434,7 +490,7 @@ function AdminPage() {
       <aside className="border-r border-slate-800 bg-slate-900 px-2.5 py-3.5 flex flex-col gap-3">
         <div className="flex items-center gap-2.5 font-black text-base text-slate-100 px-2"><img src={logo} width={34} alt="HackFlare" /><span>HackFlare Admin</span></div>
         <nav className="grid gap-0.5">
-          <Link to="/admin" className="rounded-lg px-3 py-2 text-sm font-medium bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-[11px] transition-colors">Overview</Link>
+          <Link to="/admin" className="rounded-lg px-3 py-2 text-sm font-medium bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-2.75 transition-colors">Overview</Link>
           <Link to="/dash/domains" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors">Domain Search</Link>
           <Link to="/dash/settings" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors">Runtime Settings</Link>
           <Link to="/dash" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors">Back to Dashboard</Link>
