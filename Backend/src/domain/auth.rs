@@ -1,12 +1,16 @@
 use std::collections::HashMap;
 use std::sync::RwLock;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{Duration, SystemTime};
 
 use argon2::Argon2;
 use argon2::password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString};
+use rand::Rng;
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+const EMAIL_CODE_TTL: Duration = Duration::from_secs(15 * 60);
 
 #[derive(Clone, Debug, Serialize)]
 pub struct User {
@@ -23,6 +27,12 @@ struct UserCredentials {
     is_admin: bool,
 }
 
+#[derive(Clone, Debug)]
+struct PendingEmailLogin {
+    code: String,
+    expires_at: SystemTime,
+}
+
 #[derive(Clone, Debug, Deserialize)]
 pub struct RegisterInput {
     pub email: String,
@@ -35,10 +45,28 @@ pub struct LoginInput {
     pub password: String,
 }
 
+#[derive(Clone, Debug, Deserialize)]
+pub struct EmailLoginRequest {
+    pub email: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct EmailLoginVerification {
+    pub email: String,
+    pub code: String,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct Session {
     pub token: String,
     pub user: User,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct EmailLoginChallenge {
+    pub email: String,
+    pub code: String,
+    pub expires_in_seconds: u64,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -48,12 +76,15 @@ pub enum AuthError {
     EmailAlreadyExists,
     InvalidCredentials,
     PasswordHashFailure,
+    InvalidEmailCode,
+    EmailCodeExpired,
 }
 
 pub struct AuthService {
     next_id: AtomicU64,
     users_by_email: RwLock<HashMap<String, UserCredentials>>,
     sessions: RwLock<HashMap<String, u64>>,
+    pending_email_logins: RwLock<HashMap<String, PendingEmailLogin>>,
 }
 
 impl AuthService {
@@ -62,6 +93,7 @@ impl AuthService {
             next_id: AtomicU64::new(1),
             users_by_email: RwLock::new(HashMap::new()),
             sessions: RwLock::new(HashMap::new()),
+            pending_email_logins: RwLock::new(HashMap::new()),
         }
     }
 
@@ -92,6 +124,80 @@ impl AuthService {
         drop(users);
 
         self.issue_session_for_user(&user_creds)
+    }
+
+    pub fn request_email_login(
+        &self,
+        input: EmailLoginRequest,
+    ) -> Result<EmailLoginChallenge, AuthError> {
+        let normalized_email = normalize_email(&input.email).ok_or(AuthError::InvalidEmail)?;
+
+        {
+            let mut users = self
+                .users_by_email
+                .write()
+                .expect("users write lock poisoned");
+
+            let _user = users
+                .entry(normalized_email.clone())
+                .or_insert_with(|| self.build_user_record(&normalized_email));
+        }
+
+        let code = format!("{:06}", rand::thread_rng().gen_range(0..1_000_000));
+        self.pending_email_logins
+            .write()
+            .expect("email login write lock poisoned")
+            .insert(
+                normalized_email.clone(),
+                PendingEmailLogin {
+                    code: code.clone(),
+                    expires_at: SystemTime::now() + EMAIL_CODE_TTL,
+                },
+            );
+
+        Ok(EmailLoginChallenge {
+            email: normalized_email,
+            code,
+            expires_in_seconds: EMAIL_CODE_TTL.as_secs(),
+        })
+    }
+
+    pub fn verify_email_login(
+        &self,
+        input: EmailLoginVerification,
+    ) -> Result<Session, AuthError> {
+        let normalized_email = normalize_email(&input.email).ok_or(AuthError::InvalidEmail)?;
+
+        let challenge = {
+            let mut pending = self
+                .pending_email_logins
+                .write()
+                .expect("email login write lock poisoned");
+            pending.remove(&normalized_email)
+        }
+        .ok_or(AuthError::InvalidEmailCode)?;
+
+        if SystemTime::now() > challenge.expires_at {
+            return Err(AuthError::EmailCodeExpired);
+        }
+
+        if challenge.code != input.code.trim() {
+            return Err(AuthError::InvalidEmailCode);
+        }
+
+        let user = {
+            let mut users = self
+                .users_by_email
+                .write()
+                .expect("users write lock poisoned");
+
+            let user = users
+                .entry(normalized_email.clone())
+                .or_insert_with(|| self.build_user_record(&normalized_email));
+            user.clone()
+        };
+
+        self.issue_session_for_user(&user)
     }
 
     pub fn login(&self, input: LoginInput) -> Result<Session, AuthError> {
@@ -146,6 +252,17 @@ impl AuthService {
             },
         })
     }
+
+    fn build_user_record(&self, email: &str) -> UserCredentials {
+        let id = self.next_id.fetch_add(1, Ordering::Relaxed);
+
+        UserCredentials {
+            id,
+            email: email.to_string(),
+            password_hash: String::new(),
+            is_admin: false,
+        }
+    }
 }
 
 fn normalize_email(email: &str) -> Option<String> {
@@ -194,7 +311,10 @@ fn verify_password(password: &str, hashed: &str) -> Result<(), AuthError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{AuthError, AuthService, LoginInput, RegisterInput};
+    use super::{
+        AuthError, AuthService, EmailLoginRequest, EmailLoginVerification, LoginInput,
+        RegisterInput,
+    };
 
     #[test]
     fn register_and_login_work() {
@@ -245,5 +365,25 @@ mod tests {
         });
 
         assert!(matches!(login, Err(AuthError::InvalidCredentials)));
+    }
+
+    #[test]
+    fn email_login_request_and_verify_work() {
+        let auth = AuthService::new();
+
+        let challenge = auth
+            .request_email_login(EmailLoginRequest {
+                email: "user@example.com".to_string(),
+            })
+            .expect("email challenge");
+
+        let session = auth
+            .verify_email_login(EmailLoginVerification {
+                email: challenge.email,
+                code: challenge.code,
+            })
+            .expect("email session");
+
+        assert_eq!(session.user.email, "user@example.com");
     }
 }

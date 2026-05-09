@@ -15,6 +15,14 @@ Internal backend service for Hackflare.
 - `BACKEND_DNS_BIND_PORT` default `5353`
 - `BACKEND_GATEWAY_TOKEN` required for gateway-to-backend requests
 - `DATABASE_URL` optional for now
+- `BACKEND_EMAIL_FROM_NAME` default `Hackflare`
+- `BACKEND_EMAIL_FROM_ADDRESS` default `no-reply@hackflare.local`
+- `BACKEND_EMAIL_REPLY_TO` optional
+- `BACKEND_EMAIL_SMTP_HOST` optional
+- `BACKEND_EMAIL_SMTP_PORT` default `587`
+- `BACKEND_EMAIL_SMTP_USERNAME` optional
+- `BACKEND_EMAIL_SMTP_PASSWORD` optional
+- `BACKEND_EMAIL_SMTP_STARTTLS` default `true`
 
 ## DNS nameserver
 

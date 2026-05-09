@@ -4,7 +4,10 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 
-use crate::domain::auth::{AuthError, LoginInput, RegisterInput, Session, User};
+use crate::domain::auth::{
+    AuthError, EmailLoginChallenge, EmailLoginRequest, EmailLoginVerification, LoginInput,
+    RegisterInput, Session, User,
+};
 use crate::domain::dns::{DnsError, NewRecordInput, RecordType, ResolvedRecord, Zone};
 use crate::state::AppState;
 
@@ -14,6 +17,8 @@ pub fn build_router(state: AppState) -> Router {
         .route("/api/v1/ping", get(api_ping))
         .route("/api/v1/auth/register", post(register))
         .route("/api/v1/auth/login", post(login))
+        .route("/api/v1/auth/email/request", post(request_email_login))
+        .route("/api/v1/auth/email/verify", post(verify_email_login))
         .route("/api/v1/auth/me", get(me))
         .route("/api/v1/dns/zones", get(list_zones).post(create_zone))
         .route("/api/v1/dns/zones/{zone_name}/records", post(add_record))
@@ -78,6 +83,30 @@ async fn login(
     Json(payload): Json<LoginInput>,
 ) -> Result<Json<Session>, (StatusCode, Json<ErrorResponse>)> {
     state.auth.login(payload).map(Json).map_err(map_auth_error)
+}
+
+async fn request_email_login(
+    State(state): State<AppState>,
+    _headers: HeaderMap,
+    Json(payload): Json<EmailLoginRequest>,
+) -> Result<Json<EmailLoginChallenge>, (StatusCode, Json<ErrorResponse>)> {
+    state
+        .auth
+        .request_email_login(payload)
+        .map(Json)
+        .map_err(map_auth_error)
+}
+
+async fn verify_email_login(
+    State(state): State<AppState>,
+    _headers: HeaderMap,
+    Json(payload): Json<EmailLoginVerification>,
+) -> Result<Json<Session>, (StatusCode, Json<ErrorResponse>)> {
+    state
+        .auth
+        .verify_email_login(payload)
+        .map(Json)
+        .map_err(map_auth_error)
 }
 
 async fn me(
@@ -235,6 +264,8 @@ fn map_auth_error(error: AuthError) -> (StatusCode, Json<ErrorResponse>) {
         AuthError::PasswordHashFailure => {
             (StatusCode::INTERNAL_SERVER_ERROR, "password_hash_failure")
         }
+        AuthError::InvalidEmailCode => (StatusCode::UNAUTHORIZED, "invalid_email_code"),
+        AuthError::EmailCodeExpired => (StatusCode::UNAUTHORIZED, "email_code_expired"),
     };
 
     (status, Json(ErrorResponse { error: message }))
