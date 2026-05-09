@@ -1,7 +1,9 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, Route, Routes, useLocation, BrowserRouter } from "react-router-dom";
-import "./index.css";
+import "./global.css";
 import logo from "./logo.svg";
+import { Input } from "./components/ui/input";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "./components/ui/card";
 
 type RecordType = "A" | "AAAA" | "CNAME" | "TXT" | "NS" | "PTR" | "MX";
 
@@ -63,69 +65,69 @@ async function apiRequest<T>(
 
 function HomePage() {
   return (
-    <div className="home-page">
-      <header className="topbar">
-        <div className="wrap topbar-inner">
-          <a href="/" className="brand">
+    <div className="flex flex-col min-h-screen bg-slate-50">
+      <header className="sticky top-0 z-50 border-b border-slate-200/60 bg-white/72 backdrop-blur-[12px]">
+        <div className="max-w-4xl mx-auto px-6 h-17 flex items-center justify-between gap-4">
+          <a href="/" className="flex items-center gap-2.5 font-black text-base">
             <img src={logo} width={36} alt="HackFlare" />
             <span>HackFlare</span>
           </a>
 
-          <nav className="home-nav">
-            <a href="#features">Features</a>
-            <a href="#how-it-works">How it works</a>
-            <a href="/docs">Docs</a>
+          <nav className="flex items-center gap-5.5 text-sm font-medium text-slate-700">
+            <a href="#features" className="hover:text-slate-900">Features</a>
+            <a href="#how-it-works" className="hover:text-slate-900">How it works</a>
+            <a href="/docs" className="hover:text-slate-900">Docs</a>
           </nav>
 
-          <div className="home-actions">
-            <a href="https://github.com/Hack-Flare/hackflare">GitHub</a>
-            <a href="/dash">Sign in</a>
-            <Link to="/dash" className="btn-primary">Get Started</Link>
+          <div className="flex items-center gap-5.5">
+            <a href="https://github.com/Hack-Flare/hackflare" className="text-sm font-medium text-slate-700 hover:text-slate-900">GitHub</a>
+            <a href="/dash" className="text-sm font-medium text-slate-700 hover:text-slate-900">Sign in</a>
+            <Link to="/dash" className="inline-flex items-center justify-center rounded-[10px] px-[1.15rem] py-[0.7rem] bg-orange-500 text-white font-semibold text-sm hover:bg-orange-600 transition-colors">Get Started</Link>
           </div>
         </div>
       </header>
 
-      <main>
-        <section className="hero wrap">
-          <h1>The DNS platform for builders.</h1>
-          <p>
+      <main className="flex-1">
+        <section className="max-w-4xl mx-auto px-6 py-24">
+          <h1 className="max-w-[820px] text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-0 bg-gradient-to-b from-slate-900 to-slate-600 bg-clip-text text-transparent">The DNS platform for builders.</h1>
+          <p className="max-w-[640px] mt-5.5 text-lg leading-relaxed text-slate-600">
             HackFlare helps you point your domain, manage DNS records, and ship faster.
             Built by Hack Clubbers.
           </p>
-          <div className="hero-cta">
-            <Link to="/dash" className="btn-primary">Launch Dashboard</Link>
-            <a href="/docs" className="btn-ghost">Read Docs</a>
+          <div className="mt-8 flex gap-3 flex-wrap">
+            <Link to="/dash" className="inline-flex items-center justify-center rounded-[10px] px-[1.15rem] py-[0.7rem] bg-orange-500 text-white font-semibold text-sm hover:bg-orange-600 transition-all hover:-translate-y-0.5">Launch Dashboard</Link>
+            <a href="/docs" className="inline-flex items-center justify-center rounded-[10px] px-[1.15rem] py-[0.7rem] border border-slate-300 bg-white text-slate-900 font-semibold text-sm hover:bg-slate-100 transition-colors">Read Docs</a>
           </div>
         </section>
 
-        <section id="features" className="features wrap">
-          <h2>Everything you need to manage DNS.</h2>
-          <div className="feature-grid">
-            <article><h3>Edge Performance</h3><p>Built to feel super fast and direct.</p></article>
-            <article><h3>Good Security</h3><p>Great defaults, clear states and better UX.</p></article>
-            <article><h3>Automation Friendly</h3><p>REST and gRPC APIs for full automation.</p></article>
-            <article><h3>Made for Hack Club</h3><p>Built by the Hack Club community.</p></article>
-            <article><h3>Docs That Help</h3><p>Useful docs, guides, and AI integration.</p></article>
-            <article><h3>Global Reach</h3><p>A solid network that scales with projects.</p></article>
+        <section id="features" className="max-w-4xl mx-auto px-6 py-16">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-8">Everything you need to manage DNS.</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <article className="border border-slate-200 rounded-2xl bg-white p-6 hover:border-slate-300 hover:-translate-y-0.5 transition-all"><h3 className="font-semibold mb-2">Edge Performance</h3><p className="text-slate-600 text-sm leading-normal">Built to feel super fast and direct.</p></article>
+            <article className="border border-slate-200 rounded-2xl bg-white p-6 hover:border-slate-300 hover:-translate-y-0.5 transition-all"><h3 className="font-semibold mb-2">Good Security</h3><p className="text-slate-600 text-sm leading-normal">Great defaults, clear states and better UX.</p></article>
+            <article className="border border-slate-200 rounded-2xl bg-white p-6 hover:border-slate-300 hover:-translate-y-0.5 transition-all"><h3 className="font-semibold mb-2">Automation Friendly</h3><p className="text-slate-600 text-sm leading-normal">REST and gRPC APIs for full automation.</p></article>
+            <article className="border border-slate-200 rounded-2xl bg-white p-6 hover:border-slate-300 hover:-translate-y-0.5 transition-all"><h3 className="font-semibold mb-2">Made for Hack Club</h3><p className="text-slate-600 text-sm leading-normal">Built by the Hack Club community.</p></article>
+            <article className="border border-slate-200 rounded-2xl bg-white p-6 hover:border-slate-300 hover:-translate-y-0.5 transition-all"><h3 className="font-semibold mb-2">Docs That Help</h3><p className="text-slate-600 text-sm leading-normal">Useful docs, guides, and AI integration.</p></article>
+            <article className="border border-slate-200 rounded-2xl bg-white p-6 hover:border-slate-300 hover:-translate-y-0.5 transition-all"><h3 className="font-semibold mb-2">Global Reach</h3><p className="text-slate-600 text-sm leading-normal">A solid network that scales with projects.</p></article>
           </div>
         </section>
 
-        <section id="how-it-works" className="steps wrap">
-          <h2>Get started in minutes.</h2>
-          <ol>
-            <li><strong>Sign in.</strong> Open the dashboard and authenticate.</li>
-            <li><strong>Add domains.</strong> Point nameservers to HackFlare.</li>
-            <li><strong>Manage records.</strong> Add and edit DNS entries quickly.</li>
+        <section id="how-it-works" className="max-w-4xl mx-auto px-6 py-16">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-8">Get started in minutes.</h2>
+          <ol className="space-y-2.5">
+            <li className="relative pl-14 py-2.5 px-4 border border-slate-200 rounded-xl bg-white"><span className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-orange-100 text-orange-700 font-bold text-xs flex items-center justify-center">1</span><strong>Sign in.</strong> Open the dashboard and authenticate.</li>
+            <li className="relative pl-14 py-2.5 px-4 border border-slate-200 rounded-xl bg-white"><span className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-orange-100 text-orange-700 font-bold text-xs flex items-center justify-center">2</span><strong>Add domains.</strong> Point nameservers to HackFlare.</li>
+            <li className="relative pl-14 py-2.5 px-4 border border-slate-200 rounded-xl bg-white"><span className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-orange-100 text-orange-700 font-bold text-xs flex items-center justify-center">3</span><strong>Manage records.</strong> Add and edit DNS entries quickly.</li>
           </ol>
         </section>
 
-        <section className="cta-banner">
-          <div className="wrap">
-            <h2>Ready to take control of your DNS?</h2>
-            <p>Join Hack Club members simplifying DNS infrastructure with HackFlare.</p>
-            <div className="hero-cta">
-              <Link to="/dash" className="btn-white">Get Started Free</Link>
-              <a href="/docs" className="btn-outline-white">Read Documentation</a>
+        <section className="bg-gradient-to-r from-red-600 via-orange-600 to-orange-500 py-16 mt-8">
+          <div className="max-w-4xl mx-auto px-6">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white max-w-2xl mb-3">Ready to take control of your DNS?</h2>
+            <p className="text-lg text-white/92 max-w-xl mb-8">Join Hack Club members simplifying DNS infrastructure with HackFlare.</p>
+            <div className="flex gap-3 flex-wrap">
+              <Link to="/dash" className="inline-flex items-center justify-center rounded-[10px] px-[1.15rem] py-[0.7rem] bg-white text-orange-600 font-semibold text-sm hover:-translate-y-0.5 transition-all">Get Started Free</Link>
+              <a href="/docs" className="inline-flex items-center justify-center rounded-[10px] px-[1.15rem] py-[0.7rem] border-2 border-white/85 text-white font-semibold text-sm hover:bg-white/10 transition-colors">Read Documentation</a>
             </div>
           </div>
         </section>
@@ -167,7 +169,7 @@ function DashboardShell() {
   const refreshZones = async () => {
     const data = await apiRequest<Zone[]>("/api/v1/dns/zones");
     setZones(data);
-    if (data.length > 0 && !selectedZone) {
+    if (data && data.length > 0 && !selectedZone) {
       setSelectedZone(data[0].name);
     }
   };
@@ -176,7 +178,7 @@ function DashboardShell() {
     void refreshZones();
   }, []);
 
-  const handleRegister = async (e: FormEvent) => {
+  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
       setStatus("Registering...");
@@ -191,7 +193,7 @@ function DashboardShell() {
     }
   };
 
-  const handleLogin = async (e: FormEvent) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
       setStatus("Logging in...");
@@ -206,7 +208,7 @@ function DashboardShell() {
     }
   };
 
-  const handleCreateZone = async (e: FormEvent) => {
+  const handleCreateZone = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
       setStatus("Creating zone...");
@@ -222,7 +224,7 @@ function DashboardShell() {
     }
   };
 
-  const handleCreateRecord = async (e: FormEvent) => {
+  const handleCreateRecord = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedZoneData) {
       setStatus("No selected zone");
@@ -265,87 +267,73 @@ function DashboardShell() {
   }[currentView];
 
   return (
-    <div className="dash-shell">
-      <aside className="dash-sidebar">
-        <div className="dash-brand">
+    <div className="min-h-screen grid grid-cols-[260px_1fr] bg-slate-950 text-slate-100">
+      <aside className="border-r border-slate-800 bg-slate-900 px-2.5 py-3.5 flex flex-col gap-3">
+        <div className="flex items-center gap-2.5 font-black text-base text-slate-100 px-2">
           <img src={logo} width={34} alt="HackFlare" />
           <span>HackFlare</span>
         </div>
 
-        <nav>
-          <Link className={currentView === "home" ? "active" : ""} to="/dash">Home</Link>
-          <Link className={currentView === "domains" ? "active" : ""} to="/dash/domains">Domains</Link>
-          <Link className={currentView === "settings" ? "active" : ""} to="/dash/settings">Settings</Link>
-          <Link className={currentView === "analytics" ? "active" : ""} to="/dash/analytics">Analytics</Link>
-          <Link className={currentView === "notifications" ? "active" : ""} to="/dash/notifications">Notifications</Link>
-          <Link className={currentView === "help" ? "active" : ""} to="/dash/help">Help</Link>
-          <Link to="/admin">Admin Panel</Link>
+        <nav className="grid gap-0.5">
+          <Link className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${currentView === "home" ? "bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-[11px]" : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"}`} to="/dash">Home</Link>
+          <Link className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${currentView === "domains" ? "bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-[11px]" : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"}`} to="/dash/domains">Domains</Link>
+          <Link className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${currentView === "settings" ? "bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-[11px]" : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"}`} to="/dash/settings">Settings</Link>
+          <Link className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${currentView === "analytics" ? "bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-[11px]" : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"}`} to="/dash/analytics">Analytics</Link>
+          <Link className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${currentView === "notifications" ? "bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-[11px]" : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"}`} to="/dash/notifications">Notifications</Link>
+          <Link className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${currentView === "help" ? "bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-[11px]" : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"}`} to="/dash/help">Help</Link>
+          <Link to="/admin" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors">Admin Panel</Link>
         </nav>
       </aside>
 
-      <main className="dash-main">
-        <header className="dash-header">
+      <main className="flex flex-col">
+        <header className="flex justify-between items-center border-b border-slate-800 px-7 py-3.5 bg-slate-950">
           <div>
-            <h1>{title}</h1>
-            <p>{subtitle}</p>
+            <h1 className="text-2xl font-bold text-slate-100">{title}</h1>
+            <p className="text-sm text-slate-400 mt-1">{subtitle}</p>
           </div>
-          <div className="status-pill">{status}</div>
+          <div className="inline-flex items-center gap-2 border border-slate-700 bg-slate-900 rounded-full px-3 py-1.5 text-sm font-medium text-slate-300"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>{status}</div>
         </header>
 
-        <div className="dash-content">
+        <div className="flex-1 px-4.5 py-4.5">
           {currentView === "home" && (
-            <section className="dash-grid">
-              <article className="dash-card">
-                <h3>Quick Start</h3>
-                <p>Set up your first domain and records.</p>
-              </article>
-              <article className="dash-card">
-                <h3>Your Domains</h3>
-                <p>Manage all DNS zones in one place.</p>
-              </article>
-              <article className="dash-card">
-                <h3>Analytics</h3>
-                <p>Traffic and DNS health metrics soon.</p>
-              </article>
+            <section className="grid grid-cols-3 gap-4">
+              <article className="border border-slate-700 rounded-2xl bg-slate-900 px-5.5 py-5.5 hover:border-slate-600"><h3 className="text-base font-semibold mb-2 text-slate-100">Quick Start</h3><p className="text-sm text-slate-400">Set up your first domain and records.</p></article>
+              <article className="border border-slate-700 rounded-2xl bg-slate-900 px-5.5 py-5.5 hover:border-slate-600"><h3 className="text-base font-semibold mb-2 text-slate-100">Your Domains</h3><p className="text-sm text-slate-400">Manage all DNS zones in one place.</p></article>
+              <article className="border border-slate-700 rounded-2xl bg-slate-900 px-5.5 py-5.5 hover:border-slate-600"><h3 className="text-base font-semibold mb-2 text-slate-100">Analytics</h3><p className="text-sm text-slate-400">Traffic and DNS health metrics soon.</p></article>
             </section>
           )}
 
           {currentView === "domains" && (
-            <section className="domains-layout">
-              <aside className="zone-list">
-                <div className="zone-list-head">
-                  <h3>Domains</h3>
-                  <span>{zones.length}</span>
+            <section className="grid grid-cols-[280px_1fr] gap-4">
+              <aside className="border border-slate-700 rounded-2xl bg-slate-900 overflow-hidden h-fit">
+                <div className="flex items-center justify-between border-b border-slate-700 px-4 py-3">
+                  <h3 className="text-sm font-semibold text-slate-100">Domains</h3>
+                  <span className="text-xs font-semibold px-2 py-1 rounded-full bg-slate-800 text-slate-300">{zones.length}</span>
                 </div>
-                {zones.length === 0 && <p className="empty">No domains yet</p>}
+                {zones.length === 0 && <p className="text-slate-500 text-sm italic p-4 text-center">No domains yet</p>}
                 {zones.map(zone => (
                   <button
                     key={zone.id}
-                    className={zone.name === (selectedZoneData?.name ?? "") ? "selected" : ""}
                     onClick={() => setSelectedZone(zone.name)}
+                    className={`w-full text-left px-4 py-3 border-b border-slate-700 font-medium text-sm transition-colors hover:bg-slate-800 ${zone.name === (selectedZoneData?.name ?? "") ? "bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-[15px]" : "text-slate-400"}`}
                   >
-                    <strong>{zone.name}</strong>
-                    <small>{zone.records.length} records</small>
+                    <strong className="block text-slate-100">{zone.name}</strong>
+                    <small className="text-slate-500 text-xs">{zone.records.length} records</small>
                   </button>
                 ))}
               </aside>
 
-              <div className="zone-main">
-                <div className="zone-actions card-dark">
-                  <form onSubmit={handleCreateZone} className="inline-form">
-                    <input
-                      value={newZoneName}
-                      onChange={e => setNewZoneName(e.target.value)}
-                      placeholder="example.com"
-                      required
-                    />
-                    <button type="submit">+ Add Domain</button>
+              <div className="grid gap-4">
+                <div className="border border-slate-700 rounded-2xl bg-slate-900 px-5.5 py-5.5">
+                  <form onSubmit={handleCreateZone} className="grid grid-cols-[1fr_auto] gap-2.5 mb-6">
+                    <Input value={newZoneName} onChange={e => setNewZoneName(e.target.value)} placeholder="example.com" required className="bg-slate-800 border-slate-700 text-slate-100" />
+                    <button type="submit" className="px-4 py-2 rounded-lg bg-orange-500 text-white font-semibold text-sm hover:bg-orange-600 transition-colors">+ Add Domain</button>
                   </form>
 
-                  <form onSubmit={handleCreateRecord} className="grid-form">
-                    <h4>Add Record</h4>
-                    <input value={recordName} onChange={e => setRecordName(e.target.value)} placeholder="name" required />
-                    <select value={recordType} onChange={e => setRecordType(e.target.value as RecordType)}>
+                  <form onSubmit={handleCreateRecord} className="grid grid-cols-2 gap-2.5">
+                    <h4 className="col-span-2 text-xs font-semibold uppercase text-slate-400 tracking-wide mb-1">Add Record</h4>
+                    <Input value={recordName} onChange={e => setRecordName(e.target.value)} placeholder="name" required className="bg-slate-800 border-slate-700 text-slate-100" />
+                    <select value={recordType} onChange={e => setRecordType(e.target.value as RecordType)} className="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-3 py-2 text-sm">
                       <option>A</option>
                       <option>AAAA</option>
                       <option>CNAME</option>
@@ -354,37 +342,37 @@ function DashboardShell() {
                       <option>PTR</option>
                       <option>MX</option>
                     </select>
-                    <input value={recordValue} onChange={e => setRecordValue(e.target.value)} placeholder="value" required />
-                    <input type="number" min={1} value={recordTtl} onChange={e => setRecordTtl(Number(e.target.value))} required />
-                    <button type="submit">Save Record</button>
+                    <Input value={recordValue} onChange={e => setRecordValue(e.target.value)} placeholder="value" required className="col-span-2 bg-slate-800 border-slate-700 text-slate-100" />
+                    <Input type="number" min={1} value={recordTtl} onChange={e => setRecordTtl(Number(e.target.value))} required className="col-span-2 bg-slate-800 border-slate-700 text-slate-100" />
+                    <button type="submit" className="col-span-2 px-4 py-2 rounded-lg bg-orange-500 text-white font-semibold text-sm hover:bg-orange-600 transition-colors">Save Record</button>
                   </form>
                 </div>
 
-                <div className="records card-dark">
-                  <h3>{selectedZoneData?.name ?? "No zone selected"}</h3>
+                <div className="border border-slate-700 rounded-2xl bg-slate-900 px-5.5 py-5.5 overflow-hidden">
+                  <h3 className="text-base font-semibold mb-3 text-slate-100">{selectedZoneData?.name ?? "No zone selected"}</h3>
                   {selectedZoneData && selectedZoneData.records.length > 0 ? (
-                    <table>
+                    <table className="w-full text-sm">
                       <thead>
-                        <tr>
-                          <th>Type</th>
-                          <th>Name</th>
-                          <th>Content</th>
-                          <th>TTL</th>
+                        <tr className="border-b border-slate-700 text-xs font-semibold uppercase text-slate-400 tracking-wide">
+                          <th className="text-left px-3 py-2">Type</th>
+                          <th className="text-left px-3 py-2">Name</th>
+                          <th className="text-left px-3 py-2">Content</th>
+                          <th className="text-left px-3 py-2">TTL</th>
                         </tr>
                       </thead>
                       <tbody>
                         {selectedZoneData.records.map((record, i) => (
-                          <tr key={`${record.name}-${record.record_type}-${i}`}>
-                            <td>{record.record_type}</td>
-                            <td>{record.name}</td>
-                            <td>{record.value}</td>
-                            <td>{record.ttl}</td>
+                          <tr key={`${record.name}-${record.record_type}-${i}`} className="border-b border-slate-700 hover:bg-slate-800 transition-colors text-slate-300">
+                            <td className="px-3 py-2.5 font-semibold text-orange-400">{record.record_type}</td>
+                            <td className="px-3 py-2.5">{record.name}</td>
+                            <td className="px-3 py-2.5 font-mono text-xs">{record.value}</td>
+                            <td className="px-3 py-2.5">{record.ttl}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   ) : (
-                    <p className="empty">No records in this domain yet.</p>
+                    <p className="text-slate-500 text-sm italic p-4 text-center">No records in this domain yet.</p>
                   )}
                 </div>
               </div>
@@ -392,38 +380,38 @@ function DashboardShell() {
           )}
 
           {currentView === "settings" && (
-            <section className="dash-grid">
-              <article className="dash-card span-2">
-                <h3>Auth Session</h3>
-                <div className="two-col">
-                  <form onSubmit={handleRegister} className="stack-form">
-                    <h4>Register</h4>
-                    <input type="email" value={registerEmail} onChange={e => setRegisterEmail(e.target.value)} placeholder="email" required />
-                    <input type="password" value={registerPassword} onChange={e => setRegisterPassword(e.target.value)} placeholder="password" required />
-                    <button type="submit">Register</button>
+            <section className="grid gap-4">
+              <article className="border border-slate-700 rounded-2xl bg-slate-900 px-5.5 py-5.5 col-span-2">
+                <h3 className="text-base font-semibold mb-4 text-slate-100">Auth Session</h3>
+                <div className="grid grid-cols-2 gap-6 mb-6">
+                  <form onSubmit={handleRegister} className="grid gap-2.5">
+                    <h4 className="text-xs font-semibold uppercase text-slate-400 tracking-wide">Register</h4>
+                    <Input type="email" value={registerEmail} onChange={e => setRegisterEmail(e.target.value)} placeholder="email" required className="bg-slate-800 border-slate-700 text-slate-100" />
+                    <Input type="password" value={registerPassword} onChange={e => setRegisterPassword(e.target.value)} placeholder="password" required className="bg-slate-800 border-slate-700 text-slate-100" />
+                    <button type="submit" className="px-4 py-2 rounded-lg bg-orange-500 text-white font-semibold text-sm hover:bg-orange-600 transition-colors">Register</button>
                   </form>
-                  <form onSubmit={handleLogin} className="stack-form">
-                    <h4>Login</h4>
-                    <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} placeholder="email" required />
-                    <input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} placeholder="password" required />
-                    <button type="submit">Login</button>
+                  <form onSubmit={handleLogin} className="grid gap-2.5">
+                    <h4 className="text-xs font-semibold uppercase text-slate-400 tracking-wide">Login</h4>
+                    <Input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} placeholder="email" required className="bg-slate-800 border-slate-700 text-slate-100" />
+                    <Input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} placeholder="password" required className="bg-slate-800 border-slate-700 text-slate-100" />
+                    <button type="submit" className="px-4 py-2 rounded-lg bg-orange-500 text-white font-semibold text-sm hover:bg-orange-600 transition-colors">Login</button>
                   </form>
                 </div>
-                <pre>{JSON.stringify(session, null, 2)}</pre>
+                <pre className="mt-4 max-h-60 overflow-auto rounded-lg border border-slate-700 bg-slate-950 text-slate-300 p-3.5 text-xs font-mono">{JSON.stringify(session, null, 2)}</pre>
               </article>
             </section>
           )}
 
           {currentView === "analytics" && (
-            <section className="dash-grid"><article className="dash-card span-2"><h3>Analytics</h3><p>Analytics view ported. Data integration pending backend metrics endpoint.</p></article></section>
+            <section className="grid gap-4"><article className="border border-slate-700 rounded-2xl bg-slate-900 px-5.5 py-5.5 col-span-2"><h3 className="text-base font-semibold mb-3 text-slate-100">Analytics</h3><p className="text-sm text-slate-400">Analytics view ported. Data integration pending backend metrics endpoint.</p></article></section>
           )}
 
           {currentView === "notifications" && (
-            <section className="dash-grid"><article className="dash-card span-2"><h3>Notifications</h3><p>Notification center ported. Alert APIs can be wired next.</p></article></section>
+            <section className="grid gap-4"><article className="border border-slate-700 rounded-2xl bg-slate-900 px-5.5 py-5.5 col-span-2"><h3 className="text-base font-semibold mb-3 text-slate-100">Notifications</h3><p className="text-sm text-slate-400">Notification center ported. Alert APIs can be wired next.</p></article></section>
           )}
 
           {currentView === "help" && (
-            <section className="dash-grid"><article className="dash-card span-2"><h3>Help</h3><p>Support view ported from Elixir frontend layout.</p></article></section>
+            <section className="grid gap-4"><article className="border border-slate-700 rounded-2xl bg-slate-900 px-5.5 py-5.5 col-span-2"><h3 className="text-base font-semibold mb-3 text-slate-100">Help</h3><p className="text-sm text-slate-400">Support view ported from Elixir frontend layout.</p></article></section>
           )}
         </div>
       </main>
@@ -442,29 +430,29 @@ function AdminPage() {
   const filtered = zones.filter(z => z.name.toLowerCase().includes(query.toLowerCase()));
 
   return (
-    <div className="dash-shell">
-      <aside className="dash-sidebar">
-        <div className="dash-brand"><img src={logo} width={34} alt="HackFlare" /><span>HackFlare Admin</span></div>
-        <nav>
-          <Link className="active" to="/admin">Overview</Link>
-          <Link to="/dash/domains">Domain Search</Link>
-          <Link to="/dash/settings">Runtime Settings</Link>
-          <Link to="/dash">Back to Dashboard</Link>
+    <div className="min-h-screen grid grid-cols-[260px_1fr] bg-slate-950 text-slate-100">
+      <aside className="border-r border-slate-800 bg-slate-900 px-2.5 py-3.5 flex flex-col gap-3">
+        <div className="flex items-center gap-2.5 font-black text-base text-slate-100 px-2"><img src={logo} width={34} alt="HackFlare" /><span>HackFlare Admin</span></div>
+        <nav className="grid gap-0.5">
+          <Link to="/admin" className="rounded-lg px-3 py-2 text-sm font-medium bg-slate-800 text-slate-100 border-l-2 border-l-orange-500 pl-[11px] transition-colors">Overview</Link>
+          <Link to="/dash/domains" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors">Domain Search</Link>
+          <Link to="/dash/settings" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors">Runtime Settings</Link>
+          <Link to="/dash" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors">Back to Dashboard</Link>
         </nav>
       </aside>
-      <main className="dash-main">
-        <header className="dash-header"><div><h1>Admin Panel</h1><p>Manage platform settings and edit any domain.</p></div></header>
-        <div className="dash-content">
-          <section className="dash-grid">
-            <article className="dash-card"><h3>Total Domains</h3><p className="big">{zones.length}</p></article>
-            <article className="dash-card span-2">
-              <h3>Domain Search</h3>
-              <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search domains..." />
-              <div className="admin-list">
+      <main className="flex flex-col">
+        <header className="border-b border-slate-800 px-7 py-3.5 bg-slate-950"><div><h1 className="text-2xl font-bold text-slate-100">Admin Panel</h1><p className="text-sm text-slate-400 mt-1">Manage platform settings and edit any domain.</p></div></header>
+        <div className="flex-1 px-4.5 py-4.5">
+          <section className="grid grid-cols-3 gap-4">
+            <article className="border border-slate-700 rounded-2xl bg-slate-900 px-5.5 py-5.5"><h3 className="text-base font-semibold mb-4 text-slate-100">Total Domains</h3><p className="text-4xl font-black text-slate-100">{zones.length}</p></article>
+            <article className="border border-slate-700 rounded-2xl bg-slate-900 px-5.5 py-5.5 col-span-2">
+              <h3 className="text-base font-semibold mb-4 text-slate-100">Domain Search</h3>
+              <Input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search domains..." className="mb-4 bg-slate-800 border-slate-700 text-slate-100" />
+              <div className="space-y-2">
                 {filtered.map(zone => (
-                  <Link key={zone.id} to="/dash/domains">{zone.name} <small>{zone.records.length} records</small></Link>
+                  <Link key={zone.id} to="/dash/domains" className="flex justify-between items-center px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 transition-colors text-sm font-medium"><span>{zone.name}</span><small className="text-slate-500">{zone.records.length} records</small></Link>
                 ))}
-                {filtered.length === 0 && <p className="empty">No domains found.</p>}
+                {filtered.length === 0 && <p className="text-slate-500 text-sm italic text-center py-4">No domains found.</p>}
               </div>
             </article>
           </section>

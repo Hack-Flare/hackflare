@@ -1,3 +1,4 @@
 /target
 _build/
 .docker-cache
+node_modules
