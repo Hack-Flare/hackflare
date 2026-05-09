@@ -6,7 +6,7 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950">
       <header className="sticky top-0 z-50 border-b border-slate-200/60 dark:border-slate-800/60 bg-white/72 dark:bg-slate-900/72 backdrop-blur-md">
-        <div className="mx-auto max-w-4xl flex items-center justify-between gap-4 px-6 h-17">
+        <div className="mx-auto max-w-6xl flex items-center justify-between gap-4 px-6 h-17">
           <a href="/" className="flex items-center gap-2.5 font-black text-base dark:text-white">
             <img src="/logo.svg" width={36} alt="HackFlare" />
             <span>HackFlare</span>
