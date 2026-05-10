@@ -8,6 +8,7 @@ pub struct Config {
     pub dns_bind_addr: SocketAddr,
     pub database_url: Option<String>,
     pub email: EmailConfig,
+    pub hackclub: HackClubConfig,
 }
 
 #[derive(Clone, Debug)]
@@ -21,6 +22,15 @@ pub struct EmailConfig {
     pub smtp_username: Option<String>,
     pub smtp_password: Option<String>,
     pub smtp_starttls: bool,
+}
+
+#[derive(Clone, Debug)]
+#[allow(dead_code)]
+pub struct HackClubConfig {
+    pub client_id: Option<String>,
+    pub client_secret: Option<String>,
+    pub redirect_uri: Option<String>,
+    pub scopes: Vec<String>,
 }
 
 impl Config {
@@ -51,12 +61,14 @@ impl Config {
             .filter(|value| !value.is_empty());
 
         let email = EmailConfig::from_env();
+        let hackclub = HackClubConfig::from_env();
 
         Self {
             bind_addr: SocketAddr::new(http_host, http_port),
             dns_bind_addr: SocketAddr::new(dns_host, dns_port),
             database_url,
             email,
+            hackclub,
         }
     }
 }
@@ -115,5 +127,47 @@ impl EmailConfig {
             smtp_password,
             smtp_starttls,
         }
+    }
+}
+
+impl HackClubConfig {
+    pub fn from_env() -> Self {
+        let client_id = env::var("BACKEND_HACKCLUB_CLIENT_ID")
+            .ok()
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty());
+
+        let client_secret = env::var("BACKEND_HACKCLUB_CLIENT_SECRET")
+            .ok()
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty());
+
+        let redirect_uri = env::var("BACKEND_HACKCLUB_REDIRECT_URI")
+            .ok()
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())
+            .or_else(|| Some("http://localhost:8080/api/v1/auth/hackclub/callback".to_string()));
+
+        let scopes = env::var("BACKEND_HACKCLUB_SCOPES")
+            .ok()
+            .map(|value| {
+                value
+                    .split_whitespace()
+                    .map(str::to_string)
+                    .collect::<Vec<_>>()
+            })
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| vec!["openid".to_string(), "profile".to_string(), "email".to_string()]);
+
+        Self {
+            client_id,
+            client_secret,
+            redirect_uri,
+            scopes,
+        }
+    }
+
+    pub fn is_enabled(&self) -> bool {
+        self.client_id.is_some() && self.client_secret.is_some() && self.redirect_uri.is_some()
     }
 }

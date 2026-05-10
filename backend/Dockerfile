@@ -1,7 +1,7 @@
 FROM ghcr.io/hack-flare/hackflare-builder AS build
 
-WORKDIR /app/Backend
-COPY Backend ./
+WORKDIR /app/backend
+COPY backend ./
 
 RUN cargo build --release
 
@@ -18,10 +18,10 @@ WORKDIR /app
 
 RUN useradd -m appuser
 
-COPY --from=build /app/Backend/target/release/hackflare /app/hackflare
+COPY --from=build /app/backend/target/release/backend /app/backend
 
 USER appuser
 
 EXPOSE 4000
 
-CMD ["./hackflare"]
+CMD ["./backend"]

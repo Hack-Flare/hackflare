@@ -23,6 +23,10 @@ Internal backend service for Hackflare.
 - `BACKEND_EMAIL_SMTP_USERNAME` optional
 - `BACKEND_EMAIL_SMTP_PASSWORD` optional
 - `BACKEND_EMAIL_SMTP_STARTTLS` default `true`
+- `BACKEND_HACKCLUB_CLIENT_ID` optional, enables Hack Club auth when paired with the secret and redirect URI
+- `BACKEND_HACKCLUB_CLIENT_SECRET` optional
+- `BACKEND_HACKCLUB_REDIRECT_URI` default `http://localhost:8080/api/v1/auth/hackclub/callback`
+- `BACKEND_HACKCLUB_SCOPES` default `openid profile email`
 
 ## DNS nameserver
 
@@ -37,6 +41,8 @@ Internal backend service for Hackflare.
 - `GET /api/v1/ping` requires `x-internal-token`
 - `POST /api/v1/auth/register` requires `x-internal-token`
 - `POST /api/v1/auth/login` requires `x-internal-token`
+- `GET /api/v1/auth/hackclub/url` requires `x-internal-token`
+- `GET /api/v1/auth/hackclub/callback` requires `x-internal-token`
 - `GET /api/v1/auth/me` requires `x-internal-token` and `Authorization: Bearer <token>`
 - `GET /api/v1/dns/zones` requires `x-internal-token`
 - `POST /api/v1/dns/zones` requires `x-internal-token`

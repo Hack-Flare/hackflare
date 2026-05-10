@@ -19,6 +19,8 @@ pub fn build_router(state: AppState) -> Router {
         .route("/api/v1/auth/login", post(login))
         .route("/api/v1/auth/email/request", post(request_email_login))
         .route("/api/v1/auth/email/verify", post(verify_email_login))
+        .route("/api/v1/auth/hackclub/url", get(hackclub_login_url))
+        .route("/api/v1/auth/hackclub/callback", get(hackclub_callback))
         .route("/api/v1/auth/me", get(me))
         .route("/api/v1/dns/zones", get(list_zones).post(create_zone))
         .route("/api/v1/dns/zones/{zone_name}/records", post(add_record))
@@ -65,6 +67,16 @@ struct ErrorResponse {
     error: &'static str,
 }
 
+#[derive(Serialize)]
+struct HackClubLoginUrlResponse {
+    url: String,
+}
+
+#[derive(Deserialize)]
+struct HackClubCallbackQuery {
+    code: String,
+}
+
 async fn register(
     State(state): State<AppState>,
     _headers: HeaderMap,
@@ -107,6 +119,68 @@ async fn verify_email_login(
         .verify_email_login(payload)
         .map(Json)
         .map_err(map_auth_error)
+}
+
+async fn hackclub_login_url(
+    State(state): State<AppState>,
+) -> Result<Json<HackClubLoginUrlResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let hackclub = state.hackclub_auth.as_ref().ok_or((
+        StatusCode::SERVICE_UNAVAILABLE,
+        Json(ErrorResponse {
+            error: "hackclub_auth_not_configured",
+        }),
+    ))?;
+
+    let scopes = state
+        .config
+        .hackclub
+        .scopes
+        .iter()
+        .map(String::as_str)
+        .collect::<Vec<_>>();
+
+    Ok(Json(HackClubLoginUrlResponse {
+        url: hackclub.get_oauth_uri(&scopes),
+    }))
+}
+
+async fn hackclub_callback(
+    State(state): State<AppState>,
+    axum::extract::Query(query): axum::extract::Query<HackClubCallbackQuery>,
+) -> Result<Json<Session>, (StatusCode, Json<ErrorResponse>)> {
+    let hackclub = state.hackclub_auth.as_ref().ok_or((
+        StatusCode::SERVICE_UNAVAILABLE,
+        Json(ErrorResponse {
+            error: "hackclub_auth_not_configured",
+        }),
+    ))?;
+
+    let token = hackclub.exchange_code(query.code).await.map_err(|_| {
+        (
+            StatusCode::BAD_GATEWAY,
+            Json(ErrorResponse {
+                error: "hackclub_exchange_failed",
+            }),
+        )
+    })?;
+
+    let claims = hackclub.verify_jwt_token(token.id_token).await.map_err(|_| {
+        (
+            StatusCode::UNAUTHORIZED,
+            Json(ErrorResponse {
+                error: "hackclub_token_invalid",
+            }),
+        )
+    })?;
+
+    let email = claims.email.ok_or((
+        StatusCode::BAD_GATEWAY,
+        Json(ErrorResponse {
+            error: "hackclub_missing_email",
+        }),
+    ))?;
+
+    state.auth.sign_in_email(&email).map(Json).map_err(map_auth_error)
 }
 
 async fn me(
@@ -266,6 +340,16 @@ fn map_auth_error(error: AuthError) -> (StatusCode, Json<ErrorResponse>) {
         }
         AuthError::InvalidEmailCode => (StatusCode::UNAUTHORIZED, "invalid_email_code"),
         AuthError::EmailCodeExpired => (StatusCode::UNAUTHORIZED, "email_code_expired"),
+        AuthError::HackClubNotConfigured => {
+            (StatusCode::SERVICE_UNAVAILABLE, "hackclub_auth_not_configured")
+        }
+        AuthError::HackClubExchangeFailed => {
+            (StatusCode::BAD_GATEWAY, "hackclub_exchange_failed")
+        }
+        AuthError::HackClubTokenInvalid => (StatusCode::UNAUTHORIZED, "hackclub_token_invalid"),
+        AuthError::HackClubMissingEmail => {
+            (StatusCode::BAD_GATEWAY, "hackclub_missing_email")
+        }
     };
 
     (status, Json(ErrorResponse { error: message }))

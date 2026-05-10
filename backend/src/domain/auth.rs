@@ -70,6 +70,7 @@ pub struct EmailLoginChallenge {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+#[allow(dead_code)]
 pub enum AuthError {
     InvalidEmail,
     InvalidPassword,
@@ -78,6 +79,10 @@ pub enum AuthError {
     PasswordHashFailure,
     InvalidEmailCode,
     EmailCodeExpired,
+    HackClubNotConfigured,
+    HackClubExchangeFailed,
+    HackClubTokenInvalid,
+    HackClubMissingEmail,
 }
 
 pub struct AuthService {
@@ -126,6 +131,13 @@ impl AuthService {
         self.issue_session_for_user(&user_creds)
     }
 
+    pub fn sign_in_email(&self, email: &str) -> Result<Session, AuthError> {
+        let normalized_email = normalize_email(email).ok_or(AuthError::InvalidEmail)?;
+        let user = self.get_or_create_user(&normalized_email);
+
+        self.issue_session_for_user(&user)
+    }
+
     pub fn request_email_login(
         &self,
         input: EmailLoginRequest,
@@ -133,14 +145,7 @@ impl AuthService {
         let normalized_email = normalize_email(&input.email).ok_or(AuthError::InvalidEmail)?;
 
         {
-            let mut users = self
-                .users_by_email
-                .write()
-                .expect("users write lock poisoned");
-
-            let _user = users
-                .entry(normalized_email.clone())
-                .or_insert_with(|| self.build_user_record(&normalized_email));
+            let _ = self.get_or_create_user(&normalized_email);
         }
 
         let code = format!("{:06}", rand::thread_rng().gen_range(0..1_000_000));
@@ -185,17 +190,7 @@ impl AuthService {
             return Err(AuthError::InvalidEmailCode);
         }
 
-        let user = {
-            let mut users = self
-                .users_by_email
-                .write()
-                .expect("users write lock poisoned");
-
-            let user = users
-                .entry(normalized_email.clone())
-                .or_insert_with(|| self.build_user_record(&normalized_email));
-            user.clone()
-        };
+        let user = self.get_or_create_user(&normalized_email);
 
         self.issue_session_for_user(&user)
     }
@@ -262,6 +257,18 @@ impl AuthService {
             password_hash: String::new(),
             is_admin: false,
         }
+    }
+
+    fn get_or_create_user(&self, normalized_email: &str) -> UserCredentials {
+        let mut users = self
+            .users_by_email
+            .write()
+            .expect("users write lock poisoned");
+
+        users
+            .entry(normalized_email.to_string())
+            .or_insert_with(|| self.build_user_record(normalized_email))
+            .clone()
     }
 }
 
@@ -385,5 +392,16 @@ mod tests {
             .expect("email session");
 
         assert_eq!(session.user.email, "user@example.com");
+    }
+
+    #[test]
+    fn sign_in_email_creates_session() {
+        let auth = AuthService::new();
+
+        let session = auth
+            .sign_in_email("member@hackclub.com")
+            .expect("session");
+
+        assert_eq!(session.user.email, "member@hackclub.com");
     }
 }
