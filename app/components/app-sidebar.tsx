@@ -1,11 +1,13 @@
 import { useLocation, NavLink } from "react-router"
 import { useState } from "react"
+
 import {
   LayoutDashboard, Globe, ShieldAlert, ArrowLeftRight,
   Zap, Network, BarChart2, Activity, ScrollText,
   Settings, MessageSquare, ChevronsUpDown, LogOut,
-  UserCircle, Plus, Check,
+  UserCircle, Plus, Check, ChevronRight,
 } from "lucide-react"
+
 import {
   Sidebar,
   SidebarContent,
@@ -29,7 +31,8 @@ import {
   DropdownMenuTrigger,
   DropdownMenuShortcut,
 } from "~/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback } from "~/components/ui/avatar"
+
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 
 // ── Workspaces ───────────────────────────────────────────────────────────────
 
@@ -43,11 +46,17 @@ const workspaces = [
 
 const overviewItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/dash" },
-  { title: "Domains",   icon: Globe,           href: "/dash/domains", badge: "3" },
+]
+
+const domainsItems = [
+  { title: "All Domains",  href: "/dash/domains" },
+  { title: "DNS Records",  href: "/dash/domains/dns" },
+  { title: "SSL/TLS",      href: "/dash/domains/ssl" },
+  { title: "Redirects",    href: "/dash/domains/redirects" },
 ]
 
 const edgeItems = [
-  { title: "Firewall", icon: ShieldAlert,    href: "/dash/firewall", badge: "2", badgeWarn: true },
+  { title: "Firewall", icon: ShieldAlert,    href: "/dash/firewall", badge: "2", badgeWarn: false },
   { title: "DNS",      icon: ArrowLeftRight, href: "/dash/dns" },
   { title: "Workers",  icon: Zap,            href: "/dash/workers" },
   { title: "Tunnel",   icon: Network,        href: "/dash/tunnel" },
@@ -61,9 +70,10 @@ const analyticsItems = [
 // ── User — replace with your auth context ────────────────────────────────────
 
 const user = {
-  name: "Jam",
-  email: "jam@jammy.com",
-  initials: "PUSSY",
+  name: "Vejas S",
+  email: "vejas@vejas.zip",
+  initials: "VS",
+  image: "https://cachet.dunkirk.sh/users/U0930DMR4BA/r",
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -71,6 +81,7 @@ const user = {
 export function AppSidebar() {
   const location = useLocation()
   const [activeWorkspace, setActiveWorkspace] = useState(workspaces[0])
+  const [domainsExpanded, setDomainsExpanded] = useState(false)
 
   const isActive = (href: string) => {
     if (href === "/dash") return location.pathname === "/dash"
@@ -156,9 +167,40 @@ export function AppSidebar() {
                       <span>{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
-                  {item.badge && <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>}
                 </SidebarMenuItem>
               ))}
+
+              {/* Domains collapsible */}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => setDomainsExpanded(!domainsExpanded)}
+                  className="flex items-center gap-2"
+                >
+                  <Globe className="h-4 w-4" />
+                  <span>Domains</span>
+                  <ChevronRight
+                    className={`ml-auto h-4 w-4 transition-transform ${domainsExpanded ? "rotate-90" : ""}`}
+                  />
+                </SidebarMenuButton>
+
+                {domainsExpanded && (
+                  <SidebarMenu className="ml-2 border-l border-sidebar-border mt-1 pl-2">
+                    {domainsItems.map((item) => (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={isActive(item.href)}
+                          size="sm"
+                        >
+                          <NavLink to={item.href} className="flex items-center gap-2">
+                            <span className="text-xs">{item.title}</span>
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                )}
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -212,7 +254,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActive("/settings")}>
-              <NavLink to="/settings" className="flex items-center gap-2">
+              <NavLink to="/dash/settings" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
                 <span>Settings</span>
               </NavLink>
@@ -240,6 +282,7 @@ export function AppSidebar() {
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
                   <Avatar className="h-8 w-8 rounded-lg shrink-0">
+                    <AvatarImage src={user.image} />
                     <AvatarFallback className="rounded-lg bg-orange-500 text-white text-xs font-semibold">
                       {user.initials}
                     </AvatarFallback>
