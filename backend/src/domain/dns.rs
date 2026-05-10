@@ -106,7 +106,12 @@ impl DnsService {
         Ok(zone)
     }
 
-    pub fn add_record(&self, zone_name: &str, input: NewRecordInput, user_id: u64) -> Result<Zone, DnsError> {
+    pub fn add_record(
+        &self,
+        zone_name: &str,
+        input: NewRecordInput,
+        user_id: u64,
+    ) -> Result<Zone, DnsError> {
         let normalized_zone = normalize_zone_name(zone_name).ok_or(DnsError::InvalidZoneName)?;
         let mut zones = self.zones.write().expect("zones write lock poisoned");
         let zone = zones

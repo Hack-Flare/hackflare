@@ -164,14 +164,17 @@ async fn hackclub_callback(
         )
     })?;
 
-    let claims = hackclub.verify_jwt_token(token.id_token).await.map_err(|_| {
-        (
-            StatusCode::UNAUTHORIZED,
-            Json(ErrorResponse {
-                error: "hackclub_token_invalid",
-            }),
-        )
-    })?;
+    let claims = hackclub
+        .verify_jwt_token(token.id_token)
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::UNAUTHORIZED,
+                Json(ErrorResponse {
+                    error: "hackclub_token_invalid",
+                }),
+            )
+        })?;
 
     let email = claims.email.ok_or((
         StatusCode::BAD_GATEWAY,
@@ -180,7 +183,11 @@ async fn hackclub_callback(
         }),
     ))?;
 
-    state.auth.sign_in_email(&email).map(Json).map_err(map_auth_error)
+    state
+        .auth
+        .sign_in_email(&email)
+        .map(Json)
+        .map_err(map_auth_error)
 }
 
 async fn me(
@@ -340,16 +347,13 @@ fn map_auth_error(error: AuthError) -> (StatusCode, Json<ErrorResponse>) {
         }
         AuthError::InvalidEmailCode => (StatusCode::UNAUTHORIZED, "invalid_email_code"),
         AuthError::EmailCodeExpired => (StatusCode::UNAUTHORIZED, "email_code_expired"),
-        AuthError::HackClubNotConfigured => {
-            (StatusCode::SERVICE_UNAVAILABLE, "hackclub_auth_not_configured")
-        }
-        AuthError::HackClubExchangeFailed => {
-            (StatusCode::BAD_GATEWAY, "hackclub_exchange_failed")
-        }
+        AuthError::HackClubNotConfigured => (
+            StatusCode::SERVICE_UNAVAILABLE,
+            "hackclub_auth_not_configured",
+        ),
+        AuthError::HackClubExchangeFailed => (StatusCode::BAD_GATEWAY, "hackclub_exchange_failed"),
         AuthError::HackClubTokenInvalid => (StatusCode::UNAUTHORIZED, "hackclub_token_invalid"),
-        AuthError::HackClubMissingEmail => {
-            (StatusCode::BAD_GATEWAY, "hackclub_missing_email")
-        }
+        AuthError::HackClubMissingEmail => (StatusCode::BAD_GATEWAY, "hackclub_missing_email"),
     };
 
     (status, Json(ErrorResponse { error: message }))

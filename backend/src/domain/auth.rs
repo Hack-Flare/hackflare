@@ -167,10 +167,7 @@ impl AuthService {
         })
     }
 
-    pub fn verify_email_login(
-        &self,
-        input: EmailLoginVerification,
-    ) -> Result<Session, AuthError> {
+    pub fn verify_email_login(&self, input: EmailLoginVerification) -> Result<Session, AuthError> {
         let normalized_email = normalize_email(&input.email).ok_or(AuthError::InvalidEmail)?;
 
         let challenge = {
@@ -398,9 +395,7 @@ mod tests {
     fn sign_in_email_creates_session() {
         let auth = AuthService::new();
 
-        let session = auth
-            .sign_in_email("member@hackclub.com")
-            .expect("session");
+        let session = auth.sign_in_email("member@hackclub.com").expect("session");
 
         assert_eq!(session.user.email, "member@hackclub.com");
     }

@@ -18,7 +18,11 @@ impl AppState {
     pub fn new(config: Config) -> Self {
         let hackclub_auth = if config.hackclub.is_enabled() {
             Some(Arc::new(HCAuth::new(
-                config.hackclub.client_id.as_deref().expect("hackclub client id missing"),
+                config
+                    .hackclub
+                    .client_id
+                    .as_deref()
+                    .expect("hackclub client id missing"),
                 config
                     .hackclub
                     .client_secret

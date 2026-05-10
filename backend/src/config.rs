@@ -114,7 +114,12 @@ impl EmailConfig {
 
         let smtp_starttls = env::var("BACKEND_EMAIL_SMTP_STARTTLS")
             .ok()
-            .map(|value| matches!(value.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"))
+            .map(|value| {
+                matches!(
+                    value.trim().to_ascii_lowercase().as_str(),
+                    "1" | "true" | "yes" | "on"
+                )
+            })
             .unwrap_or(true);
 
         Self {
@@ -157,7 +162,13 @@ impl HackClubConfig {
                     .collect::<Vec<_>>()
             })
             .filter(|value| !value.is_empty())
-            .unwrap_or_else(|| vec!["openid".to_string(), "profile".to_string(), "email".to_string()]);
+            .unwrap_or_else(|| {
+                vec![
+                    "openid".to_string(),
+                    "profile".to_string(),
+                    "email".to_string(),
+                ]
+            });
 
         Self {
             client_id,
