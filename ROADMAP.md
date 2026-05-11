@@ -8,21 +8,21 @@ Feel free to submit PRs/issues for anything you want us to work on or you want t
 ### Phase 1 (MVP/POC)
 
 - [ ] DNS System
-  - [ ] Backend
+  - [x] Backend
     - [x] Auth Integration
-    - [ ] Domain Management
+    - [x] Domain Management
       - Domains stay in a pending state until their NS delegation is verified, and record edits are blocked until then.
   - [ ] Needs Testing
 - [x] nameservers
   - [ ] Speed improvments
 - [ ] Auth system
-  - [ ] Backend
-    - [ ] HackClub Auth
-    - [ ] Session Management
+  - [x] Backend
+    - [x] HackClub Auth
+    - [x] Session Management
     - [ ] Github Auth
-    - [ ] Email Auth
+    - [x] Email Auth
     - [ ] Password Reset
-    - [ ] Email Verification
+    - [x] Email Verification
     - [ ] Google Auth
   - [ ] Frontend
     - [ ] Login/Signup Page
