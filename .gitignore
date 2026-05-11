@@ -1,8 +1,6 @@
 /target
 _build/
 .docker-cache
-<<<<<<< HEAD
 node_modules
-=======
 /elixir-old
->>>>>>> f0388a13fca9109f411efde59678d2517456bf91
+/native
