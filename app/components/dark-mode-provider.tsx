@@ -13,8 +13,8 @@ const DarkModeContext = React.createContext<DarkModeContextType | undefined>(
 
 export function DarkModeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = React.useState<Theme>(() => {
-    if (typeof window === "undefined") return "light"
-    return (localStorage.getItem("theme") as Theme) || "light"
+    if (typeof window === "undefined") return "dark"
+    return (localStorage.getItem("theme") as Theme) || "dark"
   })
 
   React.useEffect(() => {

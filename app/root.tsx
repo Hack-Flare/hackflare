@@ -24,7 +24,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                const theme = localStorage.getItem("theme") || "light"
+                const theme = localStorage.getItem("theme") || "dark"
                 if (theme === "dark") {
                   document.documentElement.classList.add("dark")
                 }
