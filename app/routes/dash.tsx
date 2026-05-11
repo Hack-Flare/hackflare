@@ -20,6 +20,10 @@ export default function Dashboard() {
                 <p className="text-zinc-600 dark:text-zinc-400 text-sm">Account & API settings.</p>
               </div>
             </div>
+            <div className="flex-col items-center gap-4">
+              <h2 className="mt-8 text-xl font-bold">Everything you see on these pages is a temporary placeholder data used by the developer (<span className="text-blue-400 decoration-dashed"><a href="https://vejas.zip">vejas.zip</a></span>) to develop the dashboard UI for HackFlare.</h2>
+              <h3 className="pt-4 text-gray-400 text-lg">No data is real. And the site is not yet functioning.</h3>
+            </div>
           </div>
 
   )

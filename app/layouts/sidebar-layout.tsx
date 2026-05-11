@@ -14,7 +14,9 @@ export default function SidebarLayout() {
         </header>
         <div className="flex-1 p-6">
           <Outlet />  {/* ← your page renders here */}
+          
         </div>
+        <p className="pl-4 pb-4 text-gray-400">Data is fake.</p>
       </main>
     </SidebarProvider>
   )
