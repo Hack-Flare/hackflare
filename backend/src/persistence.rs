@@ -96,6 +96,6 @@ impl BackendStore {
     }
 
     fn map_error(error: postgres::Error) -> io::Error {
-        io::Error::new(io::ErrorKind::Other, error)
+        io::Error::other(error)
     }
 }
