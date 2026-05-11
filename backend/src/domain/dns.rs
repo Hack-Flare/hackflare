@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::RwLock;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde::{Deserialize, Serialize};
 
@@ -91,11 +91,7 @@ impl DnsService {
     pub(crate) fn snapshot(&self) -> DnsSnapshot {
         DnsSnapshot {
             next_id: self.next_id.load(Ordering::Relaxed),
-            zones: self
-                .zones
-                .read()
-                .expect("zones read lock poisoned")
-                .clone(),
+            zones: self.zones.read().expect("zones read lock poisoned").clone(),
         }
     }
 

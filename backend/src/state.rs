@@ -19,7 +19,9 @@ pub struct AppState {
 impl AppState {
     pub fn new(config: Config) -> Self {
         let persistence = Arc::new(BackendStore::new(config.database_url.clone()));
-        let snapshot = persistence.load().expect("failed to load backend state from postgres");
+        let snapshot = persistence
+            .load()
+            .expect("failed to load backend state from postgres");
 
         let hackclub_auth = if config.hackclub.is_enabled() {
             Some(Arc::new(HCAuth::new(
