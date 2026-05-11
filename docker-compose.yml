@@ -36,5 +36,12 @@ services:
       - "53:5353/tcp"
     restart: unless-stopped
 
+  frontend:
+    image: ghcr.io/hack-flare/hackflare-frontend:latest
+    pull_policy: always
+    ports:
+      - "3000:30000"
+    restart: unless-stopped
+
 volumes:
   db_data:
