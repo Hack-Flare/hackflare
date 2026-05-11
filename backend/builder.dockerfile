@@ -1,4 +1,8 @@
-FROM debian:bookworm-slim
+# syntax=docker/dockerfile:1.7
+
+ARG BUILDPLATFORM
+
+FROM --platform=$BUILDPLATFORM debian:bookworm-slim
 
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
