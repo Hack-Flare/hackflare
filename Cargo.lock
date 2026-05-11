@@ -749,6 +749,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "hackflare_dns"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "idna",
+ "once_cell",
+ "postgres",
+ "rand 0.10.1",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
