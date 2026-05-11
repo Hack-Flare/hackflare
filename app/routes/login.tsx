@@ -58,9 +58,14 @@ export default function Login() {
     console.log("[Login] Attempting Hack Club login")
 
     try {
-      const data = await api.auth.hackclubUrl()
-      console.log("[Login] Redirecting to Hack Club")
-      window.location.href = data.url
+      // TODO: Remove this demo login and implement real Hack Club OAuth
+      login("demo_token", DEMO_USER)
+      navigate("/dash")
+      return
+
+      // const data = await api.auth.hackclubUrl()
+      // console.log("[Login] Redirecting to Hack Club")
+      // window.location.href = data.url
     } catch (err: any) {
       console.error("[Login] Failed:", err.error)
       setError(err.error || "Failed to get Hack Club login URL")
@@ -76,7 +81,7 @@ export default function Login() {
           <CardDescription>Sign in to manage your domains</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-4 rounded-lg border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+          {/*<div className="mb-4 rounded-lg border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
             Demo login: tes@123.com / 1234
             <button
               type="button"
@@ -85,7 +90,7 @@ export default function Login() {
             >
               Sign out
             </button>
-          </div>
+          </div>*/}
 
           {error && (
             <div className="mb-4 p-3 rounded bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 text-sm">
@@ -94,7 +99,7 @@ export default function Login() {
           )}
 
           <div className="flex gap-2 mb-6 border-b border-zinc-200 dark:border-zinc-800">
-            <button
+            {/* <button
               onClick={() => setTab("password")}
               className={`pb-2 px-1 font-medium text-sm ${
                 tab === "password"
@@ -103,20 +108,17 @@ export default function Login() {
               }`}
             >
               Email & Password
-            </button>
+            </button> */}
             <button
               onClick={() => setTab("hackclub")}
-              className={`pb-2 px-1 font-medium text-sm ${
-                tab === "hackclub"
-                  ? "text-hackclub-500 border-b-2 border-hackclub-500"
-                  : "text-zinc-600 dark:text-zinc-400"
-              }`}
+              className="pb-2 px-1 font-medium text-sm text-hackclub-500 border-b-2 border-hackclub-500"
             >
               Hack Club
             </button>
           </div>
 
-          {tab === "password" ? (
+          {/* Email & Password auth - implement later */}
+          {/* {tab === "password" ? (
             <form onSubmit={handlePasswordLogin} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Email</label>
@@ -157,14 +159,23 @@ export default function Login() {
               <HackClubIcon className="h-6 w-6" />
               {loading ? "Redirecting..." : "Sign in with Hack Club"}
             </button>
-          )}
+          )} */}
 
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 text-center mt-6">
+          <button
+            onClick={handleHackclubLogin}
+            disabled={loading}
+            className="w-full bg-hackclub-500 hover:bg-hackclub-600 disabled:bg-hackclub-400 text-white py-2 rounded-lg font-medium text-sm flex items-center justify-center gap-2"
+          >
+            <HackClubIcon className="h-6 w-6" />
+            {loading ? "Redirecting..." : "Sign in with Hack Club"}
+          </button>
+
+          {/*<p className="text-sm text-zinc-600 dark:text-zinc-400 text-center mt-6">
             Don't have an account?{" "}
             <Link to="/register" className="text-orange-500 hover:text-orange-600 font-medium">
               Sign up
             </Link>
-          </p>
+          </p>*/}
         </CardContent>
       </Card>
     </div>
