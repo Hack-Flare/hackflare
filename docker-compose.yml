@@ -8,63 +8,31 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - db_data:/var/lib/postgresql
-    restart: unless-stopped
+      - db_data:/var/lib/postgresql/data
     healthcheck:
-      test:
-        - CMD-SHELL
-        - 'pg_isready -U hackflare -d hackflare'
+      test: ["CMD-SHELL", "pg_isready -U hackflare -d hackflare"]
       interval: 30s
       timeout: 20s
       retries: 20
+    restart: unless-stopped
 
-  hackflare:
-    image: ghcr.io/hack-flare/hackflare:latest
+  backend:
+    image: ghcr.io/hack-flare/hackflare-backend:latest
     pull_policy: always
     depends_on:
       db:
         condition: service_healthy
-    env_file:
-      - .env
     environment:
-      PHX_SERVER: "true"
-      MIX_ENV: "prod"
-      PORT: "4000"
-      DB_HOST: "db"
-      DB_PORT: "5432"
-      DB_USER: "hackflare"
-      DB_PASS: "hackflare"
-      DB_NAME: "hackflare"
+      DATABASE_URL: postgres://hackflare:hackflare@db:5432/hackflare
+      BACKEND_BIND_HOST: 0.0.0.0
+      BACKEND_BIND_PORT: "8080"
+      BACKEND_DNS_BIND_HOST: 0.0.0.0
+      BACKEND_DNS_BIND_PORT: "5353"
     ports:
-      - "4000:4000"
-      - "53:53/udp"
-      - "53:53/tcp"
+      - "8080:8080"
+      - "53:5353/udp"
+      - "53:5353/tcp"
     restart: unless-stopped
-    healthcheck:
-      test:
-        - CMD
-        - curl
-        - '-f'
-        - 'http://127.0.0.1:4000/health'
-      interval: 30s
-      timeout: 10s
-      retries: 20
-
-  watchtower:
-    image: containrrr/watchtower
-    container_name: watchtower
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      # This uses existing 'docker login' credentials from the host
-      - /root/.docker/config.json:/config.json:ro 
-    environment:
-      - WATCHTOWER_CLEANUP=true
-      - WATCHTOWER_POLL_INTERVAL=120 # Checks every 2 minutes
-      - DOCKER_API_VERSION=1.44
-    depends_on:
-      hackflare:
-        condition: service_healthy
 
 volumes:
   db_data:
