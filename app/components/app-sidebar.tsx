@@ -34,6 +34,7 @@ import {
 } from "~/components/ui/dropdown-menu"
 
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
+import { SlackIcon } from "./icons/slack"
 
 // ── Workspaces ───────────────────────────────────────────────────────────────
 
@@ -289,7 +290,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <a href="https://hackclub.slack.com" target="_blank" rel="noreferrer" className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
+                <SlackIcon className="h-4 w-4" />
                 <span>Hack Club Slack</span>
               </a>
             </SidebarMenuButton>
