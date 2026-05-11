@@ -50,30 +50,78 @@ export default function App() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  let message = "Oops!"
+  let status = 500
+  let message = "Something went wrong"
   let details = "An unexpected error occurred."
   let stack: string | undefined
 
   if (isRouteErrorResponse(error)) {
-    message = error.status === 404 ? "404" : "Error"
-    details =
-      error.status === 404
-        ? "The requested page could not be found."
-        : error.statusText || details
+    status = error.status
+    message = getErrorMessage(error.status)
+    details = error.statusText || getErrorDetails(error.status)
   } else if (import.meta.env.DEV && error && error instanceof Error) {
     details = error.message
     stack = error.stack
   }
 
   return (
-    <main className="container mx-auto p-4 pt-16">
-      <h1>{message}</h1>
-      <p>{details}</p>
-      {stack && (
-        <pre className="w-full overflow-x-auto p-4">
-          <code>{stack}</code>
-        </pre>
-      )}
-    </main>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
+      <div className="text-center max-w-lg">
+        <div className="mb-8">
+          <div className="text-8xl font-bold text-muted-foreground mb-4">{status}</div>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">{message}</h1>
+          <p className="text-muted-foreground text-lg">{details}</p>
+        </div>
+
+        {stack && import.meta.env.DEV && (
+          <div className="mt-8 p-4 bg-muted rounded-lg text-left">
+            <p className="text-sm font-semibold mb-2 text-muted-foreground">Stack Trace:</p>
+            <pre className="text-xs overflow-x-auto max-h-40 text-muted-foreground">
+              <code>{stack}</code>
+            </pre>
+          </div>
+        )}
+
+        <div className="flex gap-3 justify-center mt-8">
+          <a href="/" className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+            Go home
+          </a>
+        </div>
+      </div>
+    </div>
   )
+}
+
+function getErrorMessage(status: number): string {
+  switch (status) {
+    case 404:
+      return "Page not found"
+    case 500:
+      return "Server error"
+    case 503:
+      return "Service unavailable"
+    case 401:
+      return "Unauthorized"
+    case 403:
+      return "Forbidden"
+    default:
+      return "Error"
+  }
+}
+
+function getErrorDetails(status: number): string {
+  switch (status) {
+    case 404:
+      return "The page you're looking for doesn't exist."
+    case 500:
+      return "Something went wrong on our end. We're working to fix it."
+    case 503:
+      return "The service is temporarily unavailable. Please try again later."
+    case 401:
+      return "You need to be logged in to access this page."
+    case 403:
+      return "You don't have permission to access this resource."
+    default:
+      return "An unexpected error occurred."
+  }
 }
