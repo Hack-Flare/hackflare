@@ -23,6 +23,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    env_file:
+      - backend/.env.example
     environment:
       DATABASE_URL: postgres://hackflare:hackflare@db:5432/hackflare
       BACKEND_BIND_HOST: 0.0.0.0
