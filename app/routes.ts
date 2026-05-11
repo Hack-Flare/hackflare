@@ -17,7 +17,8 @@ export default [
     route("dash/workers", "routes/dash/workers.tsx"),
     route("dash/logs", "routes/dash/logs.tsx"),
     route("dash/performance", "routes/dash/performance.tsx"),
-      route("dash/profile", "routes/dash/profile.tsx"),
+    route("dash/profile", "routes/dash/profile.tsx"),
+    route("dash/admin", "routes/dash/admin.tsx"),
 
     // add more pages here as you build them
   ]),

@@ -11,7 +11,7 @@ export default function SidebarLayout() {
 
   useEffect(() => {
     if (!token) {
-      navigate("/login")
+      navigate("/auth")
     }
   }, [token, navigate])
 

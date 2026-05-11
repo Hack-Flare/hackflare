@@ -13,7 +13,9 @@ const sessions = [
 export default function Profile() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const initials = user?.email ? user.email.split("@")[0].slice(0, 2).toUpperCase() : "?"
+  const initials = user?.name
+    ? user.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+    : "?"
 
   const handleLogout = () => {
     logout()
@@ -40,6 +42,10 @@ export default function Profile() {
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 space-y-4">
+              <div>
+                <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">Name</p>
+                <p className="text-sm font-medium mt-1">{user?.name || "Unknown"}</p>
+              </div>
               <div>
                 <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">Email</p>
                 <p className="text-sm font-medium mt-1">{user?.email || "Unknown"}</p>

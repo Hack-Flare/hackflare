@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Globe, ShieldAlert, ArrowLeftRight,
   Zap, Network, BarChart2, Activity, ScrollText,
   Settings, MessageSquare, ChevronsUpDown, LogOut,
-  UserCircle, Plus, Check, ChevronRight,
+  UserCircle, Plus, Check, ChevronRight, Shield,
 } from "lucide-react"
 
 import {
@@ -69,6 +69,10 @@ const analyticsItems = [
   { title: "Logs",        icon: ScrollText, href: "/dash/logs" },
 ]
 
+const adminItems = [
+  { title: "Admin Panel", icon: Shield, href: "/dash/admin" },
+]
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 export function AppSidebar() {
@@ -78,8 +82,8 @@ export function AppSidebar() {
   const [activeWorkspace, setActiveWorkspace] = useState(workspaces[0])
   const [domainsExpanded, setDomainsExpanded] = useState(false)
 
-  const userInitials = user?.email
-    ? user.email.split("@")[0].substring(0, 2).toUpperCase()
+  const userInitials = user?.name
+    ? user.name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2)
     : "?"
 
   const handleLogout = () => {
@@ -251,6 +255,24 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Admin</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {adminItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild isActive={isActive(item.href)}>
+                    <NavLink to={item.href} className="flex items-center gap-2">
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
       {/* Footer */}
@@ -291,8 +313,8 @@ export function AppSidebar() {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col leading-none min-w-0">
-                    <span className="font-semibold text-sm truncate">{user?.email || "User"}</span>
-                    <span className="text-xs text-muted-foreground truncate">{user?.is_admin ? "Admin" : "User"}</span>
+                    <span className="font-semibold text-sm truncate">{user?.name || "User"}</span>
+                    <span className="text-xs text-muted-foreground truncate">{user?.email}</span>
                   </div>
                   <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
                 </SidebarMenuButton>
@@ -305,8 +327,8 @@ export function AppSidebar() {
                 sideOffset={4}
               >
                 <DropdownMenuLabel className="font-normal p-2">
-                  <p className="font-semibold text-sm">{user?.email || "User"}</p>
-                  <p className="text-xs text-muted-foreground">{user?.is_admin ? "Admin" : "User"}</p>
+                  <p className="font-semibold text-sm">{user?.name || "User"}</p>
+                  <p className="text-xs text-muted-foreground">{user?.email}</p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => navigate("/dash/profile")}>
@@ -320,7 +342,7 @@ export function AppSidebar() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-destructive focus:text-destructive"
-                  onClick={handleLogout}
+                  onSelect={handleLogout}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign out

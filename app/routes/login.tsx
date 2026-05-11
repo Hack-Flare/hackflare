@@ -10,6 +10,7 @@ const DEMO_PASSWORD = "1234"
 const DEMO_USER = {
   id: 1,
   email: DEMO_EMAIL,
+  name: "Tes Toaster",
   is_admin: false,
 }
 

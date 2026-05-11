@@ -24,7 +24,11 @@ export default function Settings() {
           <CardDescription>Email, role, account management</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">Name</p>
+              <p className="text-sm font-medium mt-1">{user?.name || "Unknown"}</p>
+            </div>
             <div>
               <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">Email</p>
               <p className="text-sm font-medium mt-1">{user?.email || "Unknown"}</p>
