@@ -48,6 +48,22 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+@theme {
+  --color-hackclub-50: oklch(0.97 0.02 19.13);
+  --color-hackclub-100: oklch(0.92 0.05 19.13);
+  --color-hackclub-200: oklch(0.86 0.09 19.13);
+  --color-hackclub-300: oklch(0.79 0.13 19.13);
+  --color-hackclub-400: oklch(0.70 0.18 19.13);
+
+  /* base color */
+  --color-hackclub-500: oklch(0.6225 0.2148 19.13);
+
+  --color-hackclub-600: oklch(0.55 0.20 19.13);
+  --color-hackclub-700: oklch(0.47 0.17 19.13);
+  --color-hackclub-800: oklch(0.39 0.14 19.13);
+  --color-hackclub-900: oklch(0.30 0.10 19.13);
+}
+
 :root {
     --background: oklch(1 0 0);
     --foreground: oklch(0.141 0.005 285.823);
@@ -81,6 +97,7 @@
     --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
     --sidebar-border: oklch(0.92 0.004 286.32);
     --sidebar-ring: oklch(0.705 0.015 286.067);
+    --hackclub: oklch(0.6225 0.2148 19.13);
 }
 
 .dark {

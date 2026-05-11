@@ -1,9 +1,24 @@
-import { Outlet } from "react-router"
+import { Outlet, useNavigate } from "react-router"
+import { useEffect } from "react"
 import { SidebarProvider, SidebarTrigger } from "~/components/ui/sidebar"
 import { AppSidebar } from "~/components/app-sidebar"
 import { DarkModeToggle } from "~/components/dark-mode-toggle"
+import { useAuth } from "~/lib/auth-context"
 
 export default function SidebarLayout() {
+  const navigate = useNavigate()
+  const { token } = useAuth()
+
+  useEffect(() => {
+    if (!token) {
+      navigate("/login")
+    }
+  }, [token, navigate])
+
+  if (!token) {
+    return null
+  }
+
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -12,11 +27,12 @@ export default function SidebarLayout() {
           <SidebarTrigger />
           <DarkModeToggle />
         </header>
-        <div className="flex-1 p-6">
-          <Outlet />  {/* ← your page renders here */}
-          
+        <div className="border-b border-orange-200 bg-orange-50 px-6 py-3 text-sm text-orange-900 dark:border-orange-900/40 dark:bg-orange-950/30 dark:text-orange-200">
+          Demo mode. Pages use placeholder data and layout only. Hook real API later.
         </div>
-        <p className="pl-4 pb-4 text-gray-400">Data is fake.</p>
+        <div className="flex-1 p-6">
+          <Outlet />
+        </div>
       </main>
     </SidebarProvider>
   )

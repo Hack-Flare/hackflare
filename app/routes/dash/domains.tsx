@@ -1,4 +1,7 @@
 import { Plus, Globe, Shield, Clock } from "lucide-react"
+import { useState, useEffect } from "react"
+import { useAuth } from "~/lib/auth-context"
+import { api } from "~/lib/api"
 import {
   Card,
   CardContent,
@@ -7,39 +10,32 @@ import {
   CardTitle,
 } from "~/components/ui/card"
 
-const domains = [
-  {
-    id: "1",
-    name: "example.com",
-    status: "active",
-    registrar: "Namecheap",
-    dnsProvider: "Cloudflare",
-    expiresAt: "2025-06-15",
-    ssl: "valid",
-  },
-  {
-    id: "2",
-    name: "blog.example.com",
-    status: "active",
-    registrar: "GoDaddy",
-    dnsProvider: "Route 53",
-    expiresAt: "2025-08-22",
-    ssl: "valid",
-  },
-  {
-    id: "3",
-    name: "api.example.com",
-    status: "active",
-    registrar: "Namecheap",
-    dnsProvider: "Cloudflare",
-    expiresAt: "2025-10-10",
-    ssl: "expiring",
-  },
-]
-
 export default function Domains() {
+  const { token } = useAuth()
+  const [zones, setZones] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!token) {
+      setLoading(false)
+      return
+    }
+
+    console.log("[Domains] Loading zones")
+    api.dns
+      .listZones(token)
+      .then((data) => {
+        console.log("[Domains] Loaded", data.length, "zones")
+        setZones(data || [])
+      })
+      .catch((err) => {
+        console.error("[Domains] Failed to load zones:", err)
+        setZones([])
+      })
+      .finally(() => setLoading(false))
+  }, [token])
   return (
-    <div className="flex-1 p-6">
+    <div className="flex-1 p-1">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold dark:text-white">Domains</h1>
@@ -63,9 +59,9 @@ export default function Domains() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">3</p>
+            <p className="text-2xl font-bold">{zones.length}</p>
             <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
-              All active
+              {zones.length === 0 ? "Add your first domain" : "All active"}
             </p>
           </CardContent>
         </Card>
@@ -74,12 +70,14 @@ export default function Domains() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Shield className="h-4 w-4" />
-              SSL Certificates
+              Verified Zones
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">2</p>
-            <p className="text-xs text-green-600 mt-1">Valid</p>
+            <p className="text-2xl font-bold">
+              {zones.filter((z: any) => z.ns_verified).length}
+            </p>
+            <p className="text-xs text-green-600 mt-1">NS verified</p>
           </CardContent>
         </Card>
 
@@ -87,12 +85,14 @@ export default function Domains() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Clock className="h-4 w-4" />
-              Renewal Soon
+              Pending
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">1</p>
-            <p className="text-xs text-orange-600 mt-1">Next 90 days</p>
+            <p className="text-2xl font-bold">
+              {zones.filter((z: any) => !z.ns_verified).length}
+            </p>
+            <p className="text-xs text-orange-600 mt-1">Need verification</p>
           </CardContent>
         </Card>
       </div>
@@ -119,43 +119,51 @@ export default function Domains() {
                 </tr>
               </thead>
               <tbody>
-                {domains.map((domain) => (
-                  <tr
-                    key={domain.id}
-                    className="border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-                  >
-                    <td className="py-3 px-4">
-                      <div className="font-medium dark:text-white">
-                        {domain.name}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-zinc-600 dark:text-zinc-400">
-                      {domain.registrar}
-                    </td>
-                    <td className="py-3 px-4 text-zinc-600 dark:text-zinc-400">
-                      {domain.dnsProvider}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          domain.ssl === "valid"
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                            : "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
-                        }`}
-                      >
-                        {domain.ssl === "valid" ? "Valid" : "Expiring"}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-zinc-600 dark:text-zinc-400">
-                      {domain.expiresAt}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                        Active
-                      </span>
+                {zones.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 px-4 text-center text-zinc-600 dark:text-zinc-400">
+                      No domains yet. Add your first domain above.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  zones.map((zone: any) => (
+                    <tr
+                      key={zone.id}
+                      className="border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                    >
+                      <td className="py-3 px-4">
+                        <div className="font-medium dark:text-white">
+                          {zone.name}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-zinc-600 dark:text-zinc-400">
+                        —
+                      </td>
+                      <td className="py-3 px-4 text-zinc-600 dark:text-zinc-400">
+                        Hackflare
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                          Valid
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-zinc-600 dark:text-zinc-400">
+                        —
+                      </td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-medium ${
+                            zone.ns_verified
+                              ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                              : "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
+                          }`}
+                        >
+                          {zone.ns_verified ? "Verified" : "Pending"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

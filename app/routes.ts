@@ -2,6 +2,9 @@ import { type RouteConfig, index, route, layout } from "@react-router/dev/routes
 
 export default [
   index("routes/home.tsx"),
+  route("auth", "routes/auth.tsx"),
+  route("login", "routes/login.tsx"),
+  route("auth/hackclub", "routes/auth/hackclub-callback.tsx"),
 
   layout("layouts/sidebar-layout.tsx", [
     route("dash", "routes/dash.tsx"),
@@ -14,6 +17,7 @@ export default [
     route("dash/workers", "routes/dash/workers.tsx"),
     route("dash/logs", "routes/dash/logs.tsx"),
     route("dash/performance", "routes/dash/performance.tsx"),
+      route("dash/profile", "routes/dash/profile.tsx"),
 
     // add more pages here as you build them
   ]),

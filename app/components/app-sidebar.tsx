@@ -1,5 +1,6 @@
-import { useLocation, NavLink } from "react-router"
+import { useLocation, NavLink, useNavigate } from "react-router"
 import { useState } from "react"
+import { useAuth } from "~/lib/auth-context"
 
 import {
   LayoutDashboard, Globe, ShieldAlert, ArrowLeftRight,
@@ -67,21 +68,24 @@ const analyticsItems = [
   { title: "Performance", icon: Activity,   href: "/dash/performance" },
   { title: "Logs",        icon: ScrollText, href: "/dash/logs" },
 ]
-// ── User — replace with your auth context ────────────────────────────────────
-
-const user = {
-  name: "Vejas S",
-  email: "vejas@vejas.zip",
-  initials: "VS",
-  image: "https://cachet.dunkirk.sh/users/U0930DMR4BA/r",
-}
 
 // ── Component ────────────────────────────────────────────────────────────────
 
 export function AppSidebar() {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { user, logout } = useAuth()
   const [activeWorkspace, setActiveWorkspace] = useState(workspaces[0])
   const [domainsExpanded, setDomainsExpanded] = useState(false)
+
+  const userInitials = user?.email
+    ? user.email.split("@")[0].substring(0, 2).toUpperCase()
+    : "?"
+
+  const handleLogout = () => {
+    logout()
+    navigate("/auth")
+  }
 
   const isActive = (href: string) => {
     if (href === "/dash") return location.pathname === "/dash"
@@ -282,14 +286,13 @@ export function AppSidebar() {
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
                   <Avatar className="h-8 w-8 rounded-lg shrink-0">
-                    <AvatarImage src={user.image} />
                     <AvatarFallback className="rounded-lg bg-orange-500 text-white text-xs font-semibold">
-                      {user.initials}
+                      {userInitials}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col leading-none min-w-0">
-                    <span className="font-semibold text-sm truncate">{user.name}</span>
-                    <span className="text-xs text-muted-foreground truncate">{user.email}</span>
+                    <span className="font-semibold text-sm truncate">{user?.email || "User"}</span>
+                    <span className="text-xs text-muted-foreground truncate">{user?.is_admin ? "Admin" : "User"}</span>
                   </div>
                   <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
                 </SidebarMenuButton>
@@ -302,20 +305,23 @@ export function AppSidebar() {
                 sideOffset={4}
               >
                 <DropdownMenuLabel className="font-normal p-2">
-                  <p className="font-semibold text-sm">{user.name}</p>
-                  <p className="text-xs text-muted-foreground">{user.email}</p>
+                  <p className="font-semibold text-sm">{user?.email || "User"}</p>
+                  <p className="text-xs text-muted-foreground">{user?.is_admin ? "Admin" : "User"}</p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate("/dash/profile")}>
                   <UserCircle className="mr-2 h-4 w-4" />
                   Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate("/dash/settings")}>
                   <Settings className="mr-2 h-4 w-4" />
                   Account settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive focus:text-destructive">
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={handleLogout}
+                >
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign out
                 </DropdownMenuItem>
