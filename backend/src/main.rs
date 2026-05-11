@@ -2,6 +2,7 @@ mod app;
 mod config;
 mod domain;
 mod nameserver;
+mod persistence;
 mod recursive;
 mod state;
 

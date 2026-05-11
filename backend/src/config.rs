@@ -6,7 +6,7 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 pub struct Config {
     pub bind_addr: SocketAddr,
     pub dns_bind_addr: SocketAddr,
-    pub database_url: Option<String>,
+    pub database_url: String,
     pub email: EmailConfig,
     pub hackclub: HackClubConfig,
 }
@@ -58,7 +58,8 @@ impl Config {
         let database_url = env::var("DATABASE_URL")
             .ok()
             .map(|value| value.trim().to_string())
-            .filter(|value| !value.is_empty());
+            .filter(|value| !value.is_empty())
+            .expect("DATABASE_URL is required for backend persistence");
 
         let email = EmailConfig::from_env();
         let hackclub = HackClubConfig::from_env();

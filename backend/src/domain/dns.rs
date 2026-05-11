@@ -1,10 +1,10 @@
 use std::collections::HashMap;
-use std::sync::RwLock;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::RwLock;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Zone {
     pub id: u64,
     pub name: String,
@@ -13,12 +13,18 @@ pub struct Zone {
     pub records: Vec<DnsRecord>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DnsRecord {
     pub name: String,
     pub record_type: RecordType,
     pub value: String,
     pub ttl: u32,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub(crate) struct DnsSnapshot {
+    pub(crate) next_id: u64,
+    pub(crate) zones: HashMap<String, Zone>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -68,10 +74,28 @@ pub struct DnsService {
 }
 
 impl DnsService {
+    #[allow(dead_code)]
     pub fn new() -> Self {
+        Self::from_snapshot(None)
+    }
+
+    pub(crate) fn from_snapshot(snapshot: Option<DnsSnapshot>) -> Self {
+        let snapshot = snapshot.unwrap_or_default();
+
         Self {
-            next_id: AtomicU64::new(1),
-            zones: RwLock::new(HashMap::new()),
+            next_id: AtomicU64::new(snapshot.next_id.max(1)),
+            zones: RwLock::new(snapshot.zones),
+        }
+    }
+
+    pub(crate) fn snapshot(&self) -> DnsSnapshot {
+        DnsSnapshot {
+            next_id: self.next_id.load(Ordering::Relaxed),
+            zones: self
+                .zones
+                .read()
+                .expect("zones read lock poisoned")
+                .clone(),
         }
     }
 

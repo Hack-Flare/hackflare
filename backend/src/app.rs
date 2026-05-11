@@ -51,14 +51,11 @@ struct ApiPingResponse {
     database_configured: bool,
 }
 
-async fn api_ping(
-    State(state): State<AppState>,
-    _headers: HeaderMap,
-) -> Result<Json<ApiPingResponse>, StatusCode> {
+async fn api_ping(_headers: HeaderMap) -> Result<Json<ApiPingResponse>, StatusCode> {
     Ok(Json(ApiPingResponse {
         status: "ok",
         service: "hackflare-backend",
-        database_configured: state.config.database_url.is_some(),
+        database_configured: true,
     }))
 }
 
@@ -82,11 +79,13 @@ async fn register(
     _headers: HeaderMap,
     Json(payload): Json<RegisterInput>,
 ) -> Result<Json<Session>, (StatusCode, Json<ErrorResponse>)> {
-    state
-        .auth
-        .register(payload)
-        .map(Json)
-        .map_err(map_auth_error)
+    match state.auth.register(payload) {
+        Ok(session) => {
+            state.persist();
+            Ok(Json(session))
+        }
+        Err(error) => Err(map_auth_error(error)),
+    }
 }
 
 async fn login(
@@ -94,7 +93,13 @@ async fn login(
     _headers: HeaderMap,
     Json(payload): Json<LoginInput>,
 ) -> Result<Json<Session>, (StatusCode, Json<ErrorResponse>)> {
-    state.auth.login(payload).map(Json).map_err(map_auth_error)
+    match state.auth.login(payload) {
+        Ok(session) => {
+            state.persist();
+            Ok(Json(session))
+        }
+        Err(error) => Err(map_auth_error(error)),
+    }
 }
 
 async fn request_email_login(
@@ -102,11 +107,13 @@ async fn request_email_login(
     _headers: HeaderMap,
     Json(payload): Json<EmailLoginRequest>,
 ) -> Result<Json<EmailLoginChallenge>, (StatusCode, Json<ErrorResponse>)> {
-    state
-        .auth
-        .request_email_login(payload)
-        .map(Json)
-        .map_err(map_auth_error)
+    match state.auth.request_email_login(payload) {
+        Ok(challenge) => {
+            state.persist();
+            Ok(Json(challenge))
+        }
+        Err(error) => Err(map_auth_error(error)),
+    }
 }
 
 async fn verify_email_login(
@@ -114,11 +121,13 @@ async fn verify_email_login(
     _headers: HeaderMap,
     Json(payload): Json<EmailLoginVerification>,
 ) -> Result<Json<Session>, (StatusCode, Json<ErrorResponse>)> {
-    state
-        .auth
-        .verify_email_login(payload)
-        .map(Json)
-        .map_err(map_auth_error)
+    match state.auth.verify_email_login(payload) {
+        Ok(session) => {
+            state.persist();
+            Ok(Json(session))
+        }
+        Err(error) => Err(map_auth_error(error)),
+    }
 }
 
 async fn hackclub_login_url(
@@ -183,11 +192,13 @@ async fn hackclub_callback(
         }),
     ))?;
 
-    state
-        .auth
-        .sign_in_email(&email)
-        .map(Json)
-        .map_err(map_auth_error)
+    match state.auth.sign_in_email(&email) {
+        Ok(session) => {
+            state.persist();
+            Ok(Json(session))
+        }
+        Err(error) => Err(map_auth_error(error)),
+    }
 }
 
 async fn me(
@@ -256,11 +267,13 @@ async fn create_zone(
         }),
     ))?;
 
-    state
-        .dns
-        .create_zone(&payload.name, user.id)
-        .map(Json)
-        .map_err(map_dns_error)
+    match state.dns.create_zone(&payload.name, user.id) {
+        Ok(zone) => {
+            state.persist();
+            Ok(Json(zone))
+        }
+        Err(error) => Err(map_dns_error(error)),
+    }
 }
 
 #[derive(Deserialize)]
@@ -288,11 +301,13 @@ async fn add_record(
         }),
     ))?;
 
-    state
-        .dns
-        .add_record(&path.zone_name, payload, user.id)
-        .map(Json)
-        .map_err(map_dns_error)
+    match state.dns.add_record(&path.zone_name, payload, user.id) {
+        Ok(zone) => {
+            state.persist();
+            Ok(Json(zone))
+        }
+        Err(error) => Err(map_dns_error(error)),
+    }
 }
 
 async fn verify_zone(
@@ -314,11 +329,13 @@ async fn verify_zone(
         }),
     ))?;
 
-    state
-        .dns
-        .verify_zone(&path.zone_name, user.id)
-        .map(Json)
-        .map_err(map_dns_error)
+    match state.dns.verify_zone(&path.zone_name, user.id) {
+        Ok(zone) => {
+            state.persist();
+            Ok(Json(zone))
+        }
+        Err(error) => Err(map_dns_error(error)),
+    }
 }
 
 #[derive(Deserialize)]

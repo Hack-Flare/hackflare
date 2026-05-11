@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::sync::RwLock;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::RwLock;
 use std::time::{Duration, SystemTime};
 
 use argon2::Argon2;
@@ -19,18 +19,26 @@ pub struct User {
     pub is_admin: bool,
 }
 
-#[derive(Clone, Debug)]
-struct UserCredentials {
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub(crate) struct UserCredentials {
     id: u64,
     email: String,
     password_hash: String,
     is_admin: bool,
 }
 
-#[derive(Clone, Debug)]
-struct PendingEmailLogin {
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub(crate) struct PendingEmailLogin {
     code: String,
     expires_at: SystemTime,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub(crate) struct AuthSnapshot {
+    pub(crate) next_id: u64,
+    pub(crate) users_by_email: HashMap<String, UserCredentials>,
+    pub(crate) sessions: HashMap<String, u64>,
+    pub(crate) pending_email_logins: HashMap<String, PendingEmailLogin>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -93,12 +101,40 @@ pub struct AuthService {
 }
 
 impl AuthService {
+    #[allow(dead_code)]
     pub fn new() -> Self {
+        Self::from_snapshot(None)
+    }
+
+    pub(crate) fn from_snapshot(snapshot: Option<AuthSnapshot>) -> Self {
+        let snapshot = snapshot.unwrap_or_default();
+
         Self {
-            next_id: AtomicU64::new(1),
-            users_by_email: RwLock::new(HashMap::new()),
-            sessions: RwLock::new(HashMap::new()),
-            pending_email_logins: RwLock::new(HashMap::new()),
+            next_id: AtomicU64::new(snapshot.next_id.max(1)),
+            users_by_email: RwLock::new(snapshot.users_by_email),
+            sessions: RwLock::new(snapshot.sessions),
+            pending_email_logins: RwLock::new(snapshot.pending_email_logins),
+        }
+    }
+
+    pub(crate) fn snapshot(&self) -> AuthSnapshot {
+        AuthSnapshot {
+            next_id: self.next_id.load(Ordering::Relaxed),
+            users_by_email: self
+                .users_by_email
+                .read()
+                .expect("users read lock poisoned")
+                .clone(),
+            sessions: self
+                .sessions
+                .read()
+                .expect("sessions read lock poisoned")
+                .clone(),
+            pending_email_logins: self
+                .pending_email_logins
+                .read()
+                .expect("email login read lock poisoned")
+                .clone(),
         }
     }
 
