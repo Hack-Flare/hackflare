@@ -5,6 +5,7 @@ export default [
   route("auth", "routes/auth.tsx"),
   route("login", "routes/login.tsx"),
   route("auth/hackclub", "routes/auth/hackclub-callback.tsx"),
+  route("team", "routes/team.tsx"),
 
   layout("layouts/sidebar-layout.tsx", [
     route("dash", "routes/dash.tsx"),
