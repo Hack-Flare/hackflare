@@ -128,7 +128,7 @@ export default function Traffic() {
             <CardDescription>Total requests and errors</CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={trafficConfig} className="h-[250px] w-full">
+            <ChartContainer config={trafficConfig} className="h-62.5 w-full">
               <AreaChart data={trafficData}>
                 <defs>
                   <linearGradient id="fillRequests" x1="0" y1="0" x2="0" y2="1">
@@ -212,7 +212,7 @@ export default function Traffic() {
             <CardDescription>HTTP response codes</CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={statusConfig} className="h-[250px] w-full">
+            <ChartContainer config={statusConfig} className="h-62.5 w-full">
               <BarChart data={statusCodeData}>
                 <CartesianGrid vertical={false} />
                 <XAxis

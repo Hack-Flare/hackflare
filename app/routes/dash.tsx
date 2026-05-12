@@ -120,7 +120,7 @@ export default function Dashboard() {
                   <p className="text-sm font-medium group-hover:text-orange-600 dark:group-hover:text-orange-400">{shortcut.title}</p>
                   <p className="text-xs text-zinc-600 dark:text-zinc-400">{shortcut.description}</p>
                 </div>
-                <ArrowRight className="h-4 w-4 text-zinc-400 group-hover:text-orange-600 dark:group-hover:text-orange-400 flex-shrink-0 ml-2" />
+                <ArrowRight className="h-4 w-4 text-zinc-400 group-hover:text-orange-600 dark:group-hover:text-orange-400 shrink-0 ml-2" />
               </a>
             ))}
           </CardContent>
