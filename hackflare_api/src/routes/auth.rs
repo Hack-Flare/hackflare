@@ -8,8 +8,6 @@ use jsonwebtoken::{EncodingKey, Header, encode};
 use rand::{RngExt, distr::Alphanumeric};
 use reqwest::{StatusCode, Url};
 use serde::{Deserialize, Serialize};
-use jsonwebtoken::{EncodingKey, Header, encode};
-use chrono::{Utc, Duration as ChronoDuration};
 use tower_sessions::{
     Expiry, MemoryStore, Session, SessionManagerLayer,
     cookie::{SameSite, time::Duration},
@@ -209,14 +207,10 @@ async fn callback_handler(
         (StatusCode::INTERNAL_SERVER_ERROR, "jwt_encode_failed")
     })?;
 
-<<<<<<< HEAD
     Ok(Json(CallbackResponse {
         token,
         user: user_info,
     }))
-=======
-    Ok(Json(CallbackResponse { token, user: user_info }))
->>>>>>> 7940833290f275f4abf7d45112b19045bc727194
 }
 
 pub(super) fn routes(config: &Config) -> Router<AppState> {
