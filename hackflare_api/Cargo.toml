@@ -18,3 +18,5 @@ rand = "0.10.1"
 anyhow = "1.0.102"
 tower-sessions = "0.15.0"
 tower-http = { version = "0.6.10", features = ["trace"] }
+jsonwebtoken = "10"
+chrono = { version = "0.4", features = ["serde"] }

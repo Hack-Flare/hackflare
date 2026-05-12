@@ -3,3 +3,4 @@
 # ignore all env files, except example env files
 !**.env.example
 **.env
+node_modules
