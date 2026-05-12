@@ -688,6 +688,7 @@ dependencies = [
  "anyhow",
  "argon2",
  "axum",
+ "base64",
  "dotenv",
  "rand 0.10.1",
  "reqwest",

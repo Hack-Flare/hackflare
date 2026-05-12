@@ -1,41 +1,47 @@
 use axum::{
     Json, Router,
-    extract::{Path, Query, State},
+    extract::{Query, State},
+    response::Redirect,
     routing::get,
 };
+use base64::{Engine, engine::general_purpose};
 use rand::{RngExt, distr::Alphanumeric};
 use reqwest::{StatusCode, Url};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use tower_sessions::{
     Expiry, MemoryStore, Session, SessionManagerLayer,
     cookie::{SameSite, time::Duration},
 };
 
-use crate::{
-    config::{Config, HcaConfig},
-    state::AppState,
-};
+use crate::{config::Config, state::AppState};
 
-fn hca_login_redirect(config: &HcaConfig, state: &str) -> String {
+fn login_redirect(config: &Config, auth_state: &String) -> String {
     let scopes = "email name profile verification_status slack_id";
 
-    // Parse the base authorization endpoint
-    let mut url = Url::parse("https://auth.hackclub.com/oauth/authorize").unwrap();
+    let path = "https://auth.hackclub.com/oauth/authorize";
+    let params = [
+        ("client_id", config.hca.client_id.as_str()),
+        ("redirect_uri", config.hca.redirect_uri.as_str()),
+        ("response_type", "code"),
+        ("scope", scopes),
+        ("state", auth_state),
+    ];
 
-    // Add parameters safely
-    url.query_pairs_mut()
-        .append_pair("client_id", &config.client_id)
-        .append_pair("redirect_uri", config.redirect_uri.as_str())
-        .append_pair("response_type", "code")
-        .append_pair("scope", scopes)
-        .append_pair("state", state);
+    let url = Url::parse_with_params(path, params).unwrap();
 
     url.to_string()
 }
 
-#[derive(Serialize)]
-struct LoginResponse {
-    redirect: String,
+#[derive(Debug, Deserialize)]
+struct LoginParams {
+    target: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct AuthState {
+    csrf: String,
+    target: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -45,8 +51,17 @@ struct AuthCallback {
 }
 
 #[derive(Deserialize)]
+enum TokenType {
+    Bearer,
+}
+
+#[derive(Deserialize)]
 struct HcaTokenResponse {
     access_token: String,
+    token_type: TokenType,
+    expires_in: Duration,
+    refresh_token: String,
+    scope: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -79,25 +94,30 @@ fn random_string(len: usize) -> String {
         .collect()
 }
 
-async fn login_handler(State(state): State<AppState>, session: Session) -> Json<LoginResponse> {
-    debug!("login request");
-    let csrf_state = random_string(32);
+async fn login_handler(
+    State(state): State<AppState>,
+    session: Session,
+    Query(LoginParams { target }): Query<LoginParams>,
+) -> Redirect {
+    let csrf = random_string(32);
+
+    let auth_state = AuthState { csrf, target };
+    let state_base64 =
+        general_purpose::URL_SAFE.encode(serde_json::to_string(&auth_state).unwrap());
 
     session
-        .insert("hca_state", &csrf_state)
+        .insert("hca_state", &state_base64)
         .await
         .expect("failed to insert state into session");
-    trace!(%csrf_state, "persisted login state");
+    trace!(auth_state.csrf, auth_state.target, "persisted login state");
 
-    let redirect = hca_login_redirect(&state.config.hca, &csrf_state);
-    Json(LoginResponse { redirect })
+    let redirect = login_redirect(&state.config, &state_base64);
+    Redirect::to(&redirect)
 }
 
-// TODO: what is someone forges a request to a foreign provider? => does security hold?
 async fn callback_handler(
     State(state): State<AppState>,
     session: Session,
-    Path(provider): Path<String>,
     Query(query): Query<AuthCallback>,
 ) -> Result<Json<HcaUser>, (StatusCode, &'static str)> {
     let csrf_state: String = session
@@ -110,9 +130,9 @@ async fn callback_handler(
         return Err((StatusCode::BAD_REQUEST, "invalid_state"));
     }
 
-    trace!(provider, query.code, query.state, "got auth callback");
+    trace!(query.code, query.state, "got auth callback");
 
-    let payload = serde_json::json!({
+    let payload = json!({
         "client_id": state.config.hca.client_id,
         "client_secret": state.config.hca.client_secret,
         "redirect_uri": state.config.hca.redirect_uri.to_string(),
@@ -196,6 +216,6 @@ pub(super) fn routes(config: &Config) -> Router<AppState> {
 
     Router::new()
         .route("/login", get(login_handler))
-        .route("/callback/{provider}", get(callback_handler))
+        .route("/callback", get(callback_handler))
         .layer(session_layer)
 }
