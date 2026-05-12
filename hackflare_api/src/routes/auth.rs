@@ -58,6 +58,7 @@ enum TokenType {
 }
 
 #[serde_as]
+#[allow(unused)]
 #[derive(Deserialize)]
 struct HcaTokenResponse {
     access_token: String,
@@ -140,7 +141,7 @@ async fn login_handler(
             .await
             .expect("failed to set target url in session");
     }
-    trace!(csrf_token, target_url, "persisted login state");
+    trace!(target_url, "persisted login state");
 
     let redirect = login_redirect(&state.config, &csrf_token);
     Redirect::to(&redirect)
@@ -259,10 +260,10 @@ async fn callback_handler(
         .max_age(cookie::time::Duration::hours(SESSION_DURATION_HOURS))
         .build();
 
-    let target_url = session_target_url
-        .as_ref()
-        .map(String::as_str)
-        .unwrap_or("/");
+    // TODO: do we have to validate this cookie? is it not HttpOnly already?
+    // would it allow for open redirects to other origins?
+    // https://github.com/Hack-Flare/hackflare/pull/34#discussion_r3230192477
+    let target_url = session_target_url.as_deref().unwrap_or("/");
 
     Ok((
         StatusCode::FOUND,

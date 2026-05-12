@@ -73,8 +73,8 @@ pub(crate) fn from_env() -> Result<Config> {
 
     Ok(Config {
         bind_addr: env_or("API_BIND_ADDR", "0.0.0.0:8080".parse().unwrap())?,
-        jwt_encoding_key: EncodingKey::from_secret(jwt_secret.as_bytes()),
-        jwt_decoding_key: DecodingKey::from_secret(jwt_secret.as_bytes()),
+        jwt_encoding_key: EncodingKey::from_base64_secret(&jwt_secret)?,
+        jwt_decoding_key: DecodingKey::from_base64_secret(&jwt_secret)?,
         hca: HcaConfig {
             client_id: env_req("API_HCA_CLIENT_ID")?,
             client_secret: env_req("API_HCA_CLIENT_SECRET")?,

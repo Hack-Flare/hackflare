@@ -36,12 +36,13 @@ pub(crate) async fn auth_middleware(
     })?
     .claims;
 
+    debug!(id = claims.sub, "user authorized");
+
     let user = CurrentUser { claims };
 
     // TODO: get user data from DB
 
     req.extensions_mut().insert(user);
 
-    debug!("user was authorized!");
     Ok(next.run(req).await)
 }
