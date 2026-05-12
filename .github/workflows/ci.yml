@@ -21,12 +21,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  backend:
-    name: Backend Rust Checks
+  api:
+    name: API Checks
     runs-on: blacksmith-4vcpu-ubuntu-2404
     defaults:
       run:
-        working-directory: backend
+        working-directory: hackflare_api
     steps:
       - uses: actions/checkout@v6
 
@@ -36,7 +36,7 @@ jobs:
       - name: Cache Rust artifacts
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: backend
+          workspaces: hackflare_api
 
       - name: Check formatting
         run: cargo fmt --all --check
