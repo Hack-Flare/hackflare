@@ -1,22 +1,68 @@
 use crate::dns::{DnsConfig, DnsManager, Record};
 use idna::domain_to_ascii;
+use std::sync::{Arc, RwLock};
 use std::net::{Ipv4Addr, Ipv6Addr};
 
 pub struct DnsEngine {
-    pub manager: DnsManager,
-    pub config: DnsConfig,
+    manager: Arc<RwLock<DnsManager>>,
+    config: DnsConfig,
 }
 
+#[allow(dead_code)]
 impl DnsEngine {
-    pub fn new(manager: DnsManager, config: DnsConfig) -> Self {
-        Self { manager, config }
+    pub(crate) fn new(manager: DnsManager, config: DnsConfig) -> Self {
+        Self {
+            manager: Arc::new(RwLock::new(manager)),
+            config,
+        }
     }
 
-    pub fn with_defaults(manager: DnsManager) -> Self {
+    pub(crate) fn with_defaults(manager: DnsManager) -> Self {
         Self {
-            manager,
+            manager: Arc::new(RwLock::new(manager)),
             config: DnsConfig::from_env(),
         }
+    }
+
+    pub(crate) fn create_zone(&self, name: impl Into<String>) {
+        if let Ok(mut manager) = self.manager.write() {
+            manager.create_zone(name);
+        }
+    }
+
+    pub(crate) fn delete_zone(&self, name: &str) -> bool {
+        self.manager
+            .write()
+            .map(|mut manager| manager.delete_zone(name))
+            .unwrap_or(false)
+    }
+
+    pub(crate) fn add_record(
+        &self,
+        zone_name: &str,
+        name: &str,
+        rtype: &str,
+        ttl: u32,
+        data: &str,
+    ) -> bool {
+        self.manager
+            .write()
+            .map(|mut manager| manager.add_record(zone_name, name, rtype, ttl, data))
+            .unwrap_or(false)
+    }
+
+    pub(crate) fn remove_record(&self, zone_name: &str, name: &str, rtype: &str) -> bool {
+        self.manager
+            .write()
+            .map(|mut manager| manager.remove_record(zone_name, name, rtype))
+            .unwrap_or(false)
+    }
+
+    pub(crate) fn list_zones(&self) -> Vec<String> {
+        self.manager
+            .read()
+            .map(|manager| manager.list_zones())
+            .unwrap_or_default()
     }
 
     pub fn handle_query(&self, req: &[u8]) -> Option<Vec<u8>> {
@@ -117,16 +163,18 @@ impl DnsEngine {
             is_ip_literal = true;
         }
 
+        let manager = self.manager.read().ok()?;
+
         let mut recs = if qtype == 255 {
-            self.manager.find_records(&qname, None)
+            manager.find_records(&qname, None)
         } else if qtype_str.is_empty() {
             Vec::new()
         } else {
-            self.manager.find_answer_records(&qname, Some(qtype_str))
+            manager.find_answer_records(&qname, Some(qtype_str))
         };
 
         if is_ip_literal && recs.is_empty() && let Some(rn) = reverse_name.as_ref() {
-            let ptrs = self.manager.find_records(rn, Some("PTR"));
+            let ptrs = manager.find_records(rn, Some("PTR"));
             if !ptrs.is_empty() {
                 recs = ptrs;
             } else {

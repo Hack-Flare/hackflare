@@ -18,6 +18,7 @@ impl Default for DnsManager {
     }
 }
 
+#[allow(dead_code)]
 impl DnsManager {
     fn normalize_name(name: &str) -> String {
         name.trim().trim_end_matches('.').to_ascii_lowercase()

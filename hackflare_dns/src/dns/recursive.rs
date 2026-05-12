@@ -1,6 +1,7 @@
 use crate::dns::engine::{encode_name_labels_vec, parse_qname};
 use crate::dns::DnsConfig;
 use once_cell::sync::Lazy;
+use postgres::NoTls;
 use rand::seq::SliceRandom;
 use std::collections::HashMap;
 type CacheKey = (String, u16);
@@ -201,15 +202,24 @@ fn load_root_hint_servers() -> Vec<String> {
 }
 
 fn load_root_hint_servers_internal(custom_path: Option<&std::path::PathBuf>) -> Vec<String> {
-    if let Some(path) = custom_path {
-        if let Ok(content) = fs::read_to_string(path) {
-            let parsed = parse_root_hints(&content);
-            if !parsed.is_empty() {
-                return parsed;
-            }
+    // Try loading from database first (will use DATABASE_URL from config if available)
+    if let Some(db_hints) = load_root_hints_from_db()
+        && !db_hints.is_empty()
+    {
+        return db_hints;
+    }
+
+    // Try custom path if provided
+    if let Some(path) = custom_path
+        && let Ok(content) = fs::read_to_string(path)
+    {
+        let parsed = parse_root_hints(&content);
+        if !parsed.is_empty() {
+            return parsed;
         }
     }
 
+    // Try standard file locations
     let paths = root_hint_candidate_paths();
 
     for path in &paths {
@@ -221,6 +231,7 @@ fn load_root_hint_servers_internal(custom_path: Option<&std::path::PathBuf>) -> 
         }
     }
 
+    // Try creating root hints file if needed
     for path in &paths {
         if try_create_root_hints_file(path)
             && let Ok(content) = fs::read_to_string(path)
@@ -232,7 +243,86 @@ fn load_root_hint_servers_internal(custom_path: Option<&std::path::PathBuf>) -> 
         }
     }
 
+    // Fall back to hardcoded root servers
     ROOT_SERVERS.iter().map(|s| s.to_string()).collect()
+}
+
+fn load_root_hints_from_db() -> Option<Vec<String>> {
+    let db_url = env::var("DATABASE_URL").ok()?;
+    let mut client = postgres::Client::connect(&db_url, NoTls).ok()?;
+    
+    // Try to query root hints; if table doesn't exist, return None and fall back
+    let result = client.query("SELECT ip_address FROM dns_root_hints ORDER BY ip_address", &[]);
+    
+    match result {
+        Ok(rows) => {
+            let mut hints: Vec<String> = rows
+                .iter()
+                .filter_map(|row| {
+                    let ip: String = row.get(0);
+                    if !ip.is_empty() {
+                        Some(ip)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            
+            hints.sort();
+            hints.dedup();
+            
+            if hints.is_empty() {
+                None
+            } else {
+                Some(hints)
+            }
+        }
+        Err(_) => {
+            // Table doesn't exist or query failed; fall back to other methods
+            None
+        }
+    }
+}
+
+// Initialize the dns_root_hints table if it doesn't exist and populate it with the default root servers.
+// This is a utility function that can be called at startup to ensure root hints are available in the database.
+pub fn ensure_root_hints_in_db(db_url: &str) -> Result<(), String> {
+    let mut client = postgres::Client::connect(db_url, NoTls)
+        .map_err(|e| format!("Failed to connect to database: {}", e))?;
+    
+    // Create table if it doesn't exist
+    client
+        .execute(
+            "CREATE TABLE IF NOT EXISTS dns_root_hints (
+                id SERIAL PRIMARY KEY,
+                ip_address VARCHAR(45) NOT NULL UNIQUE,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            )",
+            &[],
+        )
+        .map_err(|e| format!("Failed to create dns_root_hints table: {}", e))?;
+    
+    // Check if table is empty
+    let count_result = client
+        .query_one("SELECT COUNT(*) FROM dns_root_hints", &[])
+        .map_err(|e| format!("Failed to count root hints: {}", e))?;
+    
+    let count: i64 = count_result.get(0);
+    
+    if count == 0 {
+        // Populate with default root servers
+        for ip in ROOT_SERVERS.iter() {
+            client
+                .execute(
+                    "INSERT INTO dns_root_hints (ip_address) VALUES ($1) ON CONFLICT (ip_address) DO NOTHING",
+                    &[ip],
+                )
+                .map_err(|e| format!("Failed to insert root hint: {}", e))?;
+        }
+    }
+    
+    Ok(())
 }
 
 fn tld_from_name(name: &str) -> Option<String> {

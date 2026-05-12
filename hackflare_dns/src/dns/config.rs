@@ -2,48 +2,50 @@ use std::env;
 use std::path::PathBuf;
 use std::time::Duration;
 
-/// Configuration for the DNS engine and recursive resolver.
-/// All environment variables are loaded once at startup with sensible defaults.
+// Configuration for the DNS engine and recursive resolver.
+// All environment variables are loaded once at startup with sensible defaults.
 #[derive(Debug, Clone)]
 pub struct DnsConfig {
-    /// Enable recursive resolution (default: false)
+    // Enable recursive resolution (default: false)
     pub recursion_enabled: bool,
 
     // SOA record fields (defaults suitable for a secondary nameserver)
-    /// SOA MNAME (primary nameserver) - default: "ns.example.com."
+    // SOA MNAME (primary nameserver) - default: "ns.example.com."
     pub soa_mname: String,
-    /// SOA RNAME (responsible person) - default: "admin.example.com."
+    // SOA RNAME (responsible person) - default: "admin.example.com."
     pub soa_rname: String,
-    /// SOA serial number - default: "2024010101"
+    // SOA serial number - default: "2024010101"
     pub soa_serial: String,
-    /// SOA refresh interval (seconds) - default: "3600"
+    // SOA refresh interval (seconds) - default: "3600"
     pub soa_refresh: String,
-    /// SOA retry interval (seconds) - default: "1800"
+    // SOA retry interval (seconds) - default: "1800"
     pub soa_retry: String,
-    /// SOA expire interval (seconds) - default: "604800"
+    // SOA expire interval (seconds) - default: "604800"
     pub soa_expire: String,
-    /// SOA minimum TTL (seconds) - default: "86400"
+    // SOA minimum TTL (seconds) - default: "86400"
     pub soa_minimum: String,
-    /// SOA record TTL (seconds) - default: "3600"
+    // SOA record TTL (seconds) - default: "3600"
     pub soa_ttl: String,
 
     // UDP/Recursive resolver settings
-    /// UDP payload size (EDNS) - default: 512
+    // UDP payload size (EDNS) - default: 512
     pub udp_size: u16,
-    /// UDP attempts per upstream server - default: 4
+    // UDP attempts per upstream server - default: 4
     pub udp_attempts: usize,
-    /// UDP timeout per attempt - default: 2500ms
+    // UDP timeout per attempt - default: 2500ms
     pub udp_timeout: Duration,
-    /// Maximum recursion rounds - default: 8
+    // Maximum recursion rounds - default: 8
     pub recursion_rounds: usize,
-    /// Enable debug logging for recursive resolver - default: false
+    // Enable debug logging for recursive resolver - default: false
     pub recursion_debug: bool,
-    /// Path to root hints file (optional, uses hardcoded defaults if not set)
+    // Path to root hints file (optional, uses hardcoded defaults if not set)
     pub root_hints_file: Option<PathBuf>,
+    // PostgreSQL database URL for loading root hints from DB (optional)
+    pub database_url: Option<String>,
 }
 
 impl DnsConfig {
-    /// Load configuration from environment variables with sensible defaults.
+    // Load configuration from environment variables with sensible defaults.
     pub fn from_env() -> Self {
         Self {
             recursion_enabled: env_bool("HACKFLARE_DNS_RECURSION_ENABLED", false),
@@ -66,10 +68,11 @@ impl DnsConfig {
             root_hints_file: env::var("HACKFLARE_ROOT_HINTS_FILE")
                 .ok()
                 .map(PathBuf::from),
+            database_url: env::var("DATABASE_URL").ok(),
         }
     }
 
-    /// Create a new config with all defaults (useful for testing).
+    // Create a new config with all defaults (useful for testing).
     pub fn default_config() -> Self {
         Self {
             recursion_enabled: false,
@@ -87,6 +90,7 @@ impl DnsConfig {
             recursion_rounds: 8,
             recursion_debug: false,
             root_hints_file: None,
+            database_url: None,
         }
     }
 }

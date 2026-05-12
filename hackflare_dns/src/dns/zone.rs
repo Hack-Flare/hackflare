@@ -7,6 +7,7 @@ pub struct Zone {
     pub records: Vec<Record>,
 }
 
+#[allow(dead_code)]
 impl Zone {
     pub fn new(name: impl Into<String>) -> Self {
         Self {

@@ -1,3 +1,6 @@
+mod hickory;
+mod authority;
+
 pub mod config;
 pub mod server;
 

@@ -7,7 +7,6 @@ pub mod registry;
 pub mod zone;
 
 pub use config::DnsConfig;
-pub use engine::DnsEngine;
 pub use manager::DnsManager;
 pub use records::Record;
 pub use zone::Zone;

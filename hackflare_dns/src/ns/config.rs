@@ -10,7 +10,7 @@ pub struct NsConfig {
 }
 
 impl NsConfig {
-    /// Load configuration from environment variables and defaults.
+    // Load configuration from environment variables and defaults.
     pub fn from_env() -> Self {
         Self {
             bind_addr: env::var("HACKFLARE_NS_BIND_ADDR").unwrap_or_else(|_| "0.0.0.0".to_string()),
