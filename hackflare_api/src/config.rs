@@ -1,6 +1,7 @@
 use std::{env, net::SocketAddr, str::FromStr};
 
 use anyhow::{Context, Result};
+use jsonwebtoken::EncodingKey;
 use reqwest::Url;
 
 fn env_req<T>(name: &str) -> Result<T>
@@ -51,6 +52,7 @@ impl HcaConfig {
 #[derive(Debug)]
 pub(crate) struct Config {
     pub(crate) bind_addr: SocketAddr,
+    pub(crate) jwt_secret: EncodingKey,
     pub(crate) hca: HcaConfig,
 }
 
@@ -68,6 +70,8 @@ pub(crate) fn from_env() -> Result<Config> {
 
     Ok(Config {
         bind_addr: env_or("API_BIND_ADDR", "0.0.0.0:8080".parse().unwrap())?,
+        jwt_secret: env_req::<String>("API_JWT_SECRET")
+            .map(|s| EncodingKey::from_secret(s.as_bytes()))?,
         hca: HcaConfig {
             client_id: env_req("API_HCA_CLIENT_ID")?,
             client_secret: env_req("API_HCA_CLIENT_SECRET")?,
