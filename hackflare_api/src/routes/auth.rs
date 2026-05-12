@@ -97,13 +97,13 @@ struct HcaUserdataResponse {
 }
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-struct JwtClaims {
-    sub: String,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct JwtClaims {
+    pub(crate) sub: String,
     #[serde_as(as = "TimestampSeconds<i64>")]
-    exp: DateTime<Utc>,
+    pub(crate) exp: DateTime<Utc>,
     #[serde_as(as = "TimestampSeconds<i64>")]
-    iat: DateTime<Utc>,
+    pub(crate) iat: DateTime<Utc>,
 }
 
 /// Generate a random alphanumeric string that is `len` characters long.
@@ -242,11 +242,11 @@ async fn callback_handler(
         exp: now + chrono::Duration::hours(SESSION_DURATION_HOURS),
     };
 
-    let token = jsonwebtoken::encode(&Header::default(), &claims, &state.config.jwt_secret)
+    let token = jsonwebtoken::encode(&Header::default(), &claims, &state.config.jwt_encoding_key)
         .map_err(|error| {
-            error!(%error, "failed to encode jwt");
-            (StatusCode::INTERNAL_SERVER_ERROR, "jwt_encode_error")
-        })?;
+        error!(%error, "failed to encode jwt");
+        (StatusCode::INTERNAL_SERVER_ERROR, "jwt_encode_error")
+    })?;
 
     let is_secure = state.config.hca.is_secure();
 

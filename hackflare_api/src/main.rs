@@ -1,5 +1,6 @@
 mod config;
 mod hca;
+mod middlewares;
 mod routes;
 mod state;
 
