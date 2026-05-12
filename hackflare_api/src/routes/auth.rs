@@ -6,6 +6,8 @@ use axum::{
 use rand::{RngExt, distr::Alphanumeric};
 use reqwest::{StatusCode, Url};
 use serde::{Deserialize, Serialize};
+use jsonwebtoken::{EncodingKey, Header, encode};
+use chrono::{Utc, Duration as ChronoDuration};
 use tower_sessions::{
     Expiry, MemoryStore, Session, SessionManagerLayer,
     cookie::{SameSite, time::Duration},
@@ -70,6 +72,12 @@ pub struct HcaUser {
     slack_id: String,
 }
 
+#[derive(Serialize)]
+struct CallbackResponse {
+    token: String,
+    user: HcaUser,
+}
+
 /// Generate a random alphanumeric string that is `len` characters long.
 fn random_string(len: usize) -> String {
     rand::rng()
@@ -99,7 +107,7 @@ async fn callback_handler(
     session: Session,
     Path(provider): Path<String>,
     Query(query): Query<AuthCallback>,
-) -> Result<Json<HcaUser>, (StatusCode, &'static str)> {
+) -> Result<Json<CallbackResponse>, (StatusCode, &'static str)> {
     let csrf_state: String = session
         .remove("hca_state")
         .await
@@ -171,9 +179,35 @@ async fn callback_handler(
         .unwrap();
     info!(user_info.first_name, user_info.last_name, ?hca_response.scopes, "Login successful");
 
-    // TODO: Store Token in Database
+    // Generate a signed JWT for frontend consumption
+    // Claims: sub (user slack_id), name, email, exp
+    #[derive(Serialize)]
+    struct Claims {
+        sub: String,
+        name: String,
+        email: String,
+        exp: usize,
+    }
 
-    Ok(Json(user_info))
+    let name = format!("{} {}", user_info.first_name, user_info.last_name);
+    let email = user_info.primary_email.clone();
+    // Expire in 30 days
+    let exp = (Utc::now() + ChronoDuration::days(30)).timestamp() as usize;
+
+    let claims = Claims {
+        sub: user_info.slack_id.clone(),
+        name,
+        email,
+        exp,
+    };
+
+    let encoding_key = EncodingKey::from_secret(state.config.jwt_secret.as_bytes());
+    let token = encode(&Header::default(), &claims, &encoding_key).map_err(|e| {
+        error!(%e, "failed to encode jwt");
+        (StatusCode::INTERNAL_SERVER_ERROR, "jwt_encode_failed")
+    })?;
+
+    Ok(Json(CallbackResponse { token, user: user_info }))
 }
 
 pub(super) fn routes(config: &Config) -> Router<AppState> {

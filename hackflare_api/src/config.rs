@@ -52,6 +52,7 @@ impl HcaConfig {
 pub(crate) struct Config {
     pub(crate) bind_addr: SocketAddr,
     pub(crate) hca: HcaConfig,
+    pub(crate) jwt_secret: String,
 }
 
 pub(crate) fn from_env() -> Result<Config> {
@@ -73,5 +74,6 @@ pub(crate) fn from_env() -> Result<Config> {
             client_secret: env_req("API_HCA_CLIENT_SECRET")?,
             redirect_uri,
         },
+        jwt_secret: env_req("API_JWT_SECRET")?,
     })
 }
