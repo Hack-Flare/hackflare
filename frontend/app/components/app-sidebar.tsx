@@ -1,6 +1,6 @@
 import { useLocation, NavLink, useNavigate } from "react-router"
 import { useState } from "react"
-import { useAuth } from "~/lib/auth-context"
+import { getUserDisplayName, useAuth } from "~/lib/auth-context"
 
 import {
   LayoutDashboard, Globe, ShieldAlert, ArrowLeftRight,
@@ -85,11 +85,15 @@ export function AppSidebar() {
 
   const userInitials = user?.name
     ? user.name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2)
-    : "?"
+    : user?.email
+      ? user.email.split("@")[0].slice(0, 2).toUpperCase()
+      : user?.id?.slice(0, 2).toUpperCase() || "?"
 
-  const handleLogout = () => {
-    logout()
-    navigate("/auth")
+  const userLabel = getUserDisplayName(user)
+
+  const handleLogout = async () => {
+    await logout()
+    navigate("/login")
   }
 
   const isActive = (href: string) => {
@@ -322,8 +326,8 @@ export function AppSidebar() {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col leading-none min-w-0">
-                    <span className="font-semibold text-sm truncate">{user?.name || "User"}</span>
-                    <span className="text-xs text-muted-foreground truncate">{user?.email}</span>
+                    <span className="font-semibold text-sm truncate">{userLabel}</span>
+                    <span className="text-xs text-muted-foreground truncate">Hack Club session active</span>
                   </div>
                   <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
                 </SidebarMenuButton>
@@ -336,8 +340,8 @@ export function AppSidebar() {
                 sideOffset={4}
               >
                 <DropdownMenuLabel className="font-normal p-2">
-                  <p className="font-semibold text-sm">{user?.name || "User"}</p>
-                  <p className="text-xs text-muted-foreground">{user?.email}</p>
+                  <p className="font-semibold text-sm">{userLabel}</p>
+                  <p className="text-xs text-muted-foreground">Authenticated via Hack Club</p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => navigate("/dash/profile")}>

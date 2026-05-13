@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
-import { useAuth } from "~/lib/auth-context"
+import { getUserDisplayName, useAuth } from "~/lib/auth-context"
 import { Copy, Eye, Trash2, Bell, Lock, Shield } from "lucide-react"
 import { Button } from "~/components/ui/button"
 
@@ -11,6 +11,7 @@ const apiKeys = [
 
 export default function Settings() {
   const { user } = useAuth()
+  const displayName = getUserDisplayName(user)
 
   return (
     <div className="space-y-6">
@@ -22,21 +23,21 @@ export default function Settings() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Shield className="h-5 w-5" />Account</CardTitle>
-          <CardDescription>Email, role, account management</CardDescription>
+          <CardDescription>Name, id, account management</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-3 gap-4">
             <div>
               <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">Name</p>
-              <p className="text-sm font-medium mt-1">{user?.name || "Unknown"}</p>
+              <p className="text-sm font-medium mt-1">{displayName}</p>
             </div>
             <div>
-              <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">Email</p>
-              <p className="text-sm font-medium mt-1">{user?.email || "Unknown"}</p>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">User ID</p>
+              <p className="text-sm font-medium mt-1">{user?.id || "Unknown"}</p>
             </div>
             <div>
-              <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">Role</p>
-              <p className="text-sm font-medium mt-1">{user?.is_admin ? "Admin" : "User"}</p>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">Status</p>
+              <p className="text-sm font-medium mt-1">Authenticated via Hack Club</p>
             </div>
           </div>
           <div className="flex gap-2">

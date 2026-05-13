@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallback } from "~/components/ui/avatar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
-import { useAuth } from "~/lib/auth-context"
+import { getUserDisplayName, useAuth } from "~/lib/auth-context"
 import { useNavigate } from "react-router"
 import { Clock, Globe, Shield, LogOut } from "lucide-react"
 
@@ -13,13 +13,17 @@ const sessions = [
 export default function Profile() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const initials = user?.name
-    ? user.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
-    : "?"
+  const displayName = getUserDisplayName(user)
+  const initials = displayName
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2)
 
-  const handleLogout = () => {
-    logout()
-    navigate("/auth")
+  const handleLogout = async () => {
+    await logout()
+    navigate("/login")
   }
 
   return (
@@ -44,15 +48,15 @@ export default function Profile() {
             <div className="flex-1 space-y-4">
               <div>
                 <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">Name</p>
-                <p className="text-sm font-medium mt-1">{user?.name || "Unknown"}</p>
+                <p className="text-sm font-medium mt-1">{displayName}</p>
               </div>
               <div>
-                <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">Email</p>
-                <p className="text-sm font-medium mt-1">{user?.email || "Unknown"}</p>
+                <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">User ID</p>
+                <p className="text-sm font-medium mt-1">{user?.id || "Unknown"}</p>
               </div>
               <div>
-                <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">Role</p>
-                <p className="text-sm font-medium mt-1">{user?.is_admin ? "Admin" : "User"}</p>
+                <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">Status</p>
+                <p className="text-sm font-medium mt-1">Authenticated via Hack Club</p>
               </div>
               <div className="flex gap-2 pt-2">
                 <button className="px-3 py-2 rounded text-sm font-medium bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100">

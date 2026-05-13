@@ -10,6 +10,7 @@ At the moment, the backend exposes only these HTTP routes:
 
 - `GET /api/v1/auth/login`
 - `GET /api/v1/auth/callback`
+- `POST /api/v1/auth/logout`
 - `GET /api/v1/users/me`
 
 There are no health, DNS, or database-backed CRUD endpoints implemented in the current Rust source tree.
@@ -98,6 +99,16 @@ Common failure codes:
 - `401 missing_jwt`
 - `401 invalid_jwt`
 
+### `POST /api/v1/auth/logout`
+
+Clears the `jwt` cookie used by the frontend session.
+
+Response:
+
+- `204 No Content`
+
+This endpoint is used by the frontend sign-out action so the browser session is removed on the backend as well.
+
 ## Session And Cookie Details
 
 - The OAuth session state is stored in an in-memory `tower_sessions::MemoryStore`.
@@ -119,6 +130,7 @@ Required variables:
 Optional variable:
 
 - `API_BIND_ADDR` defaults to `0.0.0.0:8080`
+- `API_FRONTEND_ORIGIN` defaults to `http://localhost:5173`
 
 Notes:
 
