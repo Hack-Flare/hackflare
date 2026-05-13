@@ -1,73 +1,110 @@
 use axum::{
-    Json, Router,
-    extract::{Path, Query, State},
+    Router,
+    extract::{Query, State},
+    http::header,
+    response::{IntoResponse, Redirect, Response},
     routing::get,
 };
+use chrono::{DateTime, Duration, Utc};
+use jsonwebtoken::Header;
 use rand::{RngExt, distr::Alphanumeric};
 use reqwest::{StatusCode, Url};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
+use serde_with::{DurationSeconds, TimestampSeconds, serde_as};
 use tower_sessions::{
     Expiry, MemoryStore, Session, SessionManagerLayer,
-    cookie::{SameSite, time::Duration},
+    cookie::{self, Cookie, SameSite},
 };
 
-use crate::{
-    config::{Config, HcaConfig},
-    state::AppState,
-};
+use crate::{config::Config, state::AppState};
 
-fn hca_login_redirect(config: &HcaConfig, state: &str) -> String {
+fn login_redirect(config: &Config, csrf_token: &str) -> String {
     let scopes = "email name profile verification_status slack_id";
 
-    // Parse the base authorization endpoint
-    let mut url = Url::parse("https://auth.hackclub.com/oauth/authorize").unwrap();
+    let path = "https://auth.hackclub.com/oauth/authorize";
+    let params = [
+        ("client_id", config.hca.client_id.as_str()),
+        ("redirect_uri", config.hca.redirect_uri.as_str()),
+        ("response_type", "code"),
+        ("scope", scopes),
+        ("state", csrf_token),
+    ];
 
-    // Add parameters safely
-    url.query_pairs_mut()
-        .append_pair("client_id", &config.client_id)
-        .append_pair("redirect_uri", config.redirect_uri.as_str())
-        .append_pair("response_type", "code")
-        .append_pair("scope", scopes)
-        .append_pair("state", state);
+    let url = Url::parse_with_params(path, params).unwrap();
 
     url.to_string()
 }
 
-#[derive(Serialize)]
-struct LoginResponse {
-    redirect: String,
+// TODO: make this a config option?
+const SESSION_DURATION_HOURS: i64 = 24;
+
+#[derive(Debug, Deserialize)]
+struct LoginParams {
+    #[serde(rename = "target")]
+    target_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
-struct AuthCallback {
+struct AuthCallbackParams {
     code: String,
-    state: String,
+    #[serde(rename = "state")]
+    csrf_token: String,
 }
 
 #[derive(Deserialize)]
-struct HcaTokenResponse {
-    access_token: String,
+enum TokenType {
+    Bearer,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct HcaResponse {
-    pub identity: HcaUser,
-    pub scopes: Vec<String>,
+#[serde_as]
+#[allow(unused)]
+#[derive(Deserialize)]
+struct HcaTokenResponse {
+    access_token: String,
+    token_type: TokenType,
+    #[serde_as(as = "DurationSeconds<i64>")]
+    expires_in: Duration,
+    refresh_token: String,
+    scope: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HcaUser {
+    /// Unique ID of a user.
     id: String,
 
+    /// Is this user eligible for YSWS programs? In other words, are they eligible for Hackflare?
     ysws_eligible: bool,
     verification_status: String,
 
+    /// User's legal first name.
     first_name: String,
+
+    /// User's legal last name.
     last_name: String,
 
+    /// The primary - and only - email of the user.
     primary_email: String,
 
+    /// The Slack ID of the user.
     slack_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct HcaUserdataResponse {
+    identity: HcaUser,
+    scopes: Vec<String>,
+}
+
+#[serde_as]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct JwtClaims {
+    pub(crate) sub: String,
+    #[serde_as(as = "TimestampSeconds<i64>")]
+    pub(crate) exp: DateTime<Utc>,
+    #[serde_as(as = "TimestampSeconds<i64>")]
+    pub(crate) iat: DateTime<Utc>,
 }
 
 /// Generate a random alphanumeric string that is `len` characters long.
@@ -79,40 +116,67 @@ fn random_string(len: usize) -> String {
         .collect()
 }
 
-async fn login_handler(State(state): State<AppState>, session: Session) -> Json<LoginResponse> {
-    debug!("login request");
-    let csrf_state = random_string(32);
+const SESSION_CSRF_TOKEN_KEY: &str = "auth::csrf_token";
+const SESSION_TARGET_URL_KEY: &str = "auth::target_url";
+
+async fn login_handler(
+    State(state): State<AppState>,
+    session: Session,
+    Query(LoginParams { target_url }): Query<LoginParams>,
+) -> Redirect {
+    let csrf_token = random_string(32);
 
     session
-        .insert("hca_state", &csrf_state)
+        .insert(SESSION_CSRF_TOKEN_KEY, &csrf_token)
         .await
-        .expect("failed to insert state into session");
-    trace!(%csrf_state, "persisted login state");
+        .expect("failed to set csrf token in session");
+    if let Some(target_url) = target_url.as_ref() {
+        session
+            .insert(SESSION_TARGET_URL_KEY, &target_url)
+            .await
+            .expect("failed to set target url in session");
+    } else {
+        session
+            .remove::<String>(SESSION_TARGET_URL_KEY)
+            .await
+            .expect("failed to set target url in session");
+    }
+    trace!(target_url, "persisted login state");
 
-    let redirect = hca_login_redirect(&state.config.hca, &csrf_state);
-    Json(LoginResponse { redirect })
+    let redirect = login_redirect(&state.config, &csrf_token);
+    Redirect::to(&redirect)
 }
 
-// TODO: what is someone forges a request to a foreign provider? => does security hold?
 async fn callback_handler(
     State(state): State<AppState>,
     session: Session,
-    Path(provider): Path<String>,
-    Query(query): Query<AuthCallback>,
-) -> Result<Json<HcaUser>, (StatusCode, &'static str)> {
-    let csrf_state: String = session
-        .remove("hca_state")
+    Query(query): Query<AuthCallbackParams>,
+) -> Result<Response, (StatusCode, &'static str)> {
+    let session_csrf_token: String = session
+        .remove(SESSION_CSRF_TOKEN_KEY)
         .await
-        .expect("failed to get state from session")
-        .ok_or((StatusCode::BAD_REQUEST, "missing_state_session"))?;
+        .expect("failed to get csrf token from session")
+        .ok_or((StatusCode::BAD_REQUEST, "missing_auth_state"))?;
 
-    if query.state != csrf_state {
-        return Err((StatusCode::BAD_REQUEST, "invalid_state"));
+    let session_target_url: Option<String> = session
+        .remove(SESSION_TARGET_URL_KEY)
+        .await
+        .expect("failed to get target url from session");
+
+    if query.csrf_token != session_csrf_token {
+        // TODO: should this be a warn! event instead?
+        debug!(query.csrf_token, session_csrf_token, "csrf token mismatch");
+        return Err((StatusCode::BAD_REQUEST, "csrf_token_mismatch"));
     }
 
-    trace!(provider, query.code, query.state, "got auth callback");
+    trace!(
+        query.code,
+        query.csrf_token,
+        ?session_target_url,
+        "got auth callback"
+    );
 
-    let payload = serde_json::json!({
+    let payload = json!({
         "client_id": state.config.hca.client_id,
         "client_secret": state.config.hca.client_secret,
         "redirect_uri": state.config.hca.redirect_uri.to_string(),
@@ -138,8 +202,8 @@ async fn callback_handler(
         return Err((StatusCode::BAD_REQUEST, "hca_rejected_exchange"));
     }
 
-    let token_response = response.json::<HcaTokenResponse>().await.map_err(|e| {
-        error!(%e, "failed to parse HCA success JSON");
+    let token_response = response.json::<HcaTokenResponse>().await.map_err(|error| {
+        error!(%error, "failed to parse HCA success JSON");
         (StatusCode::INTERNAL_SERVER_ERROR, "token_parse_failed")
     })?;
 
@@ -158,22 +222,57 @@ async fn callback_handler(
         return Err((StatusCode::UNAUTHORIZED, "hca_identity_denied"));
     }
 
-    let hca_response = user_response.json::<HcaResponse>().await.map_err(|e| {
-        error!(%e, "Failed to parse HCA User JSON");
-        (StatusCode::INTERNAL_SERVER_ERROR, "invalid_user_data")
-    })?;
+    let hca_response = user_response
+        .json::<HcaUserdataResponse>()
+        .await
+        .map_err(|e| {
+            error!(%e, "Failed to parse HCA User JSON");
+            (StatusCode::INTERNAL_SERVER_ERROR, "invalid_user_data")
+        })?;
 
     let user_info = hca_response.identity;
 
-    session
-        .insert("user_id", user_info.slack_id.clone())
-        .await
-        .unwrap();
-    info!(user_info.first_name, user_info.last_name, ?hca_response.scopes, "Login successful");
+    debug!(user_info.first_name, user_info.last_name, ?hca_response.scopes, "login successful");
 
-    // TODO: Store Token in Database
+    // TODO: upsert user into DB here
 
-    Ok(Json(user_info))
+    let now = Utc::now();
+    let claims = JwtClaims {
+        sub: user_info.id,
+        iat: now,
+        exp: now + chrono::Duration::hours(SESSION_DURATION_HOURS),
+    };
+
+    let token = jsonwebtoken::encode(&Header::default(), &claims, &state.config.jwt_encoding_key)
+        .map_err(|error| {
+        error!(%error, "failed to encode jwt");
+        (StatusCode::INTERNAL_SERVER_ERROR, "jwt_encode_error")
+    })?;
+
+    let is_secure = state.config.hca.is_secure();
+
+    let cookie = Cookie::build(("jwt", token))
+        .path("/")
+        .http_only(true)
+        .secure(is_secure)
+        // NB: use lax to e.g. allow for email links etc. while still protecting from CSRF
+        .same_site(SameSite::Lax)
+        .max_age(cookie::time::Duration::hours(SESSION_DURATION_HOURS))
+        .build();
+
+    // TODO: do we have to validate this cookie? is it not HttpOnly already?
+    // would it allow for open redirects to other origins?
+    // https://github.com/Hack-Flare/hackflare/pull/34#discussion_r3230192477
+    let target_url = session_target_url.as_deref().unwrap_or("/");
+
+    Ok((
+        StatusCode::FOUND,
+        [
+            (header::SET_COOKIE, cookie.to_string().as_str()),
+            (header::LOCATION, target_url),
+        ],
+    )
+        .into_response())
 }
 
 pub(super) fn routes(config: &Config) -> Router<AppState> {
@@ -182,20 +281,14 @@ pub(super) fn routes(config: &Config) -> Router<AppState> {
     let session_store = MemoryStore::default();
     let session_layer = SessionManagerLayer::new(session_store)
         // TODO: make this duration a config option
-        .with_expiry(Expiry::OnInactivity(Duration::minutes(15)))
+        .with_expiry(Expiry::OnInactivity(cookie::time::Duration::minutes(15)))
         .with_secure(is_secure)
-        .with_same_site(if is_secure {
-            // strict on https (prod)
-            SameSite::Strict
-        } else {
-            // lax on http (dev)
-            SameSite::Lax
-        });
+        .with_same_site(SameSite::Lax);
 
     debug!(is_secure, "setting up auth routes");
 
     Router::new()
         .route("/login", get(login_handler))
-        .route("/callback/{provider}", get(callback_handler))
+        .route("/callback", get(callback_handler))
         .layer(session_layer)
 }
