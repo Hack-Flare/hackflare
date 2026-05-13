@@ -18,8 +18,10 @@ async fn main() {
         .with_env_filter(EnvFilter::from_default_env())
         .init();
 
-    if let Err(e) = dotenv() {
-        error!("failed to load .env files: {}", e)
+    if let Err(e) = dotenv()
+        && !e.not_found()
+    {
+        warn!("failed to load .env files: {}", e)
     }
 
     let config = match config::from_env() {
