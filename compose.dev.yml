@@ -1,0 +1,11 @@
+services:
+  api:
+    build:
+      context: ./hackflare_api
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - RUST_LOG=debug,hackflare=trace
+    ports:
+      - "8080:8080"
