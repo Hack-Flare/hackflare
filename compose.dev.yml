@@ -4,6 +4,7 @@ services:
     build:
       context: ./hackflare_api
       dockerfile: Dockerfile
+    platform: linux/amd64
     env_file:
       - .env
     environment:
