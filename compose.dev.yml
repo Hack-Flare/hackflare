@@ -1,5 +1,6 @@
 services:
   api:
+    profiles: [backend]
     build:
       context: ./hackflare_api
       dockerfile: Dockerfile
