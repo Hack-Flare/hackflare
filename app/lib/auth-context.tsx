@@ -10,6 +10,7 @@ export interface User {
 interface AuthContextType {
   user: User | null
   token: string | null
+  ready: boolean
   login: (token: string, user: User) => void
   logout: () => void
 }
@@ -19,14 +20,19 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    const storedToken = localStorage.getItem("hf_token")
-    const storedUser = localStorage.getItem("hf_user")
+    try {
+      const storedToken = localStorage.getItem("hf_token")
+      const storedUser = localStorage.getItem("hf_user")
 
-    if (storedToken && storedUser) {
-      setToken(storedToken)
-      setUser(JSON.parse(storedUser))
+      if (storedToken && storedUser) {
+        setToken(storedToken)
+        setUser(JSON.parse(storedUser))
+      }
+    } finally {
+      setReady(true)
     }
   }, [])
 
@@ -47,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider value={{ user, token, ready, login, logout }}>
       {children}
     </AuthContext.Provider>
   )

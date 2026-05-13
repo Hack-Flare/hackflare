@@ -7,15 +7,15 @@ import { useAuth } from "~/lib/auth-context"
 
 export default function SidebarLayout() {
   const navigate = useNavigate()
-  const { token } = useAuth()
+  const { token, ready } = useAuth()
 
   useEffect(() => {
-    if (!token) {
+    if (ready && !token) {
       navigate("/auth")
     }
-  }, [token, navigate])
+  }, [ready, token, navigate])
 
-  if (!token) {
+  if (!ready || !token) {
     return null
   }
 

@@ -16,12 +16,16 @@ const DEMO_USER = {
 
 export default function Login() {
   const navigate = useNavigate()
-  const { token, login, logout } = useAuth()
+  const { token, ready, login, logout } = useAuth()
   const [tab, setTab] = useState<"password" | "hackclub">("password")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  if (!ready) {
+    return null
+  }
 
   if (token) {
     return <Navigate to="/dash" replace />

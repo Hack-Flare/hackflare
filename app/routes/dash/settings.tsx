@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { useAuth } from "~/lib/auth-context"
 import { Copy, Eye, Trash2, Bell, Lock, Shield } from "lucide-react"
+import { Button } from "~/components/ui/button"
 
 const apiKeys = [
   { id: 1, name: "Production API", created: "Jan 12, 2024", lastUsed: "5m ago", status: "active" },
@@ -70,15 +71,15 @@ export default function Settings() {
                   {key.status}
                 </span>
                 <div className="flex gap-1 ml-3">
-                  <button className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded">
+                  <Button variant="ghost" size="icon">
                     <Eye className="h-4 w-4" />
-                  </button>
-                  <button className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded">
+                  </Button>
+                  <Button variant="ghost" size="icon">
                     <Copy className="h-4 w-4" />
-                  </button>
-                  <button className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-600">
+                  </Button>
+                  <Button variant="destructive" size="icon">
                     <Trash2 className="h-4 w-4" />
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}

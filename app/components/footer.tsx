@@ -8,7 +8,7 @@ export default function Footer() {
             <ul className="space-y-2.5 text-sm text-zinc-600 dark:text-zinc-400">
               <li><a href="#features" className="hover:text-zinc-900 dark:hover:text-white">Features</a></li>
               <li><a href="/docs" className="hover:text-zinc-900 dark:hover:text-white">Documentation</a></li>
-              <li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">Pricing</a></li>
+              {/*<li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">Pricing</a></li>*/}
               <li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">Status</a></li>
             </ul>
           </div>
@@ -17,7 +17,7 @@ export default function Footer() {
             <ul className="space-y-2.5 text-sm text-zinc-600 dark:text-zinc-400">
               <li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">About</a></li>
               <li><a href="/team" className="hover:text-zinc-900 dark:hover:text-white">Our Team</a></li>
-              <li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">Careers</a></li>
+              {/*<li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">Careers</a></li>*/}
               <li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">Contact</a></li>
             </ul>
           </div>
@@ -25,7 +25,7 @@ export default function Footer() {
             <h4 className="font-semibold text-zinc-900 dark:text-white mb-4">Resources</h4>
             <ul className="space-y-2.5 text-sm text-zinc-600 dark:text-zinc-400">
               <li><a href="/docs" className="hover:text-zinc-900 dark:hover:text-white">API Docs</a></li>
-              <li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">Guides</a></li>
+              {/*<li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">Guides</a></li>*/}
               <li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">Community</a></li>
               <li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">Support</a></li>
               </ul>
@@ -36,7 +36,7 @@ export default function Footer() {
               <li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">Privacy</a></li>
               <li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">Terms</a></li>
               <li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">Security</a></li>
-              <li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">License</a></li>
+              {/*<li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">License</a></li>*/}
             </ul>
           </div>
         </div>

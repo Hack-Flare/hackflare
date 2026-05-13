@@ -5,7 +5,7 @@ import { useAuth } from "~/lib/auth-context"
 import {
   LayoutDashboard, Globe, ShieldAlert, ArrowLeftRight,
   Zap, Network, BarChart2, Activity, ScrollText,
-  Settings, MessageSquare, ChevronsUpDown, LogOut,
+  Settings, BookOpen, ChevronsUpDown, LogOut,
   UserCircle, Plus, Check, ChevronRight, Shield,
 } from "lucide-react"
 
@@ -280,13 +280,21 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={isActive("/docs")}>
+              <NavLink to="/dash/settings" className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4" />
+                <span>Docs</span>
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          {/*<SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActive("/settings")}>
               <NavLink to="/dash/settings" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
                 <span>Settings</span>
               </NavLink>
             </SidebarMenuButton>
-          </SidebarMenuItem>
+          </SidebarMenuItem>*/}
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <a href="https://hackclub.slack.com" target="_blank" rel="noreferrer" className="flex items-center gap-2">
