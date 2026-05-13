@@ -1,184 +1,142 @@
 # Hackflare Backend API
 
-This document describes the HTTP API exposed by the backend service. All endpoints return JSON and standard HTTP status codes. Error responses use the shape:
+This document describes the backend that is currently implemented in [hackflare_api](../hackflare_api). If this file ever disagrees with the Rust source, trust the source.
+
+## Current Surface Area
+
+The backend entrypoint is [hackflare_api/src/main.rs](../hackflare_api/src/main.rs). HTTP routing is assembled in [hackflare_api/src/routes/mod.rs](../hackflare_api/src/routes/mod.rs), with auth in [hackflare_api/src/routes/auth.rs](../hackflare_api/src/routes/auth.rs), user routes in [hackflare_api/src/routes/users.rs](../hackflare_api/src/routes/users.rs), and JWT cookie validation in [hackflare_api/src/middlewares/auth.rs](../hackflare_api/src/middlewares/auth.rs).
+
+At the moment, the backend exposes only these HTTP routes:
+
+- `GET /api/v1/auth/login`
+- `GET /api/v1/auth/callback`
+- `GET /api/v1/users/me`
+
+There are no health, DNS, or database-backed CRUD endpoints implemented in the current Rust source tree.
+
+## Authentication Flow
+
+Authentication is an OAuth flow against Hack Club Auth.
+
+1. `GET /api/v1/auth/login` creates a short-lived session entry, stores a CSRF token, and redirects the browser to `https://auth.hackclub.com/oauth/authorize`.
+2. `GET /api/v1/auth/callback` verifies the returned `code` and `state`, exchanges the code for a Hack Club access token, fetches the user profile from Hack Club, and issues a signed `jwt` cookie.
+3. `GET /api/v1/users/me` reads the `jwt` cookie, validates the JWT, and returns the current user id.
+
+## Route Reference
+
+### `GET /api/v1/auth/login`
+
+Starts the Hack Club OAuth redirect.
+
+Query parameters:
+
+- `target` optional. When present, it is saved in the session and used as the post-login redirect target.
+
+Behavior:
+
+- Generates a random CSRF token.
+- Stores the CSRF token in an in-memory session store.
+- Stores `target` in the session if provided.
+- Redirects to Hack Club Auth with the configured `client_id`, `redirect_uri`, `response_type=code`, requested scopes, and the CSRF token in `state`.
+
+Response:
+
+- `302 Found` redirect to `https://auth.hackclub.com/oauth/authorize?...`
+
+### `GET /api/v1/auth/callback`
+
+Finishes the OAuth exchange and creates the application session.
+
+Query parameters:
+
+- `code` required. OAuth authorization code returned by Hack Club.
+- `state` required. Must match the CSRF token stored by `/api/v1/auth/login`.
+
+Behavior:
+
+- Reads and removes the CSRF token from the session.
+- Rejects the request with `400 missing_auth_state` if the session token is missing.
+- Rejects the request with `400 csrf_token_mismatch` if the returned state does not match.
+- Exchanges the code for a Hack Club access token.
+- Fetches the current user profile from `https://auth.hackclub.com/api/v1/me`.
+- Signs a JWT with the user id in `sub`.
+- Sets a `jwt` cookie and redirects the browser to the stored target or `/`.
+
+Response behavior:
+
+- Success: `302 Found` with `Set-Cookie: jwt=...` and `Location: <target>`.
+- Failure responses are plain text status bodies, not JSON.
+
+Common failure codes:
+
+- `400 exchange_failed`
+- `400 hca_rejected_exchange`
+- `400 missing_auth_state`
+- `400 csrf_token_mismatch`
+- `401 hca_identity_denied`
+- `500 identity_request_failed`
+- `500 invalid_user_data`
+- `500 jwt_encode_error`
+
+### `GET /api/v1/users/me`
+
+Returns the authenticated user id.
+
+Authentication:
+
+- Requires the `jwt` cookie.
+- The cookie is validated by [hackflare_api/src/middlewares/auth.rs](../hackflare_api/src/middlewares/auth.rs).
+
+Response:
 
 ```json
-{ "error": "error_code" }
+{ "id": "<user-id>" }
 ```
 
-Common headers
-- `x-internal-token`: required for internal gateway-to-backend requests (where noted).
-- `Authorization: Bearer <token>`: required for endpoints that operate on behalf of a user (see `GET /api/v1/auth/me`).
+Common failure codes:
 
-Top-level endpoints
+- `401 missing_jwt`
+- `401 invalid_jwt`
 
-- `GET /health`
-  - Purpose: Simple health check. Public.
-  - Response: `{ status: "ok", service: "hackflare-backend", visibility: "internal-only" }`
+## Session And Cookie Details
 
-- `GET /api/v1/ping`
-  - Purpose: API liveliness + whether DB is configured.
-  - Headers: `x-internal-token` (gateway)
-  - Response: `{ status: "ok", service: "hackflare-backend", database_configured: true }`
+- The OAuth session state is stored in an in-memory `tower_sessions::MemoryStore`.
+- Session entries expire after 15 minutes of inactivity.
+- The issued `jwt` cookie is `HttpOnly`, uses `SameSite=Lax`, and is marked `Secure` when `API_HCA_REDIRECT_URI` uses `https`.
+- The JWT itself is valid for 24 hours.
 
-Authentication
+## Configuration
 
-Types
+The backend reads configuration from environment variables in [hackflare_api/src/config.rs](../hackflare_api/src/config.rs).
 
-- `RegisterInput`
-  ```json
-  { "email": "user@example.com", "password": "password123" }
-  ```
+Required variables:
 
-- `LoginInput`
-  ```json
-  { "email": "user@example.com", "password": "password123" }
-  ```
+- `API_HCA_REDIRECT_URI`
+- `API_JWT_SECRET`
+- `API_HCA_CLIENT_ID`
+- `API_HCA_CLIENT_SECRET`
 
-- `EmailLoginRequest`
-  ```json
-  { "email": "user@example.com" }
-  ```
+Optional variable:
 
-- `EmailLoginVerification`
-  ```json
-  { "email": "user@example.com", "code": "123456" }
-  ```
+- `API_BIND_ADDR` defaults to `0.0.0.0:8080`
 
-- `Session` (response)
-  ```json
-  {
-    "token": "uuid-token",
-    "user": { "id": 1, "email": "user@example.com", "is_admin": false }
-  }
-  ```
+Notes:
 
-- `EmailLoginChallenge` (response)
-  ```json
-  { "email": "user@example.com", "code": "123456", "expires_in_seconds": 900 }
-  ```
+- `API_HCA_REDIRECT_URI` must use `http` or `https`.
+- The JWT secret is parsed as a base64 secret.
+- The sample `.env` file also lists `DATABASE_URL` and `API_DNS_BIND_ADDR`, but the current Rust backend does not use them yet.
 
-Endpoints
+## Running Locally
 
-- `POST /api/v1/auth/register`
-  - Headers: `x-internal-token`
-  - Body: `RegisterInput`
-  - Success: `200 OK` with `Session` JSON.
-  - Errors: `400`/`401` depending on validation (see code `AuthError` mapping).
+- Backend binary: `cargo run -p hackflare-api`
+- Backend build: `cargo build -p hackflare-api`
+- Backend tests: `cargo test -p hackflare-api`
+- Docker dev backend: `docker compose -f compose.dev.yml --profile backend up -d`
 
-- `POST /api/v1/auth/login`
-  - Headers: `x-internal-token`
-  - Body: `LoginInput`
-  - Success: `200 OK` with `Session`.
+## What Is Not Implemented Yet
 
-- `POST /api/v1/auth/email/request`
-  - Headers: `x-internal-token`
-  - Body: `EmailLoginRequest`
-  - Success: `200 OK` with `EmailLoginChallenge` (code returned for testing/dev; in production this would be emailed).
-
-- `POST /api/v1/auth/email/verify`
-  - Headers: `x-internal-token`
-  - Body: `EmailLoginVerification`
-  - Success: `200 OK` with `Session`.
-
-- `GET /api/v1/auth/hackclub/url`
-  - Headers: `x-internal-token`
-  - Response: `{ "url": "https://hackclub/..." }` when Hack Club is configured.
-
-- `GET /api/v1/auth/hackclub/callback?code=<code>`
-  - Headers: `x-internal-token`
-  - Query: `code` from Hack Club OAuth flow
-  - Success: `200 OK` with `Session` on successful exchange and JWT verification.
-
-- `GET /api/v1/auth/me`
-  - Headers: `Authorization: Bearer <token>`
-  - Success: `200 OK` with the `User` object: `{ id, email, is_admin }`.
-
-DNS Management
-
-Types
-
-- `Zone` (server representation)
-  ```json
-  {
-    "id": 1,
-    "name": "example.com",
-    "user_id": 1,
-    "ns_verified": false,
-    "records": [ /* DnsRecord[] */ ]
-  }
-  ```
-
-- `DnsRecord`
-  ```json
-  { "name": "www.example.com", "record_type": "A", "value": "1.2.3.4", "ttl": 60 }
-  ```
-
-- `NewRecordInput`
-  ```json
-  { "name": "www", "record_type": "A", "value": "1.2.3.4", "ttl": 60 }
-  ```
-
-- `ResolvedRecord` (DNS query response in API)
-  ```json
-  { "zone": "example.com", "name": "www.example.com", "record_type": "A", "value": "1.2.3.4", "ttl": 60 }
-  ```
-
-Endpoints
-
-- `GET /api/v1/dns/zones`
-  - Headers: `x-internal-token` and `Authorization: Bearer <token>`
-  - Response: `200 OK` with `Zone[]` belonging to the authenticated user.
-
-- `POST /api/v1/dns/zones`
-  - Headers: `x-internal-token` and `Authorization: Bearer <token>`
-  - Body: `{ "name": "example.com" }`
-  - Success: `200 OK` with created `Zone`.
-
-- `POST /api/v1/dns/zones/{zone_name}/records`
-  - Headers: `x-internal-token` and `Authorization: Bearer <token>`
-  - Body: `NewRecordInput`
-  - Success: `200 OK` with updated `Zone`.
-  - Notes: Zone must be verified before adding records.
-
-- `POST /api/v1/dns/zones/{zone_name}/verify`
-  - Headers: `x-internal-token` and `Authorization: Bearer <token>`
-  - Purpose: Mark NS delegation verified. Success: updated `Zone`.
-
-- `GET /api/v1/dns/records?name=<fqdn>&record_type=<TYPE>`
-  - Headers: `x-internal-token`
-  - Query params: `name` required; `record_type` optional (A, AAAA, CNAME, TXT, NS, PTR, MX)
-  - Response: `200 OK` with `ResolvedRecord[]`.
-
-Nameserver
-
-- The authoritative DNS UDP nameserver runs in the same process and answers queries from the in-memory (and persisted) zones/records. Supported query types: `A`, `AAAA`, `CNAME`, `TXT`, `ANY`.
-
-Config & Environment
-
-- `DATABASE_URL` (required): PostgreSQL connection string used for durable backend state.
-- `BACKEND_BIND_HOST` (default `0.0.0.0`)
-- `BACKEND_BIND_PORT` (default `8080`)
-- `BACKEND_DNS_BIND_HOST` (default `0.0.0.0`)
-- `BACKEND_DNS_BIND_PORT` (default `5353`)
-- Email and HackClub-related vars: see `Config` in source.
-
-Errors
-
-- Errors map to HTTP status codes via `map_auth_error` and `map_dns_error` in `src/app.rs`. Common codes include `400`, `401`, `404`, `409`, `422`, and `502` for upstream failures.
-
-Examples
-
-- Create a zone (curl example):
-
-```bash
-curl -X POST "http://localhost:8080/api/v1/dns/zones" \
-  -H "x-internal-token: <gateway-token>" \
-  -H "Authorization: Bearer <user-token>" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"example.com"}'
-```
-
-Notes
-- The backend requires `DATABASE_URL` at startup; state is persisted to PostgreSQL.
-- Authentication tokens are UUID strings issued by the backend; these are stored server-side in the sessions map and persisted.
+- Persistent user storage
+- Database-backed auth data
+- DNS management endpoints
+- Health and ping endpoints
+- Any `Authorization: Bearer ...` API surface for the current routes
