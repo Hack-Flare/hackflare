@@ -280,7 +280,7 @@ mod tests {
         log("info", "Test message", None);
         log("error", "Test error", Some("127.0.0.1:53".parse().unwrap()));
         // If we get here, logging succeeded without panicking
-        assert!(true);
+        // assert!(true);
     }
 
     #[test]
