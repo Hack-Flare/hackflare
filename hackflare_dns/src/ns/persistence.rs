@@ -11,7 +11,7 @@
 //! # Example: Using PostgreSQL Persistence
 //!
 //! ```no_run
-//! use hackflare_dns::ns::PostgresPersistence;
+//! use hackflare_dns::ns::{PersistedZone, PostgresPersistence, ZonePersistence};
 //! use std::sync::Arc;
 //!
 //! let persistence = Arc::new(PostgresPersistence::new(
@@ -21,17 +21,18 @@
 //! // Initialize the schema (required once)
 //! persistence.init_schema()?;
 //!
+//! # tokio::runtime::Runtime::new().unwrap().block_on(async {
 //! // Load existing zones
-//! let zones = persistence.load_zones().await?;
+//! let zones = persistence.load_zones().await.unwrap();
 //!
 //! // Save a zone
 //! let zone = PersistedZone {
 //!     name: "example.com".to_string(),
 //!     records: vec![],
 //! };
-//! persistence.save_zone(&zone).await?;
+//! persistence.save_zone(&zone).await.unwrap();
+//! # });
 //! # Ok::<(), Box<dyn std::error::Error>>(())
-//! ```
 
 use postgres::Client;
 use postgres::NoTls;

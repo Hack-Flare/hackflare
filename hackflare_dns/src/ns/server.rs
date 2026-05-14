@@ -101,11 +101,7 @@ impl Nameserver {
     // );
     //
     // // Restore zones on startup
-    // let rt = tokio::runtime::Runtime::new()?;
-    // rt.block_on(async {
-    //     nameserver.authority.load_zones_from_storage().await?;
-    //     Ok::<(), Box<dyn std::error::Error>>(())
-    // })?;
+    // nameserver.load_zones_from_storage().map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
     // # Ok::<(), Box<dyn std::error::Error>>(())
     // ```
     #[allow(dead_code)]
@@ -175,6 +171,14 @@ impl Nameserver {
     // Returns `true` if the record was removed, `false` if it didn't exist.
     pub fn remove_record(&self, zone_name: &str, name: &str, rtype: &str) -> bool {
         self.runtime.block_on(self.authority.remove_record(zone_name, name, rtype))
+    }
+
+    // Load all zones from persistence storage
+    //
+    // Requires the nameserver to have been created with [`with_persistence`](Self::with_persistence).
+    // Returns an error if no persistence backend is configured.
+    pub fn load_zones_from_storage(&self) -> Result<(), String> {
+        self.runtime.block_on(self.authority.load_zones_from_storage())
     }
 
     // List all hosted zones

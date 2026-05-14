@@ -60,10 +60,7 @@
 //! );
 //!
 //! // Load zones from database on startup
-//! tokio::runtime::Runtime::new()?.block_on(async {
-//!     nameserver.authority.load_zones_from_storage().await?;
-//!     Ok::<(), Box<dyn std::error::Error>>(())
-//! })?;
+//! nameserver.load_zones_from_storage().map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
 //!
 //! nameserver.run()?;
 //! # Ok::<(), Box<dyn std::error::Error>>(())
