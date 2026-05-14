@@ -21,7 +21,7 @@ concurrency:
 jobs:
   api:
     name: API Checks
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: blacksmith-8vcpu-ubuntu-2404
     defaults:
       run:
         working-directory: hackflare_api
@@ -35,6 +35,34 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: hackflare_api
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      - name: Cargo check
+        run: cargo check --all-targets
+
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Run tests
+        run: cargo test --all-features
+  dns:
+    name: DNS Checks
+    runs-on: blacksmith-8vcpu-ubuntu-2404
+    defaults:
+      run:
+        working-directory: hackflare_dns
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: hackflare_dns
 
       - name: Check formatting
         run: cargo fmt --all --check
