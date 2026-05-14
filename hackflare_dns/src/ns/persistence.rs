@@ -398,14 +398,22 @@ impl ZonePersistence for MemoryPersistence {
         record: &PersistedRecord,
     ) -> Result<(), Box<dyn Error>> {
         let mut zones = self.zones.write();
-        zones
+        let zone = zones
             .entry(zone_name.to_string())
             .or_insert_with(|| PersistedZone {
                 name: zone_name.to_string(),
                 records: Vec::new(),
-            })
+            });
+        if let Some(existing) = zone
             .records
-            .push(record.clone());
+            .iter_mut()
+            .find(|r| r.name == record.name && r.rtype == record.rtype)
+        {
+            existing.ttl = record.ttl;
+            existing.data = record.data.clone();
+        } else {
+            zone.records.push(record.clone());
+        }
         Ok(())
     }
 
