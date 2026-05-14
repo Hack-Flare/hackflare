@@ -1,4 +1,5 @@
 use crate::dns::DnsConfig;
+use crate::ns::persistence::{ZonePersistence, PersistedZone};
 use hickory_server::net::runtime::TokioRuntimeProvider;
 use hickory_server::proto::rr::{
     rdata::SOA, LowerName, Name, RData, Record, RecordType,
@@ -16,6 +17,8 @@ pub struct AuthorityStore {
     config: DnsConfig,
     catalog: RwLock<Catalog>,
     zones: RwLock<HashMap<String, Arc<InMemoryZoneHandler<TokioRuntimeProvider>>>>,
+    #[allow(dead_code)]
+    persistence: Option<Arc<dyn ZonePersistence>>,
 }
 
 impl AuthorityStore {
@@ -24,6 +27,21 @@ impl AuthorityStore {
             config,
             catalog: RwLock::new(Catalog::new()),
             zones: RwLock::new(HashMap::new()),
+            persistence: None,
+        }
+    }
+
+    // Create AuthorityStore with persistence enabled
+    #[allow(dead_code)]
+    pub fn with_persistence(
+        config: DnsConfig,
+        persistence: Arc<dyn ZonePersistence>,
+    ) -> Self {
+        Self {
+            config,
+            catalog: RwLock::new(Catalog::new()),
+            zones: RwLock::new(HashMap::new()),
+            persistence: Some(persistence),
         }
     }
 
@@ -172,6 +190,64 @@ impl AuthorityStore {
     ) -> ResponseInfo {
         let catalog = self.catalog.read().await;
         RequestHandler::handle_request::<R, T>(&*catalog, request, response_handle).await
+    }
+
+    // Load all zones from persistence storage
+    #[allow(dead_code)]
+    pub async fn load_zones_from_storage(&self) -> Result<(), String> {
+        let persistence = match &self.persistence {
+            Some(p) => p,
+            None => return Err("No persistence backend configured".to_string()),
+        };
+
+        let zones = persistence
+            .load_zones()
+            .await
+            .map_err(|e| format!("Failed to load zones: {}", e))?;
+
+        for zone in zones {
+            self.create_zone(&zone.name).await;
+
+            for record in zone.records {
+                let _ = self.add_record(
+                    &zone.name,
+                    &record.name,
+                    &record.rtype,
+                    record.ttl,
+                    &record.data,
+                )
+                .await;
+            }
+        }
+
+        Ok(())
+    }
+
+    // Save a zone to persistence storage
+    #[allow(dead_code)]
+    pub async fn save_zone_to_storage(&self, zone_name: &str) -> Result<(), String> {
+        let persistence = match &self.persistence {
+            Some(p) => p,
+            None => return Err("No persistence backend configured".to_string()),
+        };
+
+        let zone_key = Self::normalize_zone_name(zone_name)
+            .trim_end_matches('.')
+            .to_string();
+
+        // For now, just save zone existence. Full record export would require
+        // deeper integration with hickory-server's RecordSet API
+        let zone = PersistedZone {
+            name: zone_key.clone(),
+            records: Vec::new(),
+        };
+
+        persistence
+            .save_zone(&zone)
+            .await
+            .map_err(|e| format!("Failed to save zone: {}", e))?;
+
+        Ok(())
     }
 
     // === Helper Methods ===

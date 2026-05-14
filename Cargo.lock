@@ -785,6 +785,7 @@ dependencies = [
  "hickory-server",
  "idna",
  "once_cell",
+ "parking_lot",
  "postgres",
  "rand 0.10.1",
  "serde",
