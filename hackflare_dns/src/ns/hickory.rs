@@ -276,11 +276,8 @@ mod tests {
 
     #[test]
     fn log_function_creates_valid_json() {
-        // Test that log doesn't panic and creates valid output
         log("info", "Test message", None);
         log("error", "Test error", Some("127.0.0.1:53".parse().unwrap()));
-        // If we get here, logging succeeded without panicking
-        assert!(true);
     }
 
     #[test]
