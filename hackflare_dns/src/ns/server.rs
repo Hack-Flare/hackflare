@@ -157,7 +157,8 @@ impl Nameserver {
         ttl: u32,
         data: &str,
     ) -> bool {
-        self.runtime.block_on(self.authority.add_record(zone_name, name, rtype, ttl, data))
+        self.runtime
+            .block_on(self.authority.add_record(zone_name, name, rtype, ttl, data))
     }
 
     // Remove a DNS record from a zone
@@ -170,7 +171,8 @@ impl Nameserver {
     //
     // Returns `true` if the record was removed, `false` if it didn't exist.
     pub fn remove_record(&self, zone_name: &str, name: &str, rtype: &str) -> bool {
-        self.runtime.block_on(self.authority.remove_record(zone_name, name, rtype))
+        self.runtime
+            .block_on(self.authority.remove_record(zone_name, name, rtype))
     }
 
     // Load all zones from persistence storage
@@ -178,7 +180,8 @@ impl Nameserver {
     // Requires the nameserver to have been created with [`with_persistence`](Self::with_persistence).
     // Returns an error if no persistence backend is configured.
     pub fn load_zones_from_storage(&self) -> Result<(), String> {
-        self.runtime.block_on(self.authority.load_zones_from_storage())
+        self.runtime
+            .block_on(self.authority.load_zones_from_storage())
     }
 
     // List all hosted zones
