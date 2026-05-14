@@ -23,7 +23,7 @@ concurrency:
 jobs:
   api:
     name: API Checks
-    runs-on: blacksmith-8vcpu-ubuntu-2404
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     defaults:
       run:
         working-directory: hackflare_api
@@ -51,7 +51,7 @@ jobs:
         run: cargo test --all-features
   dns:
     name: DNS Checks
-    runs-on: blacksmith-8vcpu-ubuntu-2404
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     defaults:
       run:
         working-directory: hackflare_dns
