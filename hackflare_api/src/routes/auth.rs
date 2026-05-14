@@ -3,7 +3,7 @@ use axum::{
     extract::{Query, State},
     http::header,
     response::{IntoResponse, Redirect, Response},
-    routing::get,
+    routing::{get, post},
 };
 use chrono::{DateTime, Duration, Utc};
 use jsonwebtoken::Header;
@@ -275,6 +275,20 @@ async fn callback_handler(
         .into_response())
 }
 
+async fn logout_handler(State(state): State<AppState>) -> Response {
+    let is_secure = state.config.hca.is_secure();
+
+    let cookie = Cookie::build(("jwt", ""))
+        .path("/")
+        .http_only(true)
+        .secure(is_secure)
+        .same_site(SameSite::Lax)
+        .max_age(cookie::time::Duration::ZERO)
+        .build();
+
+    (StatusCode::NO_CONTENT, [(header::SET_COOKIE, cookie.to_string())]).into_response()
+}
+
 pub(super) fn routes(config: &Config) -> Router<AppState> {
     let is_secure = config.hca.is_secure();
 
@@ -290,5 +304,6 @@ pub(super) fn routes(config: &Config) -> Router<AppState> {
     Router::new()
         .route("/login", get(login_handler))
         .route("/callback", get(callback_handler))
+        .route("/logout", post(logout_handler))
         .layer(session_layer)
 }
