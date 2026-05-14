@@ -212,20 +212,8 @@ mod tests {
         let mut manager = DnsManager::new();
         manager.create_zone("example.com");
 
-        assert!(manager.add_record(
-            "example.com",
-            "www",
-            "CNAME",
-            300,
-            "origin.example.com"
-        ));
-        assert!(manager.add_record(
-            "example.com",
-            "origin",
-            "A",
-            300,
-            "1.2.3.4"
-        ));
+        assert!(manager.add_record("example.com", "www", "CNAME", 300, "origin.example.com"));
+        assert!(manager.add_record("example.com", "origin", "A", 300, "1.2.3.4"));
 
         let recs = manager.find_answer_records("www.example.com", Some("A"));
         assert_eq!(recs.len(), 2);

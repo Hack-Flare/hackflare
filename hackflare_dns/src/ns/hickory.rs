@@ -1,6 +1,6 @@
 use crate::dns::engine::DnsEngine;
-use crate::ns::authority::AuthorityStore;
 use crate::ns::NsConfig;
+use crate::ns::authority::AuthorityStore;
 use hickory_server::net::xfer::Protocol;
 use hickory_server::proto::op::{DnsResponse, Message, Metadata, ResponseCode};
 use hickory_server::server::{Request, RequestHandler, ResponseHandler, ResponseInfo};
@@ -49,27 +49,29 @@ fn record_request(protocol: Protocol) {
 
 // Periodically flush metrics to database.
 fn spawn_metrics_flusher(db_url: String) {
-    std::thread::spawn(move || loop {
-        std::thread::sleep(Duration::from_secs(5));
-        let udp = UDP_COUNT.swap(0, Ordering::Relaxed);
-        let tcp = TCP_COUNT.swap(0, Ordering::Relaxed);
+    std::thread::spawn(move || {
+        loop {
+            std::thread::sleep(Duration::from_secs(5));
+            let udp = UDP_COUNT.swap(0, Ordering::Relaxed);
+            let tcp = TCP_COUNT.swap(0, Ordering::Relaxed);
 
-        if udp == 0 && tcp == 0 {
-            continue;
-        }
+            if udp == 0 && tcp == 0 {
+                continue;
+            }
 
-        if let Ok(mut client) = Client::connect(&db_url, NoTls) {
-            let query = format!(
-                "INSERT INTO dns_query_metrics (id, udp_count, tcp_count, inserted_at, updated_at) \
+            if let Ok(mut client) = Client::connect(&db_url, NoTls) {
+                let query = format!(
+                    "INSERT INTO dns_query_metrics (id, udp_count, tcp_count, inserted_at, updated_at) \
                  VALUES (1, {udp}, {tcp}, now(), now()) \
                  ON CONFLICT (id) DO UPDATE SET \
                  udp_count = dns_query_metrics.udp_count + {udp}, \
                  tcp_count = dns_query_metrics.tcp_count + {tcp}, \
                  updated_at = now()"
-            );
-            let _ = client.execute(&query, &[]);
-        } else {
-            log("warn", "Failed to connect to DB for metrics flush", None);
+                );
+                let _ = client.execute(&query, &[]);
+            } else {
+                log("warn", "Failed to connect to DB for metrics flush", None);
+            }
         }
     });
 }
@@ -102,14 +104,17 @@ impl RequestHandler for HickoryRequestHandler {
                 log("error", "Invalid request info", Some(request.src()));
                 let mut metadata = Metadata::response_from_request(&request.metadata);
                 metadata.response_code = ResponseCode::ServFail;
-                let response =
-                    MessageResponseBuilder::from_message_request(request).build_no_records(metadata);
-                return response_handle.send_response(response).await.unwrap_or_else(|_| {
-                    ResponseInfo::from(hickory_server::proto::op::Header {
-                        metadata,
-                        counts: hickory_server::proto::op::HeaderCounts::default(),
-                    })
-                });
+                let response = MessageResponseBuilder::from_message_request(request)
+                    .build_no_records(metadata);
+                return response_handle
+                    .send_response(response)
+                    .await
+                    .unwrap_or_else(|_| {
+                        ResponseInfo::from(hickory_server::proto::op::Header {
+                            metadata,
+                            counts: hickory_server::proto::op::HeaderCounts::default(),
+                        })
+                    });
             }
         };
 
@@ -125,17 +130,24 @@ impl RequestHandler for HickoryRequestHandler {
         let response_bytes = match self.engine.handle_query(request.as_slice()) {
             Some(bytes) => bytes,
             None => {
-                log("error", "Failed to process recursive query", Some(request.src()));
+                log(
+                    "error",
+                    "Failed to process recursive query",
+                    Some(request.src()),
+                );
                 let mut metadata = Metadata::response_from_request(&request.metadata);
                 metadata.response_code = ResponseCode::ServFail;
-                let response =
-                    MessageResponseBuilder::from_message_request(request).build_no_records(metadata);
-                return response_handle.send_response(response).await.unwrap_or_else(|_| {
-                    ResponseInfo::from(hickory_server::proto::op::Header {
-                        metadata,
-                        counts: hickory_server::proto::op::HeaderCounts::default(),
-                    })
-                });
+                let response = MessageResponseBuilder::from_message_request(request)
+                    .build_no_records(metadata);
+                return response_handle
+                    .send_response(response)
+                    .await
+                    .unwrap_or_else(|_| {
+                        ResponseInfo::from(hickory_server::proto::op::Header {
+                            metadata,
+                            counts: hickory_server::proto::op::HeaderCounts::default(),
+                        })
+                    });
             }
         };
 
@@ -151,14 +163,17 @@ impl RequestHandler for HickoryRequestHandler {
                     );
                     let mut metadata = Metadata::response_from_request(&request.metadata);
                     metadata.response_code = ResponseCode::ServFail;
-                    let response =
-                        MessageResponseBuilder::from_message_request(request).build_no_records(metadata);
-                    return response_handle.send_response(response).await.unwrap_or_else(|_| {
-                        ResponseInfo::from(hickory_server::proto::op::Header {
-                            metadata,
-                            counts: hickory_server::proto::op::HeaderCounts::default(),
-                        })
-                    });
+                    let response = MessageResponseBuilder::from_message_request(request)
+                        .build_no_records(metadata);
+                    return response_handle
+                        .send_response(response)
+                        .await
+                        .unwrap_or_else(|_| {
+                            ResponseInfo::from(hickory_server::proto::op::Header {
+                                metadata,
+                                counts: hickory_server::proto::op::HeaderCounts::default(),
+                            })
+                        });
                 }
             },
             Err(err) => {
@@ -169,14 +184,17 @@ impl RequestHandler for HickoryRequestHandler {
                 );
                 let mut metadata = Metadata::response_from_request(&request.metadata);
                 metadata.response_code = ResponseCode::ServFail;
-                let response =
-                    MessageResponseBuilder::from_message_request(request).build_no_records(metadata);
-                return response_handle.send_response(response).await.unwrap_or_else(|_| {
-                    ResponseInfo::from(hickory_server::proto::op::Header {
-                        metadata,
-                        counts: hickory_server::proto::op::HeaderCounts::default(),
-                    })
-                });
+                let response = MessageResponseBuilder::from_message_request(request)
+                    .build_no_records(metadata);
+                return response_handle
+                    .send_response(response)
+                    .await
+                    .unwrap_or_else(|_| {
+                        ResponseInfo::from(hickory_server::proto::op::Header {
+                            metadata,
+                            counts: hickory_server::proto::op::HeaderCounts::default(),
+                        })
+                    });
             }
         };
 
@@ -242,17 +260,14 @@ pub(crate) fn run_with_hickory(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dns::engine::DnsEngine;
     use crate::dns::DnsConfig;
+    use crate::dns::engine::DnsEngine;
 
     #[test]
     fn handler_creation() {
         let config = DnsConfig::default_config();
         let authority = Arc::new(AuthorityStore::new(config.clone()));
-        let engine = Arc::new(DnsEngine::new(
-            Default::default(),
-            config,
-        ));
+        let engine = Arc::new(DnsEngine::new(Default::default(), config));
 
         let handler = HickoryRequestHandler::new(authority, engine);
         assert!(Arc::strong_count(&handler.authority) >= 1);

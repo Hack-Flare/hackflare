@@ -1,9 +1,7 @@
 use crate::dns::DnsConfig;
-use crate::ns::persistence::{ZonePersistence, PersistedZone};
+use crate::ns::persistence::{PersistedZone, ZonePersistence};
 use hickory_server::net::runtime::TokioRuntimeProvider;
-use hickory_server::proto::rr::{
-    rdata::SOA, LowerName, Name, RData, Record, RecordType,
-};
+use hickory_server::proto::rr::{LowerName, Name, RData, Record, RecordType, rdata::SOA};
 use hickory_server::server::{Request, RequestHandler, ResponseHandler, ResponseInfo};
 use hickory_server::store::in_memory::InMemoryZoneHandler;
 use hickory_server::zone_handler::{AxfrPolicy, Catalog, ZoneHandler, ZoneType};
@@ -33,10 +31,7 @@ impl AuthorityStore {
 
     // Create AuthorityStore with persistence enabled
     #[allow(dead_code)]
-    pub fn with_persistence(
-        config: DnsConfig,
-        persistence: Arc<dyn ZonePersistence>,
-    ) -> Self {
+    pub fn with_persistence(config: DnsConfig, persistence: Arc<dyn ZonePersistence>) -> Self {
         Self {
             config,
             catalog: RwLock::new(Catalog::new()),
@@ -97,11 +92,7 @@ impl AuthorityStore {
         let removed = self.zones.write().await.remove(&zone_key).is_some();
 
         if removed {
-            let _ = self
-                .catalog
-                .write()
-                .await
-                .remove(&LowerName::new(&origin));
+            let _ = self.catalog.write().await.remove(&LowerName::new(&origin));
         }
         removed
     }
@@ -165,9 +156,7 @@ impl AuthorityStore {
         let mut records = handler.records_mut().await;
         let before_count = records.len();
         let target_name = LowerName::new(&record_name);
-        records.retain(|key, _| {
-            !(key.name() == &target_name && key.record_type == record_type)
-        });
+        records.retain(|key, _| !(key.name() == &target_name && key.record_type == record_type));
 
         before_count != records.len()
     }
@@ -209,14 +198,15 @@ impl AuthorityStore {
             self.create_zone(&zone.name).await;
 
             for record in zone.records {
-                let _ = self.add_record(
-                    &zone.name,
-                    &record.name,
-                    &record.rtype,
-                    record.ttl,
-                    &record.data,
-                )
-                .await;
+                let _ = self
+                    .add_record(
+                        &zone.name,
+                        &record.name,
+                        &record.rtype,
+                        record.ttl,
+                        &record.data,
+                    )
+                    .await;
             }
         }
 
@@ -351,7 +341,9 @@ mod tests {
         let store = AuthorityStore::new(config);
 
         store.create_zone("example.com").await;
-        let result = store.add_record("example.com", "www", "A", 300, "192.168.1.1").await;
+        let result = store
+            .add_record("example.com", "www", "A", 300, "192.168.1.1")
+            .await;
         assert!(result);
     }
 
@@ -360,7 +352,9 @@ mod tests {
         let config = DnsConfig::default_config();
         let store = AuthorityStore::new(config);
 
-        let result = store.add_record("nonexistent.com", "www", "A", 300, "192.168.1.1").await;
+        let result = store
+            .add_record("nonexistent.com", "www", "A", 300, "192.168.1.1")
+            .await;
         assert!(!result);
     }
 
@@ -371,9 +365,21 @@ mod tests {
 
         store.create_zone("example.com").await;
 
-        assert!(store.add_record("example.com", "www", "A", 300, "192.168.1.1").await);
-        assert!(store.add_record("example.com", "mail", "MX", 300, "10 mail.example.com").await);
-        assert!(store.add_record("example.com", "@", "TXT", 300, "v=spf1 ~all").await);
+        assert!(
+            store
+                .add_record("example.com", "www", "A", 300, "192.168.1.1")
+                .await
+        );
+        assert!(
+            store
+                .add_record("example.com", "mail", "MX", 300, "10 mail.example.com")
+                .await
+        );
+        assert!(
+            store
+                .add_record("example.com", "@", "TXT", 300, "v=spf1 ~all")
+                .await
+        );
     }
 
     #[tokio::test]
@@ -382,7 +388,9 @@ mod tests {
         let store = AuthorityStore::new(config);
 
         store.create_zone("example.com").await;
-        store.add_record("example.com", "www", "A", 300, "192.168.1.1").await;
+        store
+            .add_record("example.com", "www", "A", 300, "192.168.1.1")
+            .await;
 
         let result = store.remove_record("example.com", "www", "A").await;
         assert!(result);
@@ -401,13 +409,22 @@ mod tests {
 
     #[test]
     fn normalize_zone_name_adds_trailing_dot() {
-        assert_eq!(AuthorityStore::normalize_zone_name("example.com"), "example.com.");
-        assert_eq!(AuthorityStore::normalize_zone_name("example.com."), "example.com.");
+        assert_eq!(
+            AuthorityStore::normalize_zone_name("example.com"),
+            "example.com."
+        );
+        assert_eq!(
+            AuthorityStore::normalize_zone_name("example.com."),
+            "example.com."
+        );
     }
 
     #[test]
     fn normalize_zone_name_lowercases() {
-        assert_eq!(AuthorityStore::normalize_zone_name("Example.COM"), "example.com.");
+        assert_eq!(
+            AuthorityStore::normalize_zone_name("Example.COM"),
+            "example.com."
+        );
     }
 
     #[test]

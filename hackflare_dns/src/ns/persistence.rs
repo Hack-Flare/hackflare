@@ -277,10 +277,7 @@ impl ZonePersistence for PostgresPersistence {
     async fn delete_zone(&self, zone_name: &str) -> Result<(), Box<dyn Error>> {
         let mut client = self.get_connection()?;
 
-        client.execute(
-            "DELETE FROM dns_zones WHERE name = $1",
-            &[&zone_name],
-        )?;
+        client.execute("DELETE FROM dns_zones WHERE name = $1", &[&zone_name])?;
 
         Ok(())
     }
@@ -420,7 +417,8 @@ impl ZonePersistence for MemoryPersistence {
     ) -> Result<(), Box<dyn Error>> {
         let mut zones = self.zones.write();
         if let Some(zone) = zones.get_mut(zone_name) {
-            zone.records.retain(|r| !(r.name == name && r.rtype == rtype));
+            zone.records
+                .retain(|r| !(r.name == name && r.rtype == rtype));
         }
         Ok(())
     }
@@ -436,14 +434,12 @@ mod tests {
 
         let zone = PersistedZone {
             name: "example.com".to_string(),
-            records: vec![
-                PersistedRecord {
-                    name: "www".to_string(),
-                    rtype: "A".to_string(),
-                    ttl: 300,
-                    data: "192.168.1.1".to_string(),
-                },
-            ],
+            records: vec![PersistedRecord {
+                name: "www".to_string(),
+                rtype: "A".to_string(),
+                ttl: 300,
+                data: "192.168.1.1".to_string(),
+            }],
         };
 
         storage.save_zone(&zone).await.unwrap();
@@ -505,7 +501,10 @@ mod tests {
 
         storage.save_zone(&zone).await.unwrap();
         storage.save_record("example.com", &record).await.unwrap();
-        storage.delete_record("example.com", "www", "A").await.unwrap();
+        storage
+            .delete_record("example.com", "www", "A")
+            .await
+            .unwrap();
 
         let zone = storage.load_zone("example.com").await.unwrap();
         assert_eq!(zone.unwrap().records.len(), 0);

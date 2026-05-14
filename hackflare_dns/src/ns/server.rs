@@ -1,8 +1,8 @@
-use crate::dns::engine::DnsEngine;
 use crate::dns::DnsConfig;
+use crate::dns::engine::DnsEngine;
+use crate::ns::NsConfig;
 use crate::ns::authority::AuthorityStore;
 use crate::ns::hickory::run_with_hickory;
-use crate::ns::NsConfig;
 use crate::ns::persistence::ZonePersistence;
 use std::io;
 use std::sync::Arc;
@@ -154,7 +154,14 @@ impl Nameserver {
     // * `data` - Record data (e.g., IP address for A records)
     //
     // Returns `true` if the record was added, `false` if the zone doesn't exist.
-    pub fn add_record(&self, zone_name: &str, name: &str, rtype: &str, ttl: u32, data: &str) -> bool {
+    pub fn add_record(
+        &self,
+        zone_name: &str,
+        name: &str,
+        rtype: &str,
+        ttl: u32,
+        data: &str,
+    ) -> bool {
         tokio::runtime::Runtime::new()
             .expect("failed to create runtime")
             .block_on(self.authority.add_record(zone_name, name, rtype, ttl, data))
@@ -191,7 +198,11 @@ impl Nameserver {
     //
     // Returns an I/O error if the server fails to start (e.g., port in use).
     pub fn run(&self) -> io::Result<()> {
-        run_with_hickory(&self.config, Arc::clone(&self.authority), Arc::clone(&self.engine))
+        run_with_hickory(
+            &self.config,
+            Arc::clone(&self.authority),
+            Arc::clone(&self.engine),
+        )
     }
 }
 
@@ -215,7 +226,8 @@ mod tests {
         assert_eq!(empty.config.zone_file.as_deref(), Some("zones.json"));
         assert!(empty.list_zones().is_empty());
 
-        let with_engine = Nameserver::with_dns_config(NsConfig::default(), DnsConfig::default_config());
+        let with_engine =
+            Nameserver::with_dns_config(NsConfig::default(), DnsConfig::default_config());
         assert!(with_engine.list_zones().is_empty());
     }
 }

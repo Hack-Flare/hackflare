@@ -59,10 +59,7 @@ impl DnsConfig {
             soa_ttl: env_string("HACKFLARE_DNS_SOA_TTL", "3600"),
             udp_size: env_u16("HACKFLARE_DNS_UDP_SIZE", 512),
             udp_attempts: env_usize("HACKFLARE_DNS_UDP_ATTEMPTS", 4).max(1),
-            udp_timeout: Duration::from_millis(env_u64(
-                "HACKFLARE_DNS_UDP_TIMEOUT_MS",
-                2500,
-            )),
+            udp_timeout: Duration::from_millis(env_u64("HACKFLARE_DNS_UDP_TIMEOUT_MS", 2500)),
             recursion_rounds: env_usize("HACKFLARE_DNS_RECURSION_ROUNDS", 8).max(1),
             recursion_debug: env_bool("HACKFLARE_DNS_RECURSION_DEBUG", false),
             root_hints_file: env::var("HACKFLARE_ROOT_HINTS_FILE")

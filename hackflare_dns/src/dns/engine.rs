@@ -1,7 +1,7 @@
 use crate::dns::{DnsConfig, DnsManager, Record};
 use idna::domain_to_ascii;
-use std::sync::{Arc, RwLock};
 use std::net::{Ipv4Addr, Ipv6Addr};
+use std::sync::{Arc, RwLock};
 
 // Handles recursive DNS queries and local zone lookups.
 // Zone management is delegated to AuthorityStore.
@@ -20,9 +20,22 @@ impl DnsEngine {
 
     pub fn handle_query(&self, req: &[u8]) -> Option<Vec<u8>> {
         if req.len() < 12 {
-            let id = if req.len() >= 2 { u16::from_be_bytes([req[0], req[1]]) } else { 0 };
-            let req_flags = if req.len() >= 4 { u16::from_be_bytes([req[2], req[3]]) } else { 0 };
-            return Some(build_servfail(id, req_flags, self.config.recursion_enabled, &[]));
+            let id = if req.len() >= 2 {
+                u16::from_be_bytes([req[0], req[1]])
+            } else {
+                0
+            };
+            let req_flags = if req.len() >= 4 {
+                u16::from_be_bytes([req[2], req[3]])
+            } else {
+                0
+            };
+            return Some(build_servfail(
+                id,
+                req_flags,
+                self.config.recursion_enabled,
+                &[],
+            ));
         }
 
         let id = u16::from_be_bytes([req[0], req[1]]);
@@ -32,7 +45,12 @@ impl DnsEngine {
         let arcount = u16::from_be_bytes([req[10], req[11]]);
         if qdcount == 0 {
             let req_flags = u16::from_be_bytes([req[2], req[3]]);
-            return Some(build_servfail(id, req_flags, self.config.recursion_enabled, &req[12..]));
+            return Some(build_servfail(
+                id,
+                req_flags,
+                self.config.recursion_enabled,
+                &req[12..],
+            ));
         }
 
         let mut pos = 12usize;
@@ -40,13 +58,23 @@ impl DnsEngine {
             Some((n, p)) => (n, p),
             None => {
                 let req_flags = u16::from_be_bytes([req[2], req[3]]);
-                return Some(build_servfail(id, req_flags, self.config.recursion_enabled, &req[12..]));
+                return Some(build_servfail(
+                    id,
+                    req_flags,
+                    self.config.recursion_enabled,
+                    &req[12..],
+                ));
             }
         };
         pos = new_pos;
         if pos + 4 > req.len() {
             let req_flags = u16::from_be_bytes([req[2], req[3]]);
-            return Some(build_servfail(id, req_flags, self.config.recursion_enabled, &req[12..pos]));
+            return Some(build_servfail(
+                id,
+                req_flags,
+                self.config.recursion_enabled,
+                &req[12..pos],
+            ));
         }
         let qtype = u16::from_be_bytes([req[pos], req[pos + 1]]);
         let _qclass = u16::from_be_bytes([req[pos + 2], req[pos + 3]]);
@@ -85,7 +113,12 @@ impl DnsEngine {
             }
             let typ = u16::from_be_bytes([req[rr_pos], req[rr_pos + 1]]);
             let class = u16::from_be_bytes([req[rr_pos + 2], req[rr_pos + 3]]);
-            let ttl = u32::from_be_bytes([req[rr_pos + 4], req[rr_pos + 5], req[rr_pos + 6], req[rr_pos + 7]]);
+            let ttl = u32::from_be_bytes([
+                req[rr_pos + 4],
+                req[rr_pos + 5],
+                req[rr_pos + 6],
+                req[rr_pos + 7],
+            ]);
             let rdlen = u16::from_be_bytes([req[rr_pos + 8], req[rr_pos + 9]]) as usize;
             rr_pos += 10;
             if typ == 41 {
@@ -126,12 +159,16 @@ impl DnsEngine {
             manager.find_answer_records(&qname, Some(qtype_str))
         };
 
-        if is_ip_literal && recs.is_empty() && let Some(rn) = reverse_name.as_ref() {
+        if is_ip_literal
+            && recs.is_empty()
+            && let Some(rn) = reverse_name.as_ref()
+        {
             let ptrs = manager.find_records(rn, Some("PTR"));
             if !ptrs.is_empty() {
                 recs = ptrs;
             } else {
-                let mut r = build_nxdomain_with_soa(id, req_flags, self.config.clone(), &req[12..pos + 4]);
+                let mut r =
+                    build_nxdomain_with_soa(id, req_flags, self.config.clone(), &req[12..pos + 4]);
                 if client_edns_size > 0 {
                     append_opt(&mut r, client_edns_size, client_do, &self.config);
                 }
@@ -141,7 +178,8 @@ impl DnsEngine {
 
         let label_count = qname.split('.').filter(|label| !label.is_empty()).count();
         if recs.is_empty() && reverse_name.is_none() && label_count < 2 {
-            let mut r = build_nxdomain_with_soa(id, req_flags, self.config.clone(), &req[12..pos + 4]);
+            let mut r =
+                build_nxdomain_with_soa(id, req_flags, self.config.clone(), &req[12..pos + 4]);
             if client_edns_size > 0 {
                 append_opt(&mut r, client_edns_size, client_do, &self.config);
             }
@@ -151,7 +189,12 @@ impl DnsEngine {
         let req_flags = u16::from_be_bytes([req[2], req[3]]);
         if recs.is_empty() {
             if !self.config.recursion_enabled {
-                let mut r = build_servfail(id, req_flags, self.config.recursion_enabled, &req[12..pos + 4]);
+                let mut r = build_servfail(
+                    id,
+                    req_flags,
+                    self.config.recursion_enabled,
+                    &req[12..pos + 4],
+                );
                 if client_edns_size > 0 {
                     append_opt(&mut r, client_edns_size, client_do, &self.config);
                 }
@@ -203,7 +246,12 @@ impl DnsEngine {
                 return Some(resp);
             }
 
-            let mut r = build_servfail(id, req_flags, self.config.recursion_enabled, &req[12..pos + 4]);
+            let mut r = build_servfail(
+                id,
+                req_flags,
+                self.config.recursion_enabled,
+                &req[12..pos + 4],
+            );
             if client_edns_size > 0 {
                 append_opt(&mut r, client_edns_size, client_do, &self.config);
             }
@@ -308,7 +356,12 @@ fn build_nxdomain_with_soa(
     resp
 }
 
-fn build_servfail(id: u16, req_flags: u16, recursion_enabled: bool, question_section: &[u8]) -> Vec<u8> {
+fn build_servfail(
+    id: u16,
+    req_flags: u16,
+    recursion_enabled: bool,
+    question_section: &[u8],
+) -> Vec<u8> {
     let mut resp: Vec<u8> = Vec::new();
     resp.extend_from_slice(&id.to_be_bytes());
 
@@ -530,7 +583,13 @@ mod tests {
     #[test]
     fn helper_encoders_and_parsers_work() {
         assert_eq!(parse_hex_bytes("0xAA bb"), Some(vec![0xaa, 0xbb]));
-        assert_eq!(encode_name_labels_vec("www.example.com"), vec![3, b'w', b'w', b'w', 7, b'e', b'x', b'a', b'm', b'p', b'l', b'e', 3, b'c', b'o', b'm', 0]);
+        assert_eq!(
+            encode_name_labels_vec("www.example.com"),
+            vec![
+                3, b'w', b'w', b'w', 7, b'e', b'x', b'a', b'm', b'p', b'l', b'e', 3, b'c', b'o',
+                b'm', 0
+            ]
+        );
 
         let parsed = parse_qname(&encode_name_labels_vec("www.example.com"), 0).unwrap();
         assert_eq!(parsed.0, "www.example.com");
@@ -566,7 +625,10 @@ mod tests {
         assert_eq!(u16::from_be_bytes([resp[pos + 2], resp[pos + 3]]), 1);
 
         let ans_pos = pos + 4;
-        assert_eq!(u16::from_be_bytes([resp[ans_pos + 2], resp[ans_pos + 3]]), 1);
+        assert_eq!(
+            u16::from_be_bytes([resp[ans_pos + 2], resp[ans_pos + 3]]),
+            1
+        );
         assert_eq!(&resp[resp.len() - 4..], &[1, 2, 3, 4]);
     }
 }

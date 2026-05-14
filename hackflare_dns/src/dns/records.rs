@@ -83,7 +83,9 @@ fn encode_dnskey(r: &Record) -> Option<Vec<u8>> {
         let flags = parts[0].parse::<u16>().ok()?;
         let protocol = parts[1].parse::<u8>().ok()?;
         let algorithm = parts[2].parse::<u8>().ok()?;
-        let key = base64::engine::general_purpose::STANDARD.decode(parts[3]).ok()?;
+        let key = base64::engine::general_purpose::STANDARD
+            .decode(parts[3])
+            .ok()?;
         let mut out = Vec::new();
         out.extend_from_slice(&flags.to_be_bytes());
         out.push(protocol);
@@ -94,7 +96,9 @@ fn encode_dnskey(r: &Record) -> Option<Vec<u8>> {
         let flags = parts[0].parse::<u16>().ok()?;
         let protocol = 3u8;
         let algorithm = parts[1].parse::<u8>().ok()?;
-        let key = base64::engine::general_purpose::STANDARD.decode(parts[2]).ok()?;
+        let key = base64::engine::general_purpose::STANDARD
+            .decode(parts[2])
+            .ok()?;
         let mut out = Vec::new();
         out.extend_from_slice(&flags.to_be_bytes());
         out.push(protocol);
@@ -305,7 +309,13 @@ mod tests {
                 "AAAA",
                 &Record::new("www.example.com", "AAAA", 300, "2001:db8::1")
             ),
-            Some("2001:db8::1".parse::<std::net::Ipv6Addr>().unwrap().octets().to_vec())
+            Some(
+                "2001:db8::1"
+                    .parse::<std::net::Ipv6Addr>()
+                    .unwrap()
+                    .octets()
+                    .to_vec()
+            )
         );
 
         assert_eq!(
@@ -323,7 +333,8 @@ mod tests {
             ),
             Some({
                 let mut expected = vec![0, 10];
-                expected.extend_from_slice(&crate::dns::engine::encode_name_labels("mail.example.com"));
+                expected
+                    .extend_from_slice(&crate::dns::engine::encode_name_labels("mail.example.com"));
                 expected
             })
         );
@@ -340,8 +351,12 @@ mod tests {
             ),
             Some({
                 let mut expected = Vec::new();
-                expected.extend_from_slice(&crate::dns::engine::encode_name_labels_vec("ns1.example.com"));
-                expected.extend_from_slice(&crate::dns::engine::encode_name_labels_vec("hostmaster.example.com"));
+                expected.extend_from_slice(&crate::dns::engine::encode_name_labels_vec(
+                    "ns1.example.com",
+                ));
+                expected.extend_from_slice(&crate::dns::engine::encode_name_labels_vec(
+                    "hostmaster.example.com",
+                ));
                 expected.extend_from_slice(&2026042000u32.to_be_bytes());
                 expected.extend_from_slice(&1800u32.to_be_bytes());
                 expected.extend_from_slice(&900u32.to_be_bytes());
@@ -356,7 +371,9 @@ mod tests {
                 "TXT",
                 &Record::new("example.com", "TXT", 300, "hello\nworld")
             ),
-            Some(vec![5, b'h', b'e', b'l', b'l', b'o', 5, b'w', b'o', b'r', b'l', b'd'])
+            Some(vec![
+                5, b'h', b'e', b'l', b'l', b'o', 5, b'w', b'o', b'r', b'l', b'd'
+            ])
         );
 
         assert_eq!(
@@ -364,7 +381,10 @@ mod tests {
                 "CAA",
                 &Record::new("example.com", "CAA", 300, "0 issue \"letsencrypt.org\"")
             ),
-            Some(vec![0, 5, b'i', b's', b's', b'u', b'e', b'l', b'e', b't', b's', b'e', b'n', b'c', b'r', b'y', b'p', b't', b'.', b'o', b'r', b'g'])
+            Some(vec![
+                0, 5, b'i', b's', b's', b'u', b'e', b'l', b'e', b't', b's', b'e', b'n', b'c', b'r',
+                b'y', b'p', b't', b'.', b'o', b'r', b'g'
+            ])
         );
 
         assert_eq!(
@@ -383,6 +403,6 @@ mod tests {
             Some(vec![0x30, 0x39, 8, 2, 0xaa, 0xbb, 0xcc, 0xdd])
         );
 
-        assert!(encode_by_type("ANY", &Record::new("example.com", "ANY", 300, "-" )).is_none());
+        assert!(encode_by_type("ANY", &Record::new("example.com", "ANY", 300, "-")).is_none());
     }
 }

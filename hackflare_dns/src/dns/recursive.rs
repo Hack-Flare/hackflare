@@ -1,5 +1,5 @@
-use crate::dns::engine::{encode_name_labels_vec, parse_qname};
 use crate::dns::DnsConfig;
+use crate::dns::engine::{encode_name_labels_vec, parse_qname};
 use once_cell::sync::Lazy;
 use postgres::NoTls;
 use rand::seq::SliceRandom;
@@ -250,32 +250,27 @@ fn load_root_hint_servers_internal(custom_path: Option<&std::path::PathBuf>) -> 
 fn load_root_hints_from_db() -> Option<Vec<String>> {
     let db_url = env::var("DATABASE_URL").ok()?;
     let mut client = postgres::Client::connect(&db_url, NoTls).ok()?;
-    
+
     // Try to query root hints; if table doesn't exist, return None and fall back
-    let result = client.query("SELECT ip_address FROM dns_root_hints ORDER BY ip_address", &[]);
-    
+    let result = client.query(
+        "SELECT ip_address FROM dns_root_hints ORDER BY ip_address",
+        &[],
+    );
+
     match result {
         Ok(rows) => {
             let mut hints: Vec<String> = rows
                 .iter()
                 .filter_map(|row| {
                     let ip: String = row.get(0);
-                    if !ip.is_empty() {
-                        Some(ip)
-                    } else {
-                        None
-                    }
+                    if !ip.is_empty() { Some(ip) } else { None }
                 })
                 .collect();
-            
+
             hints.sort();
             hints.dedup();
-            
-            if hints.is_empty() {
-                None
-            } else {
-                Some(hints)
-            }
+
+            if hints.is_empty() { None } else { Some(hints) }
         }
         Err(_) => {
             // Table doesn't exist or query failed; fall back to other methods
@@ -289,7 +284,7 @@ fn load_root_hints_from_db() -> Option<Vec<String>> {
 pub fn ensure_root_hints_in_db(db_url: &str) -> Result<(), String> {
     let mut client = postgres::Client::connect(db_url, NoTls)
         .map_err(|e| format!("Failed to connect to database: {}", e))?;
-    
+
     // Create table if it doesn't exist
     client
         .execute(
@@ -302,14 +297,14 @@ pub fn ensure_root_hints_in_db(db_url: &str) -> Result<(), String> {
             &[],
         )
         .map_err(|e| format!("Failed to create dns_root_hints table: {}", e))?;
-    
+
     // Check if table is empty
     let count_result = client
         .query_one("SELECT COUNT(*) FROM dns_root_hints", &[])
         .map_err(|e| format!("Failed to count root hints: {}", e))?;
-    
+
     let count: i64 = count_result.get(0);
-    
+
     if count == 0 {
         // Populate with default root servers
         for ip in ROOT_SERVERS.iter() {
@@ -321,7 +316,7 @@ pub fn ensure_root_hints_in_db(db_url: &str) -> Result<(), String> {
                 .map_err(|e| format!("Failed to insert root hint: {}", e))?;
         }
     }
-    
+
     Ok(())
 }
 
@@ -354,7 +349,9 @@ fn response_matches_expected(
         return false;
     }
     let mut pos = 12usize;
-    let Some((qname, p2)) = parse_qname(resp, pos) else { return false; };
+    let Some((qname, p2)) = parse_qname(resp, pos) else {
+        return false;
+    };
     pos = p2;
     if qname.trim_end_matches('.') != expected_qname.trim_end_matches('.') {
         return false;
@@ -607,7 +604,10 @@ fn resolve_internal(
                     resp = tcp_resp;
                 }
                 if resp.len() < 12 {
-                    debug_log(&format!("short response from {} while resolving {}", srv, qname), config);
+                    debug_log(
+                        &format!("short response from {} while resolving {}", srv, qname),
+                        config,
+                    );
                     continue;
                 }
                 let ancount = u16::from_be_bytes([resp[6], resp[7]]) as usize;
@@ -627,11 +627,16 @@ fn resolve_internal(
                                 let exp = Instant::now() + Duration::from_secs((*ttl).into());
                                 c.insert((name.to_string(), qtype), (resp.clone(), exp));
                             }
-                            debug_log(&format!("resolved {} type {} via {}", name, qtype, srv), config);
+                            debug_log(
+                                &format!("resolved {} type {} via {}", name, qtype, srv),
+                                config,
+                            );
                             return Some(resp.clone());
                         }
                         if let Some(mt) = min_ttl {
-                            if *ttl < mt { min_ttl = Some(*ttl); }
+                            if *ttl < mt {
+                                min_ttl = Some(*ttl);
+                            }
                         } else {
                             min_ttl = Some(*ttl);
                         }
@@ -665,14 +670,16 @@ fn resolve_internal(
                 let (ns_names, glue_ips) =
                     extract_ns_and_glue(&resp, &authority_rrs, &additional_rrs);
 
-                if _round == 0 && !ns_names.is_empty()
-                    && let Ok(mut roots) = ROOT_CACHE.lock() {
-                        let exp = Instant::now() + Duration::from_secs(ROOT_CACHE_TTL_SECS);
-                        roots.insert(
-                            "__root__".to_string(),
-                            (ns_names.clone(), glue_ips.clone(), exp),
-                        );
-                    }
+                if _round == 0
+                    && !ns_names.is_empty()
+                    && let Ok(mut roots) = ROOT_CACHE.lock()
+                {
+                    let exp = Instant::now() + Duration::from_secs(ROOT_CACHE_TTL_SECS);
+                    roots.insert(
+                        "__root__".to_string(),
+                        (ns_names.clone(), glue_ips.clone(), exp),
+                    );
+                }
 
                 if !glue_ips.is_empty() {
                     for ip in glue_ips {
@@ -726,11 +733,18 @@ fn resolve_internal(
                     break;
                 }
             } else {
-                debug_log(&format!("no response from {} while resolving {}", srv, qname), config);
+                debug_log(
+                    &format!("no response from {} while resolving {}", srv, qname),
+                    config,
+                );
             }
         }
 
-        if next_servers.is_empty() && !tried_root_fallback && !servers.is_empty() && servers != *ROOT_HINTS {
+        if next_servers.is_empty()
+            && !tried_root_fallback
+            && !servers.is_empty()
+            && servers != *ROOT_HINTS
+        {
             tried_root_fallback = true;
             servers = ROOT_HINTS.clone();
             continue;
@@ -740,7 +754,10 @@ fn resolve_internal(
             tried_root_fallback = true;
         }
     }
-    debug_log(&format!("resolution failed for {} type {}", name, qtype), config);
+    debug_log(
+        &format!("resolution failed for {} type {}", name, qtype),
+        config,
+    );
     None
 }
 
@@ -758,13 +775,26 @@ mod tests {
 
         let mut response = build_query(0x1234, "example.com", 1);
         response[2] |= 0x80;
-        assert!(response_matches_expected(&response, 0x1234, "example.com", 1));
-        assert!(!response_matches_expected(&response, 0x9999, "example.com", 1));
+        assert!(response_matches_expected(
+            &response,
+            0x1234,
+            "example.com",
+            1
+        ));
+        assert!(!response_matches_expected(
+            &response,
+            0x9999,
+            "example.com",
+            1
+        ));
     }
 
     #[test]
     fn root_hint_parser_deduplicates_ips() {
         let hints = parse_root_hints("; comment\n198.41.0.4 198.41.0.4\n170.247.170.2\n");
-        assert_eq!(hints, vec!["170.247.170.2".to_string(), "198.41.0.4".to_string()]);
+        assert_eq!(
+            hints,
+            vec!["170.247.170.2".to_string(), "198.41.0.4".to_string()]
+        );
     }
 }
