@@ -1,4 +1,9 @@
 /target
+_build/
+.docker-cache
+node_modules
+/elixir-old
+/native
 
 # ignore all env files, except example env files
 !**.env.example
