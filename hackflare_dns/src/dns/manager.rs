@@ -2,8 +2,6 @@ use crate::dns::Zone;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::fs;
-use std::io;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DnsManager {
@@ -18,7 +16,6 @@ impl Default for DnsManager {
     }
 }
 
-#[allow(dead_code)]
 impl DnsManager {
     fn normalize_name(name: &str) -> String {
         name.trim().trim_end_matches('.').to_ascii_lowercase()
@@ -28,6 +25,15 @@ impl DnsManager {
         rtype.trim().to_ascii_uppercase()
     }
 
+    pub fn new() -> Self {
+        Self {
+            zones: HashMap::new(),
+            records_by_name: HashMap::new(),
+        }
+    }
+
+    // Helper to normalize record name within a zone
+    #[allow(dead_code)]
     fn normalize_record_name_for_zone(zone_name: &str, record_name: &str) -> String {
         let normalized_zone = Self::normalize_name(zone_name);
         let normalized_record = Self::normalize_name(record_name);
@@ -45,13 +51,8 @@ impl DnsManager {
         format!("{}.{}", normalized_record, normalized_zone)
     }
 
-    pub fn new() -> Self {
-        Self {
-            zones: HashMap::new(),
-            records_by_name: HashMap::new(),
-        }
-    }
-
+    // Rebuild index after modifications
+    #[allow(dead_code)]
     fn rebuild_index(&mut self) {
         self.records_by_name.clear();
 
@@ -65,37 +66,16 @@ impl DnsManager {
         }
     }
 
-    pub fn create_zone(&mut self, name: impl Into<String>) -> &Zone {
+    // Create a new zone
+    #[allow(dead_code)]
+    pub fn create_zone(&mut self, name: impl Into<String>) {
         let name = Self::normalize_name(&name.into());
         self.zones
             .entry(name.clone())
             .or_insert_with(|| Zone::new(name.clone()));
-        self.zones.get(&name).expect("just inserted")
     }
 
-    pub fn delete_zone(&mut self, name: &str) -> bool {
-        let normalized = Self::normalize_name(name);
-        let removed = self.zones.remove(&normalized).is_some();
-        if removed {
-            self.rebuild_index();
-        }
-        removed
-    }
-
-    pub fn get_zone(&self, name: &str) -> Option<&Zone> {
-        let normalized = Self::normalize_name(name);
-        self.zones.get(&normalized)
-    }
-
-    pub fn get_zone_mut(&mut self, name: &str) -> Option<&mut Zone> {
-        let normalized = Self::normalize_name(name);
-        self.zones.get_mut(&normalized)
-    }
-
-    pub fn list_zones(&self) -> Vec<String> {
-        self.zones.keys().cloned().collect()
-    }
-
+    #[allow(dead_code)]
     pub fn add_record(
         &mut self,
         zone_name: &str,
@@ -121,6 +101,7 @@ impl DnsManager {
         }
     }
 
+    #[allow(dead_code)]
     pub fn remove_record(&mut self, zone_name: &str, name: &str, rtype: &str) -> bool {
         let normalized_zone = Self::normalize_name(zone_name);
         let fqdn = Self::normalize_record_name_for_zone(&normalized_zone, name);
@@ -194,18 +175,6 @@ impl DnsManager {
         }
 
         answer_chain
-    }
-
-    pub fn save_to_file(&self, path: &str) -> io::Result<()> {
-        let json = serde_json::to_string_pretty(&self).map_err(io::Error::other)?;
-        fs::write(path, json)
-    }
-
-    pub fn load_from_file(path: &str) -> io::Result<Self> {
-        let data = fs::read_to_string(path)?;
-        let mut manager: DnsManager = serde_json::from_str(&data).map_err(io::Error::other)?;
-        manager.rebuild_index();
-        Ok(manager)
     }
 }
 

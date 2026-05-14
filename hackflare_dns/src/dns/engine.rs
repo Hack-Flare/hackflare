@@ -3,66 +3,19 @@ use idna::domain_to_ascii;
 use std::sync::{Arc, RwLock};
 use std::net::{Ipv4Addr, Ipv6Addr};
 
+// Handles recursive DNS queries and local zone lookups.
+// Zone management is delegated to AuthorityStore.
 pub struct DnsEngine {
     manager: Arc<RwLock<DnsManager>>,
     config: DnsConfig,
 }
 
-#[allow(dead_code)]
 impl DnsEngine {
     pub(crate) fn new(manager: DnsManager, config: DnsConfig) -> Self {
         Self {
             manager: Arc::new(RwLock::new(manager)),
             config,
         }
-    }
-
-    pub(crate) fn with_defaults(manager: DnsManager) -> Self {
-        Self {
-            manager: Arc::new(RwLock::new(manager)),
-            config: DnsConfig::from_env(),
-        }
-    }
-
-    pub(crate) fn create_zone(&self, name: impl Into<String>) {
-        if let Ok(mut manager) = self.manager.write() {
-            manager.create_zone(name);
-        }
-    }
-
-    pub(crate) fn delete_zone(&self, name: &str) -> bool {
-        self.manager
-            .write()
-            .map(|mut manager| manager.delete_zone(name))
-            .unwrap_or(false)
-    }
-
-    pub(crate) fn add_record(
-        &self,
-        zone_name: &str,
-        name: &str,
-        rtype: &str,
-        ttl: u32,
-        data: &str,
-    ) -> bool {
-        self.manager
-            .write()
-            .map(|mut manager| manager.add_record(zone_name, name, rtype, ttl, data))
-            .unwrap_or(false)
-    }
-
-    pub(crate) fn remove_record(&self, zone_name: &str, name: &str, rtype: &str) -> bool {
-        self.manager
-            .write()
-            .map(|mut manager| manager.remove_record(zone_name, name, rtype))
-            .unwrap_or(false)
-    }
-
-    pub(crate) fn list_zones(&self) -> Vec<String> {
-        self.manager
-            .read()
-            .map(|manager| manager.list_zones())
-            .unwrap_or_default()
     }
 
     pub fn handle_query(&self, req: &[u8]) -> Option<Vec<u8>> {
