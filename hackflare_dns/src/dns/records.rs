@@ -228,6 +228,38 @@ fn encode_soa(r: &Record) -> Option<Vec<u8>> {
     None
 }
 
+fn encode_sshfp(r: &Record) -> Option<Vec<u8>> {
+    let parts: Vec<&str> = r.data.split_whitespace().collect();
+    if parts.len() != 3 {
+        return None;
+    }
+    let algorithm = parts[0].parse::<u8>().ok()?;
+    let fp_type = parts[1].parse::<u8>().ok()?;
+    let fingerprint = parse_hex_bytes(parts[2])?;
+    let mut out = Vec::new();
+    out.push(algorithm);
+    out.push(fp_type);
+    out.extend_from_slice(&fingerprint);
+    Some(out)
+}
+
+fn encode_tlsa(r: &Record) -> Option<Vec<u8>> {
+    let parts: Vec<&str> = r.data.split_whitespace().collect();
+    if parts.len() != 4 {
+        return None;
+    }
+    let usage = parts[0].parse::<u8>().ok()?;
+    let selector = parts[1].parse::<u8>().ok()?;
+    let mtype = parts[2].parse::<u8>().ok()?;
+    let data = parse_hex_bytes(parts[3])?;
+    let mut out = Vec::new();
+    out.push(usage);
+    out.push(selector);
+    out.push(mtype);
+    out.extend_from_slice(&data);
+    Some(out)
+}
+
 fn encode_srv(r: &Record) -> Option<Vec<u8>> {
     let mut parts = r.data.split_whitespace();
     if let (Some(pri), Some(w), Some(port), Some(target)) =
@@ -270,12 +302,12 @@ fn register_all(reg: &mut Registry) {
     reg.register("LOC", encode_raw);
     reg.register("SRV", encode_srv);
     reg.register("DS", encode_ds);
-    reg.register("SSHFP", encode_ds);
+    reg.register("SSHFP", encode_sshfp);
     reg.register("RRSIG", encode_rrsig);
     reg.register("NSEC", encode_raw);
     reg.register("DNSKEY", encode_dnskey);
     reg.register("NSEC3", encode_raw);
-    reg.register("TLSA", encode_ds);
+    reg.register("TLSA", encode_tlsa);
     reg.register("SVCB", encode_raw);
     reg.register("HTTPS", encode_raw);
     reg.register("ANY", encode_none);

@@ -49,6 +49,7 @@ pub struct Nameserver {
     pub config: NsConfig,
     authority: Arc<AuthorityStore>,
     engine: Arc<DnsEngine>,
+    runtime: tokio::runtime::Runtime,
 }
 
 impl Nameserver {
@@ -71,6 +72,7 @@ impl Nameserver {
             authority: Arc::new(AuthorityStore::new(dns_config)),
             config,
             engine: Arc::new(engine),
+            runtime: tokio::runtime::Runtime::new().expect("failed to create tokio runtime"),
         }
     }
 
@@ -99,11 +101,7 @@ impl Nameserver {
     // );
     //
     // // Restore zones on startup
-    // let rt = tokio::runtime::Runtime::new()?;
-    // rt.block_on(async {
-    //     nameserver.authority.load_zones_from_storage().await?;
-    //     Ok::<(), Box<dyn std::error::Error>>(())
-    // })?;
+    // nameserver.load_zones_from_storage().map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
     // # Ok::<(), Box<dyn std::error::Error>>(())
     // ```
     #[allow(dead_code)]
@@ -117,6 +115,7 @@ impl Nameserver {
             authority: Arc::new(AuthorityStore::with_persistence(dns_config, persistence)),
             config,
             engine: Arc::new(engine),
+            runtime: tokio::runtime::Runtime::new().expect("failed to create tokio runtime"),
         }
     }
 
@@ -127,20 +126,16 @@ impl Nameserver {
     // to persist the zone.
     pub fn create_zone(&self, name: impl Into<String>) {
         let authority = Arc::clone(&self.authority);
-        tokio::runtime::Runtime::new()
-            .expect("failed to create runtime")
-            .block_on(async move {
-                let _ = authority.create_zone(name).await;
-            });
+        self.runtime.block_on(async move {
+            let _ = authority.create_zone(name).await;
+        });
     }
 
     // Delete an existing DNS zone
     //
     // Returns `true` if the zone was deleted, `false` if it didn't exist.
     pub fn delete_zone(&self, name: &str) -> bool {
-        tokio::runtime::Runtime::new()
-            .expect("failed to create runtime")
-            .block_on(self.authority.delete_zone(name))
+        self.runtime.block_on(self.authority.delete_zone(name))
     }
 
     // Add a DNS record to a zone
@@ -162,8 +157,7 @@ impl Nameserver {
         ttl: u32,
         data: &str,
     ) -> bool {
-        tokio::runtime::Runtime::new()
-            .expect("failed to create runtime")
+        self.runtime
             .block_on(self.authority.add_record(zone_name, name, rtype, ttl, data))
     }
 
@@ -177,16 +171,22 @@ impl Nameserver {
     //
     // Returns `true` if the record was removed, `false` if it didn't exist.
     pub fn remove_record(&self, zone_name: &str, name: &str, rtype: &str) -> bool {
-        tokio::runtime::Runtime::new()
-            .expect("failed to create runtime")
+        self.runtime
             .block_on(self.authority.remove_record(zone_name, name, rtype))
+    }
+
+    // Load all zones from persistence storage
+    //
+    // Requires the nameserver to have been created with [`with_persistence`](Self::with_persistence).
+    // Returns an error if no persistence backend is configured.
+    pub fn load_zones_from_storage(&self) -> Result<(), String> {
+        self.runtime
+            .block_on(self.authority.load_zones_from_storage())
     }
 
     // List all hosted zones
     pub fn list_zones(&self) -> Vec<String> {
-        tokio::runtime::Runtime::new()
-            .expect("failed to create runtime")
-            .block_on(self.authority.list_zones())
+        self.runtime.block_on(self.authority.list_zones())
     }
 
     // Start the DNS server
