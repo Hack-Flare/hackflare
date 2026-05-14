@@ -9,7 +9,7 @@ export default [
 
   layout("layouts/sidebar-layout.tsx", [
     route("dash", "routes/dash.tsx"),
-    route("dash/dns", "routes/dash/dns.tsx"),
+    route("dash/dns", "routes/dash/dns/page.tsx"),
     route("dash/firewall", "routes/dash/firewall.tsx"),
     route("dash/traffic", "routes/dash/traffic.tsx"),
     route("dash/settings", "routes/dash/settings.tsx"),
