@@ -7,15 +7,15 @@ import { useAuth } from "~/lib/auth-context"
 
 export default function SidebarLayout() {
   const navigate = useNavigate()
-  const { token, ready } = useAuth()
+  const { user, ready } = useAuth()
 
   useEffect(() => {
-    if (ready && !token) {
+    if (ready && !user) {
       navigate("/auth")
     }
-  }, [ready, token, navigate])
+  }, [ready, user, navigate])
 
-  if (!ready || !token) {
+  if (!ready || !user) {
     return null
   }
 
@@ -28,7 +28,7 @@ export default function SidebarLayout() {
           <DarkModeToggle />
         </header>
         <div className="border-b border-orange-200 bg-orange-50 px-6 py-3 text-sm text-orange-900 dark:border-orange-900/40 dark:bg-orange-950/30 dark:text-orange-200">
-          Demo mode. Pages use placeholder data and layout only. Hook real API later.
+          Signed in with your Hack Club session.
         </div>
         <div className="flex-1 p-6">
           <Outlet />

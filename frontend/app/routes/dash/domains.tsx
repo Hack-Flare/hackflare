@@ -1,7 +1,5 @@
 import { Plus, Globe, Shield, Clock } from "lucide-react"
-import { useState, useEffect } from "react"
-import { useAuth } from "~/lib/auth-context"
-import { api } from "~/lib/api"
+import { useState } from "react"
 import {
   Card,
   CardContent,
@@ -11,29 +9,7 @@ import {
 } from "~/components/ui/card"
 
 export default function Domains() {
-  const { token } = useAuth()
   const [zones, setZones] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    if (!token) {
-      setLoading(false)
-      return
-    }
-
-    console.log("[Domains] Loading zones")
-    api.dns
-      .listZones(token)
-      .then((data) => {
-        console.log("[Domains] Loaded", data.length, "zones")
-        setZones(data || [])
-      })
-      .catch((err) => {
-        console.error("[Domains] Failed to load zones:", err)
-        setZones([])
-      })
-      .finally(() => setLoading(false))
-  }, [token])
   return (
     <div className="flex-1 p-1">
       <div className="flex items-center justify-between mb-8">
@@ -106,6 +82,9 @@ export default function Domains() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="mb-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-300">
+            Domain APIs are not wired into the current backend yet, so this view stays local for now.
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

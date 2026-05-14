@@ -1,62 +1,57 @@
 import React, { createContext, useContext, useEffect, useState } from "react"
+import { api, type AuthenticatedUser } from "./api"
 
-export interface User {
-  id: number
-  email: string
-  name: string
-  is_admin: boolean
+export interface User extends AuthenticatedUser {}
+
+export function getUserDisplayName(user: User | null): string {
+  if (!user) return "Signed in"
+  if (user.name?.trim()) return user.name.trim()
+  if (user.email?.trim()) return user.email.trim()
+  return `User ${user.id.slice(0, 8)}`
 }
 
 interface AuthContextType {
   user: User | null
-  token: string | null
   ready: boolean
-  login: (token: string, user: User) => void
-  logout: () => void
+  refreshUser: () => Promise<User | null>
+  logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [token, setToken] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
 
-  useEffect(() => {
+  const refreshUser = async (): Promise<User | null> => {
     try {
-      const storedToken = localStorage.getItem("hf_token")
-      const storedUser = localStorage.getItem("hf_user")
-
-      if (storedToken && storedUser) {
-        setToken(storedToken)
-        setUser(JSON.parse(storedUser))
-      }
+      const currentUser = await api.auth.me()
+      console.info("[Auth] session user loaded", { userId: currentUser.id })
+      setUser(currentUser)
+      return currentUser
+    } catch (error) {
+      console.error("[Auth] failed to load session user", error)
+      setUser(null)
+      return null
     } finally {
       setReady(true)
     }
+  }
+
+  useEffect(() => {
+    void refreshUser()
   }, [])
 
-  const login = (newToken: string, newUser: User) => {
-    console.log("[Auth] Login:", newUser.email)
-    setToken(newToken)
-    setUser(newUser)
-    localStorage.setItem("hf_token", newToken)
-    localStorage.setItem("hf_user", JSON.stringify(newUser))
+  const logout = async () => {
+    try {
+      await api.auth.logout()
+    } finally {
+      setUser(null)
+      setReady(true)
+    }
   }
 
-  const logout = () => {
-    console.log("[Auth] Logout")
-    setToken(null)
-    setUser(null)
-    localStorage.removeItem("hf_token")
-    localStorage.removeItem("hf_user")
-  }
-
-  return (
-    <AuthContext.Provider value={{ user, token, ready, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  )
+  return <AuthContext.Provider value={{ user, ready, refreshUser, logout }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {

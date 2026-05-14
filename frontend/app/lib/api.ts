@@ -1,27 +1,31 @@
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080"
-const INTERNAL_TOKEN = import.meta.env.VITE_INTERNAL_TOKEN || ""
+const API_ORIGIN = import.meta.env.DEV
+  ? ""
+  : import.meta.env.VITE_API_URL || "http://localhost:8080"
+
+export interface AuthenticatedUser {
+  id: string
+  name?: string
+  email?: string
+  is_admin?: boolean
+}
 
 interface ApiError {
   error: string
   status: number
 }
 
-async function request(
+async function request<T = unknown>(
   endpoint: string,
   options: {
     method?: string
     body?: unknown
-    token?: string
   } = {}
-) {
-  const url = `${BASE_URL}${endpoint}`
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    "x-internal-token": INTERNAL_TOKEN,
-  }
+) : Promise<T> {
+  const url = `${API_ORIGIN}${endpoint}`
+  const headers: Record<string, string> = {}
 
-  if (options.token) {
-    headers["Authorization"] = `Bearer ${options.token}`
+  if (options.body) {
+    headers["Content-Type"] = "application/json"
   }
 
   console.log(`[API] ${options.method || "GET"} ${endpoint}`)
@@ -30,52 +34,74 @@ async function request(
     method: options.method || "GET",
     headers,
     body: options.body ? JSON.stringify(options.body) : undefined,
+    credentials: "include",
   })
 
-  const data = await response.json()
+  const text = await response.text()
+  let data: unknown = null
+
+  if (text) {
+    try {
+      data = JSON.parse(text)
+    } catch {
+      data = text
+    }
+  }
 
   if (!response.ok) {
-    console.error(`[API] Error ${response.status}:`, data.error)
+    const errorMessage =
+      typeof data === "string"
+        ? data
+        : data && typeof data === "object" && "error" in data
+          ? String((data as { error?: unknown }).error || "Unknown error")
+          : response.statusText || "Unknown error"
+
+    console.error(`[API] Error ${response.status}:`, errorMessage)
     throw {
-      error: data.error || "Unknown error",
+      error: errorMessage,
       status: response.status,
     } as ApiError
   }
 
   console.log(`[API] ✓ ${response.status}`)
-  return data
+  return data as T
 }
 
 export const api = {
   auth: {
-    login: (input: { email: string; password: string }) =>
-      request("/api/v1/auth/login", { method: "POST", body: input }),
+    loginUrl: (target: string) =>
+      `${API_ORIGIN}/api/v1/auth/login?target=${encodeURIComponent(target)}`,
 
-    hackclubUrl: () =>
-      request("/api/v1/auth/hackclub/url"),
+    me: () => request<AuthenticatedUser>("/api/v1/users/me"),
 
-    hackclubCallback: (code: string) =>
-      request(`/api/v1/auth/hackclub/callback?code=${encodeURIComponent(code)}`),
+    logout: async () => {
+      const response = await fetch(`${API_ORIGIN}/api/v1/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      })
 
-    me: (token: string) =>
-      request("/api/v1/auth/me", { token }),
+      if (!response.ok) {
+        throw {
+          error: "Logout failed",
+          status: response.status,
+        } as ApiError
+      }
+    },
   },
 
   dns: {
-    listZones: (token: string) =>
-      request("/api/v1/dns/zones", { token }),
+    listZones: () =>
+      request("/api/v1/dns/zones"),
 
-    createZone: (token: string, name: string) =>
+    createZone: (name: string) =>
       request("/api/v1/dns/zones", {
         method: "POST",
-        token,
         body: { name },
       }),
 
-    verifyZone: (token: string, zoneName: string) =>
+    verifyZone: (zoneName: string) =>
       request(`/api/v1/dns/zones/${encodeURIComponent(zoneName)}/verify`, {
         method: "POST",
-        token,
       }),
   },
 }
