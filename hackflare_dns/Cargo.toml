@@ -1,10 +1,10 @@
 [package]
-name = "hackflare_dns"
+name = "hackflare-dns"
 version = "0.1.0"
 edition = "2024"
 
 [lib]
-name = "hackflare_dns"
+name = "hackflare-dns"
 path = "src/lib.rs"
 
 [dependencies]
