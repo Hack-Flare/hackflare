@@ -3,7 +3,7 @@
 </div>
 
 # HackFlare
-Cloudflare alternative for HackClub. Hence the name HackFlare.  
+Cloudflare alternative for Hack Club. Hence the name HackFlare.  
 
 ## Roadmap
 
