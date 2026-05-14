@@ -52,9 +52,9 @@ const overviewItems = [
 
 const domainsItems = [
   { title: "All Domains",  href: "/dash/domains" },
-  { title: "DNS Records",  href: "dash/domains/:domain/dns" },
-  { title: "SSL/TLS",      href: "/dash/domains/:domain/ssl" },
-  { title: "Redirects",    href: "/dash/domains/:domain/redirects" },
+  { title: "DNS Records",  href: "/dash/domains" },
+  { title: "SSL/TLS",      href: "/dash/domains" },
+  { title: "Redirects",    href: "/dash/domains" },
 ]
 
 const edgeItems = [
