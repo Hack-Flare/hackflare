@@ -286,7 +286,11 @@ async fn logout_handler(State(state): State<AppState>) -> Response {
         .max_age(cookie::time::Duration::ZERO)
         .build();
 
-    (StatusCode::NO_CONTENT, [(header::SET_COOKIE, cookie.to_string())]).into_response()
+    (
+        StatusCode::NO_CONTENT,
+        [(header::SET_COOKIE, cookie.to_string())],
+    )
+        .into_response()
 }
 
 pub(super) fn routes(config: &Config) -> Router<AppState> {
