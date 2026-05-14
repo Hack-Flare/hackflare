@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [lib]
-name = "hackflare-dns"
+name = "hackflare_dns"
 path = "src/lib.rs"
 
 [dependencies]
