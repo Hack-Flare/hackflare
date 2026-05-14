@@ -5,7 +5,7 @@ Use this file as the default guide for AI agents working in the repository.
 ## Repository Shape
 
 - Backend lives in [hackflare_api](hackflare_api); frontend lives in [frontend](frontend).
-- Prefer the source tree over documentation when they disagree. In particular, [docs/API.md](docs/API.md) is outdated and should not be treated as the source of truth for backend behavior.
+- Prefer the source tree over documentation when they disagree. [docs/API.md](docs/API.md) is useful reference material, but docs can drift; trust the Rust source as the source of truth for backend behavior when they conflict.
 - For frontend-specific conventions, follow [frontend/CLAUDE.md](frontend/CLAUDE.md).
 
 ## Backend Workflow
