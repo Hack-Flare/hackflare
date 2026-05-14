@@ -18,6 +18,7 @@ export default [
     route("dash/performance", "routes/dash/performance.tsx"),
     route("dash/profile", "routes/dash/profile.tsx"),
     route("dash/admin", "routes/dash/admin/admin.tsx"),
+    route("dash/dns", "routes/dash/domains/$domain/dns/page.tsx"),
 
     route("dash/domains", "routes/dash/domains/$domain/page.tsx"),
     route("dash/domains/:domain/dns", "routes/dash/domains/$domain/dns/page.tsx"),
