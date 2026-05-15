@@ -13,6 +13,7 @@ struct Me {
     slack_id: String,
     first_name: String,
     last_name: String,
+    email: String,
     eligible: bool,
 }
 
@@ -23,6 +24,7 @@ impl From<User> for Me {
             slack_id: user.slack_id,
             first_name: user.first_name,
             last_name: user.last_name,
+            email: user.email,
             eligible: user.ysws_eligible,
         }
     }
