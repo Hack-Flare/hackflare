@@ -59,10 +59,6 @@ impl Environment {
     pub(crate) const fn is_prod(&self) -> bool {
         matches!(self, Environment::Production)
     }
-
-    pub(crate) const fn is_dev(&self) -> bool {
-        matches!(self, Environment::Development)
-    }
 }
 
 impl FromStr for Environment {

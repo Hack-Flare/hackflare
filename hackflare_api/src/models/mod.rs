@@ -39,5 +39,4 @@ pub(crate) struct JwtClaims {
 #[derive(Clone)]
 pub(crate) struct CurrentUser {
     pub(crate) user: db::User,
-    pub(crate) claims: JwtClaims,
 }

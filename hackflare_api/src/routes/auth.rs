@@ -19,7 +19,12 @@ use tower_sessions::{
     cookie::{self, Cookie, SameSite},
 };
 
-use crate::{config::Config, models::{HcaUser, JwtClaims}, services::users::UsersService, state::AppState};
+use crate::{
+    config::Config,
+    models::{HcaUser, JwtClaims},
+    services::users::UsersService,
+    state::AppState,
+};
 
 fn login_redirect(config: &Config, csrf_token: &str) -> String {
     let scopes = "email name profile verification_status slack_id";

@@ -1,7 +1,7 @@
 mod hca;
 mod middlewares;
-mod services;
 mod models;
+mod services;
 
 pub mod config;
 pub mod routes;

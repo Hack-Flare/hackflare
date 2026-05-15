@@ -42,12 +42,12 @@ pub(crate) async fn auth_middleware(
 
     let Some(user) = user else {
         warn!("jwt found but no user exists");
-        return Err((StatusCode::UNAUTHORIZED, "unauthorized"))
+        return Err((StatusCode::UNAUTHORIZED, "unauthorized"));
     };
 
     debug!(user.id, "user authenticated");
 
-    let user = CurrentUser { user, claims };
+    let user = CurrentUser { user };
 
     // TODO: get user data from DB
 

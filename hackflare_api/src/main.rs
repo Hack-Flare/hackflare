@@ -29,7 +29,10 @@ async fn run() -> Result<()> {
 #[tokio::main]
 async fn main() {
     let dotenv_error = dotenv();
-    let is_production = matches!(env::var("API_ENVIRONMENT").as_deref(), Ok("production" | "staging"));
+    let is_production = matches!(
+        env::var("API_ENVIRONMENT").as_deref(),
+        Ok("production" | "staging")
+    );
 
     let env_filter = EnvFilter::from_default_env();
     if is_production {

@@ -8,10 +8,7 @@ use sqlx::{
     postgres::PgPoolOptions,
 };
 
-use crate::{
-    config::{Config, Environment},
-    services::users::UsersService,
-};
+use crate::{config::Config, services::users::UsersService};
 
 static MIGRATOR: Migrator = sqlx::migrate!("../migrations");
 
@@ -26,8 +23,8 @@ pub struct AppState {
 }
 
 #[instrument(skip(db))]
-async fn migrate_or_verify(db: &PgPool, env: &Environment) -> Result<()> {
-    if env.is_prod() {
+async fn migrate_or_verify(db: &PgPool, config: &Config) -> Result<()> {
+    if config.auto_migrate {
         MIGRATOR.run(db).await?;
     } else {
         let mut conn = db.acquire().await?;
@@ -111,7 +108,7 @@ impl AppState {
             .await?;
         info!("database connection pool initialized");
 
-        migrate_or_verify(&db, &config.environment).await?;
+        migrate_or_verify(&db, &config).await?;
 
         let users = UsersService::new(db.clone());
 
