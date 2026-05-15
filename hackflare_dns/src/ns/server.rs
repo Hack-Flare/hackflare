@@ -60,8 +60,12 @@ impl Nameserver {
     ///
     /// let persistence = Arc::new(PostgresPersistence::new(
     ///     "postgresql://user:pass@localhost/dns"
-    /// ));
-    /// persistence.init_schema()?;
+    /// )?);
+    ///
+    /// let rt = tokio::runtime::Runtime::new()?;
+    /// rt.block_on(async {
+    ///     persistence.init_schema().await
+    /// })?;
     ///
     /// let nameserver = Nameserver::with_persistence(
     ///     NsConfig::default(),

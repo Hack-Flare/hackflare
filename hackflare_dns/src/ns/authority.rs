@@ -1,5 +1,5 @@
 use crate::dns::DnsConfig;
-use crate::ns::persistence::ZonePersistence;
+use crate::ns::persistence::{PersistedRecord, PersistedZone, ZonePersistence};
 use crate::DnsError;
 use hickory_server::net::runtime::TokioRuntimeProvider;
 use hickory_server::proto::rr::{LowerName, Name, RData, Record, RecordType, rdata::SOA};
@@ -73,6 +73,16 @@ impl AuthorityStore {
             .await
             .upsert(zone_name_lower, vec![zone_handler]);
 
+        if let Some(persistence) = &self.persistence {
+            let persisted = PersistedZone {
+                name: zone_key.clone(),
+                records: Vec::new(),
+            };
+            if let Err(e) = persistence.save_zone(&persisted).await {
+                eprintln!("[hackflare:dns] failed to persist zone {zone_key}: {e}");
+            }
+        }
+
         true
     }
 
@@ -88,6 +98,11 @@ impl AuthorityStore {
 
         if removed {
             let _ = self.catalog.write().await.remove(&LowerName::new(&origin));
+            if let Some(persistence) = &self.persistence
+                && let Err(e) = persistence.delete_zone(&zone_key).await
+            {
+                eprintln!("[hackflare:dns] failed to delete zone {zone_key} from storage: {e}");
+            }
         }
         removed
     }
@@ -120,9 +135,27 @@ impl AuthorityStore {
             return false;
         };
 
-        handler
+        let ok = handler
             .upsert(Record::from_rdata(record_name, ttl, rdata), self.config.soa_serial)
-            .await
+            .await;
+
+        if ok
+            && let Some(persistence) = &self.persistence
+        {
+            let record = PersistedRecord {
+                name: name.to_string(),
+                rtype: rtype.to_string(),
+                ttl,
+                data: data.to_string(),
+            };
+            if let Err(e) = persistence.save_record(zone_name, &record).await {
+                eprintln!(
+                    "[hackflare:dns] failed to persist record {name} ({rtype}) in zone {zone_name}: {e}"
+                );
+            }
+        }
+
+        ok
     }
 
     /// Remove a DNS record from a zone.
@@ -148,7 +181,20 @@ impl AuthorityStore {
         let target_name = LowerName::new(&record_name);
         records.retain(|key, _| !(key.name() == &target_name && key.record_type == record_type));
 
-        before_count != records.len()
+        let removed = before_count != records.len();
+
+        if removed
+            && let Some(persistence) = &self.persistence
+            && let Err(e) = persistence
+                .delete_record(zone_name, name, rtype.trim())
+                .await
+        {
+            eprintln!(
+                "[hackflare:dns] failed to remove record {name} ({rtype}) from storage: {e}"
+            );
+        }
+
+        removed
     }
 
     /// List all zones.

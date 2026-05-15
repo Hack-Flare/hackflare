@@ -5,7 +5,6 @@ use hickory_server::net::xfer::Protocol;
 use hickory_server::proto::op::{DnsResponse, Message, Metadata, ResponseCode};
 use hickory_server::server::{Request, RequestHandler, ResponseHandler, ResponseInfo};
 use hickory_server::zone_handler::MessageResponseBuilder;
-use postgres::{Client, NoTls};
 use std::io;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -43,10 +42,11 @@ fn record_request(protocol: Protocol) {
     };
 }
 
-fn spawn_metrics_flusher(db_url: String) {
-    std::thread::spawn(move || {
+async fn spawn_metrics_flusher(db_url: String) {
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(5));
         loop {
-            std::thread::sleep(Duration::from_secs(5));
+            interval.tick().await;
             let udp = UDP_COUNT.swap(0, Ordering::Relaxed);
             let tcp = TCP_COUNT.swap(0, Ordering::Relaxed);
 
@@ -54,18 +54,23 @@ fn spawn_metrics_flusher(db_url: String) {
                 continue;
             }
 
-            if let Ok(mut client) = Client::connect(&db_url, NoTls) {
-                let query = format!(
-                    "INSERT INTO dns_query_metrics (id, udp_count, tcp_count, inserted_at, updated_at) \
-                 VALUES (1, {udp}, {tcp}, now(), now()) \
-                 ON CONFLICT (id) DO UPDATE SET \
-                 udp_count = dns_query_metrics.udp_count + {udp}, \
-                 tcp_count = dns_query_metrics.tcp_count + {tcp}, \
-                 updated_at = now()"
-                );
-                let _ = client.execute(&query, &[]);
-            } else {
-                log("warn", "Failed to connect to DB for metrics flush", None);
+            match tokio_postgres::connect(&db_url, tokio_postgres::NoTls).await {
+                Ok((client, connection)) => {
+                    tokio::spawn(connection);
+                    let query = "INSERT INTO dns_query_metrics \
+                                 (id, udp_count, tcp_count, inserted_at, updated_at) \
+                                 VALUES (1, $1, $2, now(), now()) \
+                                 ON CONFLICT (id) DO UPDATE SET \
+                                 udp_count = dns_query_metrics.udp_count + $1, \
+                                 tcp_count = dns_query_metrics.tcp_count + $2, \
+                                 updated_at = now()";
+                    let _ = client
+                        .execute(query, &[&(udp as i64), &(tcp as i64)])
+                        .await;
+                }
+                Err(_) => {
+                    log("warn", "Failed to connect to DB for metrics flush", None);
+                }
             }
         }
     });
@@ -195,14 +200,15 @@ pub(super) fn run_with_hickory(
     authority: Arc<AuthorityStore>,
     dns_config: DnsConfig,
 ) -> io::Result<()> {
-    if let Some(db_url) = config.database_url.clone() {
-        spawn_metrics_flusher(db_url);
-    }
-
     let bind_addr = format!("{}:{}", config.bind_addr, config.port);
     let rt = Runtime::new()?;
     rt.block_on(async move {
         let handler = HickoryRequestHandler::new(authority, dns_config);
+
+        if let Some(db_url) = config.database_url.clone() {
+            spawn_metrics_flusher(db_url).await;
+        }
+
         let mut server = hickory_server::Server::new(handler);
 
         let udp_socket = UdpSocket::bind(&bind_addr).await?;

@@ -14,28 +14,30 @@
 //! use hackflare_dns::ns::{PersistedZone, PostgresPersistence, ZonePersistence};
 //! use std::sync::Arc;
 //!
+//! let rt = tokio::runtime::Runtime::new()?;
 //! let persistence = Arc::new(PostgresPersistence::new(
 //!     "postgresql://user:password@localhost/dns"
-//! ));
+//! )?);
 //!
-//! // Initialize the schema (required once)
-//! persistence.init_schema()?;
+//! rt.block_on(async {
+//!     // Initialize the schema (required once)
+//!     persistence.init_schema().await?;
 //!
-//! # tokio::runtime::Runtime::new().unwrap().block_on(async {
-//! // Load existing zones
-//! let zones = persistence.load_zones().await.unwrap();
+//!     // Load existing zones
+//!     let zones = persistence.load_zones().await.unwrap();
 //!
-//! // Save a zone
-//! let zone = PersistedZone {
-//!     name: "example.com".to_string(),
-//!     records: vec![],
-//! };
-//! persistence.save_zone(&zone).await.unwrap();
-//! # });
+//!     // Save a zone
+//!     let zone = PersistedZone {
+//!         name: "example.com".to_string(),
+//!         records: vec![],
+//!     };
+//!     persistence.save_zone(&zone).await.unwrap();
+//!     Ok::<(), Box<dyn std::error::Error>>(())
+//! })?;
 //! # Ok::<(), Box<dyn std::error::Error>>(())
-
-use postgres::Client;
-use postgres::NoTls;
+//! ```
+//!
+use deadpool_postgres::{Config, Pool, Runtime};
 use std::collections::HashMap;
 use std::error::Error;
 
@@ -116,14 +118,16 @@ pub trait ZonePersistence: Send + Sync {
 ///
 /// let persistence = PostgresPersistence::new(
 ///     "postgresql://user:password@localhost/dns_db"
-/// );
+/// ).unwrap();
 ///
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
 /// // Initialize schema (run once)
-/// persistence.init_schema()?;
+/// persistence.init_schema().await.unwrap();
+/// # });
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
 pub struct PostgresPersistence {
-    connection_string: String,
+    pool: Pool,
 }
 
 impl PostgresPersistence {
@@ -132,10 +136,18 @@ impl PostgresPersistence {
     /// # Arguments
     ///
     /// * `connection_string` - `PostgreSQL` connection URL (e.g., `<postgresql://user:pass@host/db>`)
-    pub fn new(connection_string: impl Into<String>) -> Self {
-        Self {
-            connection_string: connection_string.into(),
-        }
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the connection string is invalid or the pool cannot be created.
+    pub fn new(connection_string: impl Into<String>) -> Result<Self, Box<dyn Error>> {
+        let conn_str = connection_string.into();
+        let mut cfg = Config::new();
+        cfg.url = Some(conn_str);
+        let pool = cfg
+            .create_pool(Some(Runtime::Tokio1), tokio_postgres::NoTls)
+            .map_err(|e| -> Box<dyn Error> { e.into() })?;
+        Ok(Self { pool })
     }
 
     /// Initialize the database schema
@@ -146,69 +158,75 @@ impl PostgresPersistence {
     /// # Errors
     ///
     /// Returns an error if the database is unreachable or schema creation fails.
-    pub fn init_schema(&self) -> Result<(), Box<dyn Error>> {
-        let mut client = Client::connect(&self.connection_string, NoTls)?;
+    pub async fn init_schema(&self) -> Result<(), Box<dyn Error>> {
+        let client = self.pool.get().await?;
 
-        client.execute(
-            "CREATE TABLE IF NOT EXISTS dns_zones (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(255) UNIQUE NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )",
-            &[],
-        )?;
+        client
+            .execute(
+                "CREATE TABLE IF NOT EXISTS dns_zones (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(255) UNIQUE NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )",
+                &[],
+            )
+            .await?;
 
-        client.execute(
-            "CREATE TABLE IF NOT EXISTS dns_records (
-                id SERIAL PRIMARY KEY,
-                zone_id INT NOT NULL,
-                name VARCHAR(255) NOT NULL,
-                rtype VARCHAR(10) NOT NULL,
-                ttl INT NOT NULL,
-                data TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (zone_id) REFERENCES dns_zones(id) ON DELETE CASCADE,
-                UNIQUE(zone_id, name, rtype)
-            )",
-            &[],
-        )?;
+        client
+            .execute(
+                "CREATE TABLE IF NOT EXISTS dns_records (
+                    id SERIAL PRIMARY KEY,
+                    zone_id INT NOT NULL,
+                    name VARCHAR(255) NOT NULL,
+                    rtype VARCHAR(10) NOT NULL,
+                    ttl INT NOT NULL,
+                    data TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (zone_id) REFERENCES dns_zones(id) ON DELETE CASCADE,
+                    UNIQUE(zone_id, name, rtype)
+                )",
+                &[],
+            )
+            .await?;
 
-        client.execute(
-            "CREATE INDEX IF NOT EXISTS idx_records_zone_id ON dns_records(zone_id)",
-            &[],
-        )?;
+        client
+            .execute(
+                "CREATE INDEX IF NOT EXISTS idx_records_zone_id ON dns_records(zone_id)",
+                &[],
+            )
+            .await?;
 
-        client.execute(
-            "CREATE INDEX IF NOT EXISTS idx_records_name ON dns_records(name)",
-            &[],
-        )?;
+        client
+            .execute(
+                "CREATE INDEX IF NOT EXISTS idx_records_name ON dns_records(name)",
+                &[],
+            )
+            .await?;
 
         Ok(())
-    }
-
-    fn get_connection(&self) -> Result<Client, Box<dyn Error>> {
-        Ok(Client::connect(&self.connection_string, NoTls)?)
     }
 }
 
 #[async_trait::async_trait]
 impl ZonePersistence for PostgresPersistence {
     async fn load_zones(&self) -> Result<Vec<PersistedZone>, Box<dyn Error>> {
-        let mut client = self.get_connection()?;
+        let client = self.pool.get().await?;
+
+        let zone_rows = client.query("SELECT id, name FROM dns_zones", &[]).await?;
+
         let mut zones = Vec::new();
-
-        let zone_rows = client.query("SELECT id, name FROM dns_zones", &[])?;
-
         for zone_row in zone_rows {
             let zone_id: i32 = zone_row.get(0);
             let zone_name: String = zone_row.get(1);
 
-            let records = client.query(
-                "SELECT name, rtype, ttl, data FROM dns_records WHERE zone_id = $1",
-                &[&zone_id],
-            )?;
+            let records = client
+                .query(
+                    "SELECT name, rtype, ttl, data FROM dns_records WHERE zone_id = $1",
+                    &[&zone_id],
+                )
+                .await?;
 
             let mut zone_records = Vec::new();
             for record_row in records {
@@ -230,12 +248,14 @@ impl ZonePersistence for PostgresPersistence {
     }
 
     async fn load_zone(&self, zone_name: &str) -> Result<Option<PersistedZone>, Box<dyn Error>> {
-        let mut client = self.get_connection()?;
+        let client = self.pool.get().await?;
 
-        let Some(zone_row) = client.query_opt(
-            "SELECT id, name FROM dns_zones WHERE name = $1",
-            &[&zone_name],
-        )?
+        let Some(zone_row) = client
+            .query_opt(
+                "SELECT id, name FROM dns_zones WHERE name = $1",
+                &[&zone_name],
+            )
+            .await?
         else {
             return Ok(None);
         };
@@ -243,10 +263,12 @@ impl ZonePersistence for PostgresPersistence {
         let zone_id: i32 = zone_row.get(0);
         let name: String = zone_row.get(1);
 
-        let records = client.query(
-            "SELECT name, rtype, ttl, data FROM dns_records WHERE zone_id = $1",
-            &[&zone_id],
-        )?;
+        let records = client
+            .query(
+                "SELECT name, rtype, ttl, data FROM dns_records WHERE zone_id = $1",
+                &[&zone_id],
+            )
+            .await?;
 
         let mut zone_records = Vec::new();
         for record_row in records {
@@ -265,20 +287,24 @@ impl ZonePersistence for PostgresPersistence {
     }
 
     async fn save_zone(&self, zone: &PersistedZone) -> Result<(), Box<dyn Error>> {
-        let mut client = self.get_connection()?;
+        let client = self.pool.get().await?;
 
-        client.execute(
-            "INSERT INTO dns_zones (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET updated_at = CURRENT_TIMESTAMP",
-            &[&zone.name],
-        )?;
+        client
+            .execute(
+                "INSERT INTO dns_zones (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET updated_at = CURRENT_TIMESTAMP",
+                &[&zone.name],
+            )
+            .await?;
 
         Ok(())
     }
 
     async fn delete_zone(&self, zone_name: &str) -> Result<(), Box<dyn Error>> {
-        let mut client = self.get_connection()?;
+        let client = self.pool.get().await?;
 
-        client.execute("DELETE FROM dns_zones WHERE name = $1", &[&zone_name])?;
+        client
+            .execute("DELETE FROM dns_zones WHERE name = $1", &[&zone_name])
+            .await?;
 
         Ok(())
     }
@@ -288,26 +314,30 @@ impl ZonePersistence for PostgresPersistence {
         zone_name: &str,
         record: &PersistedRecord,
     ) -> Result<(), Box<dyn Error>> {
-        let mut client = self.get_connection()?;
+        let client = self.pool.get().await?;
 
-        client.execute(
-            "INSERT INTO dns_zones (name) VALUES ($1) ON CONFLICT (name) DO NOTHING",
-            &[&zone_name],
-        )?;
+        client
+            .execute(
+                "INSERT INTO dns_zones (name) VALUES ($1) ON CONFLICT (name) DO NOTHING",
+                &[&zone_name],
+            )
+            .await?;
 
-        client.execute(
-            "INSERT INTO dns_records (zone_id, name, rtype, ttl, data)
-             SELECT id, $2, $3, $4, $5 FROM dns_zones WHERE name = $1
-             ON CONFLICT (zone_id, name, rtype) DO UPDATE
-             SET ttl = $4, data = $5, updated_at = CURRENT_TIMESTAMP",
-            &[
-                &zone_name,
-                &record.name,
-                &record.rtype,
-                &i32::try_from(record.ttl).unwrap_or(0),
-                &record.data,
-            ],
-        )?;
+        client
+            .execute(
+                "INSERT INTO dns_records (zone_id, name, rtype, ttl, data)
+                 SELECT id, $2, $3, $4, $5 FROM dns_zones WHERE name = $1
+                 ON CONFLICT (zone_id, name, rtype) DO UPDATE
+                 SET ttl = $4, data = $5, updated_at = CURRENT_TIMESTAMP",
+                &[
+                    &zone_name,
+                    &record.name,
+                    &record.rtype,
+                    &i32::try_from(record.ttl).unwrap_or(0),
+                    &record.data,
+                ],
+            )
+            .await?;
 
         Ok(())
     }
@@ -318,14 +348,16 @@ impl ZonePersistence for PostgresPersistence {
         name: &str,
         rtype: &str,
     ) -> Result<(), Box<dyn Error>> {
-        let mut client = self.get_connection()?;
+        let client = self.pool.get().await?;
 
-        client.execute(
-            "DELETE FROM dns_records
-             WHERE zone_id = (SELECT id FROM dns_zones WHERE name = $1)
-             AND name = $2 AND rtype = $3",
-            &[&zone_name, &name, &rtype],
-        )?;
+        client
+            .execute(
+                "DELETE FROM dns_records
+                 WHERE zone_id = (SELECT id FROM dns_zones WHERE name = $1)
+                 AND name = $2 AND rtype = $3",
+                &[&zone_name, &name, &rtype],
+            )
+            .await?;
 
         Ok(())
     }

@@ -40,11 +40,16 @@
 //! use hackflare_dns::ns::PostgresPersistence;
 //! use std::sync::Arc;
 //!
+//! let rt = tokio::runtime::Runtime::new()?;
+//!
 //! // Initialize PostgreSQL persistence
 //! let persistence = Arc::new(PostgresPersistence::new(
 //!     "postgresql://user:password@localhost/dns_db"
-//! ));
-//! persistence.init_schema()?;
+//! )?);
+//!
+//! rt.block_on(async {
+//!     persistence.init_schema().await
+//! })?;
 //!
 //! let config = NsConfig {
 //!     bind_addr: "0.0.0.0".to_string(),
