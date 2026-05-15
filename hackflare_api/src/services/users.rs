@@ -1,8 +1,8 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use sqlx::{PgPool, query};
+use sqlx::{PgPool, query, query_as};
 
-use crate::routes::auth::HcaUser;
+use crate::models::{HcaUser, db::User};
 
 #[derive(Clone)]
 pub(crate) struct UsersService {
@@ -50,5 +50,13 @@ impl UsersService {
         ).execute(&self.db).await?;
 
         Ok(())
+    }
+
+    pub(crate) async fn get_by_id(&self, id: &str) -> Result<Option<User>> {
+        let user = query_as!(User, "SELECT * from users WHERE id = $1 LIMIT 1", id)
+            .fetch_optional(&self.db)
+            .await?;
+
+        Ok(user)
     }
 }
