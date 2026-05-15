@@ -12,7 +12,7 @@ fn v1_routes(state: AppState, config: &Config) -> Router<AppState> {
         .nest("/users", users::routes(state))
 }
 
-pub(crate) fn build_router(state: AppState) -> Router {
+pub fn build_router(state: AppState) -> Router {
     Router::new()
         .nest("/api/v1", v1_routes(state.clone(), &state.config))
         .layer(TraceLayer::new_for_http())

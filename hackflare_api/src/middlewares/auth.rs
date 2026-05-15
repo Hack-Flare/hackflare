@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::{
     extract::{Request, State},
     middleware::Next,
@@ -7,15 +9,15 @@ use axum_extra::extract::CookieJar;
 use jsonwebtoken::Validation;
 use reqwest::StatusCode;
 
-use crate::{routes::auth::JwtClaims, state::AppState};
-
-#[derive(Clone)]
-pub(crate) struct CurrentUser {
-    pub(crate) claims: JwtClaims,
-}
+use crate::{
+    config::Config,
+    models::{CurrentUser, JwtClaims},
+    services::users::UsersService,
+};
 
 pub(crate) async fn auth_middleware(
-    State(state): State<AppState>,
+    State(config): State<Arc<Config>>,
+    State(users): State<UsersService>,
     jar: CookieJar,
     mut req: Request,
     next: Next,
@@ -25,20 +27,27 @@ pub(crate) async fn auth_middleware(
         .map(|c| c.value().to_owned())
         .ok_or((StatusCode::UNAUTHORIZED, "missing_jwt"))?;
 
-    let claims = jsonwebtoken::decode::<JwtClaims>(
-        &jwt,
-        &state.config.jwt_decoding_key,
-        &Validation::default(),
-    )
-    .map_err(|error| {
-        debug!(%error, "jwt validation failed");
-        (StatusCode::UNAUTHORIZED, "invalid_jwt")
-    })?
-    .claims;
+    let claims =
+        jsonwebtoken::decode::<JwtClaims>(&jwt, &config.jwt_decoding_key, &Validation::default())
+            .map_err(|error| {
+                debug!(%error, "jwt validation failed");
+                (StatusCode::UNAUTHORIZED, "invalid_jwt")
+            })?
+            .claims;
 
-    debug!(id = claims.sub, "user authorized");
+    let user = users.get_by_id(&claims.sub).await.map_err(|error| {
+        error!(%error, "failed to get user");
+        (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
+    })?;
 
-    let user = CurrentUser { claims };
+    let Some(user) = user else {
+        warn!("jwt found but no user exists");
+        return Err((StatusCode::UNAUTHORIZED, "unauthorized"));
+    };
+
+    debug!(user.id, "user authenticated");
+
+    let user = CurrentUser { user };
 
     // TODO: get user data from DB
 

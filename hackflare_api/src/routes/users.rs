@@ -1,15 +1,35 @@
 use axum::{Extension, Json, Router, middleware, response::IntoResponse, routing::get};
-use serde_json::json;
+use serde::Serialize;
 
 use crate::{
-    middlewares::{CurrentUser, auth_middleware},
+    middlewares::auth_middleware,
+    models::{CurrentUser, db::User},
     state::AppState,
 };
 
-async fn me_handler(Extension(user): Extension<CurrentUser>) -> impl IntoResponse {
-    Json(json!({
-        "id": user.claims.sub
-    }))
+#[derive(Serialize)]
+struct Me {
+    id: String,
+    slack_id: String,
+    first_name: String,
+    last_name: String,
+    eligible: bool,
+}
+
+impl From<User> for Me {
+    fn from(user: User) -> Self {
+        Self {
+            id: user.id,
+            slack_id: user.slack_id,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            eligible: user.ysws_eligible,
+        }
+    }
+}
+
+async fn me_handler(Extension(current_user): Extension<CurrentUser>) -> impl IntoResponse {
+    Json(Me::from(current_user.user))
 }
 
 pub(super) fn routes(state: AppState) -> Router<AppState> {

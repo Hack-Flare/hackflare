@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::{
     Router,
     extract::{Query, State},
@@ -5,19 +7,24 @@ use axum::{
     response::{IntoResponse, Redirect, Response},
     routing::{get, post},
 };
-use chrono::{DateTime, Duration, Utc};
+use chrono::{Duration, Utc};
 use jsonwebtoken::Header;
 use rand::{RngExt, distr::Alphanumeric};
 use reqwest::{StatusCode, Url};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::json;
-use serde_with::{DurationSeconds, TimestampSeconds, serde_as};
+use serde_with::{DurationSeconds, serde_as};
 use tower_sessions::{
     Expiry, MemoryStore, Session, SessionManagerLayer,
     cookie::{self, Cookie, SameSite},
 };
 
-use crate::{config::Config, state::AppState};
+use crate::{
+    config::Config,
+    models::{HcaUser, JwtClaims},
+    services::users::UsersService,
+    state::AppState,
+};
 
 fn login_redirect(config: &Config, csrf_token: &str) -> String {
     let scopes = "email name profile verification_status slack_id";
@@ -69,42 +76,10 @@ struct HcaTokenResponse {
     scope: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct HcaUser {
-    /// Unique ID of a user.
-    id: String,
-
-    /// Is this user eligible for YSWS programs? In other words, are they eligible for Hackflare?
-    ysws_eligible: bool,
-    verification_status: String,
-
-    /// User's legal first name.
-    first_name: String,
-
-    /// User's legal last name.
-    last_name: String,
-
-    /// The primary - and only - email of the user.
-    primary_email: String,
-
-    /// The Slack ID of the user.
-    slack_id: String,
-}
-
 #[derive(Debug, Deserialize)]
 struct HcaUserdataResponse {
     identity: HcaUser,
     scopes: Vec<String>,
-}
-
-#[serde_as]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct JwtClaims {
-    pub(crate) sub: String,
-    #[serde_as(as = "TimestampSeconds<i64>")]
-    pub(crate) exp: DateTime<Utc>,
-    #[serde_as(as = "TimestampSeconds<i64>")]
-    pub(crate) iat: DateTime<Utc>,
 }
 
 /// Generate a random alphanumeric string that is `len` characters long.
@@ -148,7 +123,9 @@ async fn login_handler(
 }
 
 async fn callback_handler(
-    State(state): State<AppState>,
+    State(config): State<Arc<Config>>,
+    State(http_client): State<reqwest::Client>,
+    State(users): State<UsersService>,
     session: Session,
     Query(query): Query<AuthCallbackParams>,
 ) -> Result<Response, (StatusCode, &'static str)> {
@@ -177,15 +154,15 @@ async fn callback_handler(
     );
 
     let payload = json!({
-        "client_id": state.config.hca.client_id,
-        "client_secret": state.config.hca.client_secret,
-        "redirect_uri": state.config.hca.redirect_uri.to_string(),
+        "client_id": config.hca.client_id,
+        "client_secret": config.hca.client_secret,
+        "redirect_uri": config.hca.redirect_uri.to_string(),
         "code": query.code,
         "grant_type": "authorization_code",
     });
 
-    let response = state
-        .http_client
+    let token_request_sent_at = Utc::now();
+    let response = http_client
         .post("https://auth.hackclub.com/oauth/token")
         .json(&payload)
         .send()
@@ -207,8 +184,7 @@ async fn callback_handler(
         (StatusCode::INTERNAL_SERVER_ERROR, "token_parse_failed")
     })?;
 
-    let user_response = state
-        .http_client
+    let user_response = http_client
         .get("https://auth.hackclub.com/api/v1/me")
         .bearer_auth(&token_response.access_token)
         .send()
@@ -234,7 +210,23 @@ async fn callback_handler(
 
     debug!(user_info.first_name, user_info.last_name, ?hca_response.scopes, "login successful");
 
-    // TODO: upsert user into DB here
+    // NB: we capture the time *before* sending the request - this slightly underestimates
+    // the token lifetime, but that's the safer tradeoff: treating a valid token as expired
+    // is harmless, while treating an expired token as valid is a security issue.
+    let token_expires_at = token_request_sent_at + token_response.expires_in;
+
+    users
+        .upsert(
+            &user_info,
+            &token_response.access_token,
+            &token_response.refresh_token,
+            token_expires_at,
+        )
+        .await
+        .map_err(|error| {
+            error!(%error, "failed to upsert user");
+            (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
+        })?;
 
     let now = Utc::now();
     let claims = JwtClaims {
@@ -243,13 +235,13 @@ async fn callback_handler(
         exp: now + chrono::Duration::hours(SESSION_DURATION_HOURS),
     };
 
-    let token = jsonwebtoken::encode(&Header::default(), &claims, &state.config.jwt_encoding_key)
+    let token = jsonwebtoken::encode(&Header::default(), &claims, &config.jwt_encoding_key)
         .map_err(|error| {
-        error!(%error, "failed to encode jwt");
-        (StatusCode::INTERNAL_SERVER_ERROR, "jwt_encode_error")
-    })?;
+            error!(%error, "failed to encode jwt");
+            (StatusCode::INTERNAL_SERVER_ERROR, "jwt_encode_error")
+        })?;
 
-    let is_secure = state.config.hca.is_secure();
+    let is_secure = config.hca.is_secure();
 
     let cookie = Cookie::build(("jwt", token))
         .path("/")
