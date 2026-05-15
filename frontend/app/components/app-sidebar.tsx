@@ -26,6 +26,8 @@ import {
   Check,
   ChevronRight,
   Shield,
+  BadgeQuestionMark,
+  MessageCircleQuestionMark,
   ArrowLeftRight,
 } from "lucide-react"
 
@@ -361,15 +363,15 @@ export function AppSidebar() {
             <SidebarMenuButton asChild>
               <NavLink
                 prefetch="intent"
-                to="/dash/settings"
+                to="/dash/help"
                 className="flex items-center gap-2"
               >
-                <BookOpen className="h-4 w-4" />
-                <span>Docs</span>
+                <MessageCircleQuestionMark className="h-4 w-4" />
+                <span>Help</span>
               </NavLink>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
+          {/*<SidebarMenuItem>
             <SidebarMenuButton asChild>
               <a
                 href="https://hackclub.slack.com"
@@ -381,7 +383,7 @@ export function AppSidebar() {
                 <span>Hack Club Slack</span>
               </a>
             </SidebarMenuButton>
-          </SidebarMenuItem>
+          </SidebarMenuItem>*/}
         </SidebarMenu>
 
         <SidebarSeparator />
