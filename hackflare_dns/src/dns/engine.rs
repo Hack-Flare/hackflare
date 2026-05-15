@@ -79,54 +79,9 @@ impl DnsEngine {
         let qtype = u16::from_be_bytes([req[pos], req[pos + 1]]);
         let _qclass = u16::from_be_bytes([req[pos + 2], req[pos + 3]]);
 
-        let mut client_edns_size: usize = 0;
-        let mut client_do: bool = false;
-        let pos_after_question = pos + 4;
-        let mut rr_pos = pos_after_question;
-        let skip_rrs = ancount as usize + nscount as usize;
-        for _ in 0..skip_rrs {
-            if rr_pos >= req.len() {
-                break;
-            }
-            if let Some((_name, newp)) = parse_qname(req, rr_pos) {
-                rr_pos = newp;
-            } else {
-                break;
-            }
-            if rr_pos + 10 > req.len() {
-                break;
-            }
-            let rdlen = u16::from_be_bytes([req[rr_pos + 8], req[rr_pos + 9]]) as usize;
-            rr_pos += 10 + rdlen;
-        }
-        for _ in 0..(arcount as usize) {
-            if rr_pos >= req.len() {
-                break;
-            }
-            if let Some((_name, newp)) = parse_qname(req, rr_pos) {
-                rr_pos = newp;
-            } else {
-                break;
-            }
-            if rr_pos + 10 > req.len() {
-                break;
-            }
-            let typ = u16::from_be_bytes([req[rr_pos], req[rr_pos + 1]]);
-            let class = u16::from_be_bytes([req[rr_pos + 2], req[rr_pos + 3]]);
-            let ttl = u32::from_be_bytes([
-                req[rr_pos + 4],
-                req[rr_pos + 5],
-                req[rr_pos + 6],
-                req[rr_pos + 7],
-            ]);
-            let rdlen = u16::from_be_bytes([req[rr_pos + 8], req[rr_pos + 9]]) as usize;
-            rr_pos += 10;
-            if typ == 41 {
-                client_edns_size = class as usize;
-                client_do = (ttl & 0x8000) != 0;
-            }
-            rr_pos += rdlen;
-        }
+        let edns = parse_edns_options(req, pos + 4, ancount, nscount, arcount);
+        let client_edns_size = edns.client_udp_size;
+        let client_do = edns.dnssec_ok;
 
         let qtype_str = map_qtype(qtype);
         let req_flags = u16::from_be_bytes([req[2], req[3]]);
@@ -526,6 +481,69 @@ pub(super) fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)>
 pub(super) fn encode_name_labels(name: &str) -> Vec<u8> {
     let ascii = domain_to_ascii(name).unwrap_or_else(|_| name.to_string());
     encode_name_labels_vec(&ascii)
+}
+
+struct EdnsOptions {
+    client_udp_size: usize,
+    dnssec_ok: bool,
+}
+
+#[allow(clippy::similar_names)]
+fn parse_edns_options(
+    req: &[u8],
+    pos_after_question: usize,
+    ancount: u16,
+    nscount: u16,
+    arcount: u16,
+) -> EdnsOptions {
+    let mut client_udp_size: usize = 0;
+    let mut dnssec_ok: bool = false;
+    let mut rr_pos = pos_after_question;
+    let skip_rrs = ancount as usize + nscount as usize;
+    for _ in 0..skip_rrs {
+        if rr_pos >= req.len() {
+            break;
+        }
+        if let Some((_name, newp)) = parse_qname(req, rr_pos) {
+            rr_pos = newp;
+        } else {
+            break;
+        }
+        if rr_pos + 10 > req.len() {
+            break;
+        }
+        let rdlen = u16::from_be_bytes([req[rr_pos + 8], req[rr_pos + 9]]) as usize;
+        rr_pos += 10 + rdlen;
+    }
+    for _ in 0..(arcount as usize) {
+        if rr_pos >= req.len() {
+            break;
+        }
+        if let Some((_name, newp)) = parse_qname(req, rr_pos) {
+            rr_pos = newp;
+        } else {
+            break;
+        }
+        if rr_pos + 10 > req.len() {
+            break;
+        }
+        let typ = u16::from_be_bytes([req[rr_pos], req[rr_pos + 1]]);
+        let class = u16::from_be_bytes([req[rr_pos + 2], req[rr_pos + 3]]);
+        let ttl = u32::from_be_bytes([
+            req[rr_pos + 4],
+            req[rr_pos + 5],
+            req[rr_pos + 6],
+            req[rr_pos + 7],
+        ]);
+        let rdlen = u16::from_be_bytes([req[rr_pos + 8], req[rr_pos + 9]]) as usize;
+        rr_pos += 10;
+        if typ == 41 {
+            client_udp_size = class as usize;
+            dnssec_ok = (ttl & 0x8000) != 0;
+        }
+        rr_pos += rdlen;
+    }
+    EdnsOptions { client_udp_size, dnssec_ok }
 }
 
 fn append_opt(resp: &mut Vec<u8>, client_size: usize, client_do: bool, dns_config: &DnsConfig) {
