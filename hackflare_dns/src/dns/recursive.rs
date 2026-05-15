@@ -364,7 +364,10 @@ fn parse_rrs(buf: &[u8], mut pos: usize, count: usize) -> Option<Vec<(u16, usize
             return None;
         }
         let rtype = u16::from_be_bytes([buf[pos], buf[pos + 1]]);
-        let _class = u16::from_be_bytes([buf[pos + 2], buf[pos + 3]]);
+        let class = u16::from_be_bytes([buf[pos + 2], buf[pos + 3]]);
+        if class != 1 {
+            return None;
+        }
         let ttl = u32::from_be_bytes([buf[pos + 4], buf[pos + 5], buf[pos + 6], buf[pos + 7]]);
         let rdlen = u16::from_be_bytes([buf[pos + 8], buf[pos + 9]]) as usize;
         pos += 10;
@@ -810,5 +813,31 @@ mod tests {
             hints,
             vec!["170.247.170.2".to_string(), "198.41.0.4".to_string()]
         );
+    }
+
+    #[test]
+    fn parse_rrs_accepts_class_in() {
+        let name = crate::dns::wire::encode_name_labels_vec("www.example.com");
+        let mut rr = name.clone();
+        rr.extend_from_slice(&1u16.to_be_bytes());  // type A
+        rr.extend_from_slice(&1u16.to_be_bytes());  // class IN
+        rr.extend_from_slice(&300u32.to_be_bytes()); // ttl
+        rr.extend_from_slice(&4u16.to_be_bytes());  // rdlength
+        rr.extend_from_slice(&[192, 168, 1, 1]);    // rdata
+        let result = parse_rrs(&rr, 0, 1);
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn parse_rrs_rejects_non_in_class() {
+        let name = crate::dns::wire::encode_name_labels_vec("www.example.com");
+        let mut rr = name.clone();
+        rr.extend_from_slice(&1u16.to_be_bytes());  // type A
+        rr.extend_from_slice(&3u16.to_be_bytes());  // class CH (Chaos)
+        rr.extend_from_slice(&300u32.to_be_bytes()); // ttl
+        rr.extend_from_slice(&4u16.to_be_bytes());  // rdlength
+        rr.extend_from_slice(&[192, 168, 1, 1]);    // rdata
+        let result = parse_rrs(&rr, 0, 1);
+        assert!(result.is_none());
     }
 }

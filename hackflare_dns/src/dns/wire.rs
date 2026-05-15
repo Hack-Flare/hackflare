@@ -16,26 +16,31 @@ pub(super) fn encode_name_labels_vec(name: &str) -> Vec<u8> {
     out
 }
 
+const MAX_QNAME_LABELS: usize = 127;
+
 /// Parse a DNS name from a buffer starting at the given position.
 ///
-/// Handles DNS name compression pointers.
+/// Handles DNS name compression pointers with cycle detection.
 /// Returns the parsed name and the new position in the buffer,
-/// or `None` on error.
+/// or `None` on error (malformed, pointer loop, too many labels).
 pub(super) fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)> {
     let mut labels: Vec<String> = Vec::new();
     let mut jumped = false;
     let mut orig_pos = pos;
-    let mut seen = 0usize;
+    let mut visited = std::collections::HashSet::new();
     loop {
         if pos >= buf.len() {
             return None;
         }
-        if seen > buf.len() {
+        if labels.len() >= MAX_QNAME_LABELS {
             return None;
         }
         let len = buf[pos];
         if len & 0xC0 == 0xC0 {
             if pos + 1 >= buf.len() {
+                return None;
+            }
+            if !visited.insert(pos) {
                 return None;
             }
             let b2 = buf[pos + 1];
@@ -49,7 +54,6 @@ pub(super) fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)>
             }
             pos = offset;
             jumped = true;
-            seen += 1;
             continue;
         }
         let l = len as usize;
@@ -65,7 +69,6 @@ pub(super) fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)>
             Err(_) => return None,
         }
         pos += l;
-        seen += 1;
     }
     let name = labels.join(".");
     if jumped {
@@ -94,5 +97,46 @@ mod tests {
     fn wire_roundtrip_qname() {
         let parsed = parse_qname(&encode_name_labels_vec("www.example.com"), 0).unwrap();
         assert_eq!(parsed.0, "www.example.com");
+    }
+
+    #[test]
+    fn parse_qname_rejects_pointer_loop() {
+        // Two pointers pointing at each other: pos 0 → pos 12, pos 12 → pos 0
+        let wire = [
+            0xC0, 0x0C, // pointer to offset 12
+            // padding bytes
+            b'x', b'y', b'z', 0, 0, 0, 0, 0, 0, 0,
+            0xC0, 0x00, // pointer to offset 0
+        ];
+        assert!(parse_qname(&wire, 0).is_none());
+    }
+
+    #[test]
+    fn parse_qname_rejects_self_referencing_pointer() {
+        // Pointer that points to itself
+        let wire = [
+            0xC0, 0x00, // pointer to offset 0 (itself)
+        ];
+        assert!(parse_qname(&wire, 0).is_none());
+    }
+
+    #[test]
+    fn parse_qname_rejects_too_many_labels() {
+        let mut wire = Vec::new();
+        for _ in 0..130 {
+            wire.push(1);
+            wire.push(b'a');
+        }
+        wire.push(0);
+        assert!(parse_qname(&wire, 0).is_none());
+    }
+
+    #[test]
+    fn parse_qname_rejects_pointer_to_out_of_bounds() {
+        let wire = [
+            3, b'w', b'w', b'w',
+            0xC0, 0xFF, // pointer to offset 255 (out of bounds)
+        ];
+        assert!(parse_qname(&wire, 4).is_none());
     }
 }
