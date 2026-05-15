@@ -1,7 +1,8 @@
 use crate::dns::{DnsConfig, DnsManager, Record};
 use idna::domain_to_ascii;
 use std::net::{Ipv4Addr, Ipv6Addr};
-use std::sync::{Arc, RwLock};
+use parking_lot::RwLock;
+use std::sync::Arc;
 
 /// Handles recursive DNS queries and local zone lookups.
 /// Zone management is delegated to `AuthorityStore`.
@@ -18,7 +19,7 @@ impl DnsEngine {
         }
     }
 
-    #[allow(clippy::too_many_lines, clippy::similar_names)]
+    #[allow(clippy::too_many_lines, clippy::similar_names, clippy::unnecessary_wraps)]
     pub fn handle_query(&self, req: &[u8]) -> Option<Vec<u8>> {
         if req.len() < 12 {
             let id = if req.len() >= 2 {
@@ -148,7 +149,7 @@ impl DnsEngine {
             is_ip_literal = true;
         }
 
-        let manager = self.manager.read().ok()?;
+        let manager = self.manager.read();
 
         let mut recs = if qtype == 255 {
             manager.find_records(&qname, None)
