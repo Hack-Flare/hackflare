@@ -85,34 +85,15 @@ fn acquire_resolve_slot() -> Option<ResolveGuard> {
     }
 }
 
-fn prune_query_cache(cache: &mut HashMap<CacheKey, CacheValue>) {
-    let now = Instant::now();
-    cache.retain(|_, (_, exp)| now < *exp);
-    while cache.len() > MAX_QUERY_CACHE_ENTRIES {
-        if let Some(key) = cache.keys().next().cloned() {
-            cache.remove(&key);
-        } else {
-            break;
-        }
-    }
-}
-
-fn prune_root_cache(cache: &mut HashMap<String, RootCacheValue>) {
-    let now = Instant::now();
-    cache.retain(|_, (_, _, exp)| now < *exp);
-    while cache.len() > MAX_ROOT_CACHE_ENTRIES {
-        if let Some(key) = cache.keys().next().cloned() {
-            cache.remove(&key);
-        } else {
-            break;
-        }
-    }
-}
-
-fn prune_delegation_cache(cache: &mut HashMap<String, DelegationCacheValue>) {
-    let now = Instant::now();
-    cache.retain(|_, (_, exp)| now < *exp);
-    while cache.len() > MAX_DELEGATION_CACHE_ENTRIES {
+fn prune_cache<K, V>(
+    cache: &mut HashMap<K, V>,
+    max_entries: usize,
+    is_expired: impl Fn(&V) -> bool,
+) where
+    K: Clone + Eq + std::hash::Hash,
+{
+    cache.retain(|_, v| !is_expired(v));
+    while cache.len() > max_entries {
         if let Some(key) = cache.keys().next().cloned() {
             cache.remove(&key);
         } else {
@@ -530,7 +511,9 @@ fn resolve_internal(
 
     if let Ok(mut roots) = ROOT_CACHE.lock()
         && {
-            prune_root_cache(&mut roots);
+            prune_cache(&mut roots, MAX_ROOT_CACHE_ENTRIES, |(_, _, exp): &RootCacheValue| {
+                Instant::now() >= *exp
+            });
             !roots.contains_key("__root__")
         }
         && !ROOT_HINTS.is_empty()
@@ -544,7 +527,9 @@ fn resolve_internal(
 
     if let Ok(mut c) = CACHE.lock()
         && {
-            prune_query_cache(&mut c);
+            prune_cache(&mut c, MAX_QUERY_CACHE_ENTRIES, |(_, exp): &CacheValue| {
+                Instant::now() >= *exp
+            });
             true
         }
         && let Some((data, exp)) = c.get(&(name.to_string(), qtype))
@@ -563,7 +548,11 @@ fn resolve_internal(
         }
         && let Ok(mut delegations) = DELEGATION_CACHE.lock()
         && {
-            prune_delegation_cache(&mut delegations);
+            prune_cache(
+                &mut delegations,
+                MAX_DELEGATION_CACHE_ENTRIES,
+                |(_, exp): &DelegationCacheValue| Instant::now() >= *exp,
+            );
             true
         }
         && let Some((cached, exp)) = delegations.get(tld)
@@ -631,7 +620,11 @@ fn resolve_internal(
                     for (rtype, rpos, _rdlen, ttl) in &ans_rrs {
                         if *rtype == qtype {
                             if let Ok(mut c) = CACHE.lock() {
-                                prune_query_cache(&mut c);
+                                prune_cache(
+                                    &mut c,
+                                    MAX_QUERY_CACHE_ENTRIES,
+                                    |(_, exp): &CacheValue| Instant::now() >= *exp,
+                                );
                                 let exp = Instant::now() + Duration::from_secs((*ttl).into());
                                 c.insert((name.to_string(), qtype), (resp.clone(), exp));
                             }
@@ -730,7 +723,11 @@ fn resolve_internal(
                         && let Some(tld) = requested_tld.as_ref()
                         && let Ok(mut delegations) = DELEGATION_CACHE.lock()
                     {
-                        prune_delegation_cache(&mut delegations);
+                        prune_cache(
+                            &mut delegations,
+                            MAX_DELEGATION_CACHE_ENTRIES,
+                            |(_, exp): &DelegationCacheValue| Instant::now() >= *exp,
+                        );
                         let ttl = clamp_tld_ttl(referral_ttl_secs);
                         let exp = Instant::now() + Duration::from_secs(ttl);
                         delegations.insert(tld.clone(), (next_servers.clone(), exp));

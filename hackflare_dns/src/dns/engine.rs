@@ -207,13 +207,8 @@ impl DnsEngine {
                 }
                 if resp.len() >= 4 {
                     let resp_flags = u16::from_be_bytes([resp[2], resp[3]]);
-                    let mut new_flags = resp_flags | 0x8000;
-                    new_flags &= !0x0400;
-
-                    new_flags |= req_flags & 0x0100;
-                    if self.config.recursion_enabled {
-                        new_flags |= 0x0080;
-                    }
+                    let new_flags = (resp_flags | 0x8000) & !0x0400
+                        | dns_rd_ra_flags(req_flags, self.config.recursion_enabled);
                     let nf = new_flags.to_be_bytes();
                     resp[2] = nf[0];
                     resp[3] = nf[1];
@@ -231,12 +226,8 @@ impl DnsEngine {
                 }
                 if resp.len() >= 4 {
                     let resp_flags = u16::from_be_bytes([resp[2], resp[3]]);
-                    let mut new_flags = resp_flags | 0x8000;
-                    new_flags &= !0x0400;
-                    new_flags |= req_flags & 0x0100;
-                    if self.config.recursion_enabled {
-                        new_flags |= 0x0080;
-                    }
+                    let new_flags = (resp_flags | 0x8000) & !0x0400
+                        | dns_rd_ra_flags(req_flags, self.config.recursion_enabled);
                     let nf = new_flags.to_be_bytes();
                     resp[2] = nf[0];
                     resp[3] = nf[1];
@@ -259,14 +250,9 @@ impl DnsEngine {
         let mut resp: Vec<u8> = Vec::new();
         resp.extend_from_slice(&id.to_be_bytes());
 
-        let mut flags: u16 = 0x8000;
+        let mut flags: u16 = 0x8000 | dns_rd_ra_flags(req_flags, self.config.recursion_enabled);
         if !recs.is_empty() {
             flags |= 0x0400;
-        }
-
-        flags |= req_flags & 0x0100;
-        if self.config.recursion_enabled {
-            flags |= 0x0080;
         }
         #[allow(clippy::bool_to_int_with_if)]
         let ar_out: u16 = if client_edns_size > 0 { 1 } else { 0 };
@@ -311,12 +297,7 @@ fn build_nxdomain_with_soa(
     let mut resp: Vec<u8> = Vec::new();
     resp.extend_from_slice(&id.to_be_bytes());
 
-    let mut flags: u16 = 0x8000;
-    flags |= req_flags & 0x0100;
-    if dns_config.recursion_enabled {
-        flags |= 0x0080;
-    }
-    flags |= 3;
+    let flags: u16 = 0x8000 | dns_rd_ra_flags(req_flags, dns_config.recursion_enabled) | 3;
     resp.extend_from_slice(&flags.to_be_bytes());
     resp.extend_from_slice(&1u16.to_be_bytes());
     resp.extend_from_slice(&0u16.to_be_bytes());
@@ -364,12 +345,7 @@ fn build_servfail(
     let mut resp: Vec<u8> = Vec::new();
     resp.extend_from_slice(&id.to_be_bytes());
 
-    let mut flags: u16 = 0x8000;
-    flags |= req_flags & 0x0100;
-    if recursion_enabled {
-        flags |= 0x0080;
-    }
-    flags |= 2;
+    let flags: u16 = 0x8000 | dns_rd_ra_flags(req_flags, recursion_enabled) | 2;
     resp.extend_from_slice(&flags.to_be_bytes());
     resp.extend_from_slice(&1u16.to_be_bytes());
     resp.extend_from_slice(&0u16.to_be_bytes());
@@ -402,6 +378,10 @@ fn load_soa_config_from_dns(dns_config: &DnsConfig) -> SoaConfig {
         minimum: dns_config.soa_minimum,
         ttl: dns_config.soa_ttl,
     }
+}
+
+const fn dns_rd_ra_flags(req_flags: u16, recursion_enabled: bool) -> u16 {
+    (req_flags & 0x0100) | if recursion_enabled { 0x0080 } else { 0 }
 }
 
 const fn map_qtype(q: u16) -> &'static str {
