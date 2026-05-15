@@ -65,7 +65,7 @@ impl FromStr for Environment {
     type Err = EnvironmentParseError;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        match s.as_ref() {
+        match s {
             "production" => Ok(Self::Production),
             "development" => Ok(Self::Development),
             _ => Err(EnvironmentParseError(s.to_string())),
