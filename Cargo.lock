@@ -859,9 +859,7 @@ name = "hackflare-dns"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "base64",
  "hickory-server",
- "idna",
  "parking_lot",
  "postgres",
  "rand 0.10.1",

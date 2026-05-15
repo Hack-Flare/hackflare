@@ -1,4 +1,4 @@
-use crate::dns::engine::DnsEngine;
+use crate::dns::config::DnsConfig;
 use crate::ns::NsConfig;
 use crate::ns::authority::AuthorityStore;
 use hickory_server::net::xfer::Protocol;
@@ -17,7 +17,6 @@ use tokio::runtime::Runtime;
 static UDP_COUNT: std::sync::LazyLock<AtomicU64> = std::sync::LazyLock::new(|| AtomicU64::new(0));
 static TCP_COUNT: std::sync::LazyLock<AtomicU64> = std::sync::LazyLock::new(|| AtomicU64::new(0));
 
-// Structured logging helper for JSON output.
 fn log(level: &str, message: &str, peer: Option<SocketAddr>) {
     let ts = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -36,7 +35,6 @@ fn log(level: &str, message: &str, peer: Option<SocketAddr>) {
     }
 }
 
-// Record DNS request metrics (UDP vs TCP).
 fn record_request(protocol: Protocol) {
     match protocol {
         Protocol::Udp => UDP_COUNT.fetch_add(1, Ordering::Relaxed),
@@ -45,7 +43,6 @@ fn record_request(protocol: Protocol) {
     };
 }
 
-// Periodically flush metrics to database.
 fn spawn_metrics_flusher(db_url: String) {
     std::thread::spawn(move || {
         loop {
@@ -74,15 +71,14 @@ fn spawn_metrics_flusher(db_url: String) {
     });
 }
 
-// Implements hickory-server's RequestHandler to bridge authority and recursive resolution.
 pub(super) struct HickoryRequestHandler {
     authority: Arc<AuthorityStore>,
-    engine: Arc<DnsEngine>,
+    dns_config: DnsConfig,
 }
 
 impl HickoryRequestHandler {
-    pub(super) const fn new(authority: Arc<AuthorityStore>, engine: Arc<DnsEngine>) -> Self {
-        Self { authority, engine }
+    pub(super) fn new(authority: Arc<AuthorityStore>, dns_config: DnsConfig) -> Self {
+        Self { authority, dns_config }
     }
 }
 
@@ -109,7 +105,6 @@ async fn send_servfail_response<R: ResponseHandler>(
 
 #[async_trait::async_trait]
 impl RequestHandler for HickoryRequestHandler {
-    #[allow(clippy::too_many_lines)]
     async fn handle_request<R: ResponseHandler, T: hickory_server::net::runtime::Time>(
         &self,
         request: &Request,
@@ -117,13 +112,11 @@ impl RequestHandler for HickoryRequestHandler {
     ) -> ResponseInfo {
         record_request(request.protocol());
 
-        // Get query name from request
         let Ok(query_info) = request.request_info() else {
             return send_servfail_response(request, response_handle, "Invalid request info").await;
         };
         let query_name = query_info.query.name();
 
-        // Try authoritative zone first
         if self.authority.contains_zone_for(query_name).await {
             return self
                 .authority
@@ -131,8 +124,10 @@ impl RequestHandler for HickoryRequestHandler {
                 .await;
         }
 
-        // Fall back to recursive resolution
-        let Some(response_bytes) = self.engine.handle_query(request.as_slice()) else {
+        let qname = query_name.to_utf8();
+        let qtype = u16::from(query_info.query.query_type());
+
+        let Some(response_bytes) = crate::dns::recursive::resolve(&qname, qtype, &self.dns_config) else {
             return send_servfail_response(
                 request,
                 response_handle,
@@ -141,7 +136,6 @@ impl RequestHandler for HickoryRequestHandler {
             .await;
         };
 
-        // Parse the response
         let response = match Message::from_vec(response_bytes.as_slice()) {
             Ok(message) => match DnsResponse::from_message(message) {
                 Ok(resp) => resp,
@@ -164,7 +158,6 @@ impl RequestHandler for HickoryRequestHandler {
             }
         };
 
-        // Build response
         let mut builder = MessageResponseBuilder::from_message_request(request);
         if let Some(edns) = &response.edns {
             builder.edns(edns);
@@ -197,11 +190,10 @@ impl RequestHandler for HickoryRequestHandler {
     }
 }
 
-// Start the DNS server with hickory-server.
 pub(super) fn run_with_hickory(
     config: &NsConfig,
     authority: Arc<AuthorityStore>,
-    engine: Arc<DnsEngine>,
+    dns_config: DnsConfig,
 ) -> io::Result<()> {
     if let Some(db_url) = config.database_url.clone() {
         spawn_metrics_flusher(db_url);
@@ -210,7 +202,7 @@ pub(super) fn run_with_hickory(
     let bind_addr = format!("{}:{}", config.bind_addr, config.port);
     let rt = Runtime::new()?;
     rt.block_on(async move {
-        let handler = HickoryRequestHandler::new(authority, engine);
+        let handler = HickoryRequestHandler::new(authority, dns_config);
         let mut server = hickory_server::Server::new(handler);
 
         let udp_socket = UdpSocket::bind(&bind_addr).await?;
@@ -226,31 +218,24 @@ pub(super) fn run_with_hickory(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dns::DnsConfig;
-    use crate::dns::engine::DnsEngine;
+    use crate::dns::config::DnsConfig;
 
     #[test]
     fn handler_creation() {
         let config = DnsConfig::default_config();
         let authority = Arc::new(AuthorityStore::new(config.clone()));
-        let engine = Arc::new(DnsEngine::new(Default::default(), config));
-
-        let handler = HickoryRequestHandler::new(authority, engine);
+        let handler = HickoryRequestHandler::new(authority, config);
         assert!(Arc::strong_count(&handler.authority) >= 1);
-        assert!(Arc::strong_count(&handler.engine) >= 1);
     }
 
     #[test]
     fn log_function_creates_valid_json() {
-        // Test that log doesn't panic and creates valid output
         log("info", "Test message", None);
         log("error", "Test error", Some("127.0.0.1:53".parse().unwrap()));
-        // If we get here, logging succeeded without panicking
     }
 
     #[test]
     fn record_request_increments_counters() {
-        // Reset counters
         UDP_COUNT.store(0, Ordering::Relaxed);
         TCP_COUNT.store(0, Ordering::Relaxed);
 

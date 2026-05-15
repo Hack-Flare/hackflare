@@ -9,9 +9,7 @@ path = "src/lib.rs"
 
 [dependencies]
 async-trait = "0.1"
-base64 = "0.22"
 hickory-server = "0.26.1"
-idna = "1.1.0"
 parking_lot = "0.12"
 postgres = "0.19"
 rand = "0.10.1"

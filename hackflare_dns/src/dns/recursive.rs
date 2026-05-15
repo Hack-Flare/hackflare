@@ -1,6 +1,6 @@
 use crate::DnsError;
 use crate::dns::DnsConfig;
-use crate::dns::engine::{encode_name_labels_vec, parse_qname};
+use crate::dns::wire::{encode_name_labels_vec, parse_qname};
 
 use postgres::NoTls;
 use rand::seq::SliceRandom;

@@ -1,4 +1,4 @@
-use crate::dns::{DnsConfig, engine::DnsEngine};
+use crate::dns::DnsConfig;
 use crate::error::DnsError;
 use crate::ns::authority::AuthorityStore;
 use crate::ns::hickory::run_with_hickory;
@@ -7,48 +7,10 @@ use crate::NsConfig;
 use std::io;
 use std::sync::Arc;
 
-/// Main DNS nameserver implementation
-///
-/// Provides zone management and DNS query handling through a unified API.
-/// Can optionally be configured with persistence for durable zone storage.
-///
-/// # Examples
-///
-/// Create a simple in-memory nameserver:
-///
-/// ```no_run
-/// use hackflare_dns::{Nameserver, NsConfig};
-///
-/// let config = NsConfig::default();
-/// let nameserver = Nameserver::new(config).unwrap();
-///
-/// nameserver.create_zone("example.com");
-/// nameserver.add_record("example.com", "www", "A", 300, "192.0.2.1");
-/// ```
-///
-/// Create a nameserver with `PostgreSQL` persistence:
-///
-/// ```no_run
-/// use hackflare_dns::{Nameserver, NsConfig, DnsConfig};
-/// use hackflare_dns::ns::PostgresPersistence;
-/// use std::sync::Arc;
-///
-/// let persistence = Arc::new(PostgresPersistence::new(
-///     "postgresql://user:pass@localhost/dns"
-/// ));
-/// persistence.init_schema()?;
-///
-/// let nameserver = Nameserver::with_persistence(
-///     NsConfig::default(),
-///     DnsConfig::from_env(),
-///     persistence
-/// )?;
-/// # Ok::<(), Box<dyn std::error::Error>>(())
-/// ```
 pub struct Nameserver {
     pub config: NsConfig,
+    dns_config: DnsConfig,
     authority: Arc<AuthorityStore>,
-    engine: Arc<DnsEngine>,
     runtime: tokio::runtime::Runtime,
 }
 
@@ -75,11 +37,10 @@ impl Nameserver {
     ///
     /// Returns an error if the Tokio runtime cannot be created.
     pub fn with_dns_config(config: NsConfig, dns_config: DnsConfig) -> Result<Self, Box<dyn std::error::Error>> {
-        let engine = DnsEngine::new(crate::dns::manager::DnsManager::new(), dns_config.clone());
         Ok(Self {
-            authority: Arc::new(AuthorityStore::new(dns_config)),
+            authority: Arc::new(AuthorityStore::new(dns_config.clone())),
             config,
-            engine: Arc::new(engine),
+            dns_config,
             runtime: tokio::runtime::Runtime::new()?,
         })
     }
@@ -116,17 +77,15 @@ impl Nameserver {
     /// # Errors
     ///
     /// Returns an error if the Tokio runtime cannot be created.
-    #[allow(dead_code)]
     pub fn with_persistence(
         config: NsConfig,
         dns_config: DnsConfig,
         persistence: Arc<dyn ZonePersistence>,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        let engine = DnsEngine::new(crate::dns::manager::DnsManager::new(), dns_config.clone());
         Ok(Self {
-            authority: Arc::new(AuthorityStore::with_persistence(dns_config, persistence)),
+            authority: Arc::new(AuthorityStore::with_persistence(dns_config.clone(), persistence)),
             config,
-            engine: Arc::new(engine),
+            dns_config,
             runtime: tokio::runtime::Runtime::new()?,
         })
     }
@@ -216,7 +175,7 @@ impl Nameserver {
         run_with_hickory(
             &self.config,
             Arc::clone(&self.authority),
-            Arc::clone(&self.engine),
+            self.dns_config.clone(),
         )
     }
 }
@@ -224,7 +183,6 @@ impl Nameserver {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dns::DnsConfig;
 
     #[test]
     fn nameserver_constructors_set_expected_state() {
