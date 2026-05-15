@@ -24,13 +24,13 @@
 //!     database_url: None,
 //! };
 //!
-//! let nameserver = Nameserver::new(config);
+//! let nameserver = Nameserver::new(config)?;
 //! nameserver.create_zone("example.com");
 //! nameserver.add_record("example.com", "www", "A", 300, "192.0.2.1");
 //!
 //! // Start the DNS server
 //! nameserver.run()?;
-//! # Ok::<(), std::io::Error>(())
+//! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 //!
 //! ### With `PostgreSQL` Persistence
@@ -57,7 +57,7 @@
 //!     config,
 //!     DnsConfig::from_env(),
 //!     persistence.clone(),
-//! );
+//! )?;
 //!
 //! // Load zones from database on startup
 //! nameserver.load_zones_from_storage().map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)))?;

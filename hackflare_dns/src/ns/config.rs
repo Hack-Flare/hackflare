@@ -10,7 +10,7 @@ pub struct NsConfig {
 }
 
 impl NsConfig {
-    // Load configuration from environment variables and defaults.
+    /// Load configuration from environment variables and defaults.
     #[must_use]
     pub fn from_env() -> Self {
         Self {

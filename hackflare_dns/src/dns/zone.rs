@@ -7,7 +7,6 @@ pub struct Zone {
     pub records: Vec<Record>,
 }
 
-#[allow(dead_code)]
 impl Zone {
     pub fn new(name: impl Into<String>) -> Self {
         Self {
@@ -27,13 +26,6 @@ impl Zone {
         before != self.records.len()
     }
 
-    pub fn find(&self, name: &str, rtype: Option<&str>) -> Vec<Record> {
-        self.records
-            .iter()
-            .filter(|r| r.name == name && rtype.is_none_or(|t| r.rtype == t))
-            .cloned()
-            .collect()
-    }
 }
 
 #[cfg(test)]
@@ -41,14 +33,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn zone_add_find_and_remove_records() {
+    fn zone_add_and_remove_records() {
         let mut zone = Zone::new("example.com");
         zone.add_record(Record::new("www.example.com", "A", 300, "1.2.3.4"));
         zone.add_record(Record::new("www.example.com", "AAAA", 300, "2001:db8::1"));
 
-        assert_eq!(zone.find("www.example.com", None).len(), 2);
-        assert_eq!(zone.find("www.example.com", Some("A")).len(), 1);
+        assert_eq!(zone.records.len(), 2);
         assert!(zone.remove_record("www.example.com", "A"));
-        assert_eq!(zone.find("www.example.com", None).len(), 1);
+        assert_eq!(zone.records.len(), 1);
     }
 }

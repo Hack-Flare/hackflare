@@ -3,8 +3,8 @@ use idna::domain_to_ascii;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::sync::{Arc, RwLock};
 
-// Handles recursive DNS queries and local zone lookups.
-// Zone management is delegated to AuthorityStore.
+/// Handles recursive DNS queries and local zone lookups.
+/// Zone management is delegated to `AuthorityStore`.
 pub struct DnsEngine {
     manager: Arc<RwLock<DnsManager>>,
     config: DnsConfig,
@@ -463,6 +463,11 @@ fn map_qtype_to_num(s: &str) -> u16 {
     }
 }
 
+/// Parse a hex string into bytes.
+///
+/// Supports an optional `0x` prefix and whitespace within the string.
+/// Returns `None` if the string has an odd number of hex digits
+/// or contains invalid characters.
 pub(super) fn parse_hex_bytes(s: &str) -> Option<Vec<u8>> {
     let s = s
         .trim_start_matches("0x")
@@ -478,6 +483,11 @@ pub(super) fn parse_hex_bytes(s: &str) -> Option<Vec<u8>> {
     Some(out)
 }
 
+/// Parse a DNS name from a buffer starting at the given position.
+///
+/// Handles DNS name compression pointers.
+/// Returns the parsed name and the new position in the buffer,
+/// or `None` on error.
 pub(super) fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)> {
     let mut labels: Vec<String> = Vec::new();
     let mut jumped = false;
@@ -532,6 +542,9 @@ pub(super) fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)>
     }
 }
 
+/// Encode a domain name into DNS wire format labels.
+///
+/// Uses IDNA encoding for non-ASCII names.
 pub(super) fn encode_name_labels(name: &str) -> Vec<u8> {
     let ascii = domain_to_ascii(name).unwrap_or_else(|_| name.to_string());
     encode_name_labels_vec(&ascii)
@@ -549,6 +562,10 @@ fn append_opt(resp: &mut Vec<u8>, client_size: usize, client_do: bool, dns_confi
     resp.extend_from_slice(&0u16.to_be_bytes());
 }
 
+/// Encode a domain name into DNS wire format label bytes.
+///
+/// Each label is prefixed by its length; the name is terminated
+/// by a zero-length label.
 pub(super) fn encode_name_labels_vec(name: &str) -> Vec<u8> {
     let mut out = Vec::new();
     for label in name.split('.') {

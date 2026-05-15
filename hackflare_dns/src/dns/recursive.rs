@@ -48,7 +48,8 @@ fn udp_attempts_per_server(config: &DnsConfig) -> usize {
     config.udp_attempts.max(1)
 }
 
-const fn udp_attempt_timeout(config: &DnsConfig) -> Duration {
+#[allow(clippy::missing_const_for_fn)]
+fn udp_attempt_timeout(config: &DnsConfig) -> Duration {
     config.udp_timeout
 }
 
@@ -273,13 +274,13 @@ fn load_root_hints_from_db() -> Option<Vec<String>> {
     if hints.is_empty() { None } else { Some(hints) }
 }
 
-// Initialize the dns_root_hints table if it doesn't exist and populate it with the default root servers.
-// This is a utility function that can be called at startup to ensure root hints are available in the database.
-//
-// # Errors
-//
-// Returns an error if the database connection fails or any query fails.
-#[allow(clippy::missing_errors_doc)]
+/// Initialize the `dns_root_hints` table if it doesn't exist and populate it with the default root servers.
+///
+/// This is a utility function that can be called at startup to ensure root hints are available in the database.
+///
+/// # Errors
+///
+/// Returns an error if the database connection fails or any query fails.
 pub fn ensure_root_hints_in_db(db_url: &str) -> Result<(), String> {
     let mut client = postgres::Client::connect(db_url, NoTls)
         .map_err(|e| format!("Failed to connect to database: {e}"))?;

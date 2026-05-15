@@ -86,6 +86,27 @@ impl HickoryRequestHandler {
     }
 }
 
+async fn send_servfail_response<R: ResponseHandler>(
+    request: &Request,
+    mut response_handle: R,
+    error: impl std::fmt::Display,
+) -> ResponseInfo {
+    log("error", &error.to_string(), Some(request.src()));
+    let mut metadata = Metadata::response_from_request(&request.metadata);
+    metadata.response_code = ResponseCode::ServFail;
+    let response =
+        MessageResponseBuilder::from_message_request(request).build_no_records(metadata);
+    response_handle
+        .send_response(response)
+        .await
+        .unwrap_or_else(|_| {
+            ResponseInfo::from(hickory_server::proto::op::Header {
+                metadata,
+                counts: hickory_server::proto::op::HeaderCounts::default(),
+            })
+        })
+}
+
 #[async_trait::async_trait]
 impl RequestHandler for HickoryRequestHandler {
     #[allow(clippy::too_many_lines)]
@@ -98,20 +119,7 @@ impl RequestHandler for HickoryRequestHandler {
 
         // Get query name from request
         let Ok(query_info) = request.request_info() else {
-            log("error", "Invalid request info", Some(request.src()));
-            let mut metadata = Metadata::response_from_request(&request.metadata);
-            metadata.response_code = ResponseCode::ServFail;
-            let response =
-                MessageResponseBuilder::from_message_request(request).build_no_records(metadata);
-            return response_handle
-                .send_response(response)
-                .await
-                .unwrap_or_else(|_| {
-                    ResponseInfo::from(hickory_server::proto::op::Header {
-                        metadata,
-                        counts: hickory_server::proto::op::HeaderCounts::default(),
-                    })
-                });
+            return send_servfail_response(request, response_handle, "Invalid request info").await;
         };
         let query_name = query_info.query.name();
 
@@ -125,24 +133,12 @@ impl RequestHandler for HickoryRequestHandler {
 
         // Fall back to recursive resolution
         let Some(response_bytes) = self.engine.handle_query(request.as_slice()) else {
-            log(
-                "error",
+            return send_servfail_response(
+                request,
+                response_handle,
                 "Failed to process recursive query",
-                Some(request.src()),
-            );
-            let mut metadata = Metadata::response_from_request(&request.metadata);
-            metadata.response_code = ResponseCode::ServFail;
-            let response =
-                MessageResponseBuilder::from_message_request(request).build_no_records(metadata);
-            return response_handle
-                .send_response(response)
-                .await
-                .unwrap_or_else(|_| {
-                    ResponseInfo::from(hickory_server::proto::op::Header {
-                        metadata,
-                        counts: hickory_server::proto::op::HeaderCounts::default(),
-                    })
-                });
+            )
+            .await;
         };
 
         // Parse the response
@@ -150,45 +146,21 @@ impl RequestHandler for HickoryRequestHandler {
             Ok(message) => match DnsResponse::from_message(message) {
                 Ok(resp) => resp,
                 Err(err) => {
-                    log(
-                        "error",
-                        &format!("Failed to decode DNS response: {err}"),
-                        Some(request.src()),
-                    );
-                    let mut metadata = Metadata::response_from_request(&request.metadata);
-                    metadata.response_code = ResponseCode::ServFail;
-                    let response = MessageResponseBuilder::from_message_request(request)
-                        .build_no_records(metadata);
-                    return response_handle
-                        .send_response(response)
-                        .await
-                        .unwrap_or_else(|_| {
-                            ResponseInfo::from(hickory_server::proto::op::Header {
-                                metadata,
-                                counts: hickory_server::proto::op::HeaderCounts::default(),
-                            })
-                        });
+                    return send_servfail_response(
+                        request,
+                        response_handle,
+                        format!("Failed to decode DNS response: {err}"),
+                    )
+                    .await;
                 }
             },
             Err(err) => {
-                log(
-                    "error",
-                    &format!("Failed to parse DNS response bytes: {err}"),
-                    Some(request.src()),
-                );
-                let mut metadata = Metadata::response_from_request(&request.metadata);
-                metadata.response_code = ResponseCode::ServFail;
-                let response = MessageResponseBuilder::from_message_request(request)
-                    .build_no_records(metadata);
-                return response_handle
-                    .send_response(response)
-                    .await
-                    .unwrap_or_else(|_| {
-                        ResponseInfo::from(hickory_server::proto::op::Header {
-                            metadata,
-                            counts: hickory_server::proto::op::HeaderCounts::default(),
-                        })
-                    });
+                return send_servfail_response(
+                    request,
+                    response_handle,
+                    format!("Failed to parse DNS response bytes: {err}"),
+                )
+                .await;
             }
         };
 
@@ -274,7 +246,6 @@ mod tests {
         log("info", "Test message", None);
         log("error", "Test error", Some("127.0.0.1:53".parse().unwrap()));
         // If we get here, logging succeeded without panicking
-        // assert!(true);
     }
 
     #[test]

@@ -51,7 +51,7 @@ impl DnsManager {
         format!("{normalized_record}.{normalized_zone}")
     }
 
-    // Rebuild index after modifications
+    /// Rebuild the zone index after modifications.
     #[allow(dead_code)]
     fn rebuild_index(&mut self) {
         self.records_by_name.clear();
@@ -66,7 +66,10 @@ impl DnsManager {
         }
     }
 
-    // Create a new zone
+    /// Create a new zone with the given name.
+    ///
+    /// The name is normalized (trimmed, lowercased, trailing dot removed).
+    /// If the zone already exists, this is a no-op.
     #[allow(dead_code)]
     pub fn create_zone(&mut self, name: impl Into<String>) {
         let name = Self::normalize_name(&name.into());
@@ -75,6 +78,10 @@ impl DnsManager {
             .or_insert_with(|| Zone::new(name.clone()));
     }
 
+    /// Add a record to a zone.
+    ///
+    /// Returns `true` if the zone was found and the record was added,
+    /// `false` if the zone does not exist.
     #[allow(dead_code)]
     pub fn add_record(
         &mut self,
@@ -101,6 +108,10 @@ impl DnsManager {
         }
     }
 
+    /// Remove a record from a zone by name and type.
+    ///
+    /// Returns `true` if a record was removed, `false` if the zone
+    /// does not exist or no matching record was found.
     #[allow(dead_code)]
     pub fn remove_record(&mut self, zone_name: &str, name: &str, rtype: &str) -> bool {
         let normalized_zone = Self::normalize_name(zone_name);

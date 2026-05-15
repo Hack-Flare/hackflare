@@ -39,18 +39,18 @@ use postgres::NoTls;
 use std::collections::HashMap;
 use std::error::Error;
 
-// Zone data structure for persistence
-//
-// Represents a DNS zone that can be stored durably across server restarts.
+/// Zone data structure for persistence
+///
+/// Represents a DNS zone that can be stored durably across server restarts.
 #[derive(Debug, Clone)]
 pub struct PersistedZone {
     pub name: String,
     pub records: Vec<PersistedRecord>,
 }
 
-// DNS record structure for persistence
-//
-// Represents a single DNS record within a zone.
+/// DNS record structure for persistence
+///
+/// Represents a single DNS record within a zone.
 #[derive(Debug, Clone)]
 pub struct PersistedRecord {
     pub name: String,
@@ -59,44 +59,44 @@ pub struct PersistedRecord {
     pub data: String,
 }
 
-// Abstract trait for zone persistence
-//
-// Implement this trait to add custom storage backends (e.g., MySQL, DynamoDB, Redis).
-// All methods are async to support non-blocking I/O operations.
+/// Abstract trait for zone persistence
+///
+/// Implement this trait to add custom storage backends (e.g., `MySQL`, `DynamoDB`, `Redis`).
+/// All methods are async to support non-blocking I/O operations.
 #[async_trait::async_trait]
 pub trait ZonePersistence: Send + Sync {
-    // Load all zones from storage
-    //
-    // Returns a vector of all persisted zones.
+    /// Load all zones from storage
+    ///
+    /// Returns a vector of all persisted zones.
     async fn load_zones(&self) -> Result<Vec<PersistedZone>, Box<dyn Error>>;
 
-    // Load a specific zone by name
-    //
-    // Returns `Ok(Some(zone))` if found, `Ok(None)` if not found, or an error.
+    /// Load a specific zone by name
+    ///
+    /// Returns `Ok(Some(zone))` if found, `Ok(None)` if not found, or an error.
     async fn load_zone(&self, zone_name: &str) -> Result<Option<PersistedZone>, Box<dyn Error>>;
 
-    // Save or update a zone
-    //
-    // This is idempotent - calling it multiple times with the same zone is safe.
+    /// Save or update a zone
+    ///
+    /// This is idempotent - calling it multiple times with the same zone is safe.
     async fn save_zone(&self, zone: &PersistedZone) -> Result<(), Box<dyn Error>>;
 
-    // Delete a zone
-    //
-    // This is idempotent - deleting a non-existent zone is safe.
+    /// Delete a zone
+    ///
+    /// This is idempotent - deleting a non-existent zone is safe.
     async fn delete_zone(&self, zone_name: &str) -> Result<(), Box<dyn Error>>;
 
-    // Save a record in a zone
-    //
-    // If the record already exists, it is updated (upserted).
+    /// Save a record in a zone
+    ///
+    /// If the record already exists, it is updated (upserted).
     async fn save_record(
         &self,
         zone_name: &str,
         record: &PersistedRecord,
     ) -> Result<(), Box<dyn Error>>;
 
-    // Delete a record from a zone
-    //
-    // This is idempotent - deleting a non-existent record is safe.
+    /// Delete a record from a zone
+    ///
+    /// This is idempotent - deleting a non-existent record is safe.
     async fn delete_record(
         &self,
         zone_name: &str,
@@ -105,48 +105,47 @@ pub trait ZonePersistence: Send + Sync {
     ) -> Result<(), Box<dyn Error>>;
 }
 
-// PostgreSQL implementation of zone persistence
-//
-// This is the recommended persistence backend for production use.
-//
-// # Example
-//
-// ```no_run
-// use hackflare_dns::ns::PostgresPersistence;
-//
-// let persistence = PostgresPersistence::new(
-//     "postgresql://user:password@localhost/dns_db"
-// );
-//
-// // Initialize schema (run once)
-// persistence.init_schema()?;
-// # Ok::<(), Box<dyn std::error::Error>>(())
-// ```
+/// `PostgreSQL` implementation of zone persistence
+///
+/// This is the recommended persistence backend for production use.
+///
+/// # Example
+///
+/// ```no_run
+/// use hackflare_dns::ns::PostgresPersistence;
+///
+/// let persistence = PostgresPersistence::new(
+///     "postgresql://user:password@localhost/dns_db"
+/// );
+///
+/// // Initialize schema (run once)
+/// persistence.init_schema()?;
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
 pub struct PostgresPersistence {
     connection_string: String,
 }
 
 impl PostgresPersistence {
-    // Create a new PostgreSQL persistence backend
-    //
-    // # Arguments
-    //
-    // * `connection_string` - PostgreSQL connection URL (e.g., "postgresql://user:pass@host/db")
+    /// Create a new `PostgreSQL` persistence backend
+    ///
+    /// # Arguments
+    ///
+    /// * `connection_string` - `PostgreSQL` connection URL (e.g., `<postgresql://user:pass@host/db>`)
     pub fn new(connection_string: impl Into<String>) -> Self {
         Self {
             connection_string: connection_string.into(),
         }
     }
 
-    // Initialize the database schema
-    //
-    // This creates the necessary tables (`dns_zones` and `dns_records`) if they don't exist.
-    // Call this once during application startup.
-    //
-    // # Errors
-    //
-    // Returns an error if the database is unreachable or schema creation fails.
-    #[allow(clippy::missing_errors_doc)]
+    /// Initialize the database schema
+    ///
+    /// This creates the necessary tables (`dns_zones` and `dns_records`) if they don't exist.
+    /// Call this once during application startup.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the database is unreachable or schema creation fails.
     pub fn init_schema(&self) -> Result<(), Box<dyn Error>> {
         let mut client = Client::connect(&self.connection_string, NoTls)?;
 
@@ -332,31 +331,31 @@ impl ZonePersistence for PostgresPersistence {
     }
 }
 
-// In-memory implementation for testing or when no database is available
-//
-// This backend stores zones in memory using a HashMap. It's useful for:
-// - Unit and integration testing
-// - Development environments without a database
-// - Temporary zone caching
-//
-// Note: Zones are lost when the server restarts.
-//
-// # Example
-//
-// ```
-// use hackflare_dns::ns::MemoryPersistence;
-//
-// let storage = MemoryPersistence::new();
-// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-// // storage is ready to use immediately
-// # });
-// ```
+/// In-memory implementation for testing or when no database is available
+///
+/// This backend stores zones in memory using a `HashMap`. It's useful for:
+/// - Unit and integration testing
+/// - Development environments without a database
+/// - Temporary zone caching
+///
+/// Note: Zones are lost when the server restarts.
+///
+/// # Example
+///
+/// ```
+/// use hackflare_dns::ns::MemoryPersistence;
+///
+/// let storage = MemoryPersistence::new();
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// // storage is ready to use immediately
+/// # });
+/// ```
 pub struct MemoryPersistence {
     zones: parking_lot::RwLock<HashMap<String, PersistedZone>>,
 }
 
 impl MemoryPersistence {
-    // Create a new in-memory persistence backend
+    /// Create a new in-memory persistence backend
     #[must_use]
     pub fn new() -> Self {
         Self {

@@ -10,12 +10,11 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-// Provides authoritative DNS zone management using hickory-server's in-memory zones.
+/// Provides authoritative DNS zone management using hickory-server's in-memory zones.
 pub struct AuthorityStore {
     config: DnsConfig,
     catalog: RwLock<Catalog>,
     zones: RwLock<HashMap<String, Arc<InMemoryZoneHandler<TokioRuntimeProvider>>>>,
-    #[allow(dead_code)]
     persistence: Option<Arc<dyn ZonePersistence>>,
 }
 
@@ -29,8 +28,7 @@ impl AuthorityStore {
         }
     }
 
-    // Create AuthorityStore with persistence enabled
-    #[allow(dead_code)]
+    /// Create `AuthorityStore` with persistence enabled
     pub fn with_persistence(config: DnsConfig, persistence: Arc<dyn ZonePersistence>) -> Self {
         Self {
             config,
@@ -40,7 +38,7 @@ impl AuthorityStore {
         }
     }
 
-    // Create a new DNS zone with default SOA record.
+    /// Create a new DNS zone with default SOA record.
     pub async fn create_zone(&self, name: impl Into<String>) -> bool {
         let zone_name = Self::normalize_zone_name(&name.into());
         let Ok(origin) = Name::from_utf8(&zone_name) else {
@@ -78,7 +76,7 @@ impl AuthorityStore {
         true
     }
 
-    // Delete an existing DNS zone.
+    /// Delete an existing DNS zone.
     pub async fn delete_zone(&self, name: &str) -> bool {
         let zone_name = Self::normalize_zone_name(name);
         let Ok(origin) = Name::from_utf8(&zone_name) else {
@@ -94,7 +92,7 @@ impl AuthorityStore {
         removed
     }
 
-    // Add a DNS record to a zone.
+    /// Add a DNS record to a zone.
     pub async fn add_record(
         &self,
         zone_name: &str,
@@ -128,7 +126,7 @@ impl AuthorityStore {
             .await
     }
 
-    // Remove a DNS record from a zone.
+    /// Remove a DNS record from a zone.
     pub async fn remove_record(&self, zone_name: &str, name: &str, rtype: &str) -> bool {
         let normalized_zone = Self::normalize_zone_name(zone_name);
         let zone_key = normalized_zone.trim_end_matches('.').to_string();
@@ -154,17 +152,17 @@ impl AuthorityStore {
         before_count != records.len()
     }
 
-    // List all zones.
+    /// List all zones.
     pub async fn list_zones(&self) -> Vec<String> {
         self.zones.read().await.keys().cloned().collect()
     }
 
-    // Check if a zone exists for the given name.
+    /// Check if a zone exists for the given name.
     pub async fn contains_zone_for(&self, name: &LowerName) -> bool {
         self.catalog.read().await.find(name).is_some()
     }
 
-    // Handle incoming DNS request using the catalog.
+    /// Handle incoming DNS request using the catalog.
     pub async fn handle_request<R: ResponseHandler, T: hickory_server::net::runtime::Time>(
         &self,
         request: &Request,
@@ -174,8 +172,7 @@ impl AuthorityStore {
         RequestHandler::handle_request::<R, T>(&*catalog, request, response_handle).await
     }
 
-    // Load all zones from persistence storage
-    #[allow(dead_code)]
+    /// Load all zones from persistence storage
     pub async fn load_zones_from_storage(&self) -> Result<(), String> {
         let Some(persistence) = &self.persistence else {
             return Err("No persistence backend configured".to_string());
@@ -205,7 +202,7 @@ impl AuthorityStore {
         Ok(())
     }
 
-    // Save a zone to persistence storage
+    /// Save a zone to persistence storage
     #[allow(dead_code)]
     pub async fn save_zone_to_storage(&self, zone_name: &str) -> Result<(), String> {
         let Some(persistence) = &self.persistence else {
@@ -233,7 +230,7 @@ impl AuthorityStore {
 
     // === Helper Methods ===
 
-    // Normalize zone name (lowercase, trailing dot).
+    /// Normalize zone name (lowercase, trailing dot).
     fn normalize_zone_name(name: &str) -> String {
         let trimmed = name.trim().trim_end_matches('.').to_ascii_lowercase();
         if trimmed.is_empty() {
@@ -243,7 +240,7 @@ impl AuthorityStore {
         }
     }
 
-    // Build fully-qualified domain name from zone and relative name.
+    /// Build fully-qualified domain name from zone and relative name.
     fn build_fqdn(zone: &str, name: &str) -> String {
         let normalized = name.trim().trim_end_matches('.').to_ascii_lowercase();
 
@@ -256,7 +253,7 @@ impl AuthorityStore {
         }
     }
 
-    // Parse a u32 string with a default fallback.
+    /// Parse a u32 string with a default fallback.
     fn parse_u32(value: &str, default: u32) -> u32 {
         value.trim().parse().unwrap_or(default)
     }
