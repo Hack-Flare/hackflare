@@ -20,6 +20,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Run SQLx checks locally instead of against a real DB during CI
+  SQLX_OFFLINE: true
+
 jobs:
   api:
     name: API Checks

@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO users (id, email, slack_id, first_name, last_name, verification_status, ysws_eligible, hca_access_token, hca_refresh_token, hca_token_expires_at)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)\n            ON CONFLICT (id) DO UPDATE SET\n                email = EXCLUDED.email,\n                slack_id = EXCLUDED.slack_id,\n                first_name = EXCLUDED.first_name,\n                last_name = EXCLUDED.last_name,\n                verification_status = EXCLUDED.verification_status,\n                ysws_eligible = EXCLUDED.ysws_eligible,\n                updated_at = NOW(),\n                hca_access_token = EXCLUDED.hca_access_token,\n                hca_refresh_token = EXCLUDED.hca_refresh_token,\n                hca_token_expires_at = EXCLUDED.hca_token_expires_at;\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e5002e5f22ba990affa38263002c0d258c63e69c3b1c8bd01ee9bba8ffdbc883"
+}
