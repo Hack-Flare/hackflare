@@ -32,102 +32,6 @@ impl DnsManager {
         }
     }
 
-    // Helper to normalize record name within a zone
-    #[allow(dead_code)]
-    fn normalize_record_name_for_zone(zone_name: &str, record_name: &str) -> String {
-        let normalized_zone = Self::normalize_name(zone_name);
-        let normalized_record = Self::normalize_name(record_name);
-
-        if normalized_record.is_empty() || normalized_record == "@" {
-            return normalized_zone;
-        }
-
-        if normalized_record.ends_with(&format!(".{normalized_zone}"))
-            || normalized_record == normalized_zone
-        {
-            return normalized_record;
-        }
-
-        format!("{normalized_record}.{normalized_zone}")
-    }
-
-    /// Rebuild the zone index after modifications.
-    #[allow(dead_code)]
-    fn rebuild_index(&mut self) {
-        self.records_by_name.clear();
-
-        for zone in self.zones.values() {
-            for record in &zone.records {
-                self.records_by_name
-                    .entry(record.name.clone())
-                    .or_default()
-                    .push(record.clone());
-            }
-        }
-    }
-
-    /// Create a new zone with the given name.
-    ///
-    /// The name is normalized (trimmed, lowercased, trailing dot removed).
-    /// If the zone already exists, this is a no-op.
-    #[allow(dead_code)]
-    pub fn create_zone(&mut self, name: impl Into<String>) {
-        let name = Self::normalize_name(&name.into());
-        self.zones
-            .entry(name.clone())
-            .or_insert_with(|| Zone::new(name.clone()));
-    }
-
-    /// Add a record to a zone.
-    ///
-    /// Returns `true` if the zone was found and the record was added,
-    /// `false` if the zone does not exist.
-    #[allow(dead_code)]
-    pub fn add_record(
-        &mut self,
-        zone_name: &str,
-        name: &str,
-        rtype: &str,
-        ttl: u32,
-        data: &str,
-    ) -> bool {
-        let normalized_zone = Self::normalize_name(zone_name);
-        let fqdn = Self::normalize_record_name_for_zone(&normalized_zone, name);
-        let normalized_rtype = Self::normalize_rtype(rtype);
-
-        if let Some(zone) = self.zones.get_mut(&normalized_zone) {
-            let record = crate::dns::Record::new(fqdn, normalized_rtype, ttl, data.trim());
-            self.records_by_name
-                .entry(record.name.clone())
-                .or_default()
-                .push(record.clone());
-            zone.add_record(record);
-            true
-        } else {
-            false
-        }
-    }
-
-    /// Remove a record from a zone by name and type.
-    ///
-    /// Returns `true` if a record was removed, `false` if the zone
-    /// does not exist or no matching record was found.
-    #[allow(dead_code)]
-    pub fn remove_record(&mut self, zone_name: &str, name: &str, rtype: &str) -> bool {
-        let normalized_zone = Self::normalize_name(zone_name);
-        let fqdn = Self::normalize_record_name_for_zone(&normalized_zone, name);
-        let normalized_rtype = Self::normalize_rtype(rtype);
-
-        let Some(zone) = self.zones.get_mut(&normalized_zone) else {
-            return false;
-        };
-        let removed = zone.remove_record(&fqdn, &normalized_rtype);
-        if removed {
-            self.rebuild_index();
-        }
-        removed
-    }
-
     pub fn find_records(&self, fqdn: &str, rtype: Option<&str>) -> Vec<crate::dns::Record> {
         let normalized_name = Self::normalize_name(fqdn);
         let normalized_rtype = rtype.map(Self::normalize_rtype);
@@ -186,48 +90,15 @@ impl DnsManager {
 
         answer_chain
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::DnsManager;
-
-    #[test]
-    fn add_record_normalizes_zone_and_relative_name() {
-        let mut manager = DnsManager::new();
-        manager.create_zone("Example.COM.");
-
-        let added = manager.add_record("example.com", "www", "a", 300, "1.2.3.4");
-        assert!(added);
-
-        let recs = manager.find_records("WWW.Example.Com.", Some("A"));
-        assert_eq!(recs.len(), 1);
-        assert_eq!(recs[0].name, "www.example.com");
-        assert_eq!(recs[0].rtype, "A");
-    }
-
-    #[test]
-    fn remove_record_handles_case_and_trailing_dot() {
-        let mut manager = DnsManager::new();
-        manager.create_zone("example.com");
-        assert!(manager.add_record("example.com", "@", "TXT", 60, "hello"));
-
-        let removed = manager.remove_record("EXAMPLE.COM.", "example.com.", "txt");
-        assert!(removed);
-        assert!(manager.find_records("example.com", Some("TXT")).is_empty());
-    }
-
-    #[test]
-    fn find_answer_records_follows_local_cname_chain() {
-        let mut manager = DnsManager::new();
-        manager.create_zone("example.com");
-
-        assert!(manager.add_record("example.com", "www", "CNAME", 300, "origin.example.com"));
-        assert!(manager.add_record("example.com", "origin", "A", 300, "1.2.3.4"));
-
-        let recs = manager.find_answer_records("www.example.com", Some("A"));
-        assert_eq!(recs.len(), 2);
-        assert_eq!(recs[0].rtype, "CNAME");
-        assert_eq!(recs[1].rtype, "A");
+    #[cfg(test)]
+    pub(crate) fn insert_zone(&mut self, zone: Zone) {
+        for record in &zone.records {
+            self.records_by_name
+                .entry(record.name.clone())
+                .or_default()
+                .push(record.clone());
+        }
+        self.zones.insert(zone.name.clone(), zone);
     }
 }

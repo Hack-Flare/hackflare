@@ -1,5 +1,5 @@
 use crate::dns::DnsConfig;
-use crate::ns::persistence::{PersistedZone, ZonePersistence};
+use crate::ns::persistence::ZonePersistence;
 use hickory_server::net::runtime::TokioRuntimeProvider;
 use hickory_server::proto::rr::{LowerName, Name, RData, Record, RecordType, rdata::SOA};
 use hickory_server::server::{Request, RequestHandler, ResponseHandler, ResponseInfo};
@@ -196,32 +196,6 @@ impl AuthorityStore {
                     .await;
             }
         }
-
-        Ok(())
-    }
-
-    /// Save a zone to persistence storage
-    #[allow(dead_code)]
-    pub async fn save_zone_to_storage(&self, zone_name: &str) -> Result<(), String> {
-        let Some(persistence) = &self.persistence else {
-            return Err("No persistence backend configured".to_string());
-        };
-
-        let zone_key = Self::normalize_zone_name(zone_name)
-            .trim_end_matches('.')
-            .to_string();
-
-        // For now, just save zone existence. Full record export would require
-        // deeper integration with hickory-server's RecordSet API
-        let zone = PersistedZone {
-            name: zone_key.clone(),
-            records: Vec::new(),
-        };
-
-        persistence
-            .save_zone(&zone)
-            .await
-            .map_err(|e| format!("Failed to save zone: {e}"))?;
 
         Ok(())
     }

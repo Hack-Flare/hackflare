@@ -582,6 +582,7 @@ pub(super) fn encode_name_labels_vec(name: &str) -> Vec<u8> {
 mod tests {
     use super::*;
     use crate::dns::DnsManager;
+    use crate::dns::Zone;
 
     fn build_query(name: &str, qtype: u16) -> Vec<u8> {
         let mut out = Vec::new();
@@ -624,8 +625,10 @@ mod tests {
     #[test]
     fn handle_query_returns_local_answer() {
         let mut manager = DnsManager::new();
-        manager.create_zone("example.com");
-        assert!(manager.add_record("example.com", "www", "A", 300, "1.2.3.4"));
+        manager.insert_zone(Zone {
+            name: "example.com".to_string(),
+            records: vec![Record::new("www.example.com", "A", 300, "1.2.3.4")],
+        });
 
         let engine = DnsEngine::new(manager, DnsConfig::default_config());
 
