@@ -7,8 +7,6 @@ pub enum DnsError {
     PersistenceUnconfigured,
     /// A persistence backend operation failed.
     PersistenceOperation(String),
-    /// A database operation failed.
-    Database(String),
 }
 
 impl fmt::Display for DnsError {
@@ -16,7 +14,6 @@ impl fmt::Display for DnsError {
         match self {
             Self::PersistenceUnconfigured => f.pad("no persistence backend configured"),
             Self::PersistenceOperation(msg) => write!(f, "persistence operation failed: {msg}"),
-            Self::Database(msg) => write!(f, "database error: {msg}"),
         }
     }
 }

@@ -55,17 +55,10 @@ impl Nameserver {
     ///
     /// ```no_run
     /// use hackflare_dns::{Nameserver, NsConfig, DnsConfig};
-    /// use hackflare_dns::ns::PostgresPersistence;
+    /// use hackflare_dns::ns::{MemoryPersistence, ZonePersistence};
     /// use std::sync::Arc;
     ///
-    /// let persistence = Arc::new(PostgresPersistence::new(
-    ///     "postgresql://user:pass@localhost/dns"
-    /// )?);
-    ///
-    /// let rt = tokio::runtime::Runtime::new()?;
-    /// rt.block_on(async {
-    ///     persistence.init_schema().await
-    /// })?;
+    /// let persistence: Arc<dyn ZonePersistence> = Arc::new(MemoryPersistence::new());
     ///
     /// let nameserver = Nameserver::with_persistence(
     ///     NsConfig::default(),

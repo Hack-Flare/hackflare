@@ -7,6 +7,6 @@ pub mod server;
 
 pub use config::NsConfig;
 pub use persistence::{
-    MemoryPersistence, PersistedRecord, PersistedZone, PostgresPersistence, ZonePersistence,
+    MemoryPersistence, PersistedRecord, PersistedZone, ZonePersistence,
 };
 pub use server::Nameserver;

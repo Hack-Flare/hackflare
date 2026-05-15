@@ -1,4 +1,3 @@
-use crate::DnsError;
 use crate::dns::DnsConfig;
 use crate::dns::wire::{encode_name_labels_vec, parse_qname};
 
@@ -185,13 +184,6 @@ fn load_root_hint_servers() -> Vec<String> {
 }
 
 fn load_root_hint_servers_internal(custom_path: Option<&std::path::PathBuf>) -> Vec<String> {
-    // Try loading from database first (will use DATABASE_URL from config if available)
-    if let Some(db_hints) = load_root_hints_from_db()
-        && !db_hints.is_empty()
-    {
-        return db_hints;
-    }
-
     // Try custom path if provided
     if let Some(path) = custom_path
         && let Ok(content) = fs::read_to_string(path)
@@ -228,88 +220,6 @@ fn load_root_hint_servers_internal(custom_path: Option<&std::path::PathBuf>) -> 
 
     // Fall back to hardcoded root servers
     ROOT_SERVERS.iter().map(|&s| s.to_string()).collect()
-}
-
-fn load_root_hints_from_db() -> Option<Vec<String>> {
-    let db_url = env::var("DATABASE_URL").ok()?;
-    let rt = tokio::runtime::Runtime::new().ok()?;
-    rt.block_on(async {
-        let (client, connection) = tokio_postgres::connect(&db_url, tokio_postgres::NoTls).await.ok()?;
-        tokio::spawn(connection);
-
-        let result = client
-            .query("SELECT ip_address FROM dns_root_hints ORDER BY ip_address", &[])
-            .await;
-
-        let rows = result.ok()?;
-        let mut hints: Vec<String> = rows
-            .iter()
-            .filter_map(|row| {
-                let ip: String = row.get(0);
-                if ip.is_empty() { None } else { Some(ip) }
-            })
-            .collect();
-
-        hints.sort();
-        hints.dedup();
-
-        if hints.is_empty() { None } else { Some(hints) }
-    })
-}
-
-/// Initialize the `dns_root_hints` table if it doesn't exist and populate it with the default root servers.
-///
-/// This is a utility function that can be called at startup to ensure root hints are available in the database.
-///
-/// # Errors
-///
-/// Returns an error if the database connection fails or any query fails.
-pub fn ensure_root_hints_in_db(db_url: &str) -> Result<(), DnsError> {
-    let rt = tokio::runtime::Runtime::new()
-        .map_err(|e| DnsError::Database(format!("Failed to create runtime: {e}")))?;
-    rt.block_on(async {
-        let (client, connection) = tokio_postgres::connect(db_url, tokio_postgres::NoTls)
-            .await
-            .map_err(|e| DnsError::Database(format!("Failed to connect to database: {e}")))?;
-        tokio::spawn(connection);
-
-        // Create table if it doesn't exist
-        client
-            .execute(
-                "CREATE TABLE IF NOT EXISTS dns_root_hints (
-                    id SERIAL PRIMARY KEY,
-                    ip_address VARCHAR(45) NOT NULL UNIQUE,
-                    created_at TIMESTAMP DEFAULT NOW(),
-                    updated_at TIMESTAMP DEFAULT NOW()
-                )",
-                &[],
-            )
-            .await
-            .map_err(|e| DnsError::Database(format!("Failed to create dns_root_hints table: {e}")))?;
-
-        // Check if table is empty
-        let count_result = client
-            .query_one("SELECT COUNT(*) FROM dns_root_hints", &[])
-            .await
-            .map_err(|e| DnsError::Database(format!("Failed to count root hints: {e}")))?;
-
-        let count: i64 = count_result.get(0);
-
-        if count == 0 {
-            // Populate with default root servers
-            for ip in &ROOT_SERVERS {
-                client
-                    .execute(
-                        "INSERT INTO dns_root_hints (ip_address) VALUES ($1) ON CONFLICT (ip_address) DO NOTHING",
-                        &[ip],
-                    )
-                    .await
-                    .map_err(|e| DnsError::Database(format!("Failed to insert root hint: {e}")))?;
-            }
-        }
-
-        Ok(())
-    })
 }
 
 fn tld_from_name(name: &str) -> Option<String> {
