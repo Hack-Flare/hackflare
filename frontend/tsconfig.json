@@ -18,7 +18,8 @@
     "rootDirs": [".", "./.react-router/types"],
     "ignoreDeprecations": "5.0",
     "paths": {
-      "~/*": ["./app/*"]
+      "~/*": ["./app/*"],
+      "@/*": ["./app/*"],
     },
     "esModuleInterop": true,
     "verbatimModuleSyntax": true,

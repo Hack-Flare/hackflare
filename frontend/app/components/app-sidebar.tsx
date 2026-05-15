@@ -1,12 +1,32 @@
-import { useLocation, NavLink, useNavigate } from "react-router"
+import {
+  useLocation,
+  NavLink,
+  useNavigate,
+  useParams,
+  Link,
+} from "react-router"
 import { useState } from "react"
 import { getUserDisplayName, useAuth } from "~/lib/auth-context"
 
 import {
-  LayoutDashboard, Globe, ShieldAlert, ArrowLeftRight,
-  Zap, Network, BarChart2, Activity, ScrollText,
-  Settings, BookOpen, ChevronsUpDown, LogOut,
-  UserCircle, Plus, Check, ChevronRight, Shield,
+  LayoutDashboard,
+  Globe,
+  ShieldAlert,
+  Zap,
+  Network,
+  BarChart2,
+  Activity,
+  ScrollText,
+  Settings,
+  BookOpen,
+  ChevronsUpDown,
+  LogOut,
+  UserCircle,
+  Plus,
+  Check,
+  ChevronRight,
+  Shield,
+  ArrowLeftRight,
 } from "lucide-react"
 
 import {
@@ -32,59 +52,57 @@ import {
   DropdownMenuTrigger,
   DropdownMenuShortcut,
 } from "~/components/ui/dropdown-menu"
-
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
+import { Avatar, AvatarFallback } from "~/components/ui/avatar"
 import { SlackIcon } from "./icons/slack"
 
 // ── Workspaces ───────────────────────────────────────────────────────────────
 
 const workspaces = [
-  { id: "1", name: "My Projects",  plan: "Free tier", icon: "⚡" },
-  { id: "2", name: "Hack Club HQ", plan: "Team",      icon: "🏠" },
-  { id: "3", name: "Café Nerd",    plan: "Free tier", icon: "☕" },
+  { id: "1", name: "My Projects", plan: "Free tier", icon: "⚡" },
+  { id: "2", name: "Hack Club HQ", plan: "Team", icon: "🏠" },
+  { id: "3", name: "Café Nerd", plan: "Free tier", icon: "☕" },
 ]
 
-// ── Nav items ────────────────────────────────────────────────────────────────
+// ── Static nav ────────────────────────────────────────────────────────────────
 
 const overviewItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/dash" },
 ]
 
-const domainsItems = [
-  { title: "All Domains",  href: "/dash/domains" },
-  { title: "DNS Records",  href: "/dash/domains/dns" },
-  { title: "SSL/TLS",      href: "/dash/domains/ssl" },
-  { title: "Redirects",    href: "/dash/domains/redirects" },
-]
-
 const edgeItems = [
-  { title: "Firewall", icon: ShieldAlert,    href: "/dash/firewall", badge: "2", badgeWarn: false },
-  { title: "DNS",      icon: ArrowLeftRight, href: "/dash/dns" },
-  { title: "Workers",  icon: Zap,            href: "/dash/workers" },
-  { title: "Tunnel",   icon: Network,        href: "/dash/tunnel" },
+  { title: "Firewall", icon: ShieldAlert, href: "/dash/firewall", badge: "2" },
+  { title: "Workers", icon: Zap, href: "/dash/workers" },
+  { title: "Tunnel", icon: Network, href: "/dash/tunnel" },
 ]
 
 const analyticsItems = [
-  { title: "Traffic",     icon: BarChart2,  href: "/dash/traffic" },
-  { title: "Performance", icon: Activity,   href: "/dash/performance" },
-  { title: "Logs",        icon: ScrollText, href: "/dash/logs" },
+  { title: "Traffic", icon: BarChart2, href: "/dash/traffic" },
+  { title: "Performance", icon: Activity, href: "/dash/performance" },
+  { title: "Logs", icon: ScrollText, href: "/dash/logs" },
 ]
 
-const adminItems = [
-  { title: "Admin Panel", icon: Shield, href: "/dash/admin" },
-]
+const adminItems = [{ title: "Admin Panel", icon: Shield, href: "/dash/admin" }]
 
 // ── Component ────────────────────────────────────────────────────────────────
 
 export function AppSidebar() {
   const location = useLocation()
   const navigate = useNavigate()
+  const { domain } = useParams()
   const { user, logout } = useAuth()
+
   const [activeWorkspace, setActiveWorkspace] = useState(workspaces[0])
-  const [domainsExpanded, setDomainsExpanded] = useState(false)
+  const [domainsExpanded, setDomainsExpanded] = useState(
+    location.pathname.startsWith("/dash/domains")
+  )
 
   const userInitials = user?.name
-    ? user.name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2)
+    ? user.name
+        .split(" ")
+        .map((n: string) => n[0])
+        .join("")
+        .toUpperCase()
+        .substring(0, 2)
     : user?.email
       ? user.email.split("@")[0].slice(0, 2).toUpperCase()
       : user?.id?.slice(0, 2).toUpperCase() || "?"
@@ -101,9 +119,17 @@ export function AppSidebar() {
     return location.pathname.startsWith(href)
   }
 
+  // Dynamic per-domain subnav — only shown when inside a domain route
+  const domainSubItems = domain
+    ? [
+        { title: "DNS Records", href: `/dash/domains/${domain}/dns` },
+        { title: "SSL/TLS", href: `/dash/domains/${domain}/ssl` },
+        { title: "Redirects", href: `/dash/domains/${domain}/redirects` },
+      ]
+    : []
+
   return (
     <Sidebar>
-
       {/* Workspace switcher */}
       <SidebarHeader>
         <SidebarMenu>
@@ -114,17 +140,20 @@ export function AppSidebar() {
                   size="lg"
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500 text-white text-base shrink-0">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-500 text-base text-white">
                     {activeWorkspace.icon}
                   </div>
-                  <div className="flex flex-col leading-none min-w-0">
-                    <span className="font-semibold text-sm truncate">{activeWorkspace.name}</span>
-                    <span className="text-xs text-muted-foreground truncate">{activeWorkspace.plan}</span>
+                  <div className="flex min-w-0 flex-col leading-none">
+                    <span className="truncate text-sm font-semibold">
+                      {activeWorkspace.name}
+                    </span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {activeWorkspace.plan}
+                    </span>
                   </div>
                   <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
-
               <DropdownMenuContent
                 className="w-[--radix-dropdown-menu-trigger-width] min-w-52 rounded-lg"
                 align="start"
@@ -134,14 +163,13 @@ export function AppSidebar() {
                 <DropdownMenuLabel className="text-xs text-muted-foreground">
                   Workspaces
                 </DropdownMenuLabel>
-
                 {workspaces.map((ws, i) => (
                   <DropdownMenuItem
                     key={ws.id}
                     onClick={() => setActiveWorkspace(ws)}
                     className="gap-2 p-2"
                   >
-                    <div className="flex h-6 w-6 items-center justify-center rounded-md border bg-background text-sm shrink-0">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border bg-background text-sm">
                       {ws.icon}
                     </div>
                     <span className="flex-1 truncate">{ws.name}</span>
@@ -151,11 +179,9 @@ export function AppSidebar() {
                     <DropdownMenuShortcut>⌘{i + 1}</DropdownMenuShortcut>
                   </DropdownMenuItem>
                 ))}
-
                 <DropdownMenuSeparator />
-
                 <DropdownMenuItem className="gap-2 p-2">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-md border bg-background shrink-0">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border bg-background">
                     <Plus className="h-4 w-4" />
                   </div>
                   <span className="text-muted-foreground">Add workspace</span>
@@ -168,6 +194,7 @@ export function AppSidebar() {
 
       {/* Nav */}
       <SidebarContent>
+        {/* Overview */}
         <SidebarGroup>
           <SidebarGroupLabel>Overview</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -175,7 +202,11 @@ export function AppSidebar() {
               {overviewItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.href)}>
-                    <NavLink to={item.href} className="flex items-center gap-2">
+                    <NavLink
+                      prefetch="intent"
+                      to={item.href}
+                      className="flex items-center gap-2"
+                    >
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </NavLink>
@@ -187,30 +218,62 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={() => setDomainsExpanded(!domainsExpanded)}
+                  isActive={isActive("/dash/domains") && !domainsExpanded}
                   className="flex items-center gap-2"
                 >
                   <Globe className="h-4 w-4" />
                   <span>Domains</span>
                   <ChevronRight
-                    className={`ml-auto h-4 w-4 transition-transform ${domainsExpanded ? "rotate-90" : ""}`}
+                    className={`ml-auto h-4 w-4 transition-transform duration-200 ${domainsExpanded ? "rotate-90" : ""}`}
                   />
                 </SidebarMenuButton>
 
                 {domainsExpanded && (
-                  <SidebarMenu className="ml-2 border-l border-sidebar-border mt-1 pl-2">
-                    {domainsItems.map((item) => (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={isActive(item.href)}
-                          size="sm"
+                  <SidebarMenu className="mt-1 ml-2 border-l border-sidebar-border pl-2">
+                    {/* Always show All Domains */}
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={location.pathname === "/dash/domains"}
+                        size="sm"
+                      >
+                        <NavLink
+                          prefetch="intent"
+                          to="/dash/domains"
+                          className="flex items-center gap-2"
                         >
-                          <NavLink to={item.href} className="flex items-center gap-2">
-                            <span className="text-xs">{item.title}</span>
-                          </NavLink>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
+                          <span className="text-xs">All Domains</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+
+                    {/* Per-domain subnav — only when inside a domain */}
+                    {domain && (
+                      <>
+                        <div className="px-2 pt-2 pb-1">
+                          <p className="truncate text-xs font-medium text-muted-foreground">
+                            {domain}
+                          </p>
+                        </div>
+                        {domainSubItems.map((item) => (
+                          <SidebarMenuItem key={item.title}>
+                            <SidebarMenuButton
+                              asChild
+                              isActive={isActive(item.href)}
+                              size="sm"
+                            >
+                              <NavLink
+                                prefetch="intent"
+                                to={item.href}
+                                className="flex items-center gap-2"
+                              >
+                                <span className="text-xs">{item.title}</span>
+                              </NavLink>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        ))}
+                      </>
+                    )}
                   </SidebarMenu>
                 )}
               </SidebarMenuItem>
@@ -218,6 +281,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* Edge */}
         <SidebarGroup>
           <SidebarGroupLabel>Edge</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -225,17 +289,17 @@ export function AppSidebar() {
               {edgeItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.href)}>
-                    <NavLink to={item.href} className="flex items-center gap-2">
+                    <NavLink
+                      prefetch="intent"
+                      to={item.href}
+                      className="flex items-center gap-2"
+                    >
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                   {item.badge && (
-                    <SidebarMenuBadge
-                      className={item.badgeWarn ? "bg-orange-100 text-orange-700 border border-orange-200" : ""}
-                    >
-                      {item.badge}
-                    </SidebarMenuBadge>
+                    <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
                   )}
                 </SidebarMenuItem>
               ))}
@@ -243,6 +307,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* Analytics */}
         <SidebarGroup>
           <SidebarGroupLabel>Analytics</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -250,7 +315,11 @@ export function AppSidebar() {
               {analyticsItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.href)}>
-                    <NavLink to={item.href} className="flex items-center gap-2">
+                    <NavLink
+                      prefetch="intent"
+                      to={item.href}
+                      className="flex items-center gap-2"
+                    >
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </NavLink>
@@ -261,6 +330,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* Admin */}
         <SidebarGroup>
           <SidebarGroupLabel>Admin</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -268,7 +338,11 @@ export function AppSidebar() {
               {adminItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.href)}>
-                    <NavLink to={item.href} className="flex items-center gap-2">
+                    <NavLink
+                      prefetch="intent"
+                      to={item.href}
+                      className="flex items-center gap-2"
+                    >
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </NavLink>
@@ -284,24 +358,25 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={isActive("/docs")}>
-              <NavLink to="/dash/settings" className="flex items-center gap-2">
+            <SidebarMenuButton asChild>
+              <NavLink
+                prefetch="intent"
+                to="/dash/settings"
+                className="flex items-center gap-2"
+              >
                 <BookOpen className="h-4 w-4" />
                 <span>Docs</span>
               </NavLink>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          {/*<SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={isActive("/settings")}>
-              <NavLink to="/dash/settings" className="flex items-center gap-2">
-                <Settings className="h-4 w-4" />
-                <span>Settings</span>
-              </NavLink>
-            </SidebarMenuButton>
-          </SidebarMenuItem>*/}
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <a href="https://hackclub.slack.com" target="_blank" rel="noreferrer" className="flex items-center gap-2">
+              <a
+                href="https://hackclub.slack.com"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-2"
+              >
                 <SlackIcon className="h-4 w-4" />
                 <span>Hack Club Slack</span>
               </a>
@@ -320,28 +395,33 @@ export function AppSidebar() {
                   size="lg"
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
-                  <Avatar className="h-8 w-8 rounded-lg shrink-0">
-                    <AvatarFallback className="rounded-lg bg-orange-500 text-white text-xs font-semibold">
+                  <Avatar className="h-8 w-8 shrink-0 rounded-lg">
+                    <AvatarFallback className="rounded-lg bg-orange-500 text-xs font-semibold text-white">
                       {userInitials}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex flex-col leading-none min-w-0">
-                    <span className="font-semibold text-sm truncate">{userLabel}</span>
-                    <span className="text-xs text-muted-foreground truncate">Hack Club session active</span>
+                  <div className="flex min-w-0 flex-col leading-none">
+                    <span className="truncate text-sm font-semibold">
+                      {userLabel}
+                    </span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      Hack Club session active
+                    </span>
                   </div>
                   <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
-
               <DropdownMenuContent
                 className="w-[--radix-dropdown-menu-trigger-width] min-w-52 rounded-lg"
                 side="top"
                 align="start"
                 sideOffset={4}
               >
-                <DropdownMenuLabel className="font-normal p-2">
-                  <p className="font-semibold text-sm">{userLabel}</p>
-                  <p className="text-xs text-muted-foreground">Authenticated via Hack Club</p>
+                <DropdownMenuLabel className="p-2 font-normal">
+                  <p className="text-sm font-semibold">{userLabel}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Authenticated via Hack Club
+                  </p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => navigate("/dash/profile")}>
@@ -365,7 +445,6 @@ export function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
-
     </Sidebar>
   )
 }

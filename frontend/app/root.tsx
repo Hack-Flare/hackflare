@@ -68,25 +68,32 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
-      <div className="text-center max-w-lg">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
+      <div className="max-w-lg text-center">
         <div className="mb-8">
-          <div className="text-8xl font-bold text-muted-foreground mb-4">{status}</div>
-          <h1 className="text-3xl font-bold tracking-tight mb-2">{message}</h1>
-          <p className="text-muted-foreground text-lg">{details}</p>
+          <div className="mb-4 text-8xl font-bold text-muted-foreground">
+            {status}
+          </div>
+          <h1 className="mb-2 text-3xl font-bold tracking-tight">{message}</h1>
+          <p className="text-lg text-muted-foreground">{details}</p>
         </div>
 
         {stack && import.meta.env.DEV && (
-          <div className="mt-8 p-4 bg-muted rounded-lg text-left">
-            <p className="text-sm font-semibold mb-2 text-muted-foreground">Stack Trace:</p>
-            <pre className="text-xs overflow-x-auto max-h-40 text-muted-foreground">
+          <div className="mt-8 rounded-lg bg-muted p-4 text-left">
+            <p className="mb-2 text-sm font-semibold text-muted-foreground">
+              Stack Trace:
+            </p>
+            <pre className="max-h-40 overflow-x-auto text-xs text-muted-foreground">
               <code>{stack}</code>
             </pre>
           </div>
         )}
 
-        <div className="flex gap-3 justify-center mt-8">
-          <a href="/" className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+        <div className="mt-8 flex justify-center gap-3">
+          <a
+            href="/"
+            className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
             Go home
           </a>
         </div>

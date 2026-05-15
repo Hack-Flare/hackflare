@@ -8,6 +8,7 @@ Store custom SVG icon files in this folder.
 
 1. Add your `.svg` files to this folder
 2. Import in React:
+
 ```tsx
 import CustomIcon from "~/assets/icons/my-icon.svg?react"
 
@@ -19,6 +20,7 @@ export function MyComponent() {
 ### Option 2: React Components
 
 Create icon components in `app/components/icons/`:
+
 ```tsx
 // app/components/icons/my-icon.tsx
 export function MyIcon({ className = "h-4 w-4" }) {
@@ -31,12 +33,17 @@ export function MyIcon({ className = "h-4 w-4" }) {
 ```
 
 Then use with shadcn/ui:
+
 ```tsx
 import { Button } from "~/components/ui/button"
 import { MyIcon } from "~/components/icons/my-icon"
 
 export function MyComponent() {
-  return <Button><MyIcon className="mr-2 h-4 w-4" /> Click me</Button>
+  return (
+    <Button>
+      <MyIcon className="mr-2 h-4 w-4" /> Click me
+    </Button>
+  )
 }
 ```
 

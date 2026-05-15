@@ -20,7 +20,7 @@ async function request<T = unknown>(
     method?: string
     body?: unknown
   } = {}
-) : Promise<T> {
+): Promise<T> {
   const url = `${API_ORIGIN}${endpoint}`
   const headers: Record<string, string> = {}
 
@@ -90,8 +90,7 @@ export const api = {
   },
 
   dns: {
-    listZones: () =>
-      request("/api/v1/dns/zones"),
+    listZones: () => request("/api/v1/dns/zones"),
 
     createZone: (name: string) =>
       request("/api/v1/dns/zones", {

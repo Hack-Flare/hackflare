@@ -3,7 +3,13 @@ import { Navigate } from "react-router"
 import { useAuth } from "../lib/auth-context"
 import { api } from "../lib/api"
 import { HackClubIcon } from "../components/icons/hackclub"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card"
 
 export default function Login() {
   const { user, ready } = useAuth()
@@ -36,7 +42,7 @@ export default function Login() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Hackflare</CardTitle>
@@ -55,7 +61,7 @@ export default function Login() {
           </div>*/}
 
           {error && (
-            <div className="mb-4 p-3 rounded bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 text-sm">
+            <div className="mb-4 rounded bg-red-100 p-3 text-sm text-red-800 dark:bg-red-900/30 dark:text-red-400">
               {error}
             </div>
           )}
@@ -63,7 +69,7 @@ export default function Login() {
           <button
             onClick={handleHackclubLogin}
             disabled={loading}
-            className="w-full bg-hackclub-500 hover:bg-hackclub-600 disabled:bg-hackclub-400 text-white py-2 rounded-lg font-medium text-sm flex items-center justify-center gap-2"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-hackclub-500 py-2 text-sm font-medium text-white hover:bg-hackclub-600 disabled:bg-hackclub-400"
           >
             <HackClubIcon className="h-6 w-6" />
             {loading ? "Redirecting..." : "Sign in with Hack Club"}
