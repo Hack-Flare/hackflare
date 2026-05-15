@@ -395,15 +395,12 @@ fn load_soa_config_from_dns(dns_config: &DnsConfig) -> SoaConfig {
     SoaConfig {
         mname: dns_config.soa_mname.clone(),
         rname: dns_config.soa_rname.clone(),
-        serial: dns_config
-            .soa_serial
-            .parse::<u32>()
-            .unwrap_or(2_024_010_101),
-        refresh: dns_config.soa_refresh.parse::<u32>().unwrap_or(3600),
-        retry: dns_config.soa_retry.parse::<u32>().unwrap_or(1800),
-        expire: dns_config.soa_expire.parse::<u32>().unwrap_or(604_800),
-        minimum: dns_config.soa_minimum.parse::<u32>().unwrap_or(86_400),
-        ttl: dns_config.soa_ttl.parse::<u32>().unwrap_or(3600),
+        serial: dns_config.soa_serial,
+        refresh: dns_config.soa_refresh,
+        retry: dns_config.soa_retry,
+        expire: dns_config.soa_expire,
+        minimum: dns_config.soa_minimum,
+        ttl: dns_config.soa_ttl,
     }
 }
 

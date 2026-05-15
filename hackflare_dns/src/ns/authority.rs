@@ -55,8 +55,7 @@ impl AuthorityStore {
             AxfrPolicy::Deny,
         ));
 
-        let serial = Self::parse_u32(&self.config.soa_serial, 1);
-        if !handler.upsert(soa_record, serial).await {
+        if !handler.upsert(soa_record, self.config.soa_serial).await {
             return false;
         }
 
@@ -120,9 +119,8 @@ impl AuthorityStore {
             return false;
         };
 
-        let serial = Self::parse_u32(&self.config.soa_serial, 1);
         handler
-            .upsert(Record::from_rdata(record_name, ttl, rdata), serial)
+            .upsert(Record::from_rdata(record_name, ttl, rdata), self.config.soa_serial)
             .await
     }
 
@@ -253,11 +251,6 @@ impl AuthorityStore {
         }
     }
 
-    /// Parse a u32 string with a default fallback.
-    fn parse_u32(value: &str, default: u32) -> u32 {
-        value.trim().parse().unwrap_or(default)
-    }
-
     // Build a default SOA record for a zone.
     #[allow(clippy::cast_possible_wrap)]
     fn build_soa_record(&self, origin: &Name) -> Option<Record> {
@@ -267,16 +260,16 @@ impl AuthorityStore {
         let soa = SOA::new(
             mname,
             rname,
-            Self::parse_u32(&self.config.soa_serial, 1),
-            Self::parse_u32(&self.config.soa_refresh, 3600) as i32,
-            Self::parse_u32(&self.config.soa_retry, 1800) as i32,
-            Self::parse_u32(&self.config.soa_expire, 604_800) as i32,
-            Self::parse_u32(&self.config.soa_minimum, 86400),
+            self.config.soa_serial,
+            self.config.soa_refresh as i32,
+            self.config.soa_retry as i32,
+            self.config.soa_expire as i32,
+            self.config.soa_minimum,
         );
 
         Some(Record::from_rdata(
             origin.clone(),
-            Self::parse_u32(&self.config.soa_ttl, 3600),
+            self.config.soa_ttl,
             RData::SOA(soa),
         ))
     }
@@ -442,18 +435,6 @@ mod tests {
             AuthorityStore::build_fqdn("example.com.", "www.example.com"),
             "www.example.com."
         );
-    }
-
-    #[test]
-    fn parse_u32_uses_default() {
-        assert_eq!(AuthorityStore::parse_u32("invalid", 42), 42);
-        assert_eq!(AuthorityStore::parse_u32("", 100), 100);
-    }
-
-    #[test]
-    fn parse_u32_parses_valid_number() {
-        assert_eq!(AuthorityStore::parse_u32("3600", 0), 3600);
-        assert_eq!(AuthorityStore::parse_u32(" 1800 ", 0), 1800);
     }
 
     #[tokio::test]
