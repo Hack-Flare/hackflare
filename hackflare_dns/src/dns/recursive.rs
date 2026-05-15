@@ -693,8 +693,9 @@ fn resolve_internal(
                             let an = u16::from_be_bytes([ip_resp[6], ip_resp[7]]) as usize;
                             if an > 0 {
                                 let mut p = 12usize;
-                                let (_q, p2) =
-                                    parse_qname(&ip_resp, p).unwrap_or_else(|| (String::new(), p));
+                                let Some((_q, p2)) = parse_qname(&ip_resp, p) else {
+                                    continue;
+                                };
                                 p = p2 + 4;
                                 if let Some(a_rrs) = parse_rrs(&ip_resp, p, an) {
                                     for (rt, rpos, rdlen, _) in a_rrs {
