@@ -2,8 +2,8 @@ services:
   api:
     profiles: [backend]
     build:
-      context: ./hackflare_api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: hackflare_api/Dockerfile
     platform: linux/amd64
     env_file:
       - .env

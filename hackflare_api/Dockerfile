@@ -5,16 +5,18 @@ RUN rustup target add x86_64-unknown-linux-musl
 WORKDIR /app
 
 FROM chef AS planner
-COPY . .
+COPY .. .
+RUN ls -a
 RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
 COPY --from=planner /app/recipe.json recipe.json
 RUN RUSTFLAGS="-C target-feature=+crt-static" \
     cargo chef cook --release --target x86_64-unknown-linux-musl --recipe-path recipe.json
-COPY . .
+ENV SQLX_OFFLINE=true
+COPY .. .
 RUN RUSTFLAGS="-C target-feature=+crt-static" \
-    cargo build --release --target x86_64-unknown-linux-musl --bin hackflare-api
+    cargo build --release --target x86_64-unknown-linux-musl --package hackflare-api --bin hackflare-api
 
 FROM scratch
 # Copy CA certificates so that the reqwest HTTP client can make secure HTTPS calls
