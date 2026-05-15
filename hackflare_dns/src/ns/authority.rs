@@ -43,14 +43,12 @@ impl AuthorityStore {
     // Create a new DNS zone with default SOA record.
     pub async fn create_zone(&self, name: impl Into<String>) -> bool {
         let zone_name = Self::normalize_zone_name(&name.into());
-        let origin = match Name::from_utf8(&zone_name) {
-            Ok(n) => n,
-            Err(_) => return false,
+        let Ok(origin) = Name::from_utf8(&zone_name) else {
+            return false;
         };
 
-        let soa_record = match self.build_soa_record(&origin) {
-            Some(record) => record,
-            None => return false,
+        let Some(soa_record) = self.build_soa_record(&origin) else {
+            return false;
         };
 
         let handler = Arc::new(InMemoryZoneHandler::empty(
@@ -83,9 +81,8 @@ impl AuthorityStore {
     // Delete an existing DNS zone.
     pub async fn delete_zone(&self, name: &str) -> bool {
         let zone_name = Self::normalize_zone_name(name);
-        let origin = match Name::from_utf8(&zone_name) {
-            Ok(n) => n,
-            Err(_) => return false,
+        let Ok(origin) = Name::from_utf8(&zone_name) else {
+            return false;
         };
 
         let zone_key = zone_name.trim_end_matches('.').to_string();
@@ -109,15 +106,13 @@ impl AuthorityStore {
         let normalized_zone = Self::normalize_zone_name(zone_name);
         let zone_key = normalized_zone.trim_end_matches('.').to_string();
 
-        let handler = match self.zones.read().await.get(&zone_key).cloned() {
-            Some(h) => h,
-            None => return false,
+        let Some(handler) = self.zones.read().await.get(&zone_key).cloned() else {
+            return false;
         };
 
         let fqdn = Self::build_fqdn(&normalized_zone, name);
-        let record_name = match Name::from_utf8(&fqdn) {
-            Ok(n) => n,
-            Err(_) => return false,
+        let Ok(record_name) = Name::from_utf8(&fqdn) else {
+            return false;
         };
 
         let Ok(record_type) = RecordType::from_str(rtype.trim()) else {
@@ -138,15 +133,13 @@ impl AuthorityStore {
         let normalized_zone = Self::normalize_zone_name(zone_name);
         let zone_key = normalized_zone.trim_end_matches('.').to_string();
 
-        let handler = match self.zones.read().await.get(&zone_key).cloned() {
-            Some(h) => h,
-            None => return false,
+        let Some(handler) = self.zones.read().await.get(&zone_key).cloned() else {
+            return false;
         };
 
         let fqdn = Self::build_fqdn(&normalized_zone, name);
-        let record_name = match Name::from_utf8(&fqdn) {
-            Ok(n) => n,
-            Err(_) => return false,
+        let Ok(record_name) = Name::from_utf8(&fqdn) else {
+            return false;
         };
 
         let Ok(record_type) = RecordType::from_str(rtype.trim()) else {
@@ -184,15 +177,14 @@ impl AuthorityStore {
     // Load all zones from persistence storage
     #[allow(dead_code)]
     pub async fn load_zones_from_storage(&self) -> Result<(), String> {
-        let persistence = match &self.persistence {
-            Some(p) => p,
-            None => return Err("No persistence backend configured".to_string()),
+        let Some(persistence) = &self.persistence else {
+            return Err("No persistence backend configured".to_string());
         };
 
         let zones = persistence
             .load_zones()
             .await
-            .map_err(|e| format!("Failed to load zones: {}", e))?;
+            .map_err(|e| format!("Failed to load zones: {e}"))?;
 
         for zone in zones {
             self.create_zone(&zone.name).await;
@@ -216,9 +208,8 @@ impl AuthorityStore {
     // Save a zone to persistence storage
     #[allow(dead_code)]
     pub async fn save_zone_to_storage(&self, zone_name: &str) -> Result<(), String> {
-        let persistence = match &self.persistence {
-            Some(p) => p,
-            None => return Err("No persistence backend configured".to_string()),
+        let Some(persistence) = &self.persistence else {
+            return Err("No persistence backend configured".to_string());
         };
 
         let zone_key = Self::normalize_zone_name(zone_name)
@@ -235,7 +226,7 @@ impl AuthorityStore {
         persistence
             .save_zone(&zone)
             .await
-            .map_err(|e| format!("Failed to save zone: {}", e))?;
+            .map_err(|e| format!("Failed to save zone: {e}"))?;
 
         Ok(())
     }
@@ -248,7 +239,7 @@ impl AuthorityStore {
         if trimmed.is_empty() {
             ".".to_string()
         } else {
-            format!("{}.", trimmed)
+            format!("{trimmed}.")
         }
     }
 
@@ -259,9 +250,9 @@ impl AuthorityStore {
         if normalized.is_empty() || normalized == "@" {
             zone.to_string()
         } else if normalized.ends_with(zone.trim_end_matches('.')) {
-            format!("{}.", normalized)
+            format!("{normalized}.")
         } else {
-            format!("{}.{}", normalized, zone)
+            format!("{normalized}.{zone}")
         }
     }
 
@@ -271,6 +262,7 @@ impl AuthorityStore {
     }
 
     // Build a default SOA record for a zone.
+    #[allow(clippy::cast_possible_wrap)]
     fn build_soa_record(&self, origin: &Name) -> Option<Record> {
         let mname = Name::from_utf8(&self.config.soa_mname).ok()?;
         let rname = Name::from_utf8(&self.config.soa_rname).ok()?;
@@ -281,7 +273,7 @@ impl AuthorityStore {
             Self::parse_u32(&self.config.soa_serial, 1),
             Self::parse_u32(&self.config.soa_refresh, 3600) as i32,
             Self::parse_u32(&self.config.soa_retry, 1800) as i32,
-            Self::parse_u32(&self.config.soa_expire, 604800) as i32,
+            Self::parse_u32(&self.config.soa_expire, 604_800) as i32,
             Self::parse_u32(&self.config.soa_minimum, 86400),
         );
 

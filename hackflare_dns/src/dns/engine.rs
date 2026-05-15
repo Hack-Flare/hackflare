@@ -18,6 +18,7 @@ impl DnsEngine {
         }
     }
 
+    #[allow(clippy::too_many_lines, clippy::similar_names)]
     pub fn handle_query(&self, req: &[u8]) -> Option<Vec<u8>> {
         if req.len() < 12 {
             let id = if req.len() >= 2 {
@@ -41,6 +42,7 @@ impl DnsEngine {
         let id = u16::from_be_bytes([req[0], req[1]]);
         let qdcount = u16::from_be_bytes([req[4], req[5]]);
         let ancount = u16::from_be_bytes([req[6], req[7]]);
+        #[allow(clippy::similar_names)]
         let nscount = u16::from_be_bytes([req[8], req[9]]);
         let arcount = u16::from_be_bytes([req[10], req[11]]);
         if qdcount == 0 {
@@ -54,17 +56,14 @@ impl DnsEngine {
         }
 
         let mut pos = 12usize;
-        let (qname, new_pos) = match parse_qname(req, pos) {
-            Some((n, p)) => (n, p),
-            None => {
-                let req_flags = u16::from_be_bytes([req[2], req[3]]);
-                return Some(build_servfail(
-                    id,
-                    req_flags,
-                    self.config.recursion_enabled,
-                    &req[12..],
-                ));
-            }
+        let Some((qname, new_pos)) = parse_qname(req, pos) else {
+            let req_flags = u16::from_be_bytes([req[2], req[3]]);
+            return Some(build_servfail(
+                id,
+                req_flags,
+                self.config.recursion_enabled,
+                &req[12..],
+            ));
         };
         pos = new_pos;
         if pos + 4 > req.len() {
@@ -145,7 +144,7 @@ impl DnsEngine {
                 nibbles.push(format!("{:x}", (b >> 4) & 0x0f));
             }
             let rev = nibbles.join(".");
-            reverse_name = Some(format!("{}.ip6.arpa", rev));
+            reverse_name = Some(format!("{rev}.ip6.arpa"));
             is_ip_literal = true;
         }
 
@@ -164,22 +163,20 @@ impl DnsEngine {
             && let Some(rn) = reverse_name.as_ref()
         {
             let ptrs = manager.find_records(rn, Some("PTR"));
-            if !ptrs.is_empty() {
-                recs = ptrs;
-            } else {
-                let mut r =
-                    build_nxdomain_with_soa(id, req_flags, self.config.clone(), &req[12..pos + 4]);
+            if ptrs.is_empty() {
+                let mut r = build_nxdomain_with_soa(id, req_flags, &self.config, &req[12..pos + 4]);
                 if client_edns_size > 0 {
                     append_opt(&mut r, client_edns_size, client_do, &self.config);
                 }
                 return Some(r);
             }
+            recs = ptrs;
         }
+        drop(manager);
 
         let label_count = qname.split('.').filter(|label| !label.is_empty()).count();
         if recs.is_empty() && reverse_name.is_none() && label_count < 2 {
-            let mut r =
-                build_nxdomain_with_soa(id, req_flags, self.config.clone(), &req[12..pos + 4]);
+            let mut r = build_nxdomain_with_soa(id, req_flags, &self.config, &req[12..pos + 4]);
             if client_edns_size > 0 {
                 append_opt(&mut r, client_edns_size, client_do, &self.config);
             }
@@ -270,10 +267,11 @@ impl DnsEngine {
         if self.config.recursion_enabled {
             flags |= 0x0080;
         }
-        let ar_out = if client_edns_size > 0 { 1u16 } else { 0u16 };
+        #[allow(clippy::bool_to_int_with_if)]
+        let ar_out: u16 = if client_edns_size > 0 { 1 } else { 0 };
         resp.extend_from_slice(&flags.to_be_bytes());
         resp.extend_from_slice(&1u16.to_be_bytes());
-        resp.extend_from_slice(&(recs.len() as u16).to_be_bytes());
+        resp.extend_from_slice(&u16::try_from(recs.len()).unwrap_or(0).to_be_bytes());
         resp.extend_from_slice(&0u16.to_be_bytes());
         resp.extend_from_slice(&ar_out.to_be_bytes());
 
@@ -287,7 +285,7 @@ impl DnsEngine {
             resp.extend_from_slice(&ans.ttl.to_be_bytes());
 
             if let Some(rdata) = crate::dns::records::encode_by_type(&ans.rtype, &ans) {
-                resp.extend_from_slice(&((rdata.len() as u16).to_be_bytes()));
+                resp.extend_from_slice(&u16::try_from(rdata.len()).unwrap_or(0).to_be_bytes());
                 resp.extend_from_slice(&rdata);
             } else {
                 resp.extend_from_slice(&0u16.to_be_bytes());
@@ -305,10 +303,10 @@ impl DnsEngine {
 fn build_nxdomain_with_soa(
     id: u16,
     req_flags: u16,
-    dns_config: DnsConfig,
+    dns_config: &DnsConfig,
     question_section: &[u8],
 ) -> Vec<u8> {
-    let soa_config = load_soa_config_from_dns(&dns_config);
+    let soa_config = load_soa_config_from_dns(dns_config);
     let mut resp: Vec<u8> = Vec::new();
     resp.extend_from_slice(&id.to_be_bytes());
 
@@ -347,7 +345,7 @@ fn build_nxdomain_with_soa(
         ),
     );
     if let Some(rdata) = crate::dns::records::encode_by_type("SOA", &soa) {
-        resp.extend_from_slice(&(rdata.len() as u16).to_be_bytes());
+        resp.extend_from_slice(&u16::try_from(rdata.len()).unwrap_or(0).to_be_bytes());
         resp.extend_from_slice(&rdata);
     } else {
         resp.extend_from_slice(&0u16.to_be_bytes());
@@ -396,7 +394,10 @@ fn load_soa_config_from_dns(dns_config: &DnsConfig) -> SoaConfig {
     SoaConfig {
         mname: dns_config.soa_mname.clone(),
         rname: dns_config.soa_rname.clone(),
-        serial: dns_config.soa_serial.parse::<u32>().unwrap_or(2024010101),
+        serial: dns_config
+            .soa_serial
+            .parse::<u32>()
+            .unwrap_or(2_024_010_101),
         refresh: dns_config.soa_refresh.parse::<u32>().unwrap_or(3600),
         retry: dns_config.soa_retry.parse::<u32>().unwrap_or(1800),
         expire: dns_config.soa_expire.parse::<u32>().unwrap_or(604_800),
@@ -405,7 +406,7 @@ fn load_soa_config_from_dns(dns_config: &DnsConfig) -> SoaConfig {
     }
 }
 
-fn map_qtype(q: u16) -> &'static str {
+const fn map_qtype(q: u16) -> &'static str {
     match q {
         1 => "A",
         2 => "NS",
@@ -433,6 +434,7 @@ fn map_qtype(q: u16) -> &'static str {
     }
 }
 
+#[allow(clippy::match_same_arms)]
 fn map_qtype_to_num(s: &str) -> u16 {
     match s.to_uppercase().as_str() {
         "A" => 1,
@@ -461,7 +463,7 @@ fn map_qtype_to_num(s: &str) -> u16 {
     }
 }
 
-pub(crate) fn parse_hex_bytes(s: &str) -> Option<Vec<u8>> {
+pub(super) fn parse_hex_bytes(s: &str) -> Option<Vec<u8>> {
     let s = s
         .trim_start_matches("0x")
         .replace(|c: char| c.is_whitespace(), "");
@@ -476,7 +478,7 @@ pub(crate) fn parse_hex_bytes(s: &str) -> Option<Vec<u8>> {
     Some(out)
 }
 
-pub(crate) fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)> {
+pub(super) fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)> {
     let mut labels: Vec<String> = Vec::new();
     let mut jumped = false;
     let mut orig_pos = pos;
@@ -494,7 +496,7 @@ pub(crate) fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)>
                 return None;
             }
             let b2 = buf[pos + 1];
-            let offset = ((len as u16 & 0x3F) << 8) | b2 as u16;
+            let offset = (u16::from(len) & 0x3F) << 8 | u16::from(b2);
             let offset = offset as usize;
             if offset >= buf.len() {
                 return None;
@@ -530,31 +532,31 @@ pub(crate) fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)>
     }
 }
 
-pub(crate) fn encode_name_labels(name: &str) -> Vec<u8> {
+pub(super) fn encode_name_labels(name: &str) -> Vec<u8> {
     let ascii = domain_to_ascii(name).unwrap_or_else(|_| name.to_string());
     encode_name_labels_vec(&ascii)
 }
 
 fn append_opt(resp: &mut Vec<u8>, client_size: usize, client_do: bool, dns_config: &DnsConfig) {
     let server_size = dns_config.udp_size;
-    let size = std::cmp::min(server_size, client_size as u16);
+    let size = std::cmp::min(server_size, u16::try_from(client_size).unwrap_or(u16::MAX));
     let flags: u16 = if client_do { 0x8000 } else { 0 };
     resp.extend_from_slice(&[0u8]);
     resp.extend_from_slice(&41u16.to_be_bytes());
     resp.extend_from_slice(&size.to_be_bytes());
-    let ttl: u32 = flags as u32;
+    let ttl = u32::from(flags);
     resp.extend_from_slice(&ttl.to_be_bytes());
     resp.extend_from_slice(&0u16.to_be_bytes());
 }
 
-pub(crate) fn encode_name_labels_vec(name: &str) -> Vec<u8> {
+pub(super) fn encode_name_labels_vec(name: &str) -> Vec<u8> {
     let mut out = Vec::new();
     for label in name.split('.') {
         let l = label.len();
         if l == 0 {
             continue;
         }
-        out.push(l as u8);
+        out.push(u8::try_from(l).unwrap_or(63));
         out.extend_from_slice(label.as_bytes());
     }
     out.push(0);

@@ -5,7 +5,6 @@ use hickory_server::net::xfer::Protocol;
 use hickory_server::proto::op::{DnsResponse, Message, Metadata, ResponseCode};
 use hickory_server::server::{Request, RequestHandler, ResponseHandler, ResponseInfo};
 use hickory_server::zone_handler::MessageResponseBuilder;
-use once_cell::sync::Lazy;
 use postgres::{Client, NoTls};
 use std::io;
 use std::net::SocketAddr;
@@ -15,15 +14,14 @@ use std::time::Duration;
 use tokio::net::{TcpListener, UdpSocket};
 use tokio::runtime::Runtime;
 
-static UDP_COUNT: Lazy<AtomicU64> = Lazy::new(|| AtomicU64::new(0));
-static TCP_COUNT: Lazy<AtomicU64> = Lazy::new(|| AtomicU64::new(0));
+static UDP_COUNT: std::sync::LazyLock<AtomicU64> = std::sync::LazyLock::new(|| AtomicU64::new(0));
+static TCP_COUNT: std::sync::LazyLock<AtomicU64> = std::sync::LazyLock::new(|| AtomicU64::new(0));
 
 // Structured logging helper for JSON output.
 fn log(level: &str, message: &str, peer: Option<SocketAddr>) {
     let ts = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0);
+        .map_or(0, |d| d.as_secs());
 
     let mut obj = serde_json::Map::new();
     obj.insert("ts".to_string(), serde_json::json!(ts));
@@ -34,7 +32,7 @@ fn log(level: &str, message: &str, peer: Option<SocketAddr>) {
     }
 
     if let Ok(s) = serde_json::to_string(&obj) {
-        eprintln!("{}", s);
+        eprintln!("{s}");
     }
 }
 
@@ -77,19 +75,20 @@ fn spawn_metrics_flusher(db_url: String) {
 }
 
 // Implements hickory-server's RequestHandler to bridge authority and recursive resolution.
-pub(crate) struct HickoryRequestHandler {
+pub(super) struct HickoryRequestHandler {
     authority: Arc<AuthorityStore>,
     engine: Arc<DnsEngine>,
 }
 
 impl HickoryRequestHandler {
-    pub(crate) fn new(authority: Arc<AuthorityStore>, engine: Arc<DnsEngine>) -> Self {
+    pub(super) const fn new(authority: Arc<AuthorityStore>, engine: Arc<DnsEngine>) -> Self {
         Self { authority, engine }
     }
 }
 
 #[async_trait::async_trait]
 impl RequestHandler for HickoryRequestHandler {
+    #[allow(clippy::too_many_lines)]
     async fn handle_request<R: ResponseHandler, T: hickory_server::net::runtime::Time>(
         &self,
         request: &Request,
@@ -98,25 +97,23 @@ impl RequestHandler for HickoryRequestHandler {
         record_request(request.protocol());
 
         // Get query name from request
-        let query_name = match request.request_info() {
-            Ok(info) => info.query.name(),
-            Err(_) => {
-                log("error", "Invalid request info", Some(request.src()));
-                let mut metadata = Metadata::response_from_request(&request.metadata);
-                metadata.response_code = ResponseCode::ServFail;
-                let response = MessageResponseBuilder::from_message_request(request)
-                    .build_no_records(metadata);
-                return response_handle
-                    .send_response(response)
-                    .await
-                    .unwrap_or_else(|_| {
-                        ResponseInfo::from(hickory_server::proto::op::Header {
-                            metadata,
-                            counts: hickory_server::proto::op::HeaderCounts::default(),
-                        })
-                    });
-            }
+        let Ok(query_info) = request.request_info() else {
+            log("error", "Invalid request info", Some(request.src()));
+            let mut metadata = Metadata::response_from_request(&request.metadata);
+            metadata.response_code = ResponseCode::ServFail;
+            let response =
+                MessageResponseBuilder::from_message_request(request).build_no_records(metadata);
+            return response_handle
+                .send_response(response)
+                .await
+                .unwrap_or_else(|_| {
+                    ResponseInfo::from(hickory_server::proto::op::Header {
+                        metadata,
+                        counts: hickory_server::proto::op::HeaderCounts::default(),
+                    })
+                });
         };
+        let query_name = query_info.query.name();
 
         // Try authoritative zone first
         if self.authority.contains_zone_for(query_name).await {
@@ -127,28 +124,25 @@ impl RequestHandler for HickoryRequestHandler {
         }
 
         // Fall back to recursive resolution
-        let response_bytes = match self.engine.handle_query(request.as_slice()) {
-            Some(bytes) => bytes,
-            None => {
-                log(
-                    "error",
-                    "Failed to process recursive query",
-                    Some(request.src()),
-                );
-                let mut metadata = Metadata::response_from_request(&request.metadata);
-                metadata.response_code = ResponseCode::ServFail;
-                let response = MessageResponseBuilder::from_message_request(request)
-                    .build_no_records(metadata);
-                return response_handle
-                    .send_response(response)
-                    .await
-                    .unwrap_or_else(|_| {
-                        ResponseInfo::from(hickory_server::proto::op::Header {
-                            metadata,
-                            counts: hickory_server::proto::op::HeaderCounts::default(),
-                        })
-                    });
-            }
+        let Some(response_bytes) = self.engine.handle_query(request.as_slice()) else {
+            log(
+                "error",
+                "Failed to process recursive query",
+                Some(request.src()),
+            );
+            let mut metadata = Metadata::response_from_request(&request.metadata);
+            metadata.response_code = ResponseCode::ServFail;
+            let response =
+                MessageResponseBuilder::from_message_request(request).build_no_records(metadata);
+            return response_handle
+                .send_response(response)
+                .await
+                .unwrap_or_else(|_| {
+                    ResponseInfo::from(hickory_server::proto::op::Header {
+                        metadata,
+                        counts: hickory_server::proto::op::HeaderCounts::default(),
+                    })
+                });
         };
 
         // Parse the response
@@ -158,7 +152,7 @@ impl RequestHandler for HickoryRequestHandler {
                 Err(err) => {
                     log(
                         "error",
-                        &format!("Failed to decode DNS response: {}", err),
+                        &format!("Failed to decode DNS response: {err}"),
                         Some(request.src()),
                     );
                     let mut metadata = Metadata::response_from_request(&request.metadata);
@@ -179,7 +173,7 @@ impl RequestHandler for HickoryRequestHandler {
             Err(err) => {
                 log(
                     "error",
-                    &format!("Failed to parse DNS response bytes: {}", err),
+                    &format!("Failed to parse DNS response bytes: {err}"),
                     Some(request.src()),
                 );
                 let mut metadata = Metadata::response_from_request(&request.metadata);
@@ -217,7 +211,7 @@ impl RequestHandler for HickoryRequestHandler {
             Err(err) => {
                 log(
                     "error",
-                    &format!("Error sending response: {}", err),
+                    &format!("Error sending response: {err}"),
                     Some(request.src()),
                 );
                 let mut metadata = Metadata::response_from_request(&request.metadata);
@@ -232,7 +226,7 @@ impl RequestHandler for HickoryRequestHandler {
 }
 
 // Start the DNS server with hickory-server.
-pub(crate) fn run_with_hickory(
+pub(super) fn run_with_hickory(
     config: &NsConfig,
     authority: Arc<AuthorityStore>,
     engine: Arc<DnsEngine>,

@@ -59,6 +59,7 @@ impl Nameserver {
     // Zones are stored in-memory only and will be lost on restart.
     //
     // To enable persistence, use [`with_persistence`](Self::with_persistence) instead.
+    #[must_use]
     pub fn new(config: NsConfig) -> Self {
         Self::with_dns_config(config, DnsConfig::from_env())
     }
@@ -66,6 +67,12 @@ impl Nameserver {
     // Create a nameserver with custom DNS configuration
     //
     // Allows you to override DNS engine settings while using in-memory zone storage.
+    //
+    // # Panics
+    //
+    // Panics if the Tokio runtime cannot be created.
+    #[allow(clippy::missing_panics_doc)]
+    #[must_use]
     pub fn with_dns_config(config: NsConfig, dns_config: DnsConfig) -> Self {
         let engine = DnsEngine::new(crate::dns::manager::DnsManager::new(), dns_config.clone());
         Self {
@@ -104,7 +111,12 @@ impl Nameserver {
     // nameserver.load_zones_from_storage().map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
     // # Ok::<(), Box<dyn std::error::Error>>(())
     // ```
-    #[allow(dead_code)]
+    //
+    // # Panics
+    //
+    // Panics if the Tokio runtime cannot be created.
+    #[allow(dead_code, clippy::missing_panics_doc)]
+    #[must_use]
     pub fn with_persistence(
         config: NsConfig,
         dns_config: DnsConfig,
@@ -175,20 +187,26 @@ impl Nameserver {
             .block_on(self.authority.remove_record(zone_name, name, rtype))
     }
 
+    #[allow(clippy::missing_errors_doc)]
     // Load all zones from persistence storage
     //
     // Requires the nameserver to have been created with [`with_persistence`](Self::with_persistence).
-    // Returns an error if no persistence backend is configured.
+    //
+    // # Errors
+    //
+    // Returns an error if no persistence backend is configured, or if loading from storage fails.
     pub fn load_zones_from_storage(&self) -> Result<(), String> {
         self.runtime
             .block_on(self.authority.load_zones_from_storage())
     }
 
+    #[allow(clippy::missing_errors_doc)]
     // List all hosted zones
     pub fn list_zones(&self) -> Vec<String> {
         self.runtime.block_on(self.authority.list_zones())
     }
 
+    #[allow(clippy::missing_errors_doc)]
     // Start the DNS server
     //
     // This binds to the address and port specified in the configuration

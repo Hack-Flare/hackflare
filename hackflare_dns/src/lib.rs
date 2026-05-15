@@ -6,9 +6,9 @@
 //!
 //! - **Authoritative DNS Zones**: Host your own DNS zones with full control
 //! - **Recursive Resolution**: Resolve external domains through DNS root servers
-//! - **Zone Persistence**: Optional PostgreSQL backend for durable zone storage
+//! - **Zone Persistence**: Optional `PostgreSQL` backend for durable zone storage
 //! - **In-Memory Storage**: Fast zone operations with optional disk/database persistence
-//! - **Metrics Collection**: Track DNS queries (UDP/TCP) with PostgreSQL logging
+//! - **Metrics Collection**: Track DNS queries (UDP/TCP) with `PostgreSQL` logging
 //!
 //! ## Quick Start
 //!
@@ -33,7 +33,7 @@
 //! # Ok::<(), std::io::Error>(())
 //! ```
 //!
-//! ### With PostgreSQL Persistence
+//! ### With `PostgreSQL` Persistence
 //!
 //! ```rust,no_run
 //! use hackflare_dns::{Nameserver, NsConfig, DnsConfig};
@@ -70,7 +70,7 @@
 //!
 //! The crate provides pluggable persistence backends through the [`ZonePersistence`] trait:
 //!
-//! - **[`PostgresPersistence`]**: Production-grade PostgreSQL backend with automatic schema creation
+//! - **[`PostgresPersistence`]**: Production-grade `PostgreSQL` backend with automatic schema creation
 //! - **[`MemoryPersistence`]**: In-memory storage for testing and development
 //!
 //! Implement the [`ZonePersistence`] trait to add your own storage backend.
@@ -86,7 +86,7 @@
 //!
 //! ## See Also
 //!
-//! - [`ns::PostgresPersistence`] - PostgreSQL persistence backend
+//! - [`ns::PostgresPersistence`] - `PostgreSQL` persistence backend
 //! - [`ns::MemoryPersistence`] - In-memory persistence backend
 //! - [`Nameserver`] - Main API for zone management and DNS serving
 //!

@@ -5,10 +5,10 @@
 //!
 //! # Implementations
 //!
-//! - [`PostgresPersistence`]: Production-grade PostgreSQL backend
+//! - [`PostgresPersistence`]: Production-grade `PostgreSQL` backend
 //! - [`MemoryPersistence`]: In-memory storage for testing
 //!
-//! # Example: Using PostgreSQL Persistence
+//! # Example: Using `PostgreSQL` Persistence
 //!
 //! ```no_run
 //! use hackflare_dns::ns::{PersistedZone, PostgresPersistence, ZonePersistence};
@@ -143,9 +143,10 @@ impl PostgresPersistence {
     // This creates the necessary tables (`dns_zones` and `dns_records`) if they don't exist.
     // Call this once during application startup.
     //
-    // # Returns
+    // # Errors
     //
     // Returns an error if the database is unreachable or schema creation fails.
+    #[allow(clippy::missing_errors_doc)]
     pub fn init_schema(&self) -> Result<(), Box<dyn Error>> {
         let mut client = Client::connect(&self.connection_string, NoTls)?;
 
@@ -232,12 +233,12 @@ impl ZonePersistence for PostgresPersistence {
     async fn load_zone(&self, zone_name: &str) -> Result<Option<PersistedZone>, Box<dyn Error>> {
         let mut client = self.get_connection()?;
 
-        let zone_row = match client.query_opt(
+        let Some(zone_row) = client.query_opt(
             "SELECT id, name FROM dns_zones WHERE name = $1",
             &[&zone_name],
-        )? {
-            Some(row) => row,
-            None => return Ok(None),
+        )?
+        else {
+            return Ok(None);
         };
 
         let zone_id: i32 = zone_row.get(0);
@@ -304,7 +305,7 @@ impl ZonePersistence for PostgresPersistence {
                 &zone_name,
                 &record.name,
                 &record.rtype,
-                &(record.ttl as i32),
+                &i32::try_from(record.ttl).unwrap_or(0),
                 &record.data,
             ],
         )?;
@@ -356,6 +357,7 @@ pub struct MemoryPersistence {
 
 impl MemoryPersistence {
     // Create a new in-memory persistence backend
+    #[must_use]
     pub fn new() -> Self {
         Self {
             zones: parking_lot::RwLock::new(HashMap::new()),
@@ -382,14 +384,12 @@ impl ZonePersistence for MemoryPersistence {
     }
 
     async fn save_zone(&self, zone: &PersistedZone) -> Result<(), Box<dyn Error>> {
-        let mut zones = self.zones.write();
-        zones.insert(zone.name.clone(), zone.clone());
+        self.zones.write().insert(zone.name.clone(), zone.clone());
         Ok(())
     }
 
     async fn delete_zone(&self, zone_name: &str) -> Result<(), Box<dyn Error>> {
-        let mut zones = self.zones.write();
-        zones.remove(zone_name);
+        self.zones.write().remove(zone_name);
         Ok(())
     }
 
@@ -411,10 +411,11 @@ impl ZonePersistence for MemoryPersistence {
             .find(|r| r.name == record.name && r.rtype == record.rtype)
         {
             existing.ttl = record.ttl;
-            existing.data = record.data.clone();
+            existing.data.clone_from(&record.data);
         } else {
             zone.records.push(record.clone());
         }
+        drop(zones);
         Ok(())
     }
 
@@ -429,6 +430,7 @@ impl ZonePersistence for MemoryPersistence {
             zone.records
                 .retain(|r| !(r.name == name && r.rtype == rtype));
         }
+        drop(zones);
         Ok(())
     }
 }

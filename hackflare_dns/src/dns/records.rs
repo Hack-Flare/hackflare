@@ -1,7 +1,7 @@
 use crate::dns::engine::{encode_name_labels, encode_name_labels_vec, parse_hex_bytes};
 use crate::dns::registry::Registry;
 use base64::Engine;
-use once_cell::sync::Lazy;
+
 use serde::{Deserialize, Serialize};
 use std::net::{Ipv4Addr, Ipv6Addr};
 
@@ -30,31 +30,30 @@ impl Record {
 }
 
 fn encode_ipv4(r: &Record) -> Option<Vec<u8>> {
-    if let Ok(ip) = r.data.parse::<Ipv4Addr>() {
+    r.data.parse::<Ipv4Addr>().ok().map(|ip| {
         let mut out = Vec::new();
         out.extend_from_slice(&ip.octets());
-        Some(out)
-    } else {
-        None
-    }
+        out
+    })
 }
 
 fn encode_ipv6(r: &Record) -> Option<Vec<u8>> {
-    if let Ok(ip) = r.data.parse::<Ipv6Addr>() {
-        Some(ip.octets().to_vec())
-    } else {
-        None
-    }
+    r.data
+        .parse::<Ipv6Addr>()
+        .ok()
+        .map(|ip| ip.octets().to_vec())
 }
 
-fn encode_none(_r: &Record) -> Option<Vec<u8>> {
+const fn encode_none(_r: &Record) -> Option<Vec<u8>> {
     None
 }
 
+#[allow(clippy::unnecessary_wraps)]
 fn encode_name(r: &Record) -> Option<Vec<u8>> {
     Some(encode_name_labels(&r.data))
 }
 
+#[allow(clippy::unnecessary_wraps)]
 fn encode_raw(r: &Record) -> Option<Vec<u8>> {
     Some(r.data.as_bytes().to_vec())
 }
@@ -71,7 +70,7 @@ fn encode_caa(r: &Record) -> Option<Vec<u8>> {
 
     let mut out = Vec::new();
     out.push(flags);
-    out.push(tag.len().min(255) as u8);
+    out.push(u8::try_from(tag.len().min(255)).unwrap_or(255));
     out.extend_from_slice(tag.as_bytes());
     out.extend_from_slice(value.as_bytes());
     Some(out)
@@ -136,14 +135,15 @@ fn encode_ds(r: &Record) -> Option<Vec<u8>> {
     }
 }
 
+#[allow(clippy::unnecessary_wraps)]
 fn encode_hinfo(r: &Record) -> Option<Vec<u8>> {
     let mut parts = r.data.splitn(2, ' ');
     let cpu = parts.next().unwrap_or("").as_bytes();
     let os = parts.next().unwrap_or("").as_bytes();
     let mut out = Vec::new();
-    out.push(cpu.len().min(255) as u8);
+    out.push(u8::try_from(cpu.len().min(255)).unwrap_or(255));
     out.extend_from_slice(cpu);
-    out.push(os.len().min(255) as u8);
+    out.push(u8::try_from(os.len().min(255)).unwrap_or(255));
     out.extend_from_slice(os);
     Some(out)
 }
@@ -277,12 +277,13 @@ fn encode_srv(r: &Record) -> Option<Vec<u8>> {
     None
 }
 
+#[allow(clippy::unnecessary_wraps)]
 fn encode_txt(r: &Record) -> Option<Vec<u8>> {
     let chunks: Vec<&str> = r.data.split('\n').collect();
     let mut rdata = Vec::new();
     for chunk in chunks {
         let bytes = chunk.as_bytes();
-        let len = bytes.len().min(255) as u8;
+        let len = u8::try_from(bytes.len().min(255)).unwrap_or(255);
         rdata.push(len);
         rdata.extend_from_slice(&bytes[..len as usize]);
     }
@@ -315,7 +316,7 @@ fn register_all(reg: &mut Registry) {
     reg.register("UNKNOWN", encode_none);
 }
 
-pub(crate) static REGISTRY: Lazy<Registry> = Lazy::new(|| {
+pub(super) static REGISTRY: std::sync::LazyLock<Registry> = std::sync::LazyLock::new(|| {
     let mut registry = Registry::new();
     register_all(&mut registry);
     registry

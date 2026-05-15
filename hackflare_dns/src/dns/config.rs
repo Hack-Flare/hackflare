@@ -70,6 +70,7 @@ impl DnsConfig {
     }
 
     // Create a new config with all defaults (useful for testing).
+    #[must_use]
     pub fn default_config() -> Self {
         Self {
             recursion_enabled: false,
@@ -94,13 +95,10 @@ impl DnsConfig {
 
 // Helper functions for environment variable parsing
 fn env_bool(name: &str, default: bool) -> bool {
-    env::var(name)
-        .ok()
-        .map(|v| {
-            let v = v.trim().to_ascii_lowercase();
-            v == "1" || v == "true" || v == "yes" || v == "on"
-        })
-        .unwrap_or(default)
+    env::var(name).ok().map_or(default, |v| {
+        let v = v.trim().to_ascii_lowercase();
+        v == "1" || v == "true" || v == "yes" || v == "on"
+    })
 }
 
 fn env_string(name: &str, default: &str) -> String {

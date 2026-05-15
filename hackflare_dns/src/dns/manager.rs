@@ -42,13 +42,13 @@ impl DnsManager {
             return normalized_zone;
         }
 
-        if normalized_record.ends_with(&format!(".{}", normalized_zone))
+        if normalized_record.ends_with(&format!(".{normalized_zone}"))
             || normalized_record == normalized_zone
         {
             return normalized_record;
         }
 
-        format!("{}.{}", normalized_record, normalized_zone)
+        format!("{normalized_record}.{normalized_zone}")
     }
 
     // Rebuild index after modifications
@@ -107,15 +107,14 @@ impl DnsManager {
         let fqdn = Self::normalize_record_name_for_zone(&normalized_zone, name);
         let normalized_rtype = Self::normalize_rtype(rtype);
 
-        if let Some(zone) = self.zones.get_mut(&normalized_zone) {
-            let removed = zone.remove_record(&fqdn, &normalized_rtype);
-            if removed {
-                self.rebuild_index();
-            }
-            removed
-        } else {
-            false
+        let Some(zone) = self.zones.get_mut(&normalized_zone) else {
+            return false;
+        };
+        let removed = zone.remove_record(&fqdn, &normalized_rtype);
+        if removed {
+            self.rebuild_index();
         }
+        removed
     }
 
     pub fn find_records(&self, fqdn: &str, rtype: Option<&str>) -> Vec<crate::dns::Record> {
