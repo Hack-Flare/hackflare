@@ -96,7 +96,9 @@
 
 mod dns;
 pub mod ns;
+mod error;
 
 pub use dns::config::DnsConfig;
+pub use error::DnsError;
 pub use dns::recursive::ensure_root_hints_in_db;
 pub use ns::{Nameserver, NsConfig};

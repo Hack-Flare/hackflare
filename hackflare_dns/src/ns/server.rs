@@ -1,9 +1,9 @@
-use crate::dns::DnsConfig;
-use crate::dns::engine::DnsEngine;
-use crate::ns::NsConfig;
+use crate::dns::{DnsConfig, engine::DnsEngine};
+use crate::error::DnsError;
 use crate::ns::authority::AuthorityStore;
 use crate::ns::hickory::run_with_hickory;
 use crate::ns::persistence::ZonePersistence;
+use crate::NsConfig;
 use std::io;
 use std::sync::Arc;
 
@@ -194,7 +194,7 @@ impl Nameserver {
     /// # Errors
     ///
     /// Returns an error if no persistence backend is configured, or if loading from storage fails.
-    pub fn load_zones_from_storage(&self) -> Result<(), String> {
+    pub fn load_zones_from_storage(&self) -> Result<(), DnsError> {
         self.runtime
             .block_on(self.authority.load_zones_from_storage())
     }

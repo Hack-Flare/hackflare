@@ -1,5 +1,6 @@
 use crate::dns::DnsConfig;
 use crate::ns::persistence::ZonePersistence;
+use crate::DnsError;
 use hickory_server::net::runtime::TokioRuntimeProvider;
 use hickory_server::proto::rr::{LowerName, Name, RData, Record, RecordType, rdata::SOA};
 use hickory_server::server::{Request, RequestHandler, ResponseHandler, ResponseInfo};
@@ -171,15 +172,15 @@ impl AuthorityStore {
     }
 
     /// Load all zones from persistence storage
-    pub async fn load_zones_from_storage(&self) -> Result<(), String> {
+    pub async fn load_zones_from_storage(&self) -> Result<(), DnsError> {
         let Some(persistence) = &self.persistence else {
-            return Err("No persistence backend configured".to_string());
+            return Err(DnsError::PersistenceUnconfigured);
         };
 
         let zones = persistence
             .load_zones()
             .await
-            .map_err(|e| format!("Failed to load zones: {e}"))?;
+            .map_err(|e| DnsError::PersistenceOperation(format!("{e}")))?;
 
         for zone in zones {
             self.create_zone(&zone.name).await;

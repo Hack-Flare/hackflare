@@ -1,3 +1,4 @@
+use crate::DnsError;
 use crate::dns::DnsConfig;
 use crate::dns::engine::{encode_name_labels_vec, parse_qname};
 
@@ -262,9 +263,9 @@ fn load_root_hints_from_db() -> Option<Vec<String>> {
 /// # Errors
 ///
 /// Returns an error if the database connection fails or any query fails.
-pub fn ensure_root_hints_in_db(db_url: &str) -> Result<(), String> {
+pub fn ensure_root_hints_in_db(db_url: &str) -> Result<(), DnsError> {
     let mut client = postgres::Client::connect(db_url, NoTls)
-        .map_err(|e| format!("Failed to connect to database: {e}"))?;
+        .map_err(|e| DnsError::Database(format!("Failed to connect to database: {e}")))?;
 
     // Create table if it doesn't exist
     client
@@ -277,12 +278,12 @@ pub fn ensure_root_hints_in_db(db_url: &str) -> Result<(), String> {
             )",
             &[],
         )
-        .map_err(|e| format!("Failed to create dns_root_hints table: {e}"))?;
+        .map_err(|e| DnsError::Database(format!("Failed to create dns_root_hints table: {e}")))?;
 
     // Check if table is empty
     let count_result = client
         .query_one("SELECT COUNT(*) FROM dns_root_hints", &[])
-        .map_err(|e| format!("Failed to count root hints: {e}"))?;
+        .map_err(|e| DnsError::Database(format!("Failed to count root hints: {e}")))?;
 
     let count: i64 = count_result.get(0);
 
@@ -294,7 +295,7 @@ pub fn ensure_root_hints_in_db(db_url: &str) -> Result<(), String> {
                     "INSERT INTO dns_root_hints (ip_address) VALUES ($1) ON CONFLICT (ip_address) DO NOTHING",
                     &[ip],
                 )
-                .map_err(|e| format!("Failed to insert root hint: {e}"))?;
+                .map_err(|e| DnsError::Database(format!("Failed to insert root hint: {e}")))?;
         }
     }
 
