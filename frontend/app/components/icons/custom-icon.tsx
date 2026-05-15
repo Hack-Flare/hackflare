@@ -9,7 +9,11 @@ const iconPaths: Record<string, string> = {
   // Example: "myicon": "M10 20h30v40H10z"
 }
 
-export function CustomIcon({ name, className = "h-4 w-4", ...props }: CustomIconProps) {
+export function CustomIcon({
+  name,
+  className = "h-4 w-4",
+  ...props
+}: CustomIconProps) {
   const path = iconPaths[name]
 
   if (!path) {

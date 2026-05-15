@@ -1,7 +1,15 @@
 "use client"
 
 import * as React from "react"
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Bar, BarChart } from "recharts"
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Bar,
+  BarChart,
+} from "recharts"
 
 import {
   Card,
@@ -73,39 +81,47 @@ const statusConfig = {
 
 export default function Traffic() {
   return (
-    <div className="flex-1 p-6">
+    <div className="space-y-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold dark:text-white">Traffic</h1>
-        <p className="text-zinc-600 dark:text-zinc-400 mt-2">Real-time traffic analytics and insights</p>
+        <p className="mt-2 text-zinc-600 dark:text-zinc-400">
+          Real-time traffic analytics and insights
+        </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Requests
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">2.4M</p>
-            <p className="text-xs text-green-600 mt-2">+12% vs last week</p>
+            <p className="mt-2 text-xs text-green-600">+12% vs last week</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Avg Response Time</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Avg Response Time
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">142ms</p>
-            <p className="text-xs text-green-600 mt-2">-3% vs last week</p>
+            <p className="mt-2 text-xs text-green-600">-3% vs last week</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Cache Hit Rate</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Cache Hit Rate
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">87%</p>
-            <p className="text-xs text-green-600 mt-2">+5% vs last week</p>
+            <p className="mt-2 text-xs text-green-600">+5% vs last week</p>
           </CardContent>
         </Card>
         <Card>
@@ -114,13 +130,13 @@ export default function Traffic() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">0.2%</p>
-            <p className="text-xs text-green-600 mt-2">-0.1% vs last week</p>
+            <p className="mt-2 text-xs text-green-600">-0.1% vs last week</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Traffic Chart */}
         <Card>
           <CardHeader>
@@ -227,11 +243,7 @@ export default function Traffic() {
                   cursor={false}
                   content={<ChartTooltipContent hideLabel />}
                 />
-                <Bar
-                  dataKey="value"
-                  fill="var(--color-ok)"
-                  radius={4}
-                />
+                <Bar dataKey="value" fill="var(--color-ok)" radius={4} />
               </BarChart>
             </ChartContainer>
           </CardContent>
@@ -249,24 +261,58 @@ export default function Traffic() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-200 dark:border-zinc-800">
-                  <th className="text-left py-2 px-4 dark:text-zinc-400">Path</th>
-                  <th className="text-right py-2 px-4 dark:text-zinc-400">Requests</th>
-                  <th className="text-right py-2 px-4 dark:text-zinc-400">Avg Response Time</th>
-                  <th className="text-right py-2 px-4 dark:text-zinc-400">Status</th>
+                  <th className="px-4 py-2 text-left dark:text-zinc-400">
+                    Path
+                  </th>
+                  <th className="px-4 py-2 text-right dark:text-zinc-400">
+                    Requests
+                  </th>
+                  <th className="px-4 py-2 text-right dark:text-zinc-400">
+                    Avg Response Time
+                  </th>
+                  <th className="px-4 py-2 text-right dark:text-zinc-400">
+                    Status
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {[
                   { path: "/", requests: "542K", time: "124ms", status: "✓" },
-                  { path: "/api/users", requests: "321K", time: "156ms", status: "✓" },
-                  { path: "/dashboard", requests: "289K", time: "145ms", status: "✓" },
-                  { path: "/settings", requests: "156K", time: "138ms", status: "✓" },
+                  {
+                    path: "/api/users",
+                    requests: "321K",
+                    time: "156ms",
+                    status: "✓",
+                  },
+                  {
+                    path: "/dashboard",
+                    requests: "289K",
+                    time: "145ms",
+                    status: "✓",
+                  },
+                  {
+                    path: "/settings",
+                    requests: "156K",
+                    time: "138ms",
+                    status: "✓",
+                  },
                 ].map((row, i) => (
-                  <tr key={i} className="border-b border-zinc-100 dark:border-zinc-800">
-                    <td className="py-3 px-4 dark:text-white font-mono text-xs">{row.path}</td>
-                    <td className="py-3 px-4 text-right dark:text-zinc-300">{row.requests}</td>
-                    <td className="py-3 px-4 text-right dark:text-zinc-300">{row.time}</td>
-                    <td className="py-3 px-4 text-right dark:text-green-400">{row.status}</td>
+                  <tr
+                    key={i}
+                    className="border-b border-zinc-100 dark:border-zinc-800"
+                  >
+                    <td className="px-4 py-3 font-mono text-xs dark:text-white">
+                      {row.path}
+                    </td>
+                    <td className="px-4 py-3 text-right dark:text-zinc-300">
+                      {row.requests}
+                    </td>
+                    <td className="px-4 py-3 text-right dark:text-zinc-300">
+                      {row.time}
+                    </td>
+                    <td className="px-4 py-3 text-right dark:text-green-400">
+                      {row.status}
+                    </td>
                   </tr>
                 ))}
               </tbody>

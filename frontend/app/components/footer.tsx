@@ -1,54 +1,153 @@
 export default function Footer() {
   return (
-    <footer className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+    <footer className="border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
       <div className="mx-auto max-w-6xl px-6 py-16">
-        <div className="grid grid-cols-4 gap-8 mb-12">
+        <div className="mb-12 grid grid-cols-4 gap-8">
           <div>
-            <h4 className="font-semibold text-zinc-900 dark:text-white mb-4">Product</h4>
+            <h4 className="mb-4 font-semibold text-zinc-900 dark:text-white">
+              Product
+            </h4>
             <ul className="space-y-2.5 text-sm text-zinc-600 dark:text-zinc-400">
-              <li><a href="#features" className="hover:text-zinc-900 dark:hover:text-white">Features</a></li>
-              <li><a href="/docs" className="hover:text-zinc-900 dark:hover:text-white">Documentation</a></li>
+              <li>
+                <a
+                  href="#features"
+                  className="hover:text-zinc-900 dark:hover:text-white"
+                >
+                  Features
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/docs"
+                  className="hover:text-zinc-900 dark:hover:text-white"
+                >
+                  Documentation
+                </a>
+              </li>
               {/*<li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">Pricing</a></li>*/}
-              <li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">Status</a></li>
+              <li>
+                <a
+                  href="#"
+                  className="hover:text-zinc-900 dark:hover:text-white"
+                >
+                  Status
+                </a>
+              </li>
             </ul>
           </div>
           <div>
-            <h4 className="font-semibold text-zinc-900 dark:text-white mb-4">Company</h4>
+            <h4 className="mb-4 font-semibold text-zinc-900 dark:text-white">
+              Company
+            </h4>
             <ul className="space-y-2.5 text-sm text-zinc-600 dark:text-zinc-400">
-              <li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">About</a></li>
-              <li><a href="/team" className="hover:text-zinc-900 dark:hover:text-white">Our Team</a></li>
+              <li>
+                <a
+                  href="#"
+                  className="hover:text-zinc-900 dark:hover:text-white"
+                >
+                  About
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/team"
+                  className="hover:text-zinc-900 dark:hover:text-white"
+                >
+                  Our Team
+                </a>
+              </li>
               {/*<li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">Careers</a></li>*/}
-              <li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">Contact</a></li>
+              <li>
+                <a
+                  href="#"
+                  className="hover:text-zinc-900 dark:hover:text-white"
+                >
+                  Contact
+                </a>
+              </li>
             </ul>
           </div>
           <div>
-            <h4 className="font-semibold text-zinc-900 dark:text-white mb-4">Resources</h4>
+            <h4 className="mb-4 font-semibold text-zinc-900 dark:text-white">
+              Resources
+            </h4>
             <ul className="space-y-2.5 text-sm text-zinc-600 dark:text-zinc-400">
-              <li><a href="/docs" className="hover:text-zinc-900 dark:hover:text-white">API Docs</a></li>
+              <li>
+                <a
+                  href="/docs"
+                  className="hover:text-zinc-900 dark:hover:text-white"
+                >
+                  API Docs
+                </a>
+              </li>
               {/*<li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">Guides</a></li>*/}
-              <li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">Community</a></li>
-              <li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">Support</a></li>
-              </ul>
-            </div>
+              <li>
+                <a
+                  href="#"
+                  className="hover:text-zinc-900 dark:hover:text-white"
+                >
+                  Community
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#"
+                  className="hover:text-zinc-900 dark:hover:text-white"
+                >
+                  Support
+                </a>
+              </li>
+            </ul>
+          </div>
           <div>
-            <h4 className="font-semibold text-zinc-900 dark:text-white mb-4">Legal</h4>
+            <h4 className="mb-4 font-semibold text-zinc-900 dark:text-white">
+              Legal
+            </h4>
             <ul className="space-y-2.5 text-sm text-zinc-600 dark:text-zinc-400">
-              <li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">Privacy</a></li>
-              <li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">Terms</a></li>
-              <li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">Security</a></li>
+              <li>
+                <a
+                  href="#"
+                  className="hover:text-zinc-900 dark:hover:text-white"
+                >
+                  Privacy
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#"
+                  className="hover:text-zinc-900 dark:hover:text-white"
+                >
+                  Terms
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#"
+                  className="hover:text-zinc-900 dark:hover:text-white"
+                >
+                  Security
+                </a>
+              </li>
               {/*<li><a href="#" className="hover:text-zinc-900 dark:hover:text-white">License</a></li>*/}
             </ul>
           </div>
         </div>
-        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-8 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-black text-base text-zinc-900 dark:text-white">
+        <div className="flex items-center justify-between border-t border-zinc-200 pt-8 dark:border-zinc-800">
+          <div className="flex items-center gap-2 text-base font-black text-zinc-900 dark:text-white">
             <img src="/logo.svg" width={24} alt="HackFlare" />
             <span>HackFlare</span>
           </div>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">© 2026 HackFlare.  All rights reserved.</p>
-          <a href="https://github.com/Hack-Flare/hackflare" className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white">GitHub</a>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            © 2026 HackFlare. All rights reserved.
+          </p>
+          <a
+            href="https://github.com/Hack-Flare/hackflare"
+            className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
+          >
+            GitHub
+          </a>
         </div>
       </div>
     </footer>
-    )
-  }
+  )
+}

@@ -1,4 +1,5 @@
 import { Plus, Globe, Shield, Clock } from "lucide-react"
+import { NavLink } from "react-router"
 import { useState } from "react"
 import { Button } from "~/components/ui/button"
 import {
@@ -17,34 +18,50 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "~/components/ui/table"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 
 export default function Domains() {
-  const [zones, setZones] = useState<any[]>([])
+  //const [zones, setZones] = useState<any[]>([])
+  const [zones, setZones] = useState([
+    { id: 1, name: "example.com", ns_verified: true },
+    { id: 2, name: "hackclub.com", ns_verified: true },
+    { id: 3, name: "mycoolsite.dev", ns_verified: false },
+  ])
   const [open, setOpen] = useState(false)
   const [domainInput, setDomainInput] = useState("")
 
   const handleAddDomain = () => {
     if (!domainInput.trim()) return
-    setZones([...zones, { id: Date.now(), name: domainInput.trim(), ns_verified: false }])
+    setZones([
+      ...zones,
+      { id: Date.now(), name: domainInput.trim(), ns_verified: false },
+    ])
     setDomainInput("")
     setOpen(false)
   }
 
   return (
     <div className="flex-1 p-1">
-      <div className="flex items-center justify-between mb-8">
+      <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold dark:text-white">Domains</h1>
-          <p className="text-zinc-600 dark:text-zinc-400 mt-2">
+          <p className="mt-2 text-zinc-600 dark:text-zinc-400">
             Manage and monitor your domains
           </p>
         </div>
 
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+            <Button className="flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-white hover:bg-orange-600">
               <Plus className="h-4 w-4" />
               Add Domain
             </Button>
@@ -53,7 +70,8 @@ export default function Domains() {
             <DialogHeader>
               <DialogTitle>Add a Domain</DialogTitle>
               <DialogDescription>
-                Enter the domain you want to manage. You'll need to verify nameservers after adding.
+                Enter the domain you want to manage. You'll need to verify
+                nameservers after adding.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-2">
@@ -73,7 +91,7 @@ export default function Domains() {
                 Cancel
               </Button>
               <Button
-                className="bg-orange-500 hover:bg-orange-600 text-white"
+                className="bg-orange-500 text-white hover:bg-orange-600"
                 onClick={handleAddDomain}
               >
                 Add Domain
@@ -84,17 +102,17 @@ export default function Domains() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Globe className="h-4 w-4" />
               Total Domains
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{zones.length}</p>
-            <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+            <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
               {zones.length === 0 ? "Add your first domain" : "All active"}
             </p>
           </CardContent>
@@ -102,7 +120,7 @@ export default function Domains() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Shield className="h-4 w-4" />
               Verified Zones
             </CardTitle>
@@ -111,13 +129,13 @@ export default function Domains() {
             <p className="text-2xl font-bold">
               {zones.filter((z: any) => z.ns_verified).length}
             </p>
-            <p className="text-xs text-green-600 mt-1">NS verified</p>
+            <p className="mt-1 text-xs text-green-600">NS verified</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Clock className="h-4 w-4" />
               Pending
             </CardTitle>
@@ -126,7 +144,7 @@ export default function Domains() {
             <p className="text-2xl font-bold">
               {zones.filter((z: any) => !z.ns_verified).length}
             </p>
-            <p className="text-xs text-orange-600 mt-1">Need verification</p>
+            <p className="mt-1 text-xs text-orange-600">Need verification</p>
           </CardContent>
         </Card>
       </div>
@@ -141,63 +159,88 @@ export default function Domains() {
         </CardHeader>
         <CardContent>
           <div className="mb-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-300">
-            Domain APIs are not wired into the current backend yet, so this view stays local for now.
+            Domain APIs are not wired into the current backend yet, so this view
+            stays local for now.
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-zinc-200 dark:border-zinc-800">
-                  <th className="text-left py-3 px-4 font-semibold">Domain</th>
-                  <th className="text-left py-3 px-4 font-semibold">Registrar</th>
-                  <th className="text-left py-3 px-4 font-semibold">DNS</th>
-                  <th className="text-left py-3 px-4 font-semibold">SSL</th>
-                  <th className="text-left py-3 px-4 font-semibold">Expires</th>
-                  <th className="text-left py-3 px-4 font-semibold">Status</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow className="border-zinc-800 hover:bg-transparent">
+                  <TableHead className="font-semibold text-zinc-400">
+                    Domain
+                  </TableHead>
+                  <TableHead className="font-semibold text-zinc-400">
+                    Registrar
+                  </TableHead>
+                  <TableHead className="font-semibold text-zinc-400">
+                    DNS
+                  </TableHead>
+                  <TableHead className="font-semibold text-zinc-400">
+                    SSL
+                  </TableHead>
+                  <TableHead className="font-semibold text-zinc-400">
+                    Expires
+                  </TableHead>
+                  <TableHead className="font-semibold text-zinc-400">
+                    Status
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {zones.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-8 px-4 text-center text-zinc-600 dark:text-zinc-400">
+                  <TableRow>
+                    <TableCell
+                      colSpan={6}
+                      className="py-8 text-center text-zinc-600 dark:text-zinc-400"
+                    >
                       No domains yet. Add your first domain above.
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   zones.map((zone: any) => (
-                    <tr
+                    <TableRow
                       key={zone.id}
-                      className="border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                      className="border-zinc-800 hover:bg-zinc-800/50"
                     >
-                      <td className="py-3 px-4 font-medium dark:text-white">{zone.name}</td>
-                      <td className="py-3 px-4 text-zinc-600 dark:text-zinc-400">—</td>
-                      <td className="py-3 px-4 text-zinc-600 dark:text-zinc-400">Hackflare</td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                      <TableCell className="font-medium">
+                        <NavLink
+                          to={`/dash/domains/${zone.name}/dns`}
+                          className="transition-colors hover:text-orange-500"
+                        >
+                          {zone.name}
+                        </NavLink>
+                      </TableCell>
+                      <TableCell className="text-zinc-400">—</TableCell>
+                      <TableCell className="text-zinc-400">Hackflare</TableCell>
+                      <TableCell>
+                        <span className="rounded border border-green-700 bg-green-900/30 px-2 py-1 text-xs font-medium text-green-400">
                           Valid
                         </span>
-                      </td>
-                      <td className="py-3 px-4 text-zinc-600 dark:text-zinc-400">—</td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          zone.ns_verified
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                            : "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
-                        }`}>
+                      </TableCell>
+                      <TableCell className="text-zinc-400">—</TableCell>
+                      <TableCell>
+                        <span
+                          className={`rounded px-2 py-1 text-xs font-medium ${
+                            zone.ns_verified
+                              ? "border border-green-700 bg-green-900/30 text-green-400"
+                              : "border border-orange-700 bg-orange-900/30 text-orange-400"
+                          }`}
+                        >
                           {zone.ns_verified ? "Verified" : "Pending"}
                         </span>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>
 
       {/* Quick Links */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-        <Card className="cursor-pointer hover:border-orange-500 hover:shadow-md transition-all">
+      <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Card className="cursor-pointer transition-all hover:border-orange-500 hover:shadow-md">
           <CardHeader>
             <CardTitle className="text-base">DNS Records</CardTitle>
           </CardHeader>
@@ -207,7 +250,7 @@ export default function Domains() {
             </p>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer hover:border-orange-500 hover:shadow-md transition-all">
+        <Card className="cursor-pointer transition-all hover:border-orange-500 hover:shadow-md">
           <CardHeader>
             <CardTitle className="text-base">SSL Certificates</CardTitle>
           </CardHeader>
@@ -217,7 +260,7 @@ export default function Domains() {
             </p>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer hover:border-orange-500 hover:shadow-md transition-all">
+        <Card className="cursor-pointer transition-all hover:border-orange-500 hover:shadow-md">
           <CardHeader>
             <CardTitle className="text-base">Domain Settings</CardTitle>
           </CardHeader>

@@ -1,5 +1,6 @@
-import { Outlet, useNavigate } from "react-router"
+import { Outlet, useNavigate, useLocation } from "react-router"
 import { useEffect } from "react"
+import { motion } from "framer-motion"
 import { SidebarProvider, SidebarTrigger } from "~/components/ui/sidebar"
 import { AppSidebar } from "~/components/app-sidebar"
 import { DarkModeToggle } from "~/components/dark-mode-toggle"
@@ -7,6 +8,7 @@ import { useAuth } from "~/lib/auth-context"
 
 export default function SidebarLayout() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, ready } = useAuth()
 
   useEffect(() => {
@@ -22,7 +24,7 @@ export default function SidebarLayout() {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <main className="flex flex-1 flex-col min-h-screen">
+      <main className="flex min-h-screen flex-1 flex-col">
         <header className="flex h-12 items-center gap-3 border-b px-4">
           <SidebarTrigger />
           <DarkModeToggle />
@@ -31,7 +33,14 @@ export default function SidebarLayout() {
           Signed in with your Hack Club session.
         </div>
         <div className="flex-1 p-6">
-          <Outlet />
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
+            <Outlet />
+          </motion.div>
         </div>
       </main>
     </SidebarProvider>

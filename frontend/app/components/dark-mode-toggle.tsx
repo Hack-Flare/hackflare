@@ -12,11 +12,7 @@ export function DarkModeToggle() {
       variant={"ghost"}
       size={"icon-sm"}
     >
-      {theme === "light" ? (
-        <Moon />
-      ) : (
-        <Sun />
-      )}
+      {theme === "light" ? <Moon /> : <Sun />}
     </Button>
   )
 }
