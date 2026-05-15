@@ -2,10 +2,13 @@ use crate::DnsError;
 use crate::dns::DnsConfig;
 use crate::ns::persistence::{PersistedRecord, PersistedZone, ZonePersistence};
 use hickory_server::net::runtime::TokioRuntimeProvider;
+use hickory_server::proto::op::{Header, HeaderCounts, Message, Metadata, ResponseCode};
 use hickory_server::proto::rr::{LowerName, Name, RData, Record, RecordType, rdata::SOA};
 use hickory_server::server::{Request, RequestHandler, ResponseHandler, ResponseInfo};
 use hickory_server::store::in_memory::InMemoryZoneHandler;
-use hickory_server::zone_handler::{AxfrPolicy, Catalog, ZoneType};
+use hickory_server::zone_handler::{
+    AxfrPolicy, LookupError, LookupOptions, MessageResponseBuilder, ZoneHandler, ZoneType,
+};
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -14,7 +17,6 @@ use tokio::sync::RwLock;
 /// Provides authoritative DNS zone management using hickory-server's in-memory zones.
 pub struct AuthorityStore {
     config: DnsConfig,
-    catalog: RwLock<Catalog>,
     zones: RwLock<HashMap<String, Arc<InMemoryZoneHandler<TokioRuntimeProvider>>>>,
     persistence: Option<Arc<dyn ZonePersistence>>,
 }
@@ -23,7 +25,6 @@ impl AuthorityStore {
     pub fn new(config: DnsConfig) -> Self {
         Self {
             config,
-            catalog: RwLock::new(Catalog::new()),
             zones: RwLock::new(HashMap::new()),
             persistence: None,
         }
@@ -33,7 +34,6 @@ impl AuthorityStore {
     pub fn with_persistence(config: DnsConfig, persistence: Arc<dyn ZonePersistence>) -> Self {
         Self {
             config,
-            catalog: RwLock::new(Catalog::new()),
             zones: RwLock::new(HashMap::new()),
             persistence: Some(persistence),
         }
@@ -61,15 +61,7 @@ impl AuthorityStore {
         }
 
         let zone_key = zone_name.trim_end_matches('.').to_string();
-        self.zones
-            .write()
-            .await
-            .insert(zone_key.clone(), Arc::clone(&handler));
-
-        self.catalog.write().await.upsert(
-            LowerName::new(&origin),
-            vec![super::util::erase_to_dyn(handler)],
-        );
+        self.zones.write().await.insert(zone_key.clone(), handler);
 
         if let Some(persistence) = &self.persistence {
             let persisted = PersistedZone {
@@ -87,20 +79,14 @@ impl AuthorityStore {
     /// Delete an existing DNS zone.
     pub async fn delete_zone(&self, name: &str) -> bool {
         let zone_name = Self::normalize_zone_name(name);
-        let Ok(origin) = Name::from_utf8(&zone_name) else {
-            return false;
-        };
-
         let zone_key = zone_name.trim_end_matches('.').to_string();
         let removed = self.zones.write().await.remove(&zone_key).is_some();
 
-        if removed {
-            let _ = self.catalog.write().await.remove(&LowerName::new(&origin));
-            if let Some(persistence) = &self.persistence
-                && let Err(e) = persistence.delete_zone(&zone_key).await
-            {
-                eprintln!("[hackflare:dns] failed to delete zone {zone_key} from storage: {e}");
-            }
+        if removed
+            && let Some(persistence) = &self.persistence
+            && let Err(e) = persistence.delete_zone(&zone_key).await
+        {
+            eprintln!("[hackflare:dns] failed to delete zone {zone_key} from storage: {e}");
         }
         removed
     }
@@ -201,20 +187,11 @@ impl AuthorityStore {
 
     /// Check if a zone exists for the given name.
     pub async fn contains_zone_for(&self, name: &LowerName) -> bool {
-        self.catalog.read().await.find(name).is_some()
+        let zones = self.zones.read().await;
+        find_zone(&zones, name).is_some()
     }
 
-    /// Handle incoming DNS request using the catalog.
-    pub async fn handle_request<R: ResponseHandler, T: hickory_server::net::runtime::Time>(
-        &self,
-        request: &Request,
-        response_handle: R,
-    ) -> ResponseInfo {
-        let catalog = self.catalog.read().await;
-        RequestHandler::handle_request::<R, T>(&*catalog, request, response_handle).await
-    }
-
-    /// Load all zones from persistence storage
+    /// Load all zones from persistence storage.
     pub async fn load_zones_from_storage(&self) -> Result<(), DnsError> {
         let Some(persistence) = &self.persistence else {
             return Err(DnsError::PersistenceUnconfigured);
@@ -227,7 +204,6 @@ impl AuthorityStore {
 
         for zone in zones {
             self.create_zone(&zone.name).await;
-
             for record in zone.records {
                 let _ = self
                     .add_record(
@@ -293,10 +269,162 @@ impl AuthorityStore {
     }
 }
 
+// ── Zone lookup & query handling ──
+
+/// Find the best-matching zone handler by walking parent suffixes.
+fn find_zone(
+    zones: &HashMap<String, Arc<InMemoryZoneHandler<TokioRuntimeProvider>>>,
+    name: &LowerName,
+) -> Option<Arc<InMemoryZoneHandler<TokioRuntimeProvider>>> {
+    let mut current = name.clone();
+    loop {
+        let key = current.to_utf8().trim_end_matches('.').to_string();
+        if let Some(handler) = zones.get(&key) {
+            return Some(handler.clone());
+        }
+        if current.is_root() {
+            return None;
+        }
+        current = current.base_name();
+    }
+}
+
+/// Build a response message for an authoritative zone lookup.
+async fn build_auth_response(
+    result: Option<Result<hickory_server::zone_handler::AuthLookup, LookupError>>,
+    _handler: &InMemoryZoneHandler<TokioRuntimeProvider>,
+    request_meta: &Metadata,
+    query: &hickory_server::proto::op::LowerQuery,
+) -> Message {
+    let mut response_meta = Metadata::response_from_request(request_meta);
+    response_meta.authoritative = true;
+
+    let mut message = Message::new(
+        response_meta.id,
+        response_meta.message_type,
+        response_meta.op_code,
+    );
+    message.add_query(query.original().clone());
+
+    let Some(result) = result else {
+        response_meta.response_code = ResponseCode::ServFail;
+        message.metadata = response_meta;
+        return message;
+    };
+
+    match result {
+        Ok(mut auth_lookup) => {
+            response_meta.response_code = ResponseCode::NoError;
+            if let Some(adds) = auth_lookup.take_additionals() {
+                message.additionals.extend(adds.iter().cloned());
+            }
+            let is_referral = auth_lookup.iter().next().is_some_and(|r| {
+                r.record_type() == RecordType::NS
+                    && query.query_type() != RecordType::NS
+                    && query.query_type() != RecordType::ANY
+            });
+            if is_referral {
+                message.authorities.extend(auth_lookup.iter().cloned());
+            } else {
+                message.answers.extend(auth_lookup.iter().cloned());
+            }
+            message.metadata = response_meta;
+            message
+        }
+        Err(e) => {
+            if e.is_nx_domain() {
+                response_meta.response_code = ResponseCode::NXDomain;
+            } else if matches!(&e, LookupError::ResponseCode(rc) if *rc == ResponseCode::Refused || *rc == ResponseCode::NotAuth)
+            {
+                response_meta.response_code = *match &e {
+                    LookupError::ResponseCode(rc) => rc,
+                    _ => &ResponseCode::ServFail,
+                };
+            } else {
+                response_meta.response_code = ResponseCode::NoError;
+            }
+            message.metadata = response_meta;
+            message
+        }
+    }
+}
+
+/// Send a simple error response.
+async fn send_error_response<R: ResponseHandler>(
+    request: &Request,
+    code: ResponseCode,
+    mut response_handle: R,
+) -> ResponseInfo {
+    let mut metadata = Metadata::response_from_request(&request.metadata);
+    metadata.response_code = code;
+    let response = MessageResponseBuilder::from_message_request(request).build_no_records(metadata);
+    response_handle
+        .send_response(response)
+        .await
+        .unwrap_or_else(|_| {
+            ResponseInfo::from(Header {
+                metadata,
+                counts: HeaderCounts::default(),
+            })
+        })
+}
+
+#[async_trait::async_trait]
+impl RequestHandler for AuthorityStore {
+    async fn handle_request<R: ResponseHandler, T: hickory_server::net::runtime::Time>(
+        &self,
+        request: &Request,
+        response_handle: R,
+    ) -> ResponseInfo {
+        let mut response_handle = response_handle;
+        let Ok(request_info) = request.request_info() else {
+            return send_error_response(request, ResponseCode::FormErr, response_handle).await;
+        };
+
+        let query_name = request_info.query.name().clone();
+
+        let handler = {
+            let zones = self.zones.read().await;
+            find_zone(&zones, &query_name)
+        };
+
+        let Some(handler) = handler else {
+            return send_error_response(request, ResponseCode::Refused, response_handle).await;
+        };
+
+        let lookup_options = LookupOptions::from_edns(request.edns.as_ref());
+        let (cf, _) = handler.search(request, lookup_options).await;
+        let result = cf.map_result();
+
+        let message =
+            build_auth_response(result, &handler, &request.metadata, request_info.query).await;
+
+        let mut builder = MessageResponseBuilder::from_message_request(request);
+        if let Some(edns) = &request.edns {
+            builder.edns(edns);
+        }
+        let response = builder.build(
+            message.metadata,
+            &message.answers,
+            &message.authorities,
+            std::iter::empty(),
+            &message.additionals,
+        );
+
+        response_handle
+            .send_response(response)
+            .await
+            .unwrap_or_else(|_| {
+                ResponseInfo::from(Header {
+                    metadata: Metadata::response_from_request(&request.metadata),
+                    counts: HeaderCounts::default(),
+                })
+            })
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dns::DnsConfig;
 
     #[tokio::test]
     async fn create_zone_succeeds() {

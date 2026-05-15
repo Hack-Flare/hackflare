@@ -1,6 +1,5 @@
 mod authority;
 mod hickory;
-mod util;
 
 pub mod config;
 pub mod persistence;
