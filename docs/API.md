@@ -152,3 +152,8 @@ Notes:
 - DNS management endpoints
 - Health and ping endpoints
 - Any `Authorization: Bearer ...` API surface for the current routes
+
+## See also
+
+- Backend overview: [docs/backend.md](backend.md)
+- DNS crate overview: [docs/dns.md](dns.md)
