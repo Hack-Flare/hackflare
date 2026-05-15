@@ -50,22 +50,29 @@ impl HcaConfig {
 }
 
 #[derive(Debug)]
-pub(crate) struct Config {
-    pub(crate) bind_addr: SocketAddr,
+pub struct Config {
+    pub bind_addr: SocketAddr,
+    pub(crate) database_url: Url,
     pub(crate) jwt_encoding_key: EncodingKey,
     pub(crate) jwt_decoding_key: DecodingKey,
     pub(crate) hca: HcaConfig,
 }
 
-pub(crate) fn from_env() -> Result<Config> {
+pub fn from_env() -> Result<Config> {
     let redirect_uri: Url = env_req("API_HCA_REDIRECT_URI")?;
+    let database_url: Url = env_req("DATABASE_URL")?;
+
+    match database_url.scheme() {
+        "postgres" => { /* valid */ }
+        other => anyhow::bail!("DATABASE_URL must use postgres (found {})", other),
+    }
 
     // Validate the scheme
     match redirect_uri.scheme() {
         "http" | "https" => { /* valid */ }
-        _ => anyhow::bail!(
+        other => anyhow::bail!(
             "API_HCA_REDIRECT_URI must use http or https (found {})",
-            redirect_uri.scheme()
+            other
         ),
     }
 
@@ -73,6 +80,7 @@ pub(crate) fn from_env() -> Result<Config> {
 
     Ok(Config {
         bind_addr: env_or("API_BIND_ADDR", "0.0.0.0:8080".parse().unwrap())?,
+        database_url,
         jwt_encoding_key: EncodingKey::from_base64_secret(&jwt_secret)?,
         jwt_decoding_key: DecodingKey::from_base64_secret(&jwt_secret)?,
         hca: HcaConfig {

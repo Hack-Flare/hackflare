@@ -1,16 +1,8 @@
-mod config;
-mod hca;
-mod middlewares;
-mod routes;
-mod state;
-
-use crate::routes::build_router;
-use crate::state::AppState;
 use dotenv::dotenv;
+use tracing::{error, info, warn};
 use tracing_subscriber::EnvFilter;
 
-#[macro_use]
-extern crate tracing;
+use hackflare_api::{routes::build_router, state::AppState};
 
 #[tokio::main]
 async fn main() {
@@ -24,7 +16,7 @@ async fn main() {
         warn!("failed to load .env files: {}", e)
     }
 
-    let config = match config::from_env() {
+    let config = match hackflare_api::config::from_env() {
         Ok(c) => c,
         Err(e) => {
             error!("invalid .env: {}", e);
@@ -38,7 +30,9 @@ async fn main() {
         .expect("failed to bind api listener");
     info!("listening on {}", config.bind_addr);
 
-    let state = AppState::new(config);
+    let state = AppState::new(config)
+        .await
+        .expect("failed to set up app state");
     let app = build_router(state);
 
     axum::serve(listener, app)
