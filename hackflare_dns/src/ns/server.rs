@@ -1,9 +1,9 @@
+use crate::NsConfig;
 use crate::dns::DnsConfig;
 use crate::error::DnsError;
 use crate::ns::authority::AuthorityStore;
 use crate::ns::hickory::run_with_hickory;
 use crate::ns::persistence::ZonePersistence;
-use crate::NsConfig;
 use std::io;
 use std::sync::Arc;
 
@@ -36,7 +36,10 @@ impl Nameserver {
     /// # Errors
     ///
     /// Returns an error if the Tokio runtime cannot be created.
-    pub fn with_dns_config(config: NsConfig, dns_config: DnsConfig) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn with_dns_config(
+        config: NsConfig,
+        dns_config: DnsConfig,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
         Ok(Self {
             authority: Arc::new(AuthorityStore::new(dns_config.clone())),
             config,
@@ -80,7 +83,10 @@ impl Nameserver {
         persistence: Arc<dyn ZonePersistence>,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         Ok(Self {
-            authority: Arc::new(AuthorityStore::with_persistence(dns_config.clone(), persistence)),
+            authority: Arc::new(AuthorityStore::with_persistence(
+                dns_config.clone(),
+                persistence,
+            )),
             config,
             dns_config,
             runtime: tokio::runtime::Runtime::new()?,

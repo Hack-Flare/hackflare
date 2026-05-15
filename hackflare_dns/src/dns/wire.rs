@@ -105,8 +105,7 @@ mod tests {
         let wire = [
             0xC0, 0x0C, // pointer to offset 12
             // padding bytes
-            b'x', b'y', b'z', 0, 0, 0, 0, 0, 0, 0,
-            0xC0, 0x00, // pointer to offset 0
+            b'x', b'y', b'z', 0, 0, 0, 0, 0, 0, 0, 0xC0, 0x00, // pointer to offset 0
         ];
         assert!(parse_qname(&wire, 0).is_none());
     }
@@ -134,8 +133,7 @@ mod tests {
     #[test]
     fn parse_qname_rejects_pointer_to_out_of_bounds() {
         let wire = [
-            3, b'w', b'w', b'w',
-            0xC0, 0xFF, // pointer to offset 255 (out of bounds)
+            3, b'w', b'w', b'w', 0xC0, 0xFF, // pointer to offset 255 (out of bounds)
         ];
         assert!(parse_qname(&wire, 4).is_none());
     }

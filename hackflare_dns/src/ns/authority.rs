@@ -1,11 +1,11 @@
+use crate::DnsError;
 use crate::dns::DnsConfig;
 use crate::ns::persistence::{PersistedRecord, PersistedZone, ZonePersistence};
-use crate::DnsError;
 use hickory_server::net::runtime::TokioRuntimeProvider;
 use hickory_server::proto::rr::{LowerName, Name, RData, Record, RecordType, rdata::SOA};
 use hickory_server::server::{Request, RequestHandler, ResponseHandler, ResponseInfo};
 use hickory_server::store::in_memory::InMemoryZoneHandler;
-use hickory_server::zone_handler::{AxfrPolicy, Catalog, ZoneHandler, ZoneType};
+use hickory_server::zone_handler::{AxfrPolicy, Catalog, ZoneType};
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -66,12 +66,10 @@ impl AuthorityStore {
             .await
             .insert(zone_key.clone(), Arc::clone(&handler));
 
-        let zone_name_lower = LowerName::new(&origin);
-        let zone_handler: Arc<dyn ZoneHandler> = handler;
-        self.catalog
-            .write()
-            .await
-            .upsert(zone_name_lower, vec![zone_handler]);
+        self.catalog.write().await.upsert(
+            LowerName::new(&origin),
+            vec![super::util::erase_to_dyn(handler)],
+        );
 
         if let Some(persistence) = &self.persistence {
             let persisted = PersistedZone {
@@ -136,12 +134,13 @@ impl AuthorityStore {
         };
 
         let ok = handler
-            .upsert(Record::from_rdata(record_name, ttl, rdata), self.config.soa_serial)
+            .upsert(
+                Record::from_rdata(record_name, ttl, rdata),
+                self.config.soa_serial,
+            )
             .await;
 
-        if ok
-            && let Some(persistence) = &self.persistence
-        {
+        if ok && let Some(persistence) = &self.persistence {
             let record = PersistedRecord {
                 name: name.to_string(),
                 rtype: rtype.to_string(),
@@ -189,9 +188,7 @@ impl AuthorityStore {
                 .delete_record(zone_name, name, rtype.trim())
                 .await
         {
-            eprintln!(
-                "[hackflare:dns] failed to remove record {name} ({rtype}) from storage: {e}"
-            );
+            eprintln!("[hackflare:dns] failed to remove record {name} ({rtype}) from storage: {e}");
         }
 
         removed

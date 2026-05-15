@@ -84,11 +84,8 @@ fn acquire_resolve_slot() -> Option<ResolveGuard> {
     }
 }
 
-fn prune_cache<K, V>(
-    cache: &mut HashMap<K, V>,
-    max_entries: usize,
-    is_expired: impl Fn(&V) -> bool,
-) where
+fn prune_cache<K, V>(cache: &mut HashMap<K, V>, max_entries: usize, is_expired: impl Fn(&V) -> bool)
+where
     K: Clone + Eq + std::hash::Hash,
 {
     cache.retain(|_, v| !is_expired(v));
@@ -435,9 +432,11 @@ fn resolve_internal(
 
     if let Ok(mut roots) = ROOT_CACHE.lock()
         && {
-            prune_cache(&mut roots, MAX_ROOT_CACHE_ENTRIES, |(_, _, exp): &RootCacheValue| {
-                Instant::now() >= *exp
-            });
+            prune_cache(
+                &mut roots,
+                MAX_ROOT_CACHE_ENTRIES,
+                |(_, _, exp): &RootCacheValue| Instant::now() >= *exp,
+            );
             !roots.contains_key("__root__")
         }
         && !ROOT_HINTS.is_empty()
@@ -729,11 +728,11 @@ mod tests {
     fn parse_rrs_accepts_class_in() {
         let name = crate::dns::wire::encode_name_labels_vec("www.example.com");
         let mut rr = name.clone();
-        rr.extend_from_slice(&1u16.to_be_bytes());  // type A
-        rr.extend_from_slice(&1u16.to_be_bytes());  // class IN
+        rr.extend_from_slice(&1u16.to_be_bytes()); // type A
+        rr.extend_from_slice(&1u16.to_be_bytes()); // class IN
         rr.extend_from_slice(&300u32.to_be_bytes()); // ttl
-        rr.extend_from_slice(&4u16.to_be_bytes());  // rdlength
-        rr.extend_from_slice(&[192, 168, 1, 1]);    // rdata
+        rr.extend_from_slice(&4u16.to_be_bytes()); // rdlength
+        rr.extend_from_slice(&[192, 168, 1, 1]); // rdata
         let result = parse_rrs(&rr, 0, 1);
         assert!(result.is_some());
     }
@@ -742,11 +741,11 @@ mod tests {
     fn parse_rrs_rejects_non_in_class() {
         let name = crate::dns::wire::encode_name_labels_vec("www.example.com");
         let mut rr = name.clone();
-        rr.extend_from_slice(&1u16.to_be_bytes());  // type A
-        rr.extend_from_slice(&3u16.to_be_bytes());  // class CH (Chaos)
+        rr.extend_from_slice(&1u16.to_be_bytes()); // type A
+        rr.extend_from_slice(&3u16.to_be_bytes()); // class CH (Chaos)
         rr.extend_from_slice(&300u32.to_be_bytes()); // ttl
-        rr.extend_from_slice(&4u16.to_be_bytes());  // rdlength
-        rr.extend_from_slice(&[192, 168, 1, 1]);    // rdata
+        rr.extend_from_slice(&4u16.to_be_bytes()); // rdlength
+        rr.extend_from_slice(&[192, 168, 1, 1]); // rdata
         let result = parse_rrs(&rr, 0, 1);
         assert!(result.is_none());
     }

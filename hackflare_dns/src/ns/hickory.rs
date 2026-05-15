@@ -49,7 +49,10 @@ pub(super) struct HickoryRequestHandler {
 
 impl HickoryRequestHandler {
     pub(super) fn new(authority: Arc<AuthorityStore>, dns_config: DnsConfig) -> Self {
-        Self { authority, dns_config }
+        Self {
+            authority,
+            dns_config,
+        }
     }
 }
 
@@ -61,8 +64,7 @@ async fn send_servfail_response<R: ResponseHandler>(
     log("error", &error.to_string(), Some(request.src()));
     let mut metadata = Metadata::response_from_request(&request.metadata);
     metadata.response_code = ResponseCode::ServFail;
-    let response =
-        MessageResponseBuilder::from_message_request(request).build_no_records(metadata);
+    let response = MessageResponseBuilder::from_message_request(request).build_no_records(metadata);
     response_handle
         .send_response(response)
         .await
@@ -98,7 +100,8 @@ impl RequestHandler for HickoryRequestHandler {
         let qname = query_name.to_utf8();
         let qtype = u16::from(query_info.query.query_type());
 
-        let Some(response_bytes) = crate::dns::recursive::resolve(&qname, qtype, &self.dns_config) else {
+        let Some(response_bytes) = crate::dns::recursive::resolve(&qname, qtype, &self.dns_config)
+        else {
             return send_servfail_response(
                 request,
                 response_handle,
@@ -202,7 +205,7 @@ mod tests {
     }
 
     #[test]
-    fn record_request_increments_counters() {
+    fn record_request_counters() {
         UDP_COUNT.store(0, Ordering::Relaxed);
         TCP_COUNT.store(0, Ordering::Relaxed);
 
@@ -211,10 +214,7 @@ mod tests {
 
         record_request(Protocol::Tcp);
         assert_eq!(TCP_COUNT.load(Ordering::Relaxed), 1);
-    }
 
-    #[test]
-    fn record_request_udp_only() {
         UDP_COUNT.store(0, Ordering::Relaxed);
         TCP_COUNT.store(0, Ordering::Relaxed);
 
@@ -224,10 +224,7 @@ mod tests {
 
         assert_eq!(UDP_COUNT.load(Ordering::Relaxed), 3);
         assert_eq!(TCP_COUNT.load(Ordering::Relaxed), 0);
-    }
 
-    #[test]
-    fn record_request_tcp_only() {
         UDP_COUNT.store(0, Ordering::Relaxed);
         TCP_COUNT.store(0, Ordering::Relaxed);
 
@@ -236,10 +233,7 @@ mod tests {
 
         assert_eq!(UDP_COUNT.load(Ordering::Relaxed), 0);
         assert_eq!(TCP_COUNT.load(Ordering::Relaxed), 2);
-    }
 
-    #[test]
-    fn record_request_mixed_protocols() {
         UDP_COUNT.store(0, Ordering::Relaxed);
         TCP_COUNT.store(0, Ordering::Relaxed);
 

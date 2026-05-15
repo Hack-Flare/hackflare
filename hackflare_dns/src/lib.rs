@@ -58,8 +58,8 @@
 //! [`MemoryPersistence`]: ns::MemoryPersistence
 
 mod dns;
-pub mod ns;
 mod error;
+pub mod ns;
 
 pub use dns::config::DnsConfig;
 pub use error::DnsError;
