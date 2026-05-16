@@ -11,6 +11,7 @@ export default [
   route("login", "routes/login.tsx"),
   route("auth/hackclub", "routes/auth/hackclub-callback.tsx"),
   route("ourteam", "routes/ourteam.tsx"),
+  route("api/slack/contact", "routes/api.slack.contact.ts"),
 
   layout("layouts/sidebar-layout.tsx", [
     route("dash", "routes/dash/page.tsx"),
