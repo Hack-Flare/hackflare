@@ -4,9 +4,11 @@ const API_ORIGIN = import.meta.env.DEV
 
 export interface AuthenticatedUser {
   id: string
-  name?: string
-  email?: string
-  is_admin?: boolean
+  first_name: string
+  last_name: string
+  email: string
+  slack_id: string
+  eligible: boolean
 }
 
 interface ApiError {

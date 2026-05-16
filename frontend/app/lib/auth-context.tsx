@@ -5,7 +5,8 @@ export interface User extends AuthenticatedUser {}
 
 export function getUserDisplayName(user: User | null): string {
   if (!user) return "Signed in"
-  if (user.name?.trim()) return user.name.trim()
+  const fullName = `${user.first_name} ${user.last_name}`.trim()
+  if (fullName) return fullName
   if (user.email?.trim()) return user.email.trim()
   return `User ${user.id.slice(0, 8)}`
 }
@@ -26,7 +27,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshUser = async (): Promise<User | null> => {
     try {
       const currentUser = await api.auth.me()
-      console.info("[Auth] session user loaded", { userId: currentUser.id })
+      console.info("[Auth] session user loaded", {
+        userId: currentUser.id,
+        email: currentUser.email,
+      })
       setUser(currentUser)
       return currentUser
     } catch (error) {
