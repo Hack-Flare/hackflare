@@ -1,4 +1,5 @@
 use axum::{Extension, Json, Router, middleware, response::IntoResponse, routing::get};
+use chrono::{DateTime, Utc};
 use serde::Serialize;
 
 use crate::{
@@ -15,6 +16,7 @@ struct Me {
     last_name: String,
     email: String,
     eligible: bool,
+    created_at: DateTime<Utc>,
 }
 
 impl From<User> for Me {
@@ -26,6 +28,7 @@ impl From<User> for Me {
             last_name: user.last_name,
             email: user.email,
             eligible: user.ysws_eligible,
+            created_at: user.created_at,
         }
     }
 }
