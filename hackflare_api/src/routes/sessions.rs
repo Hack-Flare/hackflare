@@ -29,14 +29,24 @@ async fn sessions_handler(
 }
 
 async fn session_by_id_handler(
+    Extension(current_user): Extension<CurrentUser>,
     State(sessions): State<UserSessionsService>,
     Path(id): Path<Uuid>,
-) -> Result<Json<Option<UserSession>>, (StatusCode, &'static str)> {
+) -> Result<Json<UserSession>, (StatusCode, &'static str)> {
     let result = sessions.get_by_id(&id).await.map_err(|error| {
         error!(%error, "failed to get user sessions");
         (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
     })?;
-    Ok(Json(result))
+
+    let Some(session) = result else {
+        return Err((StatusCode::NOT_FOUND, "session_not_found"));
+    };
+
+    if session.user_id != current_user.user.id {
+        return Err((StatusCode::FORBIDDEN, "forbidden"));
+    }
+
+    Ok(Json(session))
 }
 
 pub(super) fn routes(state: AppState) -> Router<AppState> {
