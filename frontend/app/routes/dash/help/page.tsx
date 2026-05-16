@@ -23,9 +23,6 @@ import {
 } from "~/components/ui/select"
 import { useAuth } from "~/lib/auth-context"
 
-const SLACK_WEBHOOK =
-  "https://hooks.slack.com/services/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"
-
 const defaultForm = {
   name: "",
   email: "",
