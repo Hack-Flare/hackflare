@@ -39,6 +39,7 @@
 //! Implement it to store zones and records in any backend (e.g., `PostgreSQL`, `Redis`, filesystem).
 //!
 //! - **[`MemoryPersistence`]**: In-memory storage for testing and development
+//! - **[`PostgresPersistence`]**: PostgreSQL-backed storage for production (consumer-managed pool)
 //!
 //! ## Configuration
 //!
@@ -52,10 +53,12 @@
 //! ## See Also
 //!
 //! - [`ns::MemoryPersistence`] - In-memory persistence backend
+//! - [`ns::PostgresPersistence`] - PostgreSQL persistence backend (consumer-managed pool)
 //! - [`Nameserver`] - Main API for zone management and DNS serving
 //!
 //! [`ZonePersistence`]: ns::ZonePersistence
 //! [`MemoryPersistence`]: ns::MemoryPersistence
+//! [`PostgresPersistence`]: ns::PostgresPersistence
 
 mod dns;
 mod error;
