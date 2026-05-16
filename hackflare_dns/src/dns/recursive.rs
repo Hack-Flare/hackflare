@@ -1,7 +1,6 @@
 use crate::dns::DnsConfig;
-use crate::dns::engine::{encode_name_labels_vec, parse_qname};
-use once_cell::sync::Lazy;
-use postgres::NoTls;
+use crate::dns::wire::{encode_name_labels_vec, parse_qname};
+
 use rand::seq::SliceRandom;
 use std::collections::HashMap;
 type CacheKey = (String, u16);
@@ -41,19 +40,21 @@ const MAX_DELEGATION_CACHE_ENTRIES: usize = 1024;
 const MAX_UPSTREAM_SERVERS_PER_ROUND: usize = 8;
 const MAX_CONCURRENT_RESOLVES: usize = 128;
 
-static ACTIVE_RESOLVES: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
+static ACTIVE_RESOLVES: std::sync::LazyLock<AtomicUsize> =
+    std::sync::LazyLock::new(|| AtomicUsize::new(0));
 
 fn udp_attempts_per_server(config: &DnsConfig) -> usize {
     config.udp_attempts.max(1)
 }
 
+#[allow(clippy::missing_const_for_fn)]
 fn udp_attempt_timeout(config: &DnsConfig) -> Duration {
     config.udp_timeout
 }
 
 fn debug_log(msg: &str, config: &DnsConfig) {
     if config.recursion_debug {
-        eprintln!("[hackflare:dns:recursive] {}", msg);
+        eprintln!("[hackflare:dns:recursive] {msg}");
     }
 }
 
@@ -83,34 +84,12 @@ fn acquire_resolve_slot() -> Option<ResolveGuard> {
     }
 }
 
-fn prune_query_cache(cache: &mut HashMap<CacheKey, CacheValue>) {
-    let now = Instant::now();
-    cache.retain(|_, (_, exp)| now < *exp);
-    while cache.len() > MAX_QUERY_CACHE_ENTRIES {
-        if let Some(key) = cache.keys().next().cloned() {
-            cache.remove(&key);
-        } else {
-            break;
-        }
-    }
-}
-
-fn prune_root_cache(cache: &mut HashMap<String, RootCacheValue>) {
-    let now = Instant::now();
-    cache.retain(|_, (_, _, exp)| now < *exp);
-    while cache.len() > MAX_ROOT_CACHE_ENTRIES {
-        if let Some(key) = cache.keys().next().cloned() {
-            cache.remove(&key);
-        } else {
-            break;
-        }
-    }
-}
-
-fn prune_delegation_cache(cache: &mut HashMap<String, DelegationCacheValue>) {
-    let now = Instant::now();
-    cache.retain(|_, (_, exp)| now < *exp);
-    while cache.len() > MAX_DELEGATION_CACHE_ENTRIES {
+fn prune_cache<K, V>(cache: &mut HashMap<K, V>, max_entries: usize, is_expired: impl Fn(&V) -> bool)
+where
+    K: Clone + Eq + std::hash::Hash,
+{
+    cache.retain(|_, v| !is_expired(v));
+    while cache.len() > max_entries {
         if let Some(key) = cache.keys().next().cloned() {
             cache.remove(&key);
         } else {
@@ -121,9 +100,9 @@ fn prune_delegation_cache(cache: &mut HashMap<String, DelegationCacheValue>) {
 
 fn socket_target(addr: &str) -> String {
     if addr.contains(':') && !addr.starts_with('[') {
-        format!("[{}]:53", addr)
+        format!("[{addr}]:53")
     } else {
-        format!("{}:53", addr)
+        format!("{addr}:53")
     }
 }
 
@@ -202,13 +181,6 @@ fn load_root_hint_servers() -> Vec<String> {
 }
 
 fn load_root_hint_servers_internal(custom_path: Option<&std::path::PathBuf>) -> Vec<String> {
-    // Try loading from database first (will use DATABASE_URL from config if available)
-    if let Some(db_hints) = load_root_hints_from_db()
-        && !db_hints.is_empty()
-    {
-        return db_hints;
-    }
-
     // Try custom path if provided
     if let Some(path) = custom_path
         && let Ok(content) = fs::read_to_string(path)
@@ -244,87 +216,14 @@ fn load_root_hint_servers_internal(custom_path: Option<&std::path::PathBuf>) -> 
     }
 
     // Fall back to hardcoded root servers
-    ROOT_SERVERS.iter().map(|s| s.to_string()).collect()
-}
-
-fn load_root_hints_from_db() -> Option<Vec<String>> {
-    let db_url = env::var("DATABASE_URL").ok()?;
-    let mut client = postgres::Client::connect(&db_url, NoTls).ok()?;
-
-    // Try to query root hints; if table doesn't exist, return None and fall back
-    let result = client.query(
-        "SELECT ip_address FROM dns_root_hints ORDER BY ip_address",
-        &[],
-    );
-
-    match result {
-        Ok(rows) => {
-            let mut hints: Vec<String> = rows
-                .iter()
-                .filter_map(|row| {
-                    let ip: String = row.get(0);
-                    if !ip.is_empty() { Some(ip) } else { None }
-                })
-                .collect();
-
-            hints.sort();
-            hints.dedup();
-
-            if hints.is_empty() { None } else { Some(hints) }
-        }
-        Err(_) => {
-            // Table doesn't exist or query failed; fall back to other methods
-            None
-        }
-    }
-}
-
-// Initialize the dns_root_hints table if it doesn't exist and populate it with the default root servers.
-// This is a utility function that can be called at startup to ensure root hints are available in the database.
-pub fn ensure_root_hints_in_db(db_url: &str) -> Result<(), String> {
-    let mut client = postgres::Client::connect(db_url, NoTls)
-        .map_err(|e| format!("Failed to connect to database: {}", e))?;
-
-    // Create table if it doesn't exist
-    client
-        .execute(
-            "CREATE TABLE IF NOT EXISTS dns_root_hints (
-                id SERIAL PRIMARY KEY,
-                ip_address VARCHAR(45) NOT NULL UNIQUE,
-                created_at TIMESTAMP DEFAULT NOW(),
-                updated_at TIMESTAMP DEFAULT NOW()
-            )",
-            &[],
-        )
-        .map_err(|e| format!("Failed to create dns_root_hints table: {}", e))?;
-
-    // Check if table is empty
-    let count_result = client
-        .query_one("SELECT COUNT(*) FROM dns_root_hints", &[])
-        .map_err(|e| format!("Failed to count root hints: {}", e))?;
-
-    let count: i64 = count_result.get(0);
-
-    if count == 0 {
-        // Populate with default root servers
-        for ip in ROOT_SERVERS.iter() {
-            client
-                .execute(
-                    "INSERT INTO dns_root_hints (ip_address) VALUES ($1) ON CONFLICT (ip_address) DO NOTHING",
-                    &[ip],
-                )
-                .map_err(|e| format!("Failed to insert root hint: {}", e))?;
-        }
-    }
-
-    Ok(())
+    ROOT_SERVERS.iter().map(|&s| s.to_string()).collect()
 }
 
 fn tld_from_name(name: &str) -> Option<String> {
     name.split('.')
         .rev()
         .find(|label| !label.is_empty())
-        .map(|s| s.to_ascii_lowercase())
+        .map(str::to_ascii_lowercase)
 }
 
 fn clamp_tld_ttl(ttl_secs: u64) -> u64 {
@@ -372,7 +271,10 @@ fn parse_rrs(buf: &[u8], mut pos: usize, count: usize) -> Option<Vec<(u16, usize
             return None;
         }
         let rtype = u16::from_be_bytes([buf[pos], buf[pos + 1]]);
-        let _class = u16::from_be_bytes([buf[pos + 2], buf[pos + 3]]);
+        let class = u16::from_be_bytes([buf[pos + 2], buf[pos + 3]]);
+        if class != 1 {
+            return None;
+        }
         let ttl = u32::from_be_bytes([buf[pos + 4], buf[pos + 5], buf[pos + 6], buf[pos + 7]]);
         let rdlen = u16::from_be_bytes([buf[pos + 8], buf[pos + 9]]) as usize;
         pos += 10;
@@ -393,7 +295,7 @@ fn tcp_send_recv(addr: &str, msg: &[u8]) -> Option<Vec<u8>> {
     stream
         .set_write_timeout(Some(Duration::from_secs(4)))
         .ok()?;
-    let len = (msg.len() as u16).to_be_bytes();
+    let len = u16::try_from(msg.len()).unwrap_or(0).to_be_bytes();
     if stream.write_all(&len).is_err() {
         return None;
     }
@@ -500,6 +402,12 @@ pub fn resolve(name: &str, qtype: u16, config: &DnsConfig) -> Option<Vec<u8>> {
     resolve_internal(name, qtype, config.recursion_rounds, config)
 }
 
+#[allow(
+    clippy::too_many_lines,
+    clippy::items_after_statements,
+    clippy::used_underscore_binding,
+    clippy::similar_names
+)]
 fn resolve_internal(
     name: &str,
     qtype: u16,
@@ -513,17 +421,22 @@ fn resolve_internal(
     let sock = UdpSocket::bind(("0.0.0.0", 0)).ok()?;
     let _ = sock.set_read_timeout(Some(udp_attempt_timeout(config)));
 
-    static CACHE: Lazy<Mutex<HashMap<CacheKey, CacheValue>>> =
-        Lazy::new(|| Mutex::new(HashMap::new()));
-    static ROOT_CACHE: Lazy<Mutex<HashMap<String, RootCacheValue>>> =
-        Lazy::new(|| Mutex::new(HashMap::new()));
-    static DELEGATION_CACHE: Lazy<Mutex<HashMap<String, DelegationCacheValue>>> =
-        Lazy::new(|| Mutex::new(HashMap::new()));
-    static ROOT_HINTS: Lazy<Vec<String>> = Lazy::new(load_root_hint_servers);
+    static CACHE: std::sync::LazyLock<Mutex<HashMap<CacheKey, CacheValue>>> =
+        std::sync::LazyLock::new(|| Mutex::new(HashMap::new()));
+    static ROOT_CACHE: std::sync::LazyLock<Mutex<HashMap<String, RootCacheValue>>> =
+        std::sync::LazyLock::new(|| Mutex::new(HashMap::new()));
+    static DELEGATION_CACHE: std::sync::LazyLock<Mutex<HashMap<String, DelegationCacheValue>>> =
+        std::sync::LazyLock::new(|| Mutex::new(HashMap::new()));
+    static ROOT_HINTS: std::sync::LazyLock<Vec<String>> =
+        std::sync::LazyLock::new(load_root_hint_servers);
 
     if let Ok(mut roots) = ROOT_CACHE.lock()
         && {
-            prune_root_cache(&mut roots);
+            prune_cache(
+                &mut roots,
+                MAX_ROOT_CACHE_ENTRIES,
+                |(_, _, exp): &RootCacheValue| Instant::now() >= *exp,
+            );
             !roots.contains_key("__root__")
         }
         && !ROOT_HINTS.is_empty()
@@ -537,7 +450,9 @@ fn resolve_internal(
 
     if let Ok(mut c) = CACHE.lock()
         && {
-            prune_query_cache(&mut c);
+            prune_cache(&mut c, MAX_QUERY_CACHE_ENTRIES, |(_, exp): &CacheValue| {
+                Instant::now() >= *exp
+            });
             true
         }
         && let Some((data, exp)) = c.get(&(name.to_string(), qtype))
@@ -556,7 +471,11 @@ fn resolve_internal(
         }
         && let Ok(mut delegations) = DELEGATION_CACHE.lock()
         && {
-            prune_delegation_cache(&mut delegations);
+            prune_cache(
+                &mut delegations,
+                MAX_DELEGATION_CACHE_ENTRIES,
+                |(_, exp): &DelegationCacheValue| Instant::now() >= *exp,
+            );
             true
         }
         && let Some((cached, exp)) = delegations.get(tld)
@@ -605,13 +524,14 @@ fn resolve_internal(
                 }
                 if resp.len() < 12 {
                     debug_log(
-                        &format!("short response from {} while resolving {}", srv, qname),
+                        &format!("short response from {srv} while resolving {qname}"),
                         config,
                     );
                     continue;
                 }
                 let ancount = u16::from_be_bytes([resp[6], resp[7]]) as usize;
                 let nscount = u16::from_be_bytes([resp[8], resp[9]]) as usize;
+                #[allow(clippy::similar_names)]
                 let arcount = u16::from_be_bytes([resp[10], resp[11]]) as usize;
                 let mut pos = 12usize;
                 let (_qn, p2) = parse_qname(&resp, pos)?;
@@ -623,14 +543,15 @@ fn resolve_internal(
                     for (rtype, rpos, _rdlen, ttl) in &ans_rrs {
                         if *rtype == qtype {
                             if let Ok(mut c) = CACHE.lock() {
-                                prune_query_cache(&mut c);
+                                prune_cache(
+                                    &mut c,
+                                    MAX_QUERY_CACHE_ENTRIES,
+                                    |(_, exp): &CacheValue| Instant::now() >= *exp,
+                                );
                                 let exp = Instant::now() + Duration::from_secs((*ttl).into());
                                 c.insert((name.to_string(), qtype), (resp.clone(), exp));
                             }
-                            debug_log(
-                                &format!("resolved {} type {} via {}", name, qtype, srv),
-                                config,
-                            );
+                            debug_log(&format!("resolved {name} type {qtype} via {srv}"), config);
                             return Some(resp.clone());
                         }
                         if let Some(mt) = min_ttl {
@@ -649,23 +570,22 @@ fn resolve_internal(
                         }
                     }
                 }
-                let mut after_pos = pos;
-                if ancount > 0
+                let auth_pos = if ancount > 0
                     && let Some(list) = parse_rrs(&resp, pos, ancount)
                 {
-                    after_pos = list.last().map(|(_, p, rd, _)| p + rd).unwrap_or(pos);
-                }
-                let auth_pos = after_pos;
+                    list.last().map_or(pos, |(_, p, rd, _)| p + rd)
+                } else {
+                    pos
+                };
                 let authority_rrs = parse_rrs(&resp, auth_pos, nscount).unwrap_or_default();
                 let referral_ttl_secs = authority_rrs
                     .iter()
-                    .map(|(_, _, _, ttl)| *ttl as u64)
+                    .map(|(_, _, _, ttl)| u64::from(*ttl))
                     .min()
                     .unwrap_or(ROOT_CACHE_TTL_SECS);
-                let mut after_auth = auth_pos;
-                if let Some(last) = authority_rrs.last() {
-                    after_auth = last.1 + last.2;
-                }
+                let after_auth = authority_rrs
+                    .last()
+                    .map_or(auth_pos, |last| last.1 + last.2);
                 let additional_rrs = parse_rrs(&resp, after_auth, arcount).unwrap_or_default();
                 let (ns_names, glue_ips) =
                     extract_ns_and_glue(&resp, &authority_rrs, &additional_rrs);
@@ -681,11 +601,7 @@ fn resolve_internal(
                     );
                 }
 
-                if !glue_ips.is_empty() {
-                    for ip in glue_ips {
-                        next_servers.push(ip);
-                    }
-                } else {
+                if glue_ips.is_empty() {
                     for nsname in ns_names {
                         if let Some(ip_resp) = resolve_internal(&nsname, 1, max_depth - 1, config)
                             && ip_resp.len() >= 12
@@ -693,8 +609,9 @@ fn resolve_internal(
                             let an = u16::from_be_bytes([ip_resp[6], ip_resp[7]]) as usize;
                             if an > 0 {
                                 let mut p = 12usize;
-                                let (_q, p2) =
-                                    parse_qname(&ip_resp, p).unwrap_or(("".to_string(), p));
+                                let Some((_q, p2)) = parse_qname(&ip_resp, p) else {
+                                    continue;
+                                };
                                 p = p2 + 4;
                                 if let Some(a_rrs) = parse_rrs(&ip_resp, p, an) {
                                     for (rt, rpos, rdlen, _) in a_rrs {
@@ -713,6 +630,10 @@ fn resolve_internal(
                             }
                         }
                     }
+                } else {
+                    for ip in glue_ips {
+                        next_servers.push(ip);
+                    }
                 }
                 if !next_servers.is_empty() {
                     next_servers.sort();
@@ -720,21 +641,26 @@ fn resolve_internal(
                     if next_servers.len() > MAX_UPSTREAM_SERVERS_PER_ROUND {
                         next_servers.truncate(MAX_UPSTREAM_SERVERS_PER_ROUND);
                     }
+                    #[allow(clippy::used_underscore_binding)]
                     if _round == 0
                         && let Some(tld) = requested_tld.as_ref()
                         && let Ok(mut delegations) = DELEGATION_CACHE.lock()
                     {
-                        prune_delegation_cache(&mut delegations);
+                        prune_cache(
+                            &mut delegations,
+                            MAX_DELEGATION_CACHE_ENTRIES,
+                            |(_, exp): &DelegationCacheValue| Instant::now() >= *exp,
+                        );
                         let ttl = clamp_tld_ttl(referral_ttl_secs);
                         let exp = Instant::now() + Duration::from_secs(ttl);
                         delegations.insert(tld.clone(), (next_servers.clone(), exp));
                     }
-                    servers = next_servers.clone();
+                    servers.clone_from(&next_servers);
                     break;
                 }
             } else {
                 debug_log(
-                    &format!("no response from {} while resolving {}", srv, qname),
+                    &format!("no response from {srv} while resolving {qname}"),
                     config,
                 );
             }
@@ -746,7 +672,7 @@ fn resolve_internal(
             && servers != *ROOT_HINTS
         {
             tried_root_fallback = true;
-            servers = ROOT_HINTS.clone();
+            servers.clone_from(&ROOT_HINTS);
             continue;
         }
 
@@ -755,7 +681,7 @@ fn resolve_internal(
         }
     }
     debug_log(
-        &format!("resolution failed for {} type {}", name, qtype),
+        &format!("resolution failed for {name} type {qtype}"),
         config,
     );
     None
@@ -796,5 +722,31 @@ mod tests {
             hints,
             vec!["170.247.170.2".to_string(), "198.41.0.4".to_string()]
         );
+    }
+
+    #[test]
+    fn parse_rrs_accepts_class_in() {
+        let name = crate::dns::wire::encode_name_labels_vec("www.example.com");
+        let mut rr = name.clone();
+        rr.extend_from_slice(&1u16.to_be_bytes()); // type A
+        rr.extend_from_slice(&1u16.to_be_bytes()); // class IN
+        rr.extend_from_slice(&300u32.to_be_bytes()); // ttl
+        rr.extend_from_slice(&4u16.to_be_bytes()); // rdlength
+        rr.extend_from_slice(&[192, 168, 1, 1]); // rdata
+        let result = parse_rrs(&rr, 0, 1);
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn parse_rrs_rejects_non_in_class() {
+        let name = crate::dns::wire::encode_name_labels_vec("www.example.com");
+        let mut rr = name.clone();
+        rr.extend_from_slice(&1u16.to_be_bytes()); // type A
+        rr.extend_from_slice(&3u16.to_be_bytes()); // class CH (Chaos)
+        rr.extend_from_slice(&300u32.to_be_bytes()); // ttl
+        rr.extend_from_slice(&4u16.to_be_bytes()); // rdlength
+        rr.extend_from_slice(&[192, 168, 1, 1]); // rdata
+        let result = parse_rrs(&rr, 0, 1);
+        assert!(result.is_none());
     }
 }

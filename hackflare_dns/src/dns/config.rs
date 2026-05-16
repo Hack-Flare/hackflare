@@ -2,61 +2,67 @@ use std::env;
 use std::path::PathBuf;
 use std::time::Duration;
 
-// Configuration for the DNS engine and recursive resolver.
-// All environment variables are loaded once at startup with sensible defaults.
+/// Configuration for the DNS engine and recursive resolver.
+/// All environment variables are loaded once at startup with sensible defaults.
 #[derive(Debug, Clone)]
 pub struct DnsConfig {
-    // Enable recursive resolution (default: false)
+    /// Enable recursive resolution (default: false)
     pub recursion_enabled: bool,
 
-    // SOA record fields (defaults suitable for a secondary nameserver)
-    // SOA MNAME (primary nameserver) - default: "ns.example.com."
+    /// SOA record fields (defaults suitable for a secondary nameserver)
+    /// SOA MNAME (primary nameserver) — default: `"ns.example.com."`
     pub soa_mname: String,
-    // SOA RNAME (responsible person) - default: "admin.example.com."
+    /// SOA RNAME (responsible person) — default: `"admin.example.com."`
     pub soa_rname: String,
-    // SOA serial number - default: "2024010101"
-    pub soa_serial: String,
-    // SOA refresh interval (seconds) - default: "3600"
-    pub soa_refresh: String,
-    // SOA retry interval (seconds) - default: "1800"
-    pub soa_retry: String,
-    // SOA expire interval (seconds) - default: "604800"
-    pub soa_expire: String,
-    // SOA minimum TTL (seconds) - default: "86400"
-    pub soa_minimum: String,
-    // SOA record TTL (seconds) - default: "3600"
-    pub soa_ttl: String,
+    /// SOA serial number — default: 2024010101
+    pub soa_serial: u32,
+    /// SOA refresh interval (seconds) — default: 3600
+    pub soa_refresh: u32,
+    /// SOA retry interval (seconds) — default: 1800
+    pub soa_retry: u32,
+    /// SOA expire interval (seconds) — default: 604800
+    pub soa_expire: u32,
+    /// SOA minimum TTL (seconds) — default: 86400
+    pub soa_minimum: u32,
+    /// SOA record TTL (seconds) — default: 3600
+    pub soa_ttl: u32,
 
-    // UDP/Recursive resolver settings
-    // UDP payload size (EDNS) - default: 512
+    /// UDP/Recursive resolver settings
+    /// UDP payload size (EDNS) — default: 512
     pub udp_size: u16,
-    // UDP attempts per upstream server - default: 4
+    /// UDP attempts per upstream server — default: 4
     pub udp_attempts: usize,
-    // UDP timeout per attempt - default: 2500ms
+    /// UDP timeout per attempt — default: 2500 ms
     pub udp_timeout: Duration,
-    // Maximum recursion rounds - default: 8
+    /// Maximum recursion rounds — default: 8
     pub recursion_rounds: usize,
-    // Enable debug logging for recursive resolver - default: false
+    /// Enable debug logging for recursive resolver — default: false
     pub recursion_debug: bool,
-    // Path to root hints file (optional, uses hardcoded defaults if not set)
+    /// Path to root hints file (optional, uses hardcoded defaults if not set)
     pub root_hints_file: Option<PathBuf>,
-    // PostgreSQL database URL for loading root hints from DB (optional)
+    /// `PostgreSQL` database URL for loading root hints from DB (optional)
     pub database_url: Option<String>,
+
+    /// Maximum EDNS payload size for UDP responses (default: 1232)
+    ///
+    /// Responses exceeding this limit will be truncated (TC=1), forcing the
+    /// client to retry over TCP. Prevents DNS amplification attacks.
+    pub max_edns_payload_size: u16,
 }
 
 impl DnsConfig {
-    // Load configuration from environment variables with sensible defaults.
+    /// Load configuration from environment variables with sensible defaults.
     pub fn from_env() -> Self {
         Self {
             recursion_enabled: env_bool("HACKFLARE_DNS_RECURSION_ENABLED", false),
             soa_mname: env_string("HACKFLARE_DNS_SOA_MNAME", "ns.example.com."),
             soa_rname: env_string("HACKFLARE_DNS_SOA_RNAME", "admin.example.com."),
-            soa_serial: env_string("HACKFLARE_DNS_SOA_SERIAL", "2024010101"),
-            soa_refresh: env_string("HACKFLARE_DNS_SOA_REFRESH", "3600"),
-            soa_retry: env_string("HACKFLARE_DNS_SOA_RETRY", "1800"),
-            soa_expire: env_string("HACKFLARE_DNS_SOA_EXPIRE", "604800"),
-            soa_minimum: env_string("HACKFLARE_DNS_SOA_MINIMUM", "86400"),
-            soa_ttl: env_string("HACKFLARE_DNS_SOA_TTL", "3600"),
+            soa_serial: env_u32("HACKFLARE_DNS_SOA_SERIAL", 2_024_010_101),
+            soa_refresh: env_u32("HACKFLARE_DNS_SOA_REFRESH", 3600),
+            soa_retry: env_u32("HACKFLARE_DNS_SOA_RETRY", 1800),
+            soa_expire: env_u32("HACKFLARE_DNS_SOA_EXPIRE", 604_800),
+            soa_minimum: env_u32("HACKFLARE_DNS_SOA_MINIMUM", 86_400),
+            soa_ttl: env_u32("HACKFLARE_DNS_SOA_TTL", 3600),
             udp_size: env_u16("HACKFLARE_DNS_UDP_SIZE", 512),
             udp_attempts: env_usize("HACKFLARE_DNS_UDP_ATTEMPTS", 4).max(1),
             udp_timeout: Duration::from_millis(env_u64("HACKFLARE_DNS_UDP_TIMEOUT_MS", 2500)),
@@ -66,21 +72,23 @@ impl DnsConfig {
                 .ok()
                 .map(PathBuf::from),
             database_url: env::var("DATABASE_URL").ok(),
+            max_edns_payload_size: env_u16("HACKFLARE_DNS_MAX_EDNS_PAYLOAD_SIZE", 1232),
         }
     }
 
-    // Create a new config with all defaults (useful for testing).
+    /// Create a new config with all defaults (useful for testing).
+    #[must_use]
     pub fn default_config() -> Self {
         Self {
             recursion_enabled: false,
             soa_mname: "ns.example.com.".to_string(),
             soa_rname: "admin.example.com.".to_string(),
-            soa_serial: "2024010101".to_string(),
-            soa_refresh: "3600".to_string(),
-            soa_retry: "1800".to_string(),
-            soa_expire: "604800".to_string(),
-            soa_minimum: "86400".to_string(),
-            soa_ttl: "3600".to_string(),
+            soa_serial: 2_024_010_101,
+            soa_refresh: 3600,
+            soa_retry: 1800,
+            soa_expire: 604_800,
+            soa_minimum: 86_400,
+            soa_ttl: 3600,
             udp_size: 512,
             udp_attempts: 4,
             udp_timeout: Duration::from_millis(2500),
@@ -88,18 +96,23 @@ impl DnsConfig {
             recursion_debug: false,
             root_hints_file: None,
             database_url: None,
+            max_edns_payload_size: 1232,
         }
     }
 }
 
 // Helper functions for environment variable parsing
 fn env_bool(name: &str, default: bool) -> bool {
+    env::var(name).ok().map_or(default, |v| {
+        let v = v.trim().to_ascii_lowercase();
+        v == "1" || v == "true" || v == "yes" || v == "on"
+    })
+}
+
+fn env_u32(name: &str, default: u32) -> u32 {
     env::var(name)
         .ok()
-        .map(|v| {
-            let v = v.trim().to_ascii_lowercase();
-            v == "1" || v == "true" || v == "yes" || v == "on"
-        })
+        .and_then(|v| v.parse::<u32>().ok())
         .unwrap_or(default)
 }
 
@@ -137,6 +150,9 @@ mod tests {
         let cfg = DnsConfig::default_config();
         assert!(!cfg.recursion_enabled);
         assert_eq!(cfg.soa_mname, "ns.example.com.");
+        assert_eq!(cfg.soa_serial, 2_024_010_101);
+        assert_eq!(cfg.soa_refresh, 3600);
+        assert_eq!(cfg.soa_ttl, 3600);
         assert_eq!(cfg.udp_size, 512);
         assert_eq!(cfg.udp_attempts, 4);
         assert_eq!(cfg.recursion_rounds, 8);

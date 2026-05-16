@@ -1,12 +1,10 @@
-use crate::dns::engine::DnsEngine;
+use crate::dns::config::DnsConfig;
 use crate::ns::NsConfig;
 use crate::ns::authority::AuthorityStore;
 use hickory_server::net::xfer::Protocol;
 use hickory_server::proto::op::{DnsResponse, Message, Metadata, ResponseCode};
 use hickory_server::server::{Request, RequestHandler, ResponseHandler, ResponseInfo};
 use hickory_server::zone_handler::MessageResponseBuilder;
-use once_cell::sync::Lazy;
-use postgres::{Client, NoTls};
 use std::io;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -15,15 +13,13 @@ use std::time::Duration;
 use tokio::net::{TcpListener, UdpSocket};
 use tokio::runtime::Runtime;
 
-static UDP_COUNT: Lazy<AtomicU64> = Lazy::new(|| AtomicU64::new(0));
-static TCP_COUNT: Lazy<AtomicU64> = Lazy::new(|| AtomicU64::new(0));
+static UDP_COUNT: std::sync::LazyLock<AtomicU64> = std::sync::LazyLock::new(|| AtomicU64::new(0));
+static TCP_COUNT: std::sync::LazyLock<AtomicU64> = std::sync::LazyLock::new(|| AtomicU64::new(0));
 
-// Structured logging helper for JSON output.
 fn log(level: &str, message: &str, peer: Option<SocketAddr>) {
     let ts = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0);
+        .map_or(0, |d| d.as_secs());
 
     let mut obj = serde_json::Map::new();
     obj.insert("ts".to_string(), serde_json::json!(ts));
@@ -34,11 +30,10 @@ fn log(level: &str, message: &str, peer: Option<SocketAddr>) {
     }
 
     if let Ok(s) = serde_json::to_string(&obj) {
-        eprintln!("{}", s);
+        eprintln!("{s}");
     }
 }
 
-// Record DNS request metrics (UDP vs TCP).
 fn record_request(protocol: Protocol) {
     match protocol {
         Protocol::Udp => UDP_COUNT.fetch_add(1, Ordering::Relaxed),
@@ -47,45 +42,38 @@ fn record_request(protocol: Protocol) {
     };
 }
 
-// Periodically flush metrics to database.
-fn spawn_metrics_flusher(db_url: String) {
-    std::thread::spawn(move || {
-        loop {
-            std::thread::sleep(Duration::from_secs(5));
-            let udp = UDP_COUNT.swap(0, Ordering::Relaxed);
-            let tcp = TCP_COUNT.swap(0, Ordering::Relaxed);
-
-            if udp == 0 && tcp == 0 {
-                continue;
-            }
-
-            if let Ok(mut client) = Client::connect(&db_url, NoTls) {
-                let query = format!(
-                    "INSERT INTO dns_query_metrics (id, udp_count, tcp_count, inserted_at, updated_at) \
-                 VALUES (1, {udp}, {tcp}, now(), now()) \
-                 ON CONFLICT (id) DO UPDATE SET \
-                 udp_count = dns_query_metrics.udp_count + {udp}, \
-                 tcp_count = dns_query_metrics.tcp_count + {tcp}, \
-                 updated_at = now()"
-                );
-                let _ = client.execute(&query, &[]);
-            } else {
-                log("warn", "Failed to connect to DB for metrics flush", None);
-            }
-        }
-    });
-}
-
-// Implements hickory-server's RequestHandler to bridge authority and recursive resolution.
-pub(crate) struct HickoryRequestHandler {
+pub(super) struct HickoryRequestHandler {
     authority: Arc<AuthorityStore>,
-    engine: Arc<DnsEngine>,
+    dns_config: DnsConfig,
 }
 
 impl HickoryRequestHandler {
-    pub(crate) fn new(authority: Arc<AuthorityStore>, engine: Arc<DnsEngine>) -> Self {
-        Self { authority, engine }
+    pub(super) fn new(authority: Arc<AuthorityStore>, dns_config: DnsConfig) -> Self {
+        Self {
+            authority,
+            dns_config,
+        }
     }
+}
+
+async fn send_servfail_response<R: ResponseHandler>(
+    request: &Request,
+    mut response_handle: R,
+    error: impl std::fmt::Display,
+) -> ResponseInfo {
+    log("error", &error.to_string(), Some(request.src()));
+    let mut metadata = Metadata::response_from_request(&request.metadata);
+    metadata.response_code = ResponseCode::ServFail;
+    let response = MessageResponseBuilder::from_message_request(request).build_no_records(metadata);
+    response_handle
+        .send_response(response)
+        .await
+        .unwrap_or_else(|_| {
+            ResponseInfo::from(hickory_server::proto::op::Header {
+                metadata,
+                counts: hickory_server::proto::op::HeaderCounts::default(),
+            })
+        })
 }
 
 #[async_trait::async_trait]
@@ -97,28 +85,11 @@ impl RequestHandler for HickoryRequestHandler {
     ) -> ResponseInfo {
         record_request(request.protocol());
 
-        // Get query name from request
-        let query_name = match request.request_info() {
-            Ok(info) => info.query.name(),
-            Err(_) => {
-                log("error", "Invalid request info", Some(request.src()));
-                let mut metadata = Metadata::response_from_request(&request.metadata);
-                metadata.response_code = ResponseCode::ServFail;
-                let response = MessageResponseBuilder::from_message_request(request)
-                    .build_no_records(metadata);
-                return response_handle
-                    .send_response(response)
-                    .await
-                    .unwrap_or_else(|_| {
-                        ResponseInfo::from(hickory_server::proto::op::Header {
-                            metadata,
-                            counts: hickory_server::proto::op::HeaderCounts::default(),
-                        })
-                    });
-            }
+        let Ok(query_info) = request.request_info() else {
+            return send_servfail_response(request, response_handle, "Invalid request info").await;
         };
+        let query_name = query_info.query.name();
 
-        // Try authoritative zone first
         if self.authority.contains_zone_for(query_name).await {
             return self
                 .authority
@@ -126,79 +97,51 @@ impl RequestHandler for HickoryRequestHandler {
                 .await;
         }
 
-        // Fall back to recursive resolution
-        let response_bytes = match self.engine.handle_query(request.as_slice()) {
-            Some(bytes) => bytes,
-            None => {
-                log(
-                    "error",
-                    "Failed to process recursive query",
-                    Some(request.src()),
-                );
-                let mut metadata = Metadata::response_from_request(&request.metadata);
-                metadata.response_code = ResponseCode::ServFail;
-                let response = MessageResponseBuilder::from_message_request(request)
-                    .build_no_records(metadata);
-                return response_handle
-                    .send_response(response)
-                    .await
-                    .unwrap_or_else(|_| {
-                        ResponseInfo::from(hickory_server::proto::op::Header {
-                            metadata,
-                            counts: hickory_server::proto::op::HeaderCounts::default(),
-                        })
-                    });
-            }
+        let qname = query_name.to_utf8();
+        let qtype = u16::from(query_info.query.query_type());
+
+        let Some(response_bytes) = crate::dns::recursive::resolve(&qname, qtype, &self.dns_config)
+        else {
+            return send_servfail_response(
+                request,
+                response_handle,
+                "Failed to process recursive query",
+            )
+            .await;
         };
 
-        // Parse the response
-        let response = match Message::from_vec(response_bytes.as_slice()) {
+        let response_bytes_len = response_bytes.len();
+        let mut response = match Message::from_vec(response_bytes.as_slice()) {
             Ok(message) => match DnsResponse::from_message(message) {
                 Ok(resp) => resp,
                 Err(err) => {
-                    log(
-                        "error",
-                        &format!("Failed to decode DNS response: {}", err),
-                        Some(request.src()),
-                    );
-                    let mut metadata = Metadata::response_from_request(&request.metadata);
-                    metadata.response_code = ResponseCode::ServFail;
-                    let response = MessageResponseBuilder::from_message_request(request)
-                        .build_no_records(metadata);
-                    return response_handle
-                        .send_response(response)
-                        .await
-                        .unwrap_or_else(|_| {
-                            ResponseInfo::from(hickory_server::proto::op::Header {
-                                metadata,
-                                counts: hickory_server::proto::op::HeaderCounts::default(),
-                            })
-                        });
+                    return send_servfail_response(
+                        request,
+                        response_handle,
+                        format!("Failed to decode DNS response: {err}"),
+                    )
+                    .await;
                 }
             },
             Err(err) => {
-                log(
-                    "error",
-                    &format!("Failed to parse DNS response bytes: {}", err),
-                    Some(request.src()),
-                );
-                let mut metadata = Metadata::response_from_request(&request.metadata);
-                metadata.response_code = ResponseCode::ServFail;
-                let response = MessageResponseBuilder::from_message_request(request)
-                    .build_no_records(metadata);
-                return response_handle
-                    .send_response(response)
-                    .await
-                    .unwrap_or_else(|_| {
-                        ResponseInfo::from(hickory_server::proto::op::Header {
-                            metadata,
-                            counts: hickory_server::proto::op::HeaderCounts::default(),
-                        })
-                    });
+                return send_servfail_response(
+                    request,
+                    response_handle,
+                    format!("Failed to parse DNS response bytes: {err}"),
+                )
+                .await;
             }
         };
 
-        // Build response
+        // Clamp UDP response size to prevent amplification attacks
+        if request.protocol() == Protocol::Udp
+            && response_bytes_len > self.dns_config.max_edns_payload_size as usize
+        {
+            response.metadata.truncation = true;
+            response.answers.clear();
+            response.additionals.clear();
+        }
+
         let mut builder = MessageResponseBuilder::from_message_request(request);
         if let Some(edns) = &response.edns {
             builder.edns(edns);
@@ -217,7 +160,7 @@ impl RequestHandler for HickoryRequestHandler {
             Err(err) => {
                 log(
                     "error",
-                    &format!("Error sending response: {}", err),
+                    &format!("Error sending response: {err}"),
                     Some(request.src()),
                 );
                 let mut metadata = Metadata::response_from_request(&request.metadata);
@@ -231,20 +174,15 @@ impl RequestHandler for HickoryRequestHandler {
     }
 }
 
-// Start the DNS server with hickory-server.
-pub(crate) fn run_with_hickory(
+pub(super) fn run_with_hickory(
     config: &NsConfig,
     authority: Arc<AuthorityStore>,
-    engine: Arc<DnsEngine>,
+    dns_config: DnsConfig,
 ) -> io::Result<()> {
-    if let Some(db_url) = config.database_url.clone() {
-        spawn_metrics_flusher(db_url);
-    }
-
     let bind_addr = format!("{}:{}", config.bind_addr, config.port);
     let rt = Runtime::new()?;
     rt.block_on(async move {
-        let handler = HickoryRequestHandler::new(authority, engine);
+        let handler = HickoryRequestHandler::new(authority, dns_config);
         let mut server = hickory_server::Server::new(handler);
 
         let udp_socket = UdpSocket::bind(&bind_addr).await?;
@@ -260,32 +198,24 @@ pub(crate) fn run_with_hickory(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dns::DnsConfig;
-    use crate::dns::engine::DnsEngine;
+    use crate::dns::config::DnsConfig;
 
     #[test]
     fn handler_creation() {
         let config = DnsConfig::default_config();
         let authority = Arc::new(AuthorityStore::new(config.clone()));
-        let engine = Arc::new(DnsEngine::new(Default::default(), config));
-
-        let handler = HickoryRequestHandler::new(authority, engine);
+        let handler = HickoryRequestHandler::new(authority, config);
         assert!(Arc::strong_count(&handler.authority) >= 1);
-        assert!(Arc::strong_count(&handler.engine) >= 1);
     }
 
     #[test]
     fn log_function_creates_valid_json() {
-        // Test that log doesn't panic and creates valid output
         log("info", "Test message", None);
         log("error", "Test error", Some("127.0.0.1:53".parse().unwrap()));
-        // If we get here, logging succeeded without panicking
-        // assert!(true);
     }
 
     #[test]
-    fn record_request_increments_counters() {
-        // Reset counters
+    fn record_request_counters() {
         UDP_COUNT.store(0, Ordering::Relaxed);
         TCP_COUNT.store(0, Ordering::Relaxed);
 
@@ -294,10 +224,7 @@ mod tests {
 
         record_request(Protocol::Tcp);
         assert_eq!(TCP_COUNT.load(Ordering::Relaxed), 1);
-    }
 
-    #[test]
-    fn record_request_udp_only() {
         UDP_COUNT.store(0, Ordering::Relaxed);
         TCP_COUNT.store(0, Ordering::Relaxed);
 
@@ -307,10 +234,7 @@ mod tests {
 
         assert_eq!(UDP_COUNT.load(Ordering::Relaxed), 3);
         assert_eq!(TCP_COUNT.load(Ordering::Relaxed), 0);
-    }
 
-    #[test]
-    fn record_request_tcp_only() {
         UDP_COUNT.store(0, Ordering::Relaxed);
         TCP_COUNT.store(0, Ordering::Relaxed);
 
@@ -319,10 +243,7 @@ mod tests {
 
         assert_eq!(UDP_COUNT.load(Ordering::Relaxed), 0);
         assert_eq!(TCP_COUNT.load(Ordering::Relaxed), 2);
-    }
 
-    #[test]
-    fn record_request_mixed_protocols() {
         UDP_COUNT.store(0, Ordering::Relaxed);
         TCP_COUNT.store(0, Ordering::Relaxed);
 
