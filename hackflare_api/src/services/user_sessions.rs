@@ -50,6 +50,8 @@ impl UserSessionsService {
             SELECT id, user_id, ip_address as "ip_address: IpAddr", expires_at, created_at, revoked_at
             FROM user_sessions
             WHERE id = $1
+            AND revoked_at IS NULL
+            AND expires_at >= NOW()
             LIMIT 1
             "#,
             id,
