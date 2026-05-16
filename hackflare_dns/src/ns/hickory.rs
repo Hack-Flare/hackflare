@@ -110,7 +110,8 @@ impl RequestHandler for HickoryRequestHandler {
             .await;
         };
 
-        let response = match Message::from_vec(response_bytes.as_slice()) {
+        let response_bytes_len = response_bytes.len();
+        let mut response = match Message::from_vec(response_bytes.as_slice()) {
             Ok(message) => match DnsResponse::from_message(message) {
                 Ok(resp) => resp,
                 Err(err) => {
@@ -131,6 +132,15 @@ impl RequestHandler for HickoryRequestHandler {
                 .await;
             }
         };
+
+        // Clamp UDP response size to prevent amplification attacks
+        if request.protocol() == Protocol::Udp
+            && response_bytes_len > self.dns_config.max_edns_payload_size as usize
+        {
+            response.metadata.truncation = true;
+            response.answers.clear();
+            response.additionals.clear();
+        }
 
         let mut builder = MessageResponseBuilder::from_message_request(request);
         if let Some(edns) = &response.edns {

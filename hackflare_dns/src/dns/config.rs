@@ -42,6 +42,12 @@ pub struct DnsConfig {
     pub root_hints_file: Option<PathBuf>,
     /// `PostgreSQL` database URL for loading root hints from DB (optional)
     pub database_url: Option<String>,
+
+    /// Maximum EDNS payload size for UDP responses (default: 1232)
+    ///
+    /// Responses exceeding this limit will be truncated (TC=1), forcing the
+    /// client to retry over TCP. Prevents DNS amplification attacks.
+    pub max_edns_payload_size: u16,
 }
 
 impl DnsConfig {
@@ -66,6 +72,7 @@ impl DnsConfig {
                 .ok()
                 .map(PathBuf::from),
             database_url: env::var("DATABASE_URL").ok(),
+            max_edns_payload_size: env_u16("HACKFLARE_DNS_MAX_EDNS_PAYLOAD_SIZE", 1232),
         }
     }
 
@@ -89,6 +96,7 @@ impl DnsConfig {
             recursion_debug: false,
             root_hints_file: None,
             database_url: None,
+            max_edns_payload_size: 1232,
         }
     }
 }

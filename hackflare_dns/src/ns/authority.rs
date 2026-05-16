@@ -2,8 +2,10 @@ use crate::DnsError;
 use crate::dns::DnsConfig;
 use crate::ns::persistence::{PersistedRecord, PersistedZone, ZonePersistence};
 use hickory_server::net::runtime::TokioRuntimeProvider;
+use hickory_server::net::xfer::Protocol;
 use hickory_server::proto::op::{Header, HeaderCounts, Message, Metadata, ResponseCode};
 use hickory_server::proto::rr::{LowerName, Name, RData, Record, RecordType, rdata::SOA};
+use hickory_server::proto::serialize::binary::BinEncodable;
 use hickory_server::server::{Request, RequestHandler, ResponseHandler, ResponseInfo};
 use hickory_server::store::in_memory::InMemoryZoneHandler;
 use hickory_server::zone_handler::{
@@ -396,8 +398,20 @@ impl RequestHandler for AuthorityStore {
         let (cf, _) = handler.search(request, lookup_options).await;
         let result = cf.map_result();
 
-        let message =
+        let mut message =
             build_auth_response(result, &handler, &request.metadata, request_info.query).await;
+
+        // Clamp UDP response size to prevent amplification attacks
+        if request.protocol() == Protocol::Udp {
+            let wire_len = message.to_bytes().ok().map(|v| v.len());
+            if let Some(len) = wire_len
+                && len > self.config.max_edns_payload_size as usize
+            {
+                message.metadata.truncation = true;
+                message.answers.clear();
+                message.additionals.clear();
+            }
+        }
 
         let mut builder = MessageResponseBuilder::from_message_request(request);
         if let Some(edns) = &request.edns {
