@@ -544,4 +544,206 @@ mod tests {
         let zone = storage.load_zone("example.com").await.unwrap();
         assert_eq!(zone.unwrap().records.len(), 0);
     }
+
+    // ── PostgreSQL persistence tests (require DATABASE_URL env) ──
+
+    /// Connect to a test database from `DATABASE_URL` and apply the schema.
+    /// Returns `None` if the env var is unset or the connection fails.
+    async fn get_test_pool() -> Option<sqlx::PgPool> {
+        let url = std::env::var("DATABASE_URL").ok()?;
+        let pool = sqlx::PgPool::connect(&url).await.ok()?;
+        sqlx::query(POSTGRES_SCHEMA_SQL).execute(&pool).await.ok()?;
+        // clean slate — cascade clears records first
+        sqlx::query("TRUNCATE dns_records, dns_zones RESTART IDENTITY CASCADE")
+            .execute(&pool)
+            .await
+            .ok()?;
+        Some(pool)
+    }
+
+    fn test_zone(name: &str) -> PersistedZone {
+        PersistedZone {
+            name: name.to_string(),
+            records: vec![
+                PersistedRecord {
+                    name: "www".to_string(),
+                    rtype: "A".to_string(),
+                    ttl: 300,
+                    data: "192.168.1.1".to_string(),
+                },
+                PersistedRecord {
+                    name: "mail".to_string(),
+                    rtype: "MX".to_string(),
+                    ttl: 600,
+                    data: "10 mail.example.com".to_string(),
+                },
+            ],
+        }
+    }
+
+    #[tokio::test]
+    async fn postgres_save_zone_then_load_zones() {
+        let Some(pool) = get_test_pool().await else {
+            eprintln!("skipping: DATABASE_URL not set or unreachable");
+            return;
+        };
+        let storage = PostgresPersistence::new(pool);
+
+        storage.save_zone(&test_zone("example.com")).await.unwrap();
+        storage.save_zone(&test_zone("other.org")).await.unwrap();
+
+        let zones = storage.load_zones().await.unwrap();
+        assert_eq!(zones.len(), 2);
+
+        let names: Vec<&str> = zones.iter().map(|z| z.name.as_str()).collect();
+        assert!(names.contains(&"example.com"));
+        assert!(names.contains(&"other.org"));
+    }
+
+    #[tokio::test]
+    async fn postgres_load_zone_by_name() {
+        let Some(pool) = get_test_pool().await else {
+            eprintln!("skipping: DATABASE_URL not set or unreachable");
+            return;
+        };
+        let storage = PostgresPersistence::new(pool);
+
+        storage.save_zone(&test_zone("example.com")).await.unwrap();
+
+        let zone = storage
+            .load_zone("example.com")
+            .await
+            .unwrap()
+            .expect("zone should exist");
+        assert_eq!(zone.name, "example.com");
+        assert_eq!(zone.records.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn postgres_load_zone_returns_none_for_missing() {
+        let Some(pool) = get_test_pool().await else {
+            eprintln!("skipping: DATABASE_URL not set or unreachable");
+            return;
+        };
+        let storage = PostgresPersistence::new(pool);
+
+        let zone = storage.load_zone("nonexistent.com").await.unwrap();
+        assert!(zone.is_none());
+    }
+
+    #[tokio::test]
+    async fn postgres_delete_zone_removes_it() {
+        let Some(pool) = get_test_pool().await else {
+            eprintln!("skipping: DATABASE_URL not set or unreachable");
+            return;
+        };
+        let storage = PostgresPersistence::new(pool);
+
+        storage.save_zone(&test_zone("example.com")).await.unwrap();
+        storage.delete_zone("example.com").await.unwrap();
+
+        let zone = storage.load_zone("example.com").await.unwrap();
+        assert!(zone.is_none());
+    }
+
+    #[tokio::test]
+    async fn postgres_save_record_upserts() {
+        let Some(pool) = get_test_pool().await else {
+            eprintln!("skipping: DATABASE_URL not set or unreachable");
+            return;
+        };
+        let storage = PostgresPersistence::new(pool);
+
+        storage.save_zone(&test_zone("example.com")).await.unwrap();
+
+        // add a new record
+        let extra = PersistedRecord {
+            name: "api".to_string(),
+            rtype: "A".to_string(),
+            ttl: 120,
+            data: "10.0.0.1".to_string(),
+        };
+        storage.save_record("example.com", &extra).await.unwrap();
+
+        let zone = storage.load_zone("example.com").await.unwrap().unwrap();
+        assert_eq!(zone.records.len(), 3);
+
+        // upsert — same name + rtype, different ttl/data
+        let updated = PersistedRecord {
+            name: "api".to_string(),
+            rtype: "A".to_string(),
+            ttl: 999,
+            data: "10.0.0.2".to_string(),
+        };
+        storage.save_record("example.com", &updated).await.unwrap();
+
+        let zone = storage.load_zone("example.com").await.unwrap().unwrap();
+        assert_eq!(zone.records.len(), 3);
+        let rec = zone
+            .records
+            .iter()
+            .find(|r| r.name == "api")
+            .expect("api record should exist");
+        assert_eq!(rec.ttl, 999);
+        assert_eq!(rec.data, "10.0.0.2");
+    }
+
+    #[tokio::test]
+    async fn postgres_delete_record_removes_it() {
+        let Some(pool) = get_test_pool().await else {
+            eprintln!("skipping: DATABASE_URL not set or unreachable");
+            return;
+        };
+        let storage = PostgresPersistence::new(pool);
+
+        storage.save_zone(&test_zone("example.com")).await.unwrap();
+        storage
+            .delete_record("example.com", "www", "A")
+            .await
+            .unwrap();
+
+        let zone = storage.load_zone("example.com").await.unwrap().unwrap();
+        assert_eq!(zone.records.len(), 1);
+        assert_eq!(zone.records[0].name, "mail");
+    }
+
+    #[tokio::test]
+    async fn postgres_transactional_save_zone() {
+        let Some(pool) = get_test_pool().await else {
+            eprintln!("skipping: DATABASE_URL not set or unreachable");
+            return;
+        };
+        let storage = PostgresPersistence::new(pool);
+
+        storage.save_zone(&test_zone("example.com")).await.unwrap();
+
+        // replace all records atomically
+        let replacement = PersistedZone {
+            name: "example.com".to_string(),
+            records: vec![PersistedRecord {
+                name: "blog".to_string(),
+                rtype: "CNAME".to_string(),
+                ttl: 300,
+                data: "proxy.example.com".to_string(),
+            }],
+        };
+        storage.save_zone(&replacement).await.unwrap();
+
+        let zone = storage.load_zone("example.com").await.unwrap().unwrap();
+        assert_eq!(zone.records.len(), 1);
+        assert_eq!(zone.records[0].name, "blog");
+        assert_eq!(zone.records[0].rtype, "CNAME");
+    }
+
+    #[tokio::test]
+    async fn postgres_load_zones_empty_db() {
+        let Some(pool) = get_test_pool().await else {
+            eprintln!("skipping: DATABASE_URL not set or unreachable");
+            return;
+        };
+        let storage = PostgresPersistence::new(pool);
+
+        let zones = storage.load_zones().await.unwrap();
+        assert!(zones.is_empty());
+    }
 }
