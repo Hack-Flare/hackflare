@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback } from "~/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import {
   Card,
   CardContent,
@@ -42,12 +42,22 @@ export default function Profile() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const displayName = getUserDisplayName(user)
+  const email = user?.email || "Unknown"
+  const slackId = user?.slack_id || "Unknown"
+  const verificationStatus = user ? "Verified through Hack Club" : "Unknown"
+  const accountStatus = user?.eligible ? "Eligible for Hackflare" : "Not eligible"
   const initials = displayName
     .split(" ")
     .map((part) => part[0])
     .join("")
     .toUpperCase()
     .slice(0, 2)
+
+  const avatar = user?.slack_id
+    ? `https://cachet.dunkirk.sh/users/${user.slack_id}/r`
+    : undefined
+
+  const userLabel = getUserDisplayName(user)
 
   const handleLogout = async () => {
     await logout()
@@ -71,6 +81,7 @@ export default function Profile() {
         <CardContent>
           <div className="flex items-start gap-6">
             <Avatar className="h-20 w-20 rounded-xl">
+              <AvatarImage src={avatar} alt={userLabel} className="lounded-lg object-cover"/>
               <AvatarFallback className="rounded-xl bg-orange-500 text-lg font-semibold text-white">
                 {initials}
               </AvatarFallback>
@@ -84,18 +95,18 @@ export default function Profile() {
               </div>
               <div>
                 <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                  User ID
+                  Email
                 </p>
                 <p className="mt-1 text-sm font-medium">
-                  {user?.id || "Unknown"}
+                  {email}
                 </p>
               </div>
               <div>
                 <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                  Status
+                  Slack ID
                 </p>
                 <p className="mt-1 text-sm font-medium">
-                  Authenticated via Hack Club
+                  {slackId}
                 </p>
               </div>
               <div className="flex gap-2 pt-2">
@@ -115,7 +126,7 @@ export default function Profile() {
         </CardContent>
       </Card>
 
-      <Card>
+      {/*<Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Globe className="h-5 w-5" />
@@ -155,22 +166,26 @@ export default function Profile() {
             ))}
           </div>
         </CardContent>
-      </Card>
+      </Card>*/}
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5" />
-              Account Created
+              Account Status
             </CardTitle>
-            <CardDescription>Member since</CardDescription>
+            <CardDescription>Derived from the current user record</CardDescription>
           </CardHeader>
           <CardContent className="text-sm">
-            <p className="font-medium">January 12, 2024</p>
-            <p className="mt-1 text-zinc-600 dark:text-zinc-400">
-              Account age: 4 months
-            </p>
+            <div className="flex items-center justify-between">
+              <span>Hack Club verification</span>
+              <span className="font-medium text-green-600">{verificationStatus}</span>
+            </div>
+            <div className="mt-2 flex items-center justify-between">
+              <span>Hackflare access</span>
+              <span className="font-medium text-orange-600">{accountStatus}</span>
+            </div>
           </CardContent>
         </Card>
 
@@ -178,18 +193,34 @@ export default function Profile() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
-              Account Status
+              User Details
             </CardTitle>
-            <CardDescription>Security verification</CardDescription>
+            <CardDescription>Data returned by /api/v1/users/me</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div className="flex items-center justify-between">
-              <span>Email verified</span>
-              <span className="font-medium text-green-600">✓</span>
+              <span>User ID</span>
+              <span className="font-medium text-zinc-600 dark:text-zinc-300">
+                {user?.id || "Unknown"}
+              </span>
             </div>
             <div className="flex items-center justify-between">
-              <span>2FA enabled</span>
-              <span className="font-medium text-orange-600">Setup</span>
+              <span>First name</span>
+              <span className="font-medium text-zinc-600 dark:text-zinc-300">
+                {user?.first_name || "Unknown"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Last name</span>
+              <span className="font-medium text-zinc-600 dark:text-zinc-300">
+                {user?.last_name || "Unknown"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>YSWS eligible</span>
+              <span className="font-medium text-zinc-600 dark:text-zinc-300">
+                {user ? (user.eligible ? "Yes" : "No") : "Unknown"}
+              </span>
             </div>
           </CardContent>
         </Card>

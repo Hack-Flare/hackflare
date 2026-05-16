@@ -54,7 +54,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuShortcut,
 } from "~/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback } from "~/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { SlackIcon } from "./icons/slack"
 
 // ── Workspaces ───────────────────────────────────────────────────────────────
@@ -98,8 +98,9 @@ export function AppSidebar() {
     location.pathname.startsWith("/dash/domains")
   )
 
-  const userInitials = user?.name
-    ? user.name
+  const fullName = user ? `${user.first_name} ${user.last_name}`.trim() : ""
+  const userInitials = fullName
+    ? fullName
         .split(" ")
         .map((n: string) => n[0])
         .join("")
@@ -109,11 +110,15 @@ export function AppSidebar() {
       ? user.email.split("@")[0].slice(0, 2).toUpperCase()
       : user?.id?.slice(0, 2).toUpperCase() || "?"
 
+  const avatar = user?.slack_id
+    ? `https://cachet.dunkirk.sh/users/${user.slack_id}/r`
+    : undefined
+
   const userLabel = getUserDisplayName(user)
 
   const handleLogout = async () => {
     await logout()
-    navigate("/login")
+    navigate("/")
   }
 
   const isActive = (href: string) => {
@@ -398,6 +403,7 @@ export function AppSidebar() {
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
                   <Avatar className="h-8 w-8 shrink-0 rounded-lg">
+                    <AvatarImage src={avatar} alt={userLabel} className="rounded-lg object-cover" />
                     <AvatarFallback className="rounded-lg bg-orange-500 text-xs font-semibold text-white">
                       {userInitials}
                     </AvatarFallback>
