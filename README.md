@@ -16,9 +16,17 @@ With Docker from prebuilt image
 docker compose up
 ```
 
-Dev Docker Which builds the image locally
+Dev Backend Docker
 ```
-docker compose -f docker-compose.dev.yml up
+docker compose -f compose.dev.yml --profile backend up
+```
+Dev Frontend Docker
+```
+docker compose -f compose.dev.yml --profile frontend up
+```
+Dev All in One Docker
+```
+docker compose -f compose.dev.yml --profile backend --profile frontend up
 ```
 
 ## License
