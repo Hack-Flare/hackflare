@@ -1,5 +1,5 @@
-use chrono::{DateTime, Utc};
 use axum::{Extension, Json, Router, middleware, response::IntoResponse, routing::get};
+use chrono::{DateTime, Utc};
 use serde::Serialize;
 
 use crate::{
