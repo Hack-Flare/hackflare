@@ -194,12 +194,12 @@ impl ZonePersistence for PostgresPersistence {
 
         let mut zone_map: HashMap<String, PersistedZone> = HashMap::new();
         for row in rows {
-            let entry = zone_map.entry(row.zone_name.clone()).or_insert_with(|| {
-                PersistedZone {
+            let entry = zone_map
+                .entry(row.zone_name.clone())
+                .or_insert_with(|| PersistedZone {
                     name: row.zone_name,
                     records: Vec::new(),
-                }
-            });
+                });
             if let (Some(name), Some(rtype), Some(ttl), Some(data)) =
                 (row.record_name, row.rtype, row.ttl, row.data)
             {
