@@ -1,6 +1,6 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use sqlx::{PgPool, query, query_as};
+use sqlx::{Executor, PgPool, Postgres, query, query_as};
 
 use crate::models::{HcaUser, db::User};
 
@@ -14,13 +14,16 @@ impl UsersService {
         Self { db }
     }
 
-    pub(crate) async fn upsert(
-        &self,
+    pub(crate) async fn upsert_with<'e, E>(
+        executor: E,
         user: &HcaUser,
         access_token: &str,
         refresh_token: &str,
         token_expires_at: DateTime<Utc>,
-    ) -> Result<()> {
+    ) -> Result<()>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         query!(
             r#"
             INSERT INTO users (id, email, slack_id, first_name, last_name, verification_status, ysws_eligible, hca_access_token, hca_refresh_token, hca_token_expires_at)
@@ -47,7 +50,7 @@ impl UsersService {
             access_token,
             refresh_token,
             token_expires_at,
-        ).execute(&self.db).await?;
+        ).execute(executor).await?;
 
         Ok(())
     }

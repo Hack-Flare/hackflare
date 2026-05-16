@@ -7,6 +7,7 @@ use axum::{
     response::{IntoResponse, Redirect, Response},
     routing::{get, post},
 };
+use axum_client_ip::ClientIp;
 use chrono::{Duration, Utc};
 use jsonwebtoken::Header;
 use rand::{RngExt, distr::Alphanumeric};
@@ -14,6 +15,7 @@ use reqwest::{StatusCode, Url};
 use serde::Deserialize;
 use serde_json::json;
 use serde_with::{DurationSeconds, serde_as};
+use sqlx::PgPool;
 use tower_sessions::{
     Expiry, MemoryStore, Session, SessionManagerLayer,
     cookie::{self, Cookie, SameSite},
@@ -22,7 +24,7 @@ use tower_sessions::{
 use crate::{
     config::Config,
     models::{HcaUser, JwtClaims},
-    services::users::UsersService,
+    services::{user_sessions::UserSessionsService, users::UsersService},
     state::AppState,
 };
 
@@ -94,6 +96,16 @@ fn random_string(len: usize) -> String {
 const SESSION_CSRF_TOKEN_KEY: &str = "auth::csrf_token";
 const SESSION_TARGET_URL_KEY: &str = "auth::target_url";
 
+// TODO: sliding window sessions via dual-token with separate refresh-token for renewal:
+// - short-lived JWT for most auth (15 minutes)
+// - long-lived refresh JWT to refresh both the short-lived one and itself via `/refresh` (30 days)
+// which automatically slides the window every 15 minutes and only requires a new `/login` when the
+// refresh token expired. the refresh token here represents the actual device session, but means we
+// have short-lived sessions referencing the long-lived ones so that invalidation of a device
+// (logging it out remotely) will invalidate the current session effective immediately
+// => two tables for the sessions
+// => more state
+// => more user convenience (not randomly logged out even if currently active)
 async fn login_handler(
     State(state): State<AppState>,
     session: Session,
@@ -125,9 +137,10 @@ async fn login_handler(
 async fn callback_handler(
     State(config): State<Arc<Config>>,
     State(http_client): State<reqwest::Client>,
-    State(users): State<UsersService>,
+    State(db): State<PgPool>,
     session: Session,
     Query(query): Query<AuthCallbackParams>,
+    ClientIp(ip_addr): ClientIp,
 ) -> Result<Response, (StatusCode, &'static str)> {
     let session_csrf_token: String = session
         .remove(SESSION_CSRF_TOKEN_KEY)
@@ -215,24 +228,44 @@ async fn callback_handler(
     // is harmless, while treating an expired token as valid is a security issue.
     let token_expires_at = token_request_sent_at + token_response.expires_in;
 
-    users
-        .upsert(
-            &user_info,
-            &token_response.access_token,
-            &token_response.refresh_token,
-            token_expires_at,
-        )
+    let mut tx = db.begin().await.map_err(|error| {
+        error!(%error, "failed to start transaction");
+        (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
+    })?;
+
+    UsersService::upsert_with(
+        &mut *tx,
+        &user_info,
+        &token_response.access_token,
+        &token_response.refresh_token,
+        token_expires_at,
+    )
+    .await
+    .map_err(|error| {
+        error!(%error, "failed to upsert user");
+        (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
+    })?;
+
+    let now = Utc::now();
+    let exp = now + chrono::Duration::hours(SESSION_DURATION_HOURS);
+
+    let jit = UserSessionsService::create_with(&mut *tx, &user_info.id, ip_addr, exp)
         .await
         .map_err(|error| {
-            error!(%error, "failed to upsert user");
+            error!(%error, "failed to create session");
             (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
         })?;
 
-    let now = Utc::now();
+    tx.commit().await.map_err(|error| {
+        error!(%error, "failed to commit transaction");
+        (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
+    })?;
+
     let claims = JwtClaims {
         sub: user_info.id,
         iat: now,
-        exp: now + chrono::Duration::hours(SESSION_DURATION_HOURS),
+        jit,
+        exp,
     };
 
     let token = jsonwebtoken::encode(&Header::default(), &claims, &config.jwt_encoding_key)

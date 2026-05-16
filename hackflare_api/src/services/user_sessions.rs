@@ -1,0 +1,59 @@
+use std::net::IpAddr;
+
+use anyhow::Result;
+use chrono::{DateTime, Utc};
+use sqlx::{Executor, PgPool, Postgres, query, query_as};
+use uuid::Uuid;
+
+use crate::models::db::UserSession;
+
+#[derive(Clone)]
+pub(crate) struct UserSessionsService {
+    db: PgPool,
+}
+
+impl UserSessionsService {
+    pub(crate) fn new(db: PgPool) -> Self {
+        Self { db }
+    }
+
+    pub(crate) async fn create_with<'e, E>(
+        executor: E,
+        user_id: &str,
+        ip_address: IpAddr,
+        expires_at: DateTime<Utc>,
+    ) -> Result<Uuid>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
+        let id = query!(
+            r#"
+            INSERT INTO user_sessions (user_id, ip_address, expires_at)
+            VALUES ($1, $2, $3)
+            RETURNING id
+            "#,
+            user_id,
+            ip_address as _,
+            expires_at,
+        )
+        .fetch_one(executor)
+        .await?
+        .id;
+
+        Ok(id)
+    }
+
+    pub(crate) async fn get_by_id(&self, id: &Uuid) -> Result<Option<UserSession>> {
+        let session = query_as!(
+            UserSession,
+            r#"
+            SELECT id, user_id, ip_address as "ip_address: IpAddr", expires_at, created_at, revoked_at
+            FROM user_sessions
+            WHERE id = $1
+            LIMIT 1
+            "#,
+            id,
+        ).fetch_optional(&self.db).await?;
+        Ok(session)
+    }
+}
