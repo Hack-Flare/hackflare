@@ -1,4 +1,4 @@
-use axum::{http::StatusCode, Json};
+use axum::{Json, http::StatusCode};
 use serde_json::Value;
 
 pub async fn slack_contact(Json(body): Json<Value>) -> StatusCode {
@@ -8,11 +8,7 @@ pub async fn slack_contact(Json(body): Json<Value>) -> StatusCode {
     };
 
     let client = reqwest::Client::new();
-    let res = client
-        .post(webhook_url)
-        .json(&body)
-        .send()
-        .await;
+    let res = client.post(webhook_url).json(&body).send().await;
 
     match res {
         Ok(r) if r.status().is_success() => StatusCode::OK,

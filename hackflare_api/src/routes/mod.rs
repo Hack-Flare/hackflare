@@ -5,8 +5,8 @@ use crate::{config::Config, state::AppState};
 
 pub(crate) mod auth;
 pub(crate) mod sessions;
-pub(crate) mod users;
 pub mod slack;
+pub(crate) mod users;
 
 fn v1_routes(state: AppState, config: &Config) -> Router<AppState> {
     Router::new()
