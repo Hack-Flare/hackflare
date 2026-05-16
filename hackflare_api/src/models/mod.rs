@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::{TimestampSeconds, serde_as};
+use uuid::Uuid;
 
 pub(crate) mod db;
 
@@ -30,13 +31,15 @@ pub(crate) struct HcaUser {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct JwtClaims {
     pub(crate) sub: String,
+    pub(crate) jit: Uuid,
     #[serde_as(as = "TimestampSeconds<i64>")]
     pub(crate) exp: DateTime<Utc>,
     #[serde_as(as = "TimestampSeconds<i64>")]
     pub(crate) iat: DateTime<Utc>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize)]
 pub(crate) struct CurrentUser {
     pub(crate) user: db::User,
+    pub(crate) session: db::UserSession,
 }

@@ -8,7 +8,10 @@ use sqlx::{
     postgres::PgPoolOptions,
 };
 
-use crate::{config::Config, services::users::UsersService};
+use crate::{
+    config::Config,
+    services::{user_sessions::UserSessionsService, users::UsersService},
+};
 
 static MIGRATOR: Migrator = sqlx::migrate!("../migrations");
 
@@ -20,6 +23,7 @@ pub struct AppState {
 
     // -- services --
     pub(crate) users: UsersService,
+    pub(crate) user_sessions: UserSessionsService,
 }
 
 #[instrument(skip(db))]
@@ -111,12 +115,14 @@ impl AppState {
         migrate_or_verify(&db, &config).await?;
 
         let users = UsersService::new(db.clone());
+        let user_sessions = UserSessionsService::new(db.clone());
 
         Ok(Self {
             config: Arc::new(config),
             http_client,
             db,
             users,
+            user_sessions,
         })
     }
 }

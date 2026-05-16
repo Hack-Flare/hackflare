@@ -20,5 +20,7 @@ serde_with = { version = "3.20.0", features = ["chrono_0_4"] }
 chrono = { version = "0.4.44", features = ["serde"] }
 jsonwebtoken = { version = "10.4.0", features = ["rust_crypto"] }
 axum-extra = { version = "0.12.6", features = ["cookie"] }
-sqlx = { version = "0.8.6", features = ["runtime-tokio", "postgres", "uuid", "chrono"] }
+sqlx = { version = "0.8.6", features = ["runtime-tokio", "postgres", "chrono", "ipnet", "uuid"] }
 derive_more = { version = "2.1.1", features = ["full"] }
+axum-client-ip = "1.3.1"
+uuid = { version = "1.23.1", features = ["serde"] }

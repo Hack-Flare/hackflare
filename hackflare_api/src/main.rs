@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, net::SocketAddr};
 
 use anyhow::{Context, Result};
 use dotenv::dotenv;
@@ -21,7 +21,11 @@ async fn run() -> Result<()> {
         .context("failed to set up app state")?;
     let app = build_router(state);
 
-    axum::serve(listener, app).await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await?;
 
     Ok(())
 }
