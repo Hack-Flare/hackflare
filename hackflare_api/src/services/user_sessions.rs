@@ -56,6 +56,26 @@ impl UserSessionsService {
             "#,
             id,
         ).fetch_optional(&self.db).await?;
+
         Ok(session)
+    }
+
+    pub(crate) async fn get_all_for_user(&self, user_id: &str) -> Result<Vec<UserSession>> {
+        let sessions = query_as!(
+            UserSession,
+            r#"
+            SELECT id, user_id, ip_address as "ip_address: IpAddr", expires_at, created_at, revoked_at
+            FROM user_sessions
+            WHERE user_id = $1
+            "#,
+            user_id,
+        ).fetch_all(&self.db).await?;
+
+        // TODO: implement pagination
+        if sessions.len() > 100 {
+            warn!("user sessions count exceeds 100, pagination strongly recommended")
+        }
+
+        Ok(sessions)
     }
 }
