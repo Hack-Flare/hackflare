@@ -4,6 +4,7 @@ services:
     build:
       context: .
       dockerfile: hackflare_api/Dockerfile
+      network: host
     platform: linux/amd64
     env_file:
       - .env
@@ -19,6 +20,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      network: host
     platform: linux/amd64
     env_file:
       - .env
