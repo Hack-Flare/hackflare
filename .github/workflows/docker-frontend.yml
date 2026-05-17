@@ -17,7 +17,7 @@ env:
   IMAGE_NAME: hack-flare/hackflare-frontend
 
 concurrency:
-  group: build-and-push
+  group: build-and-push-frontend
   cancel-in-progress: true
 
 jobs:
