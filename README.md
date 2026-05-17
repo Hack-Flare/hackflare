@@ -11,20 +11,34 @@ See [ROADMAP.md](ROADMAP.md) for the roadmap.
 
 ## Running the project
 
-With Docker from prebuilt image
+## Production
+
+Backend Docker
 ```
-docker compose up
+docker compose -f compose.prod.yml --profile backend up
 ```
 
-Dev Backend Docker
+Frontend Docker
+```
+docker compose -f compose.prod.yml --profile frontend up
+```
+
+All in One Docker
+```
+docker compose -f compose.prod.yml --profile backend --profile frontend up
+```
+
+## Development
+
+Backend Docker
 ```
 docker compose -f compose.dev.yml --profile backend up
 ```
-Dev Frontend Docker
+Frontend Docker
 ```
 docker compose -f compose.dev.yml --profile frontend up
 ```
-Dev All in One Docker
+All in One Docker
 ```
 docker compose -f compose.dev.yml --profile backend --profile frontend up
 ```
