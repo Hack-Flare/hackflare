@@ -26,7 +26,7 @@ concurrency:
 jobs:
   build-and-push-image:
     runs-on: ${{ matrix.runs-on }}
-    if: github.event.pull_request.merged == true
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
     strategy:
       matrix:
         include:
