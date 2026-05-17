@@ -17,8 +17,8 @@ services:
   frontend:
     profiles: [frontend]
     build:
-      context: .
-      dockerfile: frontend/Dockerfile
+      context: ./frontend
+      dockerfile: Dockerfile
     platform: linux/amd64
     env_file:
       - .env
