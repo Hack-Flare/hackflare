@@ -1,9 +1,7 @@
 services:
   api:
     profiles: [backend]
-    build:
-      context: .
-      dockerfile: hackflare_api/Dockerfile
+    image: ghcr.io/hack-flare/hackflare-backend:latest
     platform: linux/amd64
     env_file:
       - .env
@@ -16,9 +14,7 @@ services:
 
   frontend:
     profiles: [frontend]
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile
+    image: ghcr.io/hack-flare/hackflare-frontend:latest
     platform: linux/amd64
     env_file:
       - .env

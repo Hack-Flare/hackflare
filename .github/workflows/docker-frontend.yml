@@ -1,4 +1,4 @@
-name: Builder Docker Image
+name: Frontend Docker Image
 
 on:
   workflow_dispatch:
@@ -6,10 +6,10 @@ on:
   
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: hack-flare/hackflare-builder
+  IMAGE_NAME: hack-flare/hackflare-frontend
 
 concurrency:
-  group: build-and-push-builder
+  group: build-and-push
   cancel-in-progress: true
 
 jobs:
@@ -18,10 +18,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - runs-on: blacksmith-8vcpu-ubuntu-2404
+          - runs-on: blacksmith-4vcpu-ubuntu-2404
             tag-suffix: ""
-          #- runs-on: self-hosted
-          #  tag-suffix: "-arm"
     permissions:
       contents: read
       packages: write
@@ -54,7 +52,7 @@ jobs:
         uses: useblacksmith/build-push-action@v2
         with:
           context: .
-          file: ./backend/builder.dockerfile
+          file: ./frontend/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
