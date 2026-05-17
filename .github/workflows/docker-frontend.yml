@@ -3,6 +3,14 @@ name: Frontend Docker Image
 on:
   workflow_dispatch:
   workflow_call:
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/docker-frontend.yml'
   
 env:
   REGISTRY: ghcr.io
@@ -15,6 +23,7 @@ concurrency:
 jobs:
   build-and-push-image:
     runs-on: ${{ matrix.runs-on }}
+    if: github.event.pull_request.merged == true
     strategy:
       matrix:
         include:

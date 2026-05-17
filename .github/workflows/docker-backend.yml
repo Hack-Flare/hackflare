@@ -3,6 +3,17 @@ name: Backend Docker Image
 on:
   workflow_dispatch:
   workflow_call:
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
+    paths:
+      - 'hackflare_api/**'
+      - 'hackflare_dns/**'
+      - 'migrations/**'
+      - 'Cargo.toml'
+      - '.github/workflows/docker-backend.yml'
   
 env:
   REGISTRY: ghcr.io
@@ -15,6 +26,7 @@ concurrency:
 jobs:
   build-and-push-image:
     runs-on: ${{ matrix.runs-on }}
+    if: github.event.pull_request.merged == true
     strategy:
       matrix:
         include:

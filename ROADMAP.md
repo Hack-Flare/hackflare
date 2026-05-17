@@ -8,11 +8,10 @@ Feel free to submit PRs/issues for anything you want us to work on or you want t
 ### Phase 1 (MVP/POC)
 
 - [ ] DNS System
-  - [x] Backend
-    - [x] Auth Integration
-    - [x] Domain Management
+  - [ ] Backend
+    - [ ] Auth Integration
+    - [ ] Domain Management
       - Domains stay in a pending state until their NS delegation is verified, and record edits are blocked until then.
-  - [ ] Needs Testing
 - [ ] **DNS Crate** (`hackflare_dns/`)
   - [x] Authoritative zone management (hickory-backed `AuthorityStore`)
   - [x] Record type encoding (A, AAAA, CNAME, MX, TXT, SOA, SRV, etc.)
@@ -20,49 +19,6 @@ Feel free to submit PRs/issues for anything you want us to work on or you want t
   - [x] PostgreSQL persistence (`PostgresPersistence`)
   - [x] In-memory persistence (`MemoryPersistence`)
   - [x] Hickory server integration (`ns/hickory.rs`)
-  - [ ] **Testing & Reliability**
-    - [ ] Unit tests for `dns/engine.rs` (DNS wire protocol encoding/decoding)
-    - [ ] Integration tests for recursive resolver (mock upstream servers)
-    - [ ] End-to-end tests with hickory-server transport
-    - [ ] Fuzz testing for DNS message parsing
-  - [ ] **Security Hardening**
-    - [ ] Filter bogon/private IPs in recursive resolver (SSRF prevention)
-    - [ ] Parameterized SQL in metrics flusher (`hickory.rs:63-69`)
-    - [ ] TLS support for PostgreSQL connections (replace `NoTls`)
-    - [ ] Input validation: TTL range checks, domain name format validation
-    - [ ] Defensive bounds checks in record encoding (buffer overflows)
-  - [ ] **Persistence Improvements**
-    - [ ] Full record export/import in `save_zone_to_storage` (currently saves zone name only)
-    - [ ] Connection pooling for PostgreSQL (instead of connect-per-call)
-    - [ ] Zone file import/export (Bind-compatible zone files)
-  - [ ] **Performance**
-    - [ ] DNS response caching (recursive resolver)
-    - [ ] Cache hit/miss metrics
-    - [ ] Replace `once_cell::sync::Lazy` with `std::sync::LazyLock`
-    - [ ] Reduce redundant allocations in record encoding hot path
-    - [ ] Async PostgreSQL driver (`tokio-postgres` instead of blocking `postgres`)
-  - [ ] **Recursive Resolver**
-    - [ ] EDNS0 support (payload size negotiation)
-    - [ ] DNSSEC validation (authenticated data AD bit)
-    - [ ] Configurable upstream DNS forwarders
-    - [ ] TCP fallback for truncated UDP responses
-    - [ ] Rate limiting and query throttling
-  - [ ] **Observability**
-    - [ ] Structured tracing integration (tracing crate instead of JSON `eprintln!`)
-    - [ ] Per-zone query statistics
-    - [ ] Recursion latency histogram
-    - [ ] Prometheus metrics endpoint
-  - [ ] **New Features**
-    - [ ] DNS-over-TLS (DoT) support
-    - [ ] DNS-over-HTTPS (DoH) support
-    - [ ] Zone transfer (AXFR/IXFR) support
-    - [ ] NS delegation verification (pending → active zone state machine)
-    - [ ] CNAME flattening/redirection API
-    - [ ] Geo-based DNS routing (latency-based, region-based)
-  - [ ] **Code Quality**
-    - [ ] Fix clippy warnings (155 pedantic/nursery warnings)
-    - [ ] Document internal modules (`dns/engine.rs`, `dns/recursive.rs`)
-    - [ ] Standardize error types (replace `Box<dyn Error>` with custom error enum)
 - [ ] Auth system
   - [x] Backend
     - [x] HackClub Auth
