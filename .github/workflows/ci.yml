@@ -4,11 +4,17 @@ on:
   push:
     paths-ignore:
       - "**/*.md"
+      - .github/workflows/docker-frontend.yml
+      - .github/workflows/docker-backend.yml
+      - ./frontend/**
   pull_request:
     branches:
       - main
     paths-ignore:
       - "**/*.md"
+      - .github/workflows/docker-frontend.yml
+      - .github/workflows/docker-backend.yml
+      - ./frontend/**
   workflow_dispatch:
   workflow_call:
 
