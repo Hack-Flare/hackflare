@@ -2,7 +2,10 @@ use std::{sync::Arc, time::Duration};
 
 use anyhow::Result;
 use axum::extract::FromRef;
-use hackflare_dns::{DnsConfig, ns::{AuthorityStore, PostgresPersistence, ZonePersistence}};
+use hackflare_dns::{
+    DnsConfig,
+    ns::{AuthorityStore, PostgresPersistence, ZonePersistence},
+};
 use sqlx::{
     PgPool,
     migrate::{Migrate, Migrator},

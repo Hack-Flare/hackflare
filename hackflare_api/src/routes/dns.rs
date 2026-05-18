@@ -9,10 +9,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
-use crate::{
-    middlewares::auth_middleware,
-    state::AppState,
-};
+use crate::{middlewares::auth_middleware, state::AppState};
 
 // ── Response types ──
 
@@ -116,7 +113,9 @@ async fn delete_zone(
 async fn verify_zone(
     axum::extract::Path(_zone_name): axum::extract::Path<String>,
 ) -> Json<serde_json::Value> {
-    Json(serde_json::json!({"verified": false, "message": "nameserver verification not yet implemented"}))
+    Json(
+        serde_json::json!({"verified": false, "message": "nameserver verification not yet implemented"}),
+    )
 }
 
 // ── Record handlers ──
@@ -169,9 +168,11 @@ async fn create_record(
 
 async fn update_record(
     State(state): State<AppState>,
-    axum::extract::Path((zone_name, record_name, record_type)): axum::extract::Path<
-        (String, String, String),
-    >,
+    axum::extract::Path((zone_name, record_name, record_type)): axum::extract::Path<(
+        String,
+        String,
+        String,
+    )>,
     Json(req): Json<UpdateRecordRequest>,
 ) -> StatusCode {
     if !state
@@ -190,9 +191,11 @@ async fn update_record(
 
 async fn delete_record(
     State(state): State<AppState>,
-    axum::extract::Path((zone_name, record_name, record_type)): axum::extract::Path<
-        (String, String, String),
-    >,
+    axum::extract::Path((zone_name, record_name, record_type)): axum::extract::Path<(
+        String,
+        String,
+        String,
+    )>,
 ) -> StatusCode {
     if state
         .dns_authority
@@ -253,8 +256,14 @@ pub(super) fn routes(state: AppState) -> Router<AppState> {
         .route("/zones", get(list_zones).post(create_zone))
         .route("/zones/{zone_name}", delete(delete_zone))
         .route("/zones/{zone_name}/verify", post(verify_zone))
-        .route("/zones/{zone_name}/records", get(list_records).post(create_record))
-        .route("/zones/{zone_name}/records/{record_name}/{record_type}", put(update_record).delete(delete_record))
+        .route(
+            "/zones/{zone_name}/records",
+            get(list_records).post(create_record),
+        )
+        .route(
+            "/zones/{zone_name}/records/{record_name}/{record_type}",
+            put(update_record).delete(delete_record),
+        )
         .layer(middleware::from_fn_with_state(state, auth_middleware))
 }
 
@@ -265,7 +274,7 @@ mod tests {
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
     use chrono::{Duration, Utc};
-    use jsonwebtoken::{encode, DecodingKey, EncodingKey, Header};
+    use jsonwebtoken::{DecodingKey, EncodingKey, Header, encode};
     use reqwest::Url;
     use tower::ServiceExt;
     use uuid::Uuid;
@@ -278,8 +287,7 @@ mod tests {
     };
     use axum_client_ip::ClientIpSource;
 
-    const TEST_JWT_SECRET: &str =
-        "dGhpcyBpcyBhIHRlc3Qgc2VjcmV0IGZvciB0ZXN0aW5nIHB1cnBvc2Vz";
+    const TEST_JWT_SECRET: &str = "dGhpcyBpcyBhIHRlc3Qgc2VjcmV0IGZvciB0ZXN0aW5nIHB1cnBvc2Vz";
 
     struct TestCtx {
         state: AppState,
@@ -489,24 +497,24 @@ mod tests {
             return;
         };
 
-        ctx.state
-            .dns_authority
-            .create_zone("test-del.com")
-            .await;
+        ctx.state.dns_authority.create_zone("test-del.com").await;
 
         let response = build_router(ctx.state.clone())
             .oneshot(ctx.authed_request("DELETE", "/api/v1/dns/zones/test-del.com", None))
             .await
             .unwrap();
         assert_eq!(response.status(), StatusCode::NO_CONTENT);
-        assert!(!ctx.state.dns_authority.list_zones().await.iter().any(|z| z == "test-del.com"));
+        assert!(
+            !ctx.state
+                .dns_authority
+                .list_zones()
+                .await
+                .iter()
+                .any(|z| z == "test-del.com")
+        );
 
         let response = build_router(ctx.state.clone())
-            .oneshot(ctx.authed_request(
-                "DELETE",
-                "/api/v1/dns/zones/nope.com",
-                None,
-            ))
+            .oneshot(ctx.authed_request("DELETE", "/api/v1/dns/zones/nope.com", None))
             .await
             .unwrap();
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
@@ -536,11 +544,7 @@ mod tests {
 
         // Verify via authority (add_record returns bool)
         let response = build_router(ctx.state.clone())
-            .oneshot(ctx.authed_request(
-                "GET",
-                "/api/v1/dns/zones/test-rec.com/records",
-                None,
-            ))
+            .oneshot(ctx.authed_request("GET", "/api/v1/dns/zones/test-rec.com/records", None))
             .await
             .unwrap();
         assert_eq!(response.status(), StatusCode::OK);
@@ -563,11 +567,7 @@ mod tests {
         assert_eq!(response.status(), StatusCode::OK);
 
         let response = build_router(ctx.state.clone())
-            .oneshot(ctx.authed_request(
-                "GET",
-                "/api/v1/dns/zones/test-rec.com/records",
-                None,
-            ))
+            .oneshot(ctx.authed_request("GET", "/api/v1/dns/zones/test-rec.com/records", None))
             .await
             .unwrap();
         let body = get_body(response).await;
@@ -587,11 +587,7 @@ mod tests {
         assert_eq!(response.status(), StatusCode::NO_CONTENT);
 
         let response = build_router(ctx.state.clone())
-            .oneshot(ctx.authed_request(
-                "GET",
-                "/api/v1/dns/zones/test-rec.com/records",
-                None,
-            ))
+            .oneshot(ctx.authed_request("GET", "/api/v1/dns/zones/test-rec.com/records", None))
             .await
             .unwrap();
         let body = get_body(response).await;
@@ -619,11 +615,7 @@ mod tests {
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
 
         let response = build_router(ctx.state.clone())
-            .oneshot(ctx.authed_request(
-                "GET",
-                "/api/v1/dns/zones/nope.com/records",
-                None,
-            ))
+            .oneshot(ctx.authed_request("GET", "/api/v1/dns/zones/nope.com/records", None))
             .await
             .unwrap();
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
@@ -639,11 +631,7 @@ mod tests {
         };
 
         let response = build_router(ctx.state.clone())
-            .oneshot(ctx.authed_request(
-                "POST",
-                "/api/v1/dns/zones/example.com/verify",
-                None,
-            ))
+            .oneshot(ctx.authed_request("POST", "/api/v1/dns/zones/example.com/verify", None))
             .await
             .unwrap();
         assert_eq!(response.status(), StatusCode::OK);

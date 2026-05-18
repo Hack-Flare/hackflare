@@ -2,7 +2,10 @@ use std::{env, net::SocketAddr};
 
 use anyhow::{Context, Result};
 use dotenv::dotenv;
-use hackflare_dns::{DnsConfig, ns::{NsConfig, run_with_hickory}};
+use hackflare_dns::{
+    DnsConfig,
+    ns::{NsConfig, run_with_hickory},
+};
 use tracing::{error, info, warn};
 use tracing_subscriber::EnvFilter;
 

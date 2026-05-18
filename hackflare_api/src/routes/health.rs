@@ -19,7 +19,11 @@ pub(crate) async fn health(State(state): State<AppState>) -> Json<HealthResponse
 
     let all_ok = database == "ok";
     Json(HealthResponse {
-        status: if all_ok { "ok".into() } else { "degraded".into() },
+        status: if all_ok {
+            "ok".into()
+        } else {
+            "degraded".into()
+        },
         database,
         dns_zones,
     })
