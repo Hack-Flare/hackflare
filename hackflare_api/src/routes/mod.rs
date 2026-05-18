@@ -1,19 +1,23 @@
-use axum::{Router, routing::post};
+use axum::{Router, routing::get};
 use tower_http::trace::TraceLayer;
 
 use crate::{config::Config, state::AppState};
 
 pub(crate) mod auth;
+pub(crate) mod dns;
+pub(crate) mod health;
 pub(crate) mod sessions;
 pub mod slack;
 pub(crate) mod users;
 
 fn v1_routes(state: AppState, config: &Config) -> Router<AppState> {
     Router::new()
+        .route("/health", get(health::health))
         .nest("/auth", auth::routes(config))
         .nest("/users", users::routes(state.clone()))
-        .nest("/sessions", sessions::routes(state))
-        .route("/slack/contact", post(slack::slack_contact))
+        .nest("/sessions", sessions::routes(state.clone()))
+        .nest("/dns", dns::routes(state.clone()))
+        .route("/slack/contact", axum::routing::post(slack::slack_contact))
 }
 
 pub fn build_router(state: AppState) -> Router {

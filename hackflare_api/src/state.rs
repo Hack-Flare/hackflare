@@ -2,6 +2,10 @@ use std::{sync::Arc, time::Duration};
 
 use anyhow::Result;
 use axum::extract::FromRef;
+use hackflare_dns::{
+    DnsConfig,
+    ns::{AuthorityStore, PostgresPersistence, ZonePersistence},
+};
 use sqlx::{
     PgPool,
     migrate::{Migrate, Migrator},
@@ -17,9 +21,12 @@ static MIGRATOR: Migrator = sqlx::migrate!("../migrations");
 
 #[derive(Clone, FromRef)]
 pub struct AppState {
-    pub(crate) config: Arc<Config>,
+    pub config: Arc<Config>,
     pub(crate) http_client: reqwest::Client,
     pub(crate) db: PgPool,
+
+    // -- dns --
+    pub dns_authority: Arc<AuthorityStore>,
 
     // -- services --
     pub(crate) users: UsersService,
@@ -117,10 +124,19 @@ impl AppState {
         let users = UsersService::new(db.clone());
         let user_sessions = UserSessionsService::new(db.clone());
 
+        let persistence: Arc<dyn ZonePersistence> = Arc::new(PostgresPersistence::new(db.clone()));
+        let dns_authority = Arc::new(AuthorityStore::with_persistence(
+            DnsConfig::from_env(),
+            persistence,
+        ));
+        dns_authority.load_zones_from_storage().await?;
+        info!("dns zones loaded from storage");
+
         Ok(Self {
             config: Arc::new(config),
             http_client,
             db,
+            dns_authority,
             users,
             user_sessions,
         })

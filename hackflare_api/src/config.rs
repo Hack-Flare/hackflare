@@ -91,6 +91,7 @@ impl HcaConfig {
 #[derive(Debug)]
 pub struct Config {
     pub bind_addr: SocketAddr,
+    pub dns_bind_addr: SocketAddr,
     pub(crate) client_ip_source: ClientIpSource,
     pub(crate) environment: Environment,
     pub(crate) database_url: Url,
@@ -132,6 +133,7 @@ pub fn from_env() -> Result<Config> {
 
     Ok(Config {
         bind_addr: env_or("API_BIND_ADDR", "0.0.0.0:8080".parse().unwrap())?,
+        dns_bind_addr: env_or("API_DNS_BIND_ADDR", "0.0.0.0:5353".parse().unwrap())?,
         client_ip_source: env_or("API_CLIENT_IP_SOURCE", ClientIpSource::ConnectInfo)?,
         database_url,
         auto_migrate,

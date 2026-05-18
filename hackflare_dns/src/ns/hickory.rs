@@ -133,11 +133,18 @@ impl RequestHandler for HickoryRequestHandler {
             }
         };
 
+        // Build response metadata from the request so the ID matches
+        let mut response_meta = Metadata::response_from_request(&request.metadata);
+        response_meta.response_code = response.metadata.response_code;
+        response_meta.recursion_available = true;
+        response_meta.recursion_desired = request.metadata.recursion_desired;
+        response_meta.authoritative = false;
+
         // Clamp UDP response size to prevent amplification attacks
         if request.protocol() == Protocol::Udp
             && response_bytes_len > self.dns_config.max_edns_payload_size as usize
         {
-            response.metadata.truncation = true;
+            response_meta.truncation = true;
             response.answers.clear();
             response.additionals.clear();
         }
@@ -148,7 +155,7 @@ impl RequestHandler for HickoryRequestHandler {
         }
 
         let message_response = builder.build(
-            response.metadata,
+            response_meta,
             &response.answers,
             &response.authorities,
             [],
@@ -174,8 +181,8 @@ impl RequestHandler for HickoryRequestHandler {
     }
 }
 
-pub(super) fn run_with_hickory(
-    config: &NsConfig,
+pub fn run_with_hickory(
+    config: NsConfig,
     authority: Arc<AuthorityStore>,
     dns_config: DnsConfig,
 ) -> io::Result<()> {

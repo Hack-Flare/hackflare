@@ -176,7 +176,7 @@ impl Nameserver {
     /// Returns an I/O error if the server fails to start (e.g., port in use).
     pub fn run(&self) -> io::Result<()> {
         run_with_hickory(
-            &self.config,
+            self.config.clone(),
             Arc::clone(&self.authority),
             self.dns_config.clone(),
         )

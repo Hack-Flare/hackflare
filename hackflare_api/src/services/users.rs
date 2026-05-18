@@ -24,7 +24,7 @@ impl UsersService {
     where
         E: Executor<'e, Database = Postgres>,
     {
-        query!(
+        query(
             r#"
             INSERT INTO users (id, email, slack_id, first_name, last_name, verification_status, ysws_eligible, hca_access_token, hca_refresh_token, hca_token_expires_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -40,23 +40,26 @@ impl UsersService {
                 hca_refresh_token = EXCLUDED.hca_refresh_token,
                 hca_token_expires_at = EXCLUDED.hca_token_expires_at;
             "#,
-            user.id,
-            user.primary_email,
-            user.slack_id,
-            user.first_name,
-            user.last_name,
-            user.verification_status,
-            user.ysws_eligible,
-            access_token,
-            refresh_token,
-            token_expires_at,
-        ).execute(executor).await?;
+        )
+        .bind(&user.id)
+        .bind(&user.primary_email)
+        .bind(&user.slack_id)
+        .bind(&user.first_name)
+        .bind(&user.last_name)
+        .bind(&user.verification_status)
+        .bind(user.ysws_eligible)
+        .bind(access_token)
+        .bind(refresh_token)
+        .bind(token_expires_at)
+        .execute(executor)
+        .await?;
 
         Ok(())
     }
 
     pub(crate) async fn get_by_id(&self, id: &str) -> Result<Option<User>> {
-        let user = query_as!(User, "SELECT * from users WHERE id = $1 LIMIT 1", id)
+        let user = query_as::<_, User>("SELECT * from users WHERE id = $1 LIMIT 1")
+            .bind(id)
             .fetch_optional(&self.db)
             .await?;
 
