@@ -2,7 +2,7 @@ use std::net::IpAddr;
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use sqlx::{Executor, PgPool, Postgres, query, query_as, Row};
+use sqlx::{Executor, PgPool, Postgres, Row, query, query_as};
 use uuid::Uuid;
 
 use crate::models::db::UserSession;
