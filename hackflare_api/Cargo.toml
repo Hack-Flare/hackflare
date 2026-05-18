@@ -23,5 +23,9 @@ axum-extra = { version = "0.12.6", features = ["cookie"] }
 sqlx = { version = "0.8.6", features = ["runtime-tokio", "postgres", "chrono", "ipnet", "uuid"] }
 derive_more = { version = "2.1.1", features = ["full"] }
 axum-client-ip = "1.3.1"
-uuid = { version = "1.23.1", features = ["serde"] }
+uuid = { version = "1.23.1", features = ["serde", "v4"] }
 hackflare-dns = { path = "../hackflare_dns" }
+
+[dev-dependencies]
+tower = "0.5"
+http-body-util = "0.1"

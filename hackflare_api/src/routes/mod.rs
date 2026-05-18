@@ -4,6 +4,7 @@ use tower_http::trace::TraceLayer;
 use crate::{config::Config, state::AppState};
 
 pub(crate) mod auth;
+pub(crate) mod dns;
 pub(crate) mod health;
 pub(crate) mod sessions;
 pub mod slack;
@@ -14,7 +15,8 @@ fn v1_routes(state: AppState, config: &Config) -> Router<AppState> {
         .route("/health", get(health::health))
         .nest("/auth", auth::routes(config))
         .nest("/users", users::routes(state.clone()))
-        .nest("/sessions", sessions::routes(state))
+        .nest("/sessions", sessions::routes(state.clone()))
+        .nest("/dns", dns::routes(state.clone()))
         .route("/slack/contact", axum::routing::post(slack::slack_contact))
 }
 

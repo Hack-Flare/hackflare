@@ -974,6 +974,7 @@ dependencies = [
  "derive_more",
  "dotenv",
  "hackflare-dns",
+ "http-body-util",
  "jsonwebtoken",
  "rand 0.10.1",
  "reqwest",
@@ -982,6 +983,7 @@ dependencies = [
  "serde_with",
  "sqlx",
  "tokio",
+ "tower",
  "tower-http",
  "tower-sessions",
  "tracing",
@@ -3315,6 +3317,7 @@ version = "1.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ddd74a9687298c6858e9b88ec8935ec45d22e8fd5e6394fa1bd4e99a87789c76"
 dependencies = [
+ "getrandom 0.4.2",
  "js-sys",
  "serde_core",
  "wasm-bindgen",
