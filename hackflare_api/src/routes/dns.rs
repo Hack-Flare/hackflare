@@ -335,8 +335,8 @@ mod tests {
                 "#,
             )
             .bind(&user_id)
-            .bind(&format!("{}@test.com", user_id))
-            .bind(&format!("slack_{}", user_id))
+            .bind(format!("{}@test.com", user_id))
+            .bind(format!("slack_{}", user_id))
             .bind("Test")
             .bind("User")
             .bind("verified")

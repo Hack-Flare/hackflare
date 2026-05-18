@@ -2,7 +2,7 @@ use std::net::IpAddr;
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use sqlx::{Executor, PgPool, Postgres, query, query_as};
+use sqlx::{Executor, PgPool, Postgres, query, query_as, Row};
 use uuid::Uuid;
 
 use crate::models::db::UserSession;
@@ -26,50 +26,53 @@ impl UserSessionsService {
     where
         E: Executor<'e, Database = Postgres>,
     {
-        let id = query!(
+        let row = query(
             r#"
             INSERT INTO user_sessions (user_id, ip_address, expires_at)
             VALUES ($1, $2, $3)
             RETURNING id
             "#,
-            user_id,
-            ip_address as _,
-            expires_at,
         )
+        .bind(user_id)
+        .bind(ip_address)
+        .bind(expires_at)
         .fetch_one(executor)
-        .await?
-        .id;
+        .await?;
+
+        let id: Uuid = row.try_get("id")?;
 
         Ok(id)
     }
 
     pub(crate) async fn get_by_id(&self, id: &Uuid) -> Result<Option<UserSession>> {
-        let session = query_as!(
-            UserSession,
+        let session = query_as::<_, UserSession>(
             r#"
-            SELECT id, user_id, ip_address as "ip_address: IpAddr", expires_at, created_at, revoked_at
+            SELECT id, user_id, ip_address, expires_at, created_at, revoked_at
             FROM user_sessions
             WHERE id = $1
             AND revoked_at IS NULL
             AND expires_at >= NOW()
             LIMIT 1
             "#,
-            id,
-        ).fetch_optional(&self.db).await?;
+        )
+        .bind(id)
+        .fetch_optional(&self.db)
+        .await?;
 
         Ok(session)
     }
 
     pub(crate) async fn get_all_for_user(&self, user_id: &str) -> Result<Vec<UserSession>> {
-        let sessions = query_as!(
-            UserSession,
+        let sessions = query_as::<_, UserSession>(
             r#"
-            SELECT id, user_id, ip_address as "ip_address: IpAddr", expires_at, created_at, revoked_at
+            SELECT id, user_id, ip_address, expires_at, created_at, revoked_at
             FROM user_sessions
             WHERE user_id = $1
             "#,
-            user_id,
-        ).fetch_all(&self.db).await?;
+        )
+        .bind(user_id)
+        .fetch_all(&self.db)
+        .await?;
 
         // TODO: implement pagination
         if sessions.len() > 100 {
