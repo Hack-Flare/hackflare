@@ -973,6 +973,7 @@ dependencies = [
  "chrono",
  "derive_more",
  "dotenv",
+ "hackflare-dns",
  "jsonwebtoken",
  "rand 0.10.1",
  "reqwest",

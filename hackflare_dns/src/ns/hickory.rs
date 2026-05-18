@@ -174,8 +174,8 @@ impl RequestHandler for HickoryRequestHandler {
     }
 }
 
-pub(super) fn run_with_hickory(
-    config: &NsConfig,
+pub fn run_with_hickory(
+    config: NsConfig,
     authority: Arc<AuthorityStore>,
     dns_config: DnsConfig,
 ) -> io::Result<()> {
