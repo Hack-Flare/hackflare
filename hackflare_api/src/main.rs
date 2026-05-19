@@ -1,7 +1,7 @@
 use std::{env, net::SocketAddr};
 
 use anyhow::{Context, Result};
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use hackflare_dns::{
     DnsConfig,
     ns::{NsConfig, run_with_hickory},
