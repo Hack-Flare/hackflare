@@ -6,10 +6,10 @@ use super::cache::{self, ROOT_CACHE_TTL_SECS};
 use super::error::ResolveError;
 use super::hints;
 use super::message::{
-    build_query, clamp_tld_ttl, extract_ns_and_glue, parse_rrs, tld_from_name, DnsHeader,
-    RecordInfo,
+    DnsHeader, RecordInfo, build_query, clamp_tld_ttl, extract_ns_and_glue, parse_rrs,
+    tld_from_name,
 };
-use super::transport::{tcp_send_recv, UdpTransport};
+use super::transport::{UdpTransport, tcp_send_recv};
 
 const MAX_UPSTREAM_SERVERS_PER_ROUND: usize = 8;
 const MAX_CONCURRENT_RESOLVES: usize = 128;
@@ -108,9 +108,7 @@ fn parse_sections(resp: &[u8]) -> Option<ParsedResponse> {
         Vec::new()
     };
 
-    let auth_pos = answers
-        .last()
-        .map_or(pos, |rr| rr.pos + rr.rdlen);
+    let auth_pos = answers.last().map_or(pos, |rr| rr.pos + rr.rdlen);
 
     let authorities = parse_rrs(resp, auth_pos, nscount).unwrap_or_default();
     let after_auth = authorities
@@ -190,12 +188,9 @@ fn resolve_internal(
     if max_depth == 0 {
         return Err(ResolveError::ResolutionFailed);
     }
-    let _resolve_guard =
-        acquire_resolve_slot().ok_or(ResolveError::TooManyConcurrentResolves)?;
-    let transport =
-        UdpTransport::bind(config.udp_timeout).ok_or_else(|| {
-            ResolveError::BindFailed("udp socket bind".to_string())
-        })?;
+    let _resolve_guard = acquire_resolve_slot().ok_or(ResolveError::TooManyConcurrentResolves)?;
+    let transport = UdpTransport::bind(config.udp_timeout)
+        .ok_or_else(|| ResolveError::BindFailed("udp socket bind".to_string()))?;
 
     cache::CACHE.seed_root_cache(ROOT_HINTS.servers(), ROOT_CACHE_TTL_SECS);
 
@@ -222,11 +217,17 @@ fn resolve_internal(
         for srv in &round_servers {
             let resp = try_query(&transport, srv, &req, qid, &qname, qtype, config);
             let Some(resp) = resp else {
-                debug_log(&format!("no response from {srv} while resolving {qname}"), config);
+                debug_log(
+                    &format!("no response from {srv} while resolving {qname}"),
+                    config,
+                );
                 continue;
             };
             if resp.len() < 12 {
-                debug_log(&format!("short response from {srv} while resolving {qname}"), config);
+                debug_log(
+                    &format!("short response from {srv} while resolving {qname}"),
+                    config,
+                );
                 continue;
             }
             let Some(parsed) = parse_sections(&resp) else {
@@ -284,8 +285,7 @@ fn resolve_internal(
             continue;
         }
 
-        if !tried_root_fallback && !servers.is_empty()
-            && servers.as_slice() != ROOT_HINTS.servers()
+        if !tried_root_fallback && !servers.is_empty() && servers.as_slice() != ROOT_HINTS.servers()
         {
             tried_root_fallback = true;
             servers = ROOT_HINTS.servers().to_vec();
@@ -297,6 +297,9 @@ fn resolve_internal(
         }
     }
 
-    debug_log(&format!("resolution failed for {name} type {qtype}"), config);
+    debug_log(
+        &format!("resolution failed for {name} type {qtype}"),
+        config,
+    );
     Err(ResolveError::ResolutionFailed)
 }

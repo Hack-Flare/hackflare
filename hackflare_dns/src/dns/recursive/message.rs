@@ -118,7 +118,12 @@ pub(super) fn parse_rrs(buf: &[u8], mut pos: usize, count: usize) -> Option<Vec<
         if pos + rdlen > buf.len() {
             return None;
         }
-        out.push(RecordInfo { rtype, pos, rdlen, ttl });
+        out.push(RecordInfo {
+            rtype,
+            pos,
+            rdlen,
+            ttl,
+        });
         pos += rdlen;
     }
     Some(out)
@@ -177,8 +182,18 @@ mod tests {
     fn build_query_and_response_matching() {
         let mut response = build_query(0x1234, "example.com", 1);
         response[2] |= 0x80;
-        assert!(response_matches_expected(&response, 0x1234, "example.com", 1));
-        assert!(!response_matches_expected(&response, 0x9999, "example.com", 1));
+        assert!(response_matches_expected(
+            &response,
+            0x1234,
+            "example.com",
+            1
+        ));
+        assert!(!response_matches_expected(
+            &response,
+            0x9999,
+            "example.com",
+            1
+        ));
     }
 
     #[test]
@@ -210,10 +225,14 @@ mod tests {
     #[test]
     fn dns_header_parses_from_wire() {
         let mut bytes = vec![0u8; 12];
-        bytes[0] = 0x12; bytes[1] = 0x34; // id = 0x1234
-        bytes[2] = 0x81; bytes[3] = 0x80; // flags: QR + RD + RA
-        bytes[4] = 0x00; bytes[5] = 0x01; // qdcount = 1
-        bytes[6] = 0x00; bytes[7] = 0x02; // ancount = 2
+        bytes[0] = 0x12;
+        bytes[1] = 0x34; // id = 0x1234
+        bytes[2] = 0x81;
+        bytes[3] = 0x80; // flags: QR + RD + RA
+        bytes[4] = 0x00;
+        bytes[5] = 0x01; // qdcount = 1
+        bytes[6] = 0x00;
+        bytes[7] = 0x02; // ancount = 2
         let hdr = DnsHeader::from_wire(&bytes).unwrap();
         assert_eq!(hdr.id, 0x1234);
         assert_eq!(hdr.qdcount, 1);
@@ -224,7 +243,8 @@ mod tests {
     #[test]
     fn dns_header_detects_truncation() {
         let mut bytes = vec![0u8; 12];
-        bytes[2] = 0x02; bytes[3] = 0x00; // TC bit set
+        bytes[2] = 0x02;
+        bytes[3] = 0x00; // TC bit set
         let hdr = DnsHeader::from_wire(&bytes).unwrap();
         assert!(hdr.is_truncated());
     }

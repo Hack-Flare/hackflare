@@ -58,7 +58,9 @@ impl RecursiveCache {
             Instant::now() >= v.1
         });
         let key = (name.to_string(), qtype);
-        if let Some((data, exp)) = q.get(&key) && Instant::now() < *exp {
+        if let Some((data, exp)) = q.get(&key)
+            && Instant::now() < *exp
+        {
             Some(data.clone())
         } else {
             None
@@ -76,10 +78,15 @@ impl RecursiveCache {
 
     pub(super) fn get_delegation(&self, tld: &str) -> Option<Vec<String>> {
         let mut d = self.delegation.write();
-        Self::prune(&mut d, MAX_DELEGATION_CACHE_ENTRIES, |v: &DelegationCacheValue| {
-            Instant::now() >= v.1
-        });
-        if let Some((servers, exp)) = d.get(tld) && Instant::now() < *exp && !servers.is_empty() {
+        Self::prune(
+            &mut d,
+            MAX_DELEGATION_CACHE_ENTRIES,
+            |v: &DelegationCacheValue| Instant::now() >= v.1,
+        );
+        if let Some((servers, exp)) = d.get(tld)
+            && Instant::now() < *exp
+            && !servers.is_empty()
+        {
             Some(servers.clone())
         } else {
             None
@@ -88,9 +95,11 @@ impl RecursiveCache {
 
     pub(super) fn put_delegation(&self, tld: &str, servers: &[String], ttl_secs: u64) {
         let mut d = self.delegation.write();
-        Self::prune(&mut d, MAX_DELEGATION_CACHE_ENTRIES, |v: &DelegationCacheValue| {
-            Instant::now() >= v.1
-        });
+        Self::prune(
+            &mut d,
+            MAX_DELEGATION_CACHE_ENTRIES,
+            |v: &DelegationCacheValue| Instant::now() >= v.1,
+        );
         let exp = Instant::now() + Duration::from_secs(ttl_secs);
         d.insert(tld.to_string(), (servers.to_vec(), exp));
     }
@@ -107,7 +116,12 @@ impl RecursiveCache {
         }
     }
 
-    pub(super) fn update_root_cache(&self, ns_names: &[String], glue_ips: &[String], ttl_secs: u64) {
+    pub(super) fn update_root_cache(
+        &self,
+        ns_names: &[String],
+        glue_ips: &[String],
+        ttl_secs: u64,
+    ) {
         let mut roots = self.root.write();
         let exp = Instant::now() + Duration::from_secs(ttl_secs);
         roots.insert(
