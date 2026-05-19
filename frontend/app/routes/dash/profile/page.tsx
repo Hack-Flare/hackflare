@@ -88,11 +88,6 @@ export default function Profile() {
                 alt={userLabel}
                 className="lounded-lg object-cover"
               />
-              <AvatarImage
-                src={avatar}
-                alt={userLabel}
-                className="lounded-lg object-cover"
-              />
               <AvatarFallback className="rounded-xl bg-orange-500 text-lg font-semibold text-white">
                 {initials}
               </AvatarFallback>
@@ -109,18 +104,14 @@ export default function Profile() {
                   Email
                 </p>
                 <p className="mt-1 text-sm font-medium">{email}</p>
-                <p className="mt-1 text-sm font-medium">{email}</p>
               </div>
               <div>
                 <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
                   Slack ID
                 </p>
                 <p className="mt-1 text-sm font-medium">{slackId}</p>
-                <p className="mt-1 text-sm font-medium">{slackId}</p>
               </div>
               <div className="flex gap-2 pt-2">
-                <Button variant="outline">Edit Profile</Button>
-                <Button onClick={handleLogout} variant="destructive"/>
                 <Button variant="outline">Edit Profile</Button>
                 <Button onClick={handleLogout} variant="destructive">
                   <LogOut className="h-4 w-4" />
@@ -184,9 +175,6 @@ export default function Profile() {
             <CardDescription>
               Derived from the current user record
             </CardDescription>
-            <CardDescription>
-              Derived from the current user record
-            </CardDescription>
           </CardHeader>
           <CardContent className="text-sm">
             <div className="flex items-center justify-between">
@@ -197,7 +185,7 @@ export default function Profile() {
             </div>
             <div className="mt-2 flex items-center justify-between">
               <span>Hackflare access</span>
-              <span className="font-medium text-orange-600">
+              <span className="font-medium text-green-600">
                 {accountStatus}
               </span>
             </div>
