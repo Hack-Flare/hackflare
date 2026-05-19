@@ -14,6 +14,16 @@ ci:
   - changed-files:
       - any-glob-to-any-file: .github/**/*
 
+docker:
+  - changed-files:
+      - any-glob-to-any-file:
+          - hackflare_api/Dockerfile
+          - frontend/Dockerfile
+          - compose.dev.yml
+          - compose.prod.yml
+          - .github/workflows/docker-backend.yml
+          - .github/workflows/docker-frontend.yml
+
 dependencies:
   - changed-files:
       - any-glob-to-any-file:
