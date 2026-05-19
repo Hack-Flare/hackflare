@@ -100,14 +100,17 @@ impl RequestHandler for HickoryRequestHandler {
         let qname = query_name.to_utf8();
         let qtype = u16::from(query_info.query.query_type());
 
-        let Some(response_bytes) = crate::dns::recursive::resolve(&qname, qtype, &self.dns_config)
-        else {
-            return send_servfail_response(
-                request,
-                response_handle,
-                "Failed to process recursive query",
-            )
-            .await;
+        let response_bytes = match crate::dns::recursive::resolve(&qname, qtype, &self.dns_config) {
+            Ok(bytes) => bytes,
+            Err(e) => {
+                eprintln!("recursive resolve failed for {qname}: {e}");
+                return send_servfail_response(
+                    request,
+                    response_handle,
+                    "Failed to process recursive query",
+                )
+                .await;
+            }
         };
 
         let response_bytes_len = response_bytes.len();
