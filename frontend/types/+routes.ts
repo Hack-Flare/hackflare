@@ -12,30 +12,30 @@ declare module "react-router" {
 
 type Pages = {
   "/": {
-    params: {};
-  };
+    params: {}
+  }
   "/dash": {
-    params: {};
-  };
-};
+    params: {}
+  }
+}
 
 type RouteFiles = {
   "root.tsx": {
-    id: "root";
-    page: "/" | "/dash";
-  };
+    id: "root"
+    page: "/" | "/dash"
+  }
   "routes/home.tsx": {
-    id: "routes/home";
-    page: "/";
-  };
+    id: "routes/home"
+    page: "/"
+  }
   "routes/dash.tsx": {
-    id: "routes/dash";
-    page: "/dash";
-  };
-};
+    id: "routes/dash"
+    page: "/dash"
+  }
+}
 
 type RouteModules = {
-  "root": typeof import("./app/root.js");
-  "routes/home": typeof import("./app/routes/home.js");
-  "routes/dash": typeof import("./app/routes/dash.js");
-};
+  root: typeof import("./app/root.js")
+  "routes/home": typeof import("./app/routes/home.js")
+  "routes/dash": typeof import("./app/routes/dash.js")
+}

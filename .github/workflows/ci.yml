@@ -6,7 +6,6 @@ on:
       - "**/*.md"
       - .github/workflows/docker-frontend.yml
       - .github/workflows/docker-backend.yml
-      - ./frontend/**
   pull_request:
     branches:
       - main
@@ -14,7 +13,6 @@ on:
       - "**/*.md"
       - .github/workflows/docker-frontend.yml
       - .github/workflows/docker-backend.yml
-      - ./frontend/**
   workflow_dispatch:
   workflow_call:
 
@@ -31,12 +29,23 @@ env:
   SQLX_OFFLINE: true
 
 jobs:
-  api:
-    name: API Checks
+  rust:
+    name: Rust Checks
     runs-on: blacksmith-4vcpu-ubuntu-2404
-    defaults:
-      run:
-        working-directory: hackflare_api
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: hackflare
+          POSTGRES_USER: hackflare
+          POSTGRES_DB: hackflare
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v6
 
@@ -45,8 +54,6 @@ jobs:
 
       - name: Cache Rust artifacts
         uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: hackflare_api
 
       - name: Check formatting
         run: cargo fmt --all --check
@@ -59,31 +66,46 @@ jobs:
 
       - name: Run tests
         run: cargo test --all-features
-  dns:
-    name: DNS Checks
+
+      - name: Install sqlx-cli
+        run: cargo install sqlx-cli --no-default-features --features postgres,rustls
+
+      - name: Run migrations
+        run: cargo sqlx migrate run
+        env:
+          DATABASE_URL: postgres://hackflare:hackflare@localhost:5432/hackflare
+          SQLX_OFFLINE: false
+
+      - name: Check offline query files
+        run: cargo sqlx prepare --check --workspace
+        env:
+          DATABASE_URL: postgres://hackflare:hackflare@localhost:5432/hackflare
+          SQLX_OFFLINE: false
+
+  frontend:
+    name: Frontend Checks
     runs-on: blacksmith-4vcpu-ubuntu-2404
     defaults:
       run:
-        working-directory: hackflare_dns
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v6
 
-      - name: Setup Rust
-        uses: ./.github/actions/setup-rust
-
-      - name: Cache Rust artifacts
-        uses: Swatinem/rust-cache@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          workspaces: hackflare_dns
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Check formatting
-        run: cargo fmt --all --check
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Cargo check
-        run: cargo check --all-targets
+      - name: TypeScript type check
+        run: npm run typecheck
 
-      - name: Clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Build
+        run: npm run build
 
-      - name: Run tests
-        run: cargo test --all-features
+      - name: Format check
+        run: npx prettier --check "**/*.{ts,tsx}"

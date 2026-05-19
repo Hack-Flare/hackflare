@@ -32,14 +32,11 @@ export function DataTable<TData, TValue>({
   })
 
   return (
-    <div className="overflow-hidden rounded-md border ">
+    <div className="overflow-hidden rounded-md border">
       <Table className="w-full [&_td]:h-auto [&_td]:px-4 [&_td]:py-2 [&_th]:h-auto [&_th]:px-4 [&_th]:py-2">
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow
-              key={headerGroup.id}
-              className="hover:bg-transparent"
-            >
+            <TableRow key={headerGroup.id} className="hover:bg-transparent">
               {headerGroup.headers.map((header) => (
                 <TableHead
                   key={header.id}

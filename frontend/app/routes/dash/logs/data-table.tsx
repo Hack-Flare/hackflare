@@ -35,16 +35,24 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="overflow-hidden rounded-md border border-zinc-200 dark:border-zinc-800">
-      <Table className="w-full [&_td]:py-2 [&_td]:px-4 [&_td]:h-auto [&_th]:py-2 [&_th]:px-4 [&_th]:h-auto">
+      <Table className="w-full [&_td]:h-auto [&_td]:px-4 [&_td]:py-2 [&_th]:h-auto [&_th]:px-4 [&_th]:py-2">
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id} className="border-zinc-200 dark:border-zinc-800 hover:bg-transparent">
+            <TableRow
+              key={headerGroup.id}
+              className="border-zinc-200 hover:bg-transparent dark:border-zinc-800"
+            >
               {headerGroup.headers.map((header) => (
-                <TableHead key={header.id} className="font-semibold text-zinc-500 dark:text-zinc-400">
-                  {header.isPlaceholder ? null : flexRender(
-                    header.column.columnDef.header,
-                    header.getContext()
-                  )}
+                <TableHead
+                  key={header.id}
+                  className="font-semibold text-zinc-500 dark:text-zinc-400"
+                >
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                 </TableHead>
               ))}
             </TableRow>
@@ -53,7 +61,10 @@ export function DataTable<TData, TValue>({
         <TableBody>
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id} className="border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+              <TableRow
+                key={row.id}
+                className="border-zinc-100 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
+              >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -63,7 +74,10 @@ export function DataTable<TData, TValue>({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center text-zinc-500">
+              <TableCell
+                colSpan={columns.length}
+                className="h-24 text-center text-zinc-500"
+              >
                 No results.
               </TableCell>
             </TableRow>

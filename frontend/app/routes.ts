@@ -24,7 +24,7 @@ export default [
     route("dash/performance", "routes/dash/performance/page.tsx"),
     route("dash/profile", "routes/dash/profile/page.tsx"),
     route("dash/admin", "routes/dash/admin/page.tsx"),
-    route("dash/help","routes/dash/help/page.tsx"),
+    route("dash/help", "routes/dash/help/page.tsx"),
 
     route("dash/domains", "routes/dash/domains/page.tsx"),
     route(

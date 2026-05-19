@@ -48,7 +48,9 @@ export default function Help() {
     setSuccess(false)
     try {
       const userMention = slackId ? `<@${slackId}>` : form.name
-      const categoryLabel = form.category ? `*Category:* ${form.category}\n` : ""
+      const categoryLabel = form.category
+        ? `*Category:* ${form.category}\n`
+        : ""
       const res = await fetch("/api/v1/slack/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -59,9 +61,14 @@ export default function Help() {
       if (!res.ok) throw new Error("Failed to send")
       setSuccess(true)
       setForm(defaultForm)
-      setTimeout(() => { setSuccess(false); setOpen(false) }, 1500)
+      setTimeout(() => {
+        setSuccess(false)
+        setOpen(false)
+      }, 1500)
     } catch {
-      setError("Failed to send message. Please try again or reach out on Slack.")
+      setError(
+        "Failed to send message. Please try again or reach out on Slack."
+      )
     } finally {
       setSending(false)
     }
@@ -108,7 +115,10 @@ export default function Help() {
               </div>
               <div className="space-y-2">
                 <Label>Category</Label>
-                <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
+                <Select
+                  value={form.category}
+                  onValueChange={(v) => setForm({ ...form, category: v })}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
@@ -127,16 +137,30 @@ export default function Help() {
                   rows={4}
                   placeholder="Describe your issue or question..."
                   value={form.message}
-                  onChange={(e) => setForm({ ...form, message: e.target.value })}
-                  className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 dark:border-zinc-800 dark:bg-zinc-950 dark:text-white dark:placeholder:text-zinc-500"
+                  onChange={(e) =>
+                    setForm({ ...form, message: e.target.value })
+                  }
+                  className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/30 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-white dark:placeholder:text-zinc-500"
                 />
               </div>
             </div>
-            {error && <p className="text-sm text-red-500 dark:text-red-400">{error}</p>}
-            {success && <p className="text-sm text-green-600 dark:text-green-400">✓ Message sent! We'll be in touch.</p>}
+            {error && (
+              <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
+            )}
+            {success && (
+              <p className="text-sm text-green-600 dark:text-green-400">
+                ✓ Message sent! We'll be in touch.
+              </p>
+            )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button className="bg-orange-500 text-white hover:bg-orange-600" onClick={handleSubmit} disabled={sending}>
+              <Button variant="outline" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                className="bg-orange-500 text-white hover:bg-orange-600"
+                onClick={handleSubmit}
+                disabled={sending}
+              >
                 {sending ? "Sending..." : "Send Message"}
               </Button>
             </DialogFooter>
@@ -218,7 +242,11 @@ export default function Help() {
                 Send us a message and we'll get back to you on Slack.
               </p>
             </div>
-            <Button variant="orange" onClick={() => setOpen(true)} className="shrink-0">
+            <Button
+              variant="orange"
+              onClick={() => setOpen(true)}
+              className="shrink-0"
+            >
               <MessageCircle className="h-4 w-4" />
               Open Form
             </Button>
