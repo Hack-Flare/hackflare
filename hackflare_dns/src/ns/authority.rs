@@ -438,6 +438,8 @@ impl RequestHandler for AuthorityStore {
 }
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used)]
+
     use super::*;
 
     #[tokio::test]

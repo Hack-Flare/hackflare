@@ -207,6 +207,8 @@ pub fn run_with_hickory(
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used)]
+
     use super::*;
     use crate::dns::config::DnsConfig;
 

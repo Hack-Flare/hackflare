@@ -101,6 +101,8 @@ pub(super) fn tcp_send_recv(addr: &str, msg: &[u8]) -> Option<Vec<u8>> {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used)]
+
     use super::*;
 
     #[test]

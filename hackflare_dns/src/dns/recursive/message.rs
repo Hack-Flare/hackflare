@@ -165,6 +165,8 @@ pub(super) fn extract_ns_and_glue(
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used)]
+
     use super::*;
 
     #[test]
