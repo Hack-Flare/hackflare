@@ -269,6 +269,8 @@ pub(super) fn routes(state: AppState) -> Router<AppState> {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used)]
+
     use std::{net::SocketAddr, str::FromStr};
 
     use axum::body::Body;

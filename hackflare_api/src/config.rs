@@ -132,8 +132,18 @@ pub fn from_env() -> Result<Config> {
     let jwt_secret = env_req::<String>("API_JWT_SECRET")?;
 
     Ok(Config {
-        bind_addr: env_or("API_BIND_ADDR", "0.0.0.0:8080".parse().unwrap())?,
-        dns_bind_addr: env_or("API_DNS_BIND_ADDR", "0.0.0.0:5353".parse().unwrap())?,
+        bind_addr: env_or(
+            "API_BIND_ADDR",
+            "0.0.0.0:8080"
+                .parse()
+                .expect("invalid default API bind address"),
+        )?,
+        dns_bind_addr: env_or(
+            "API_DNS_BIND_ADDR",
+            "0.0.0.0:5353"
+                .parse()
+                .expect("invalid default DNS bind address"),
+        )?,
         client_ip_source: env_or("API_CLIENT_IP_SOURCE", ClientIpSource::ConnectInfo)?,
         database_url,
         auto_migrate,

@@ -40,7 +40,8 @@ fn login_redirect(config: &Config, csrf_token: &str) -> String {
         ("state", csrf_token),
     ];
 
-    let url = Url::parse_with_params(path, params).unwrap();
+    let url = Url::parse_with_params(path, params)
+        .expect("failed to build HCA authorize URL from hardcoded base");
 
     url.to_string()
 }

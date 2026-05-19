@@ -4,3 +4,6 @@ members = [
     "hackflare_api",
     "hackflare_dns",
 ]
+
+[workspace.lints.clippy]
+unwrap_used = "deny"

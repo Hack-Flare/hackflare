@@ -461,6 +461,8 @@ impl ZonePersistence for MemoryPersistence {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used)]
+
     use super::*;
 
     #[tokio::test]

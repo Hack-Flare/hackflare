@@ -80,6 +80,8 @@ pub(super) fn parse_qname(buf: &[u8], mut pos: usize) -> Option<(String, usize)>
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used)]
+
     use super::*;
 
     #[test]

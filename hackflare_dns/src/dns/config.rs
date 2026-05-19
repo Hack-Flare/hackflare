@@ -143,6 +143,8 @@ fn env_usize(name: &str, default: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used)]
+
     use super::*;
 
     #[test]
