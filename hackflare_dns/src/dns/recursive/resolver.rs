@@ -2,19 +2,12 @@ use crate::dns::DnsConfig;
 use rand::seq::SliceRandom;
 use std::net::UdpSocket;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::time::{Duration, Instant};
 
-use super::cache;
+use super::cache::{self, ROOT_CACHE_TTL_SECS};
 use super::hints;
 use super::message::{build_query, clamp_tld_ttl, extract_ns_and_glue, parse_rrs, tld_from_name, DnsHeader};
 use super::transport::{send_recv, tcp_send_recv};
 
-use cache::{CacheValue, DelegationCacheValue, RootCacheValue};
-
-const ROOT_CACHE_TTL_SECS: u64 = 86400;
-const MAX_QUERY_CACHE_ENTRIES: usize = 10_000;
-const MAX_ROOT_CACHE_ENTRIES: usize = 256;
-const MAX_DELEGATION_CACHE_ENTRIES: usize = 1024;
 const MAX_UPSTREAM_SERVERS_PER_ROUND: usize = 8;
 const MAX_CONCURRENT_RESOLVES: usize = 128;
 
@@ -79,70 +72,20 @@ fn resolve_internal(
     let sock = UdpSocket::bind(("0.0.0.0", 0)).ok()?;
     let _ = sock.set_read_timeout(Some(config.udp_timeout));
 
-    if let Ok(mut roots) = cache::ROOT_CACHE.lock()
-        && {
-            cache::prune_cache(
-                &mut roots,
-                MAX_ROOT_CACHE_ENTRIES,
-                |(_, _, exp): &RootCacheValue| Instant::now() >= *exp,
-            );
-            !roots.contains_key("__root__")
-        }
-        && !ROOT_HINTS.is_empty()
-    {
-        let exp = Instant::now() + Duration::from_secs(ROOT_CACHE_TTL_SECS);
-        roots.insert(
-            "__root__".to_string(),
-            (Vec::new(), ROOT_HINTS.clone(), exp),
-        );
-    }
+    cache::CACHE.seed_root_cache(&ROOT_HINTS, ROOT_CACHE_TTL_SECS);
 
-    if let Ok(mut c) = cache::CACHE.lock()
-        && {
-            cache::prune_cache(
-                &mut c,
-                MAX_QUERY_CACHE_ENTRIES,
-                |(_, exp): &CacheValue| Instant::now() >= *exp,
-            );
-            true
-        }
-        && let Some((data, exp)) = c.get(&(name.to_string(), qtype))
-        && Instant::now() < *exp
-    {
-        return Some(data.clone());
+    if let Some(data) = cache::CACHE.get_query(name, qtype) {
+        return Some(data);
     }
 
     let requested_tld = tld_from_name(name);
 
-    let mut servers: Vec<String> = if let Some(tld) = requested_tld.as_ref()
-        && let Ok(delegations) = cache::DELEGATION_CACHE.lock()
-        && {
-            drop(delegations);
-            true
-        }
-        && let Ok(mut delegations) = cache::DELEGATION_CACHE.lock()
-        && {
-            cache::prune_cache(
-                &mut delegations,
-                MAX_DELEGATION_CACHE_ENTRIES,
-                |(_, exp): &DelegationCacheValue| Instant::now() >= *exp,
-            );
-            true
-        }
-        && let Some((cached, exp)) = delegations.get(tld)
-        && Instant::now() < *exp
-        && !cached.is_empty()
-    {
-        cached.clone()
-    } else if let Ok(roots) = cache::ROOT_CACHE.lock()
-        && let Some((_ns_names, glue_ips, exp)) = roots.get("__root__")
-        && Instant::now() < *exp
-        && !glue_ips.is_empty()
-    {
-        glue_ips.clone()
-    } else {
-        ROOT_HINTS.clone()
-    };
+    let mut servers: Vec<String> = requested_tld
+        .as_ref()
+        .and_then(|tld| cache::CACHE.get_delegation(tld))
+        .or_else(|| cache::CACHE.get_root_glue())
+        .unwrap_or_else(|| ROOT_HINTS.clone());
+
     if servers.len() > MAX_UPSTREAM_SERVERS_PER_ROUND {
         servers.truncate(MAX_UPSTREAM_SERVERS_PER_ROUND);
     }
@@ -192,15 +135,7 @@ fn resolve_internal(
                     let mut min_ttl: Option<u32> = None;
                     for rr in &ans_rrs {
                         if rr.rtype == qtype {
-                            if let Ok(mut c) = cache::CACHE.lock() {
-                                cache::prune_cache(
-                                    &mut c,
-                                    MAX_QUERY_CACHE_ENTRIES,
-                                    |(_, exp): &CacheValue| Instant::now() >= *exp,
-                                );
-                                let exp = Instant::now() + Duration::from_secs(u64::from(rr.ttl));
-                                c.insert((name.to_string(), qtype), (resp.clone(), exp));
-                            }
+                            cache::CACHE.put_query(name, qtype, resp.clone(), rr.ttl);
                             debug_log(&format!("resolved {name} type {qtype} via {srv}"), config);
                             return Some(resp.clone());
                         }
@@ -240,15 +175,8 @@ fn resolve_internal(
                 let (ns_names, glue_ips) =
                     extract_ns_and_glue(&resp, &authority_rrs, &additional_rrs);
 
-                if _round == 0
-                    && !ns_names.is_empty()
-                    && let Ok(mut roots) = cache::ROOT_CACHE.lock()
-                {
-                    let exp = Instant::now() + Duration::from_secs(ROOT_CACHE_TTL_SECS);
-                    roots.insert(
-                        "__root__".to_string(),
-                        (ns_names.clone(), glue_ips.clone(), exp),
-                    );
+                if _round == 0 && !ns_names.is_empty() {
+                    cache::CACHE.update_root_cache(&ns_names, &glue_ips, ROOT_CACHE_TTL_SECS);
                 }
 
                 if glue_ips.is_empty() {
@@ -294,19 +222,11 @@ fn resolve_internal(
                     if next_servers.len() > MAX_UPSTREAM_SERVERS_PER_ROUND {
                         next_servers.truncate(MAX_UPSTREAM_SERVERS_PER_ROUND);
                     }
-                    #[allow(clippy::used_underscore_binding)]
                     if _round == 0
                         && let Some(tld) = requested_tld.as_ref()
-                        && let Ok(mut delegations) = cache::DELEGATION_CACHE.lock()
                     {
-                        cache::prune_cache(
-                            &mut delegations,
-                            MAX_DELEGATION_CACHE_ENTRIES,
-                            |(_, exp): &DelegationCacheValue| Instant::now() >= *exp,
-                        );
                         let ttl = clamp_tld_ttl(referral_ttl_secs);
-                        let exp = Instant::now() + Duration::from_secs(ttl);
-                        delegations.insert(tld.clone(), (next_servers.clone(), exp));
+                        cache::CACHE.put_delegation(tld, &next_servers, ttl);
                     }
                     servers.clone_from(&next_servers);
                     break;
