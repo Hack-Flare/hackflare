@@ -4,3 +4,7 @@ members = [
     "hackflare_api",
     "hackflare_dns",
 ]
+
+# Have to ignore as no fix available yet
+[advisories]
+ignore = ["RUSTSEC-2023-0071"]
