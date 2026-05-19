@@ -32,21 +32,98 @@ import { columns, type DnsRecord } from "./columns"
 
 const initialRecords: Record<string, DnsRecord[]> = {
   "example.com": [
-    { id: 1, name: "@",               type: "A",     value: "192.0.2.1",                          ttl: 3600, status: "active"  },
-    { id: 2, name: "www",             type: "CNAME", value: "example.com",                         ttl: 3600, status: "active"  },
-    { id: 3, name: "@",               type: "MX",    value: "mail.example.com (10)",               ttl: 3600, status: "active"  },
-    { id: 4, name: "_acme-challenge", type: "TXT",   value: "v=spf1 include:_spf.google.com ~all", ttl: 300,  status: "active"  },
-    { id: 5, name: "api",             type: "A",     value: "192.0.2.10",                          ttl: 3600, status: "active"  },
-    { id: 6, name: "cdn",             type: "CNAME", value: "d111111abcdef8.cloudfront.net",       ttl: 3600, status: "pending" },
+    {
+      id: 1,
+      name: "@",
+      type: "A",
+      value: "192.0.2.1",
+      ttl: 3600,
+      status: "active",
+    },
+    {
+      id: 2,
+      name: "www",
+      type: "CNAME",
+      value: "example.com",
+      ttl: 3600,
+      status: "active",
+    },
+    {
+      id: 3,
+      name: "@",
+      type: "MX",
+      value: "mail.example.com (10)",
+      ttl: 3600,
+      status: "active",
+    },
+    {
+      id: 4,
+      name: "_acme-challenge",
+      type: "TXT",
+      value: "v=spf1 include:_spf.google.com ~all",
+      ttl: 300,
+      status: "active",
+    },
+    {
+      id: 5,
+      name: "api",
+      type: "A",
+      value: "192.0.2.10",
+      ttl: 3600,
+      status: "active",
+    },
+    {
+      id: 6,
+      name: "cdn",
+      type: "CNAME",
+      value: "d111111abcdef8.cloudfront.net",
+      ttl: 3600,
+      status: "pending",
+    },
   ],
   "hackclub.com": [
-    { id: 1, name: "@",    type: "A",     value: "10.0.0.1",          ttl: 3600, status: "active" },
-    { id: 2, name: "mail", type: "MX",    value: "mail.hackclub.com", ttl: 3600, status: "active" },
-    { id: 3, name: "www",  type: "CNAME", value: "hackclub.com",      ttl: 3600, status: "active" },
+    {
+      id: 1,
+      name: "@",
+      type: "A",
+      value: "10.0.0.1",
+      ttl: 3600,
+      status: "active",
+    },
+    {
+      id: 2,
+      name: "mail",
+      type: "MX",
+      value: "mail.hackclub.com",
+      ttl: 3600,
+      status: "active",
+    },
+    {
+      id: 3,
+      name: "www",
+      type: "CNAME",
+      value: "hackclub.com",
+      ttl: 3600,
+      status: "active",
+    },
   ],
   "mycoolsite.dev": [
-    { id: 1, name: "@",   type: "A", value: "172.16.0.1", ttl: 300, status: "pending" },
-    { id: 2, name: "www", type: "A", value: "172.16.0.1", ttl: 300, status: "pending" },
+    {
+      id: 1,
+      name: "@",
+      type: "A",
+      value: "172.16.0.1",
+      ttl: 300,
+      status: "pending",
+    },
+    {
+      id: 2,
+      name: "www",
+      type: "A",
+      value: "172.16.0.1",
+      ttl: 300,
+      status: "pending",
+    },
   ],
 }
 
@@ -64,9 +141,11 @@ export default function Dns() {
   const [form, setForm] = useState(defaultForm)
 
   const records = domain ? (allRecords[domain] ?? []) : []
-  const aRecords     = records.filter((r) => r.type === "A")
+  const aRecords = records.filter((r) => r.type === "A")
   const cnameRecords = records.filter((r) => r.type === "CNAME")
-  const otherRecords = records.filter((r) => r.type !== "A" && r.type !== "CNAME")
+  const otherRecords = records.filter(
+    (r) => r.type !== "A" && r.type !== "CNAME"
+  )
 
   const handleAdd = () => {
     if (!form.name || !form.value || !domain) return
@@ -108,7 +187,8 @@ export default function Dns() {
             <DialogHeader>
               <DialogTitle>Add DNS Record</DialogTitle>
               <DialogDescription>
-                Add a new DNS record for <span className="text-white font-medium">{domain}</span>
+                Add a new DNS record for{" "}
+                <span className="font-medium text-white">{domain}</span>
               </DialogDescription>
             </DialogHeader>
 
@@ -117,14 +197,18 @@ export default function Dns() {
                 <Label>Type</Label>
                 <Select
                   value={form.type}
-                  onValueChange={(v) => setForm({ ...form, type: v as DnsRecord["type"] })}
+                  onValueChange={(v) =>
+                    setForm({ ...form, type: v as DnsRecord["type"] })
+                  }
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {["A", "CNAME", "MX", "AAAA", "TXT", "NS"].map((t) => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -142,7 +226,13 @@ export default function Dns() {
               <div className="space-y-2">
                 <Label>Value</Label>
                 <Input
-                  placeholder={form.type === "A" ? "192.0.2.1" : form.type === "CNAME" ? "example.com" : ""}
+                  placeholder={
+                    form.type === "A"
+                      ? "192.0.2.1"
+                      : form.type === "CNAME"
+                        ? "example.com"
+                        : ""
+                  }
                   value={form.value}
                   onChange={(e) => setForm({ ...form, value: e.target.value })}
                 />
@@ -153,15 +243,19 @@ export default function Dns() {
                 <Input
                   type="number"
                   value={form.ttl}
-                  onChange={(e) => setForm({ ...form, ttl: Number(e.target.value) })}
+                  onChange={(e) =>
+                    setForm({ ...form, ttl: Number(e.target.value) })
+                  }
                 />
               </div>
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
               <Button
-                className="bg-orange-500 hover:bg-orange-600 text-white"
+                className="bg-orange-500 text-white hover:bg-orange-600"
                 onClick={handleAdd}
               >
                 Add Record
@@ -193,7 +287,9 @@ export default function Dns() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{cnameRecords.length}</p>
-            <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">Aliases</p>
+            <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+              Aliases
+            </p>
           </CardContent>
         </Card>
 
@@ -214,7 +310,9 @@ export default function Dns() {
       <Card>
         <CardHeader>
           <CardTitle>DNS Records</CardTitle>
-          <CardDescription>Create records, point nameservers, verify zones</CardDescription>
+          <CardDescription>
+            Create records, point nameservers, verify zones
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <DataTable columns={columns} data={records} />

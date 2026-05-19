@@ -1,3 +1,3 @@
 export default function DomainRedirectsPage() {
-  return (<p>WIP!</p>)
+  return <p>WIP!</p>
 }

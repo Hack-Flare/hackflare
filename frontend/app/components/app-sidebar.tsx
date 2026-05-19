@@ -403,7 +403,11 @@ export function AppSidebar() {
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
                   <Avatar className="h-8 w-8 shrink-0 rounded-lg">
-                    <AvatarImage src={avatar} alt={userLabel} className="rounded-lg object-cover" />
+                    <AvatarImage
+                      src={avatar}
+                      alt={userLabel}
+                      className="rounded-lg object-cover"
+                    />
                     <AvatarFallback className="rounded-lg bg-orange-500 text-xs font-semibold text-white">
                       {userInitials}
                     </AvatarFallback>

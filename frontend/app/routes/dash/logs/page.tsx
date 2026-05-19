@@ -1,6 +1,12 @@
 import { useState } from "react"
 import { AlertTriangle, Info, CheckCircle, Filter } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card"
 import { Button } from "~/components/ui/button"
 import {
   DropdownMenu,
@@ -14,12 +20,54 @@ import { DataTable } from "./data-table"
 import { columns, type LogEntry } from "./columns"
 
 const logs: LogEntry[] = [
-  { id: 1, timestamp: "2024-01-15 14:32:10", level: "info",    path: "/api/v1/auth/login",   status: 200, ms: 145  },
-  { id: 2, timestamp: "2024-01-15 14:31:45", level: "warning", path: "/missing-asset.js",    status: 404, ms: 8    },
-  { id: 3, timestamp: "2024-01-15 14:31:20", level: "error",   path: "/api/v1/users",        status: 500, ms: 1250 },
-  { id: 4, timestamp: "2024-01-15 14:30:55", level: "info",    path: "/static/css/main.css", status: 304, ms: 2    },
-  { id: 5, timestamp: "2024-01-15 14:30:40", level: "error",   path: "/api/v1/db/query",     status: 503, ms: 5000 },
-  { id: 6, timestamp: "2024-01-15 14:30:15", level: "warning", path: "/api/v1/search",       status: 429, ms: 50   },
+  {
+    id: 1,
+    timestamp: "2024-01-15 14:32:10",
+    level: "info",
+    path: "/api/v1/auth/login",
+    status: 200,
+    ms: 145,
+  },
+  {
+    id: 2,
+    timestamp: "2024-01-15 14:31:45",
+    level: "warning",
+    path: "/missing-asset.js",
+    status: 404,
+    ms: 8,
+  },
+  {
+    id: 3,
+    timestamp: "2024-01-15 14:31:20",
+    level: "error",
+    path: "/api/v1/users",
+    status: 500,
+    ms: 1250,
+  },
+  {
+    id: 4,
+    timestamp: "2024-01-15 14:30:55",
+    level: "info",
+    path: "/static/css/main.css",
+    status: 304,
+    ms: 2,
+  },
+  {
+    id: 5,
+    timestamp: "2024-01-15 14:30:40",
+    level: "error",
+    path: "/api/v1/db/query",
+    status: 503,
+    ms: 5000,
+  },
+  {
+    id: 6,
+    timestamp: "2024-01-15 14:30:15",
+    level: "warning",
+    path: "/api/v1/search",
+    status: 429,
+    ms: 50,
+  },
 ]
 
 type Level = LogEntry["level"]
@@ -105,7 +153,9 @@ export default function Logs() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">7</p>
-            <p className="mt-1 text-xs text-red-600 dark:text-red-500">5xx errors</p>
+            <p className="mt-1 text-xs text-red-600 dark:text-red-500">
+              5xx errors
+            </p>
           </CardContent>
         </Card>
 
@@ -118,7 +168,9 @@ export default function Logs() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">14</p>
-            <p className="mt-1 text-xs text-yellow-600 dark:text-yellow-500">4xx + rate limits</p>
+            <p className="mt-1 text-xs text-yellow-600 dark:text-yellow-500">
+              4xx + rate limits
+            </p>
           </CardContent>
         </Card>
 
@@ -131,7 +183,9 @@ export default function Logs() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">1.2K</p>
-            <p className="mt-1 text-xs text-green-600 dark:text-green-500">Successful requests</p>
+            <p className="mt-1 text-xs text-green-600 dark:text-green-500">
+              Successful requests
+            </p>
           </CardContent>
         </Card>
       </div>
