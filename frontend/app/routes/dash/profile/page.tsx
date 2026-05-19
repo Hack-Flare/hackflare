@@ -45,9 +45,7 @@ export default function Profile() {
   const email = user?.email || "Unknown"
   const slackId = user?.slack_id || "Unknown"
   const verificationStatus = user?.slack_id ? "Verified" : "Not verified"
-  const accountStatus = user?.eligible
-    ? "Active"
-    : "Not eligible"
+  const accountStatus = user?.eligible ? "Active" : "Not eligible"
   const initials = displayName
     .split(" ")
     .map((part) => part[0])

@@ -416,7 +416,7 @@ export function AppSidebar() {
                     <span className="truncate text-sm font-semibold">
                       {userLabel}
                     </span>
-                   {/*<span className="truncate text-xs text-muted-foreground">
+                    {/*<span className="truncate text-xs text-muted-foreground">
                       Hack Club session active
                     </span>*/}
                   </div>
