@@ -6,27 +6,44 @@ on:
   pull_request:
     branches:
       - main
-    types:
-      - closed
+    types: [opened, synchronize, closed]
     paths:
       - 'hackflare_api/**'
       - 'hackflare_dns/**'
       - 'migrations/**'
       - 'Cargo.toml'
       - '.github/workflows/docker-backend.yml'
-  
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: hack-flare/hackflare-backend
 
-concurrency:
-  group: build-and-push-backend
-  cancel-in-progress: true
-
 jobs:
-  build-and-push-image:
-    runs-on: ${{ matrix.runs-on }}
+  build-check:
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    concurrency:
+      group: build-check-backend-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Blacksmith Builder
+        uses: useblacksmith/setup-docker-builder@v1
+
+      - name: Build Docker image (smoke test)
+        uses: useblacksmith/build-push-action@v2
+        with:
+          context: .
+          file: ./hackflare_api/Dockerfile
+          network: host
+          platforms: linux/amd64
+          push: false
+
+  publish:
     if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
+    runs-on: ${{ matrix.runs-on }}
     strategy:
       matrix:
         include:
@@ -35,7 +52,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-      
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
