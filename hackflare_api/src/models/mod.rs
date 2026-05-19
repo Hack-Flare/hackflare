@@ -23,8 +23,8 @@ pub(crate) struct HcaUser {
     /// The primary - and only - email of the user.
     pub(crate) primary_email: String,
 
-    /// The Slack ID of the user.
-    pub(crate) slack_id: String,
+    /// The Slack ID of the user, if linked.
+    pub(crate) slack_id: Option<String>,
 }
 
 #[serde_as]

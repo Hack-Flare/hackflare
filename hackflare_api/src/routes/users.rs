@@ -11,7 +11,7 @@ use crate::{
 #[derive(Serialize)]
 struct Me {
     id: String,
-    slack_id: String,
+    slack_id: Option<String>,
     first_name: String,
     last_name: String,
     email: String,

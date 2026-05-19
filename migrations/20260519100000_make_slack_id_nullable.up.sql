@@ -1,0 +1,2 @@
+ALTER TABLE users ALTER COLUMN slack_id DROP NOT NULL;
+ALTER TABLE users DROP CONSTRAINT users_slack_id_key;

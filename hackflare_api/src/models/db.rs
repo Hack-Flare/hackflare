@@ -9,7 +9,7 @@ use uuid::Uuid;
 pub struct User {
     pub id: String,
     pub email: String,
-    pub slack_id: String,
+    pub slack_id: Option<String>,
     pub first_name: String,
     pub last_name: String,
     pub verification_status: String,
