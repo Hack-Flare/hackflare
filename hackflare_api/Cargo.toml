@@ -45,3 +45,7 @@ hackflare-dns = { path = "../hackflare_dns" }
 [dev-dependencies]
 tower = "0.5"
 http-body-util = "0.1"
+
+# Have to ignore as no fix available yet
+[advisories]
+ignore = ["RUSTSEC-2023-0071"]
