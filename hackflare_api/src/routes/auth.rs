@@ -275,16 +275,17 @@ async fn callback_handler(
             (StatusCode::INTERNAL_SERVER_ERROR, "jwt_encode_error")
         })?;
 
-    let is_secure = config.hca.is_secure();
-
-    let cookie = Cookie::build(("jwt", token))
-        .path("/")
-        .http_only(true)
-        .secure(is_secure)
-        // NB: use lax to e.g. allow for email links etc. while still protecting from CSRF
-        .same_site(SameSite::Lax)
-        .max_age(cookie::time::Duration::hours(SESSION_DURATION_HOURS))
-        .build();
+    let cookie = {
+        let mut c = Cookie::build(("jwt", token))
+            .path("/")
+            .http_only(true)
+            .same_site(SameSite::Lax)
+            .max_age(cookie::time::Duration::hours(SESSION_DURATION_HOURS));
+        if config.hca.is_secure() {
+            c = c.secure(true);
+        }
+        c.build()
+    };
 
     // TODO: do we have to validate this cookie? is it not HttpOnly already?
     // would it allow for open redirects to other origins?
@@ -302,15 +303,17 @@ async fn callback_handler(
 }
 
 async fn logout_handler(State(state): State<AppState>) -> Response {
-    let is_secure = state.config.hca.is_secure();
-
-    let cookie = Cookie::build(("jwt", ""))
-        .path("/")
-        .http_only(true)
-        .secure(is_secure)
-        .same_site(SameSite::Lax)
-        .max_age(cookie::time::Duration::ZERO)
-        .build();
+    let cookie = {
+        let mut c = Cookie::build(("jwt", ""))
+            .path("/")
+            .http_only(true)
+            .same_site(SameSite::Lax)
+            .max_age(cookie::time::Duration::ZERO);
+        if state.config.hca.is_secure() {
+            c = c.secure(true);
+        }
+        c.build()
+    };
 
     (
         StatusCode::NO_CONTENT,
