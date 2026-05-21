@@ -28,8 +28,8 @@ RUN case "$TARGETPLATFORM" in \
     cargo build --release --target "$RUST_TARGET" --package hackflare-api --bin hackflare-api && \
     cp "target/$RUST_TARGET/release/hackflare-api" /hackflare-api
 
-FROM scratch
-# Copy CA certificates so that the reqwest HTTP client can make secure HTTPS calls
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+FROM alpine:3.20
+# Install CA certificates for HTTPS support and ensure proper /etc filesystem for DNS
+RUN apk add --no-cache ca-certificates
 COPY --from=builder /hackflare-api /hackflare-api
 ENTRYPOINT ["/hackflare-api"]
