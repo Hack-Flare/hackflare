@@ -9,6 +9,8 @@ services:
       - RUST_LOG=debug,hackflare=trace
     ports:
       - "8080:8080"
+      - "53:5353/udp"
+      - "53:5353/tcp"
     depends_on:
       - db
 
