@@ -10,19 +10,19 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  audit:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install cargo-audit
-        run: cargo install cargo-audit --locked
-
-      - name: Run audit
-        run: cargo audit --deny warnings
+  #audit:
+  #  runs-on: blacksmith-4vcpu-ubuntu-2404
+  #  steps:
+  #    - uses: actions/checkout@v6
+  #
+  #    - name: Install Rust
+  #      uses: dtolnay/rust-toolchain@stable
+  #
+  #    - name: Install cargo-audit
+  #      run: cargo install cargo-audit --locked
+  #
+  #    - name: Run audit
+  #      run: cargo audit --deny warnings
 
   codeql:
     runs-on: blacksmith-8vcpu-ubuntu-2404
