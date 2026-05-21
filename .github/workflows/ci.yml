@@ -109,3 +109,29 @@ jobs:
 
       - name: Format check
         run: npx prettier --check "**/*.{ts,tsx}"
+
+  codeql:
+    runs-on: blacksmith-8vcpu-ubuntu-2404
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript, rust
+
+      - name: Build Rust workspace
+        run: cargo build
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
