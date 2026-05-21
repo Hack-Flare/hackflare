@@ -4,7 +4,6 @@ services:
     build:
       context: .
       dockerfile: hackflare_api/Dockerfile
-    platform: linux/amd64
     env_file:
       - .env
     environment:
@@ -17,6 +16,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - backend
 
   db:
     profiles: [backend]
@@ -34,6 +35,8 @@ services:
       interval: 3s
       retries: 10
       start_period: 10s
+    networks:
+      - backend
 
   frontend:
     profiles: [frontend]
@@ -41,11 +44,12 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    platform: linux/amd64
     env_file:
       - .env
     ports:
       - "3000:3000"
+    networks:
+      - backend
 
   pgadmin4:
     profiles: [backend]
@@ -58,6 +62,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - backend
 
 volumes:
   pgdata:
+
+networks:
+  backend:
