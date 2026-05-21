@@ -31,7 +31,7 @@ env:
 jobs:
   rust:
     name: Rust Checks
-    runs-on: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) && 'ubuntu-24.04' || 'blacksmith-8vcpu-ubuntu-2404' }}
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     services:
       postgres:
         image: postgres:18
@@ -84,7 +84,7 @@ jobs:
 
   frontend:
     name: Frontend Checks
-    runs-on: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) && 'ubuntu-24.04' || 'blacksmith-4vcpu-ubuntu-2404' }}
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     defaults:
       run:
         working-directory: frontend
@@ -111,7 +111,7 @@ jobs:
         run: npx prettier --check "**/*.{ts,tsx}"
 
   codeql:
-    runs-on: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) && 'ubuntu-24.04' || 'blacksmith-8vcpu-ubuntu-2404' }}
+    runs-on: blacksmith-8vcpu-ubuntu-2404
     permissions:
       security-events: write
       actions: read
