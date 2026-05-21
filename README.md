@@ -11,7 +11,7 @@ See [ROADMAP.md](ROADMAP.md) for the roadmap.
 
 ## Running the project
 
-## Production
+### Production
 
 Backend Docker
 ```
@@ -28,7 +28,7 @@ All in One Docker
 docker compose -f compose.prod.yml --profile backend --profile frontend up
 ```
 
-## Development
+### Development
 
 Backend Docker
 ```
