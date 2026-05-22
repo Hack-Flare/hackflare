@@ -64,7 +64,7 @@ jobs:
             tag-suffix: -arm64
     runs-on: ${{ matrix.runs-on }}
     concurrency:
-      group: publish-backend-${{ github.ref }}
+      group: publish-backend-${{ github.ref }}-${{ matrix.platform }}
       cancel-in-progress: true
     permissions:
       contents: read
