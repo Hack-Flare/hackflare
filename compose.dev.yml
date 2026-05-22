@@ -8,7 +8,6 @@ services:
       - .env
     environment:
       - RUST_LOG=debug,hackflare=trace
-    restart: unless-stopped
     ports:
       - "8080:8080"
       - "53:5353/udp"
@@ -22,7 +21,6 @@ services:
   db:
     profiles: [backend]
     image: postgres:18
-    restart: unless-stopped
     shm_size: 256mb
     env_file:
       - .env
@@ -40,7 +38,6 @@ services:
 
   frontend:
     profiles: [frontend]
-    restart: unless-stopped
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -54,7 +51,6 @@ services:
   pgadmin4:
     profiles: [backend]
     image: dpage/pgadmin4
-    restart: unless-stopped
     env_file:
       - .env
     ports:
