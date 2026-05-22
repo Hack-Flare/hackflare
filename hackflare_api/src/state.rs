@@ -1,4 +1,4 @@
-use std::{path::Path, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use anyhow::Result;
 use axum::extract::FromRef;
@@ -33,7 +33,7 @@ pub struct AppState {
 
 #[instrument(skip(db))]
 async fn migrate_or_verify(db: &PgPool, config: &Config) -> Result<()> {
-    let migrator = Migrator::new(Path::new("../migrations")).await?;
+    let migrator = sqlx::migrate!("../migrations");
 
     if config.auto_migrate {
         migrator.run(db).await?;
