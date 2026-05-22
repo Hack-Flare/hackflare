@@ -9,6 +9,7 @@ COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
+ENV SQLX_OFFLINE=true
 COPY --from=planner /app/recipe.json recipe.json
 ARG TARGETPLATFORM
 RUN case "$TARGETPLATFORM" in \
@@ -17,7 +18,6 @@ RUN case "$TARGETPLATFORM" in \
     esac && \
     RUSTFLAGS="-C target-feature=+crt-static" \
     cargo chef cook --release --target "$RUST_TARGET" --recipe-path recipe.json
-ENV SQLX_OFFLINE=true
 COPY . .
 ARG TARGETPLATFORM
 RUN case "$TARGETPLATFORM" in \
