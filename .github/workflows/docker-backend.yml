@@ -22,9 +22,17 @@ env:
 jobs:
   build-check:
     if: github.event_name == 'pull_request' && github.event.action != 'closed'
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runs-on: blacksmith-4vcpu-ubuntu-2404
+          - platform: linux/arm64
+            runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ${{ matrix.runs-on }}
     concurrency:
-      group: build-check-backend-${{ github.ref }}
+      group: build-check-backend-${{ github.ref }}-${{ matrix.platform }}
       cancel-in-progress: true
     steps:
       - name: Checkout repository
@@ -39,7 +47,7 @@ jobs:
           context: .
           file: ./hackflare_api/Dockerfile
           network: host
-          platforms: linux/amd64
+          platforms: ${{ matrix.platform }}
           push: false
 
   build-and-push:
