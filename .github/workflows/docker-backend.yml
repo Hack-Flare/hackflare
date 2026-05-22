@@ -28,8 +28,8 @@ jobs:
         include:
           - platform: linux/amd64
             runs-on: blacksmith-4vcpu-ubuntu-2404
-          - platform: linux/arm64
-            runs-on: blacksmith-4vcpu-ubuntu-2404
+          #- platform: linux/arm64
+          #  runs-on: blacksmith-4vcpu-ubuntu-2404
     runs-on: ${{ matrix.runs-on }}
     concurrency:
       group: build-check-backend-${{ github.ref }}-${{ matrix.platform }}
@@ -59,9 +59,9 @@ jobs:
           - platform: linux/amd64
             runs-on: blacksmith-8vcpu-ubuntu-2404
             tag-suffix: -amd64
-          - platform: linux/arm64
-            runs-on: blacksmith-8vcpu-ubuntu-2404
-            tag-suffix: -arm64
+          #- platform: linux/arm64
+          #  runs-on: blacksmith-8vcpu-ubuntu-2404
+          #  tag-suffix: -arm64
     runs-on: ${{ matrix.runs-on }}
     concurrency:
       group: publish-backend-${{ github.ref }}-${{ matrix.platform }}
