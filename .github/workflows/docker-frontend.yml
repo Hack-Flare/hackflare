@@ -11,6 +11,10 @@ on:
       - 'frontend/**'
       - '.github/workflows/docker-frontend.yml'
 
+concurrency:
+      group: frontend-${{ github.ref }}-${{ matrix.platform }}
+      cancel-in-progress: true
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: hack-flare/hackflare-frontend
@@ -19,9 +23,6 @@ jobs:
   build-check:
     if: github.event_name == 'pull_request' && github.event.action != 'closed'
     runs-on: blacksmith-4vcpu-ubuntu-2404
-    concurrency:
-      group: build-check-frontend-${{ github.ref }}
-      cancel-in-progress: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
