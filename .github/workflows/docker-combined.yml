@@ -16,6 +16,7 @@ on:
       - 'Dockerfile.combined'
       - 'hackflare_supervisord.conf'
       - '.github/workflows/docker-combined.yml'
+      - '.dockerignore'
 
 env:
   REGISTRY: ghcr.io
@@ -24,9 +25,15 @@ env:
 jobs:
   build-check:
     if: github.event_name == 'pull_request' && github.event.action != 'closed'
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ${{ matrix.runs-on }}
     concurrency:
-      group: build-check-combined-${{ github.ref }}
+      group: build-check-combined-${{ github.ref }}-${{ matrix.platform }}
       cancel-in-progress: true
     steps:
       - name: Checkout repository
@@ -36,16 +43,27 @@ jobs:
         uses: useblacksmith/setup-docker-builder@v1
 
       - name: Build Docker image (smoke test)
-        run: docker build -t hackflare-combined-test -f Dockerfile.combined .
+        uses: useblacksmith/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile.combined
+          network: host
+          platforms: ${{ matrix.platform }}
+          push: false
 
-  publish:
+  build-and-push:
     if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
-    runs-on: ${{ matrix.runs-on }}
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - runs-on: blacksmith-8vcpu-ubuntu-2404
-            tag-suffix: ""
+          - platform: linux/amd64
+            runs-on: blacksmith-8vcpu-ubuntu-2404
+            tag-suffix: -amd64
+    runs-on: ${{ matrix.runs-on }}
+    concurrency:
+      group: publish-combined-${{ github.ref }}-${{ matrix.platform }}
+      cancel-in-progress: true
     permissions:
       contents: read
       packages: write
@@ -70,16 +88,60 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=sha
-            type=raw,value=latest
+            type=ref,event=branch,suffix=${{ matrix.tag-suffix }}
+            type=sha,suffix=${{ matrix.tag-suffix }}
+            type=raw,value=latest${{ matrix.tag-suffix }}
 
       - name: Build and push Docker image
         uses: useblacksmith/build-push-action@v2
         with:
           context: .
           file: ./Dockerfile.combined
-          platforms: linux/amd64,linux/arm64
+          network: host
+          platforms: ${{ matrix.platform }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  merge-manifest:
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
+    needs: build-and-push
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Setup Blacksmith Builder
+        uses: useblacksmith/setup-docker-builder@v1
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha
+            type=raw,value=latest
+
+      - name: Create and push multi-arch manifest
+        shell: bash
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          set -euo pipefail
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          while IFS= read -r TAG; do
+            [ -z "$TAG" ] && continue
+            TAG_PART="${TAG##*:}"
+            docker buildx imagetools create \
+              -t "$TAG" \
+              "$IMAGE:${TAG_PART}-amd64"
+          done <<< "$TAGS"
