@@ -1,0 +1,85 @@
+name: Combined Docker Image
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, closed]
+    paths:
+      - 'frontend/**'
+      - 'hackflare_api/**'
+      - 'hackflare_dns/**'
+      - 'migrations/**'
+      - 'Cargo.toml'
+      - 'Dockerfile.combined'
+      - 'hackflare_supervisord.conf'
+      - '.github/workflows/docker-combined.yml'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: hack-flare/hackflare-combined
+
+jobs:
+  build-check:
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    concurrency:
+      group: build-check-combined-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Blacksmith Builder
+        uses: useblacksmith/setup-docker-builder@v1
+
+      - name: Build Docker image (smoke test)
+        run: docker build -t hackflare-combined-test -f Dockerfile.combined .
+
+  publish:
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      matrix:
+        include:
+          - runs-on: blacksmith-4vcpu-ubuntu-2404
+            tag-suffix: ""
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Blacksmith Builder
+        uses: useblacksmith/setup-docker-builder@v1
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha
+            type=raw,value=latest
+
+      - name: Build and push Docker image
+        uses: useblacksmith/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile.combined
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

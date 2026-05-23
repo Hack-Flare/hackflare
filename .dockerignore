@@ -2,7 +2,6 @@
 .gitignore
 .gitattributes
 target/
-frontend/
 node_modules/
 compose.dev.yml
 compose.prod.yml
