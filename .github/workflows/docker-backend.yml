@@ -15,10 +15,6 @@ on:
       - '.github/workflows/docker-backend.yml'
       - '.dockerignore'
 
-concurrency:
-      group: backend-${{ github.ref }}-${{ matrix.platform }}
-      cancel-in-progress: true
-
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: hack-flare/hackflare-backend
@@ -26,6 +22,9 @@ env:
 jobs:
   build-check:
     if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    concurrency:
+      group: backend-check-${{ github.ref }}-${{ matrix.platform }}
+      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:
@@ -53,12 +52,14 @@ jobs:
 
   publish:
     if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
+    concurrency:
+      group: backend-publish-${{ github.ref }}-${{ matrix.platform }}
+      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: linux/amd64
-            runs-on: blacksmith-8vcpu-ubuntu-2404
+          - runs-on: blacksmith-8vcpu-ubuntu-2404
             tag-suffix: -amd64
           #- platform: linux/arm64
           #  runs-on: blacksmith-8vcpu-ubuntu-2404
