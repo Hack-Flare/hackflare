@@ -7,7 +7,6 @@ FROM node:20-alpine AS frontend-build
 WORKDIR /app
 COPY --from=frontend-deps /app/node_modules ./node_modules
 COPY frontend/ ./
-ARG VITE_API_URL=http://localhost:8080
 RUN npm run build
 
 FROM node:20-alpine AS frontend-prod-deps
@@ -53,6 +52,8 @@ ENV MIGRATIONS_PATH=/app/migrations
 
 COPY --from=frontend-prod-deps /app/node_modules /app/frontend/node_modules
 COPY --from=frontend-build /app/build /app/frontend/build
+COPY --from=frontend-build /app/server /app/frontend/server
+COPY --from=frontend-build /app/public /app/frontend/public
 COPY --from=frontend-build /app/package.json /app/frontend/package.json
 
 COPY hackflare_supervisord.conf /etc/supervisord.conf
