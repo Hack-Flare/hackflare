@@ -29,7 +29,7 @@ chrono = { version = "0.4.44", default-features = false, features = ["clock", "s
 uuid = { version = "1.23.1", features = ["serde", "v4"] }
 
 # Auth
-jsonwebtoken = { version = "10.4.0", default-features = false, features = ["hmac"] }
+jsonwebtoken = { version = "10.4.0", default-features = false, features = ["hmac", "rust_crypto"] }
 
 # Database
 sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "postgres", "chrono", "ipnet", "uuid", "migrate", "derive"] }
