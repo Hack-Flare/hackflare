@@ -145,3 +145,10 @@ jobs:
               -t "$TAG" \
               "$IMAGE:${TAG_PART}-amd64"
           done <<< "$TAGS"
+  coolify-webhook:
+    needs: merge-manifest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    steps:
+      - name: Deploy to Coolify
+        run: |
+          curl --request GET '${{ secrets.COOLIFY_WEBHOOK }}' --header 'Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}'
