@@ -57,7 +57,7 @@ COPY --from=frontend-build /app/server /app/frontend/server
 COPY --from=frontend-build /app/public /app/frontend/public
 COPY --from=frontend-build /app/package.json /app/frontend/package.json
 
-COPY hackflare_supervisord.conf /etc/supervisord.conf
+COPY deployment/hackflare_supervisord.conf /etc/supervisord.conf
 
 EXPOSE 3000
 CMD ["supervisord", "-c", "/etc/supervisord.conf", "-n"]
