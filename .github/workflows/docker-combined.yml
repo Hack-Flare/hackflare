@@ -13,8 +13,8 @@ on:
       - 'hackflare_dns/**'
       - 'migrations/**'
       - 'Cargo.toml'
-      - 'Dockerfile.combined'
-      - 'hackflare_supervisord.conf'
+      - 'deployment/Dockerfile.combined'
+      - 'deployment/hackflare_supervisord.conf'
       - '.github/workflows/docker-combined.yml'
       - '.dockerignore'
 
@@ -46,7 +46,7 @@ jobs:
         uses: useblacksmith/build-push-action@v2
         with:
           context: .
-          file: ./Dockerfile.combined
+          file: ./deployment/Dockerfile.combined
           network: host
           platforms: ${{ matrix.platform }}
           push: false
@@ -96,7 +96,7 @@ jobs:
         uses: useblacksmith/build-push-action@v2
         with:
           context: .
-          file: ./Dockerfile.combined
+          file: ./deployment/Dockerfile.combined
           network: host
           platforms: ${{ matrix.platform }}
           push: true

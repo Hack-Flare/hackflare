@@ -19,8 +19,8 @@ docker:
       - any-glob-to-any-file:
           - hackflare_api/Dockerfile
           - frontend/Dockerfile
-          - compose.dev.yml
-          - compose.prod.yml
+          - deployment/compose.dev.yml
+          - deployment/compose.prod.yml
           - .github/workflows/docker-backend.yml
           - .github/workflows/docker-frontend.yml
 
