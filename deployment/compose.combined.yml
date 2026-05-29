@@ -2,7 +2,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile.combined
+      dockerfile: deployment/Dockerfile.combined
     env_file:
       - .env
     ports:
