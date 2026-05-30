@@ -2,10 +2,10 @@ services:
   api:
     profiles: [backend]
     build:
-      context: .
+      context: ../
       dockerfile: hackflare_api/Dockerfile
     env_file:
-      - .env
+      - ../.env
     environment:
       - RUST_LOG=debug,hackflare=trace
     ports:
@@ -23,7 +23,7 @@ services:
     image: postgres:18
     shm_size: 256mb
     env_file:
-      - .env
+      - ../.env
     ports:
       - "5432:5432"
     volumes:
@@ -39,10 +39,12 @@ services:
   frontend:
     profiles: [frontend]
     build:
-      context: ./frontend
+      context: ../frontend
       dockerfile: Dockerfile
     env_file:
-      - .env
+      - ../.env
+    environment:
+      API_PROXY_TARGET: "http://api:8080"
     ports:
       - "3000:3000"
     networks:
@@ -52,7 +54,7 @@ services:
     profiles: [backend]
     image: dpage/pgadmin4
     env_file:
-      - .env
+      - ../.env
     ports:
       - "5050:80"
     depends_on:

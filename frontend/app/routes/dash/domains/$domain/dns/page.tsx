@@ -1,7 +1,7 @@
 import { useParams } from "react-router"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "~/components/ui/button"
-import { Plus, Globe, Zap, Activity } from "lucide-react"
+import { Plus, Globe, Zap, Activity, Loader2, AlertCircle } from "lucide-react"
 import {
   Card,
   CardContent,
@@ -28,142 +28,103 @@ import {
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { DataTable } from "./data-table"
-import { columns, type DnsRecord } from "./columns"
-
-const initialRecords: Record<string, DnsRecord[]> = {
-  "example.com": [
-    {
-      id: 1,
-      name: "@",
-      type: "A",
-      value: "192.0.2.1",
-      ttl: 3600,
-      status: "active",
-    },
-    {
-      id: 2,
-      name: "www",
-      type: "CNAME",
-      value: "example.com",
-      ttl: 3600,
-      status: "active",
-    },
-    {
-      id: 3,
-      name: "@",
-      type: "MX",
-      value: "mail.example.com (10)",
-      ttl: 3600,
-      status: "active",
-    },
-    {
-      id: 4,
-      name: "_acme-challenge",
-      type: "TXT",
-      value: "v=spf1 include:_spf.google.com ~all",
-      ttl: 300,
-      status: "active",
-    },
-    {
-      id: 5,
-      name: "api",
-      type: "A",
-      value: "192.0.2.10",
-      ttl: 3600,
-      status: "active",
-    },
-    {
-      id: 6,
-      name: "cdn",
-      type: "CNAME",
-      value: "d111111abcdef8.cloudfront.net",
-      ttl: 3600,
-      status: "pending",
-    },
-  ],
-  "hackclub.com": [
-    {
-      id: 1,
-      name: "@",
-      type: "A",
-      value: "10.0.0.1",
-      ttl: 3600,
-      status: "active",
-    },
-    {
-      id: 2,
-      name: "mail",
-      type: "MX",
-      value: "mail.hackclub.com",
-      ttl: 3600,
-      status: "active",
-    },
-    {
-      id: 3,
-      name: "www",
-      type: "CNAME",
-      value: "hackclub.com",
-      ttl: 3600,
-      status: "active",
-    },
-  ],
-  "mycoolsite.dev": [
-    {
-      id: 1,
-      name: "@",
-      type: "A",
-      value: "172.16.0.1",
-      ttl: 300,
-      status: "pending",
-    },
-    {
-      id: 2,
-      name: "www",
-      type: "A",
-      value: "172.16.0.1",
-      ttl: 300,
-      status: "pending",
-    },
-  ],
-}
+import { useColumns, type DnsRecord } from "./columns"
+import { api } from "~/lib/api"
 
 const defaultForm = {
   name: "",
-  type: "A" as DnsRecord["type"],
+  type: "A" as string,
   value: "",
   ttl: 3600,
 }
 
 export default function Dns() {
   const { domain } = useParams<{ domain: string }>()
-  const [allRecords, setAllRecords] = useState(initialRecords)
+  const [records, setRecords] = useState<DnsRecord[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [addError, setAddError] = useState<string | null>(null)
   const [form, setForm] = useState(defaultForm)
+  const [deleting, setDeleting] = useState<string | null>(null)
 
-  const records = domain ? (allRecords[domain] ?? []) : []
+  const fetchRecords = async () => {
+    if (!domain) return
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await api.dns.listRecords(domain)
+      setRecords(data)
+    } catch (err) {
+      const msg =
+        err && typeof err === "object" && "error" in err
+          ? String((err as { error: unknown }).error)
+          : "Failed to load DNS records"
+      setError(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void fetchRecords()
+  }, [domain])
+
   const aRecords = records.filter((r) => r.type === "A")
   const cnameRecords = records.filter((r) => r.type === "CNAME")
   const otherRecords = records.filter(
     (r) => r.type !== "A" && r.type !== "CNAME"
   )
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!form.name || !form.value || !domain) return
-    const newRecord: DnsRecord = {
-      id: Date.now(),
-      name: form.name,
-      type: form.type,
-      value: form.value,
-      ttl: form.ttl,
-      status: "pending",
+    setAdding(true)
+    setAddError(null)
+    try {
+      await api.dns.createRecord(domain, {
+        name: form.name,
+        type: form.type,
+        value: form.value,
+        ttl: form.ttl,
+      })
+      setForm(defaultForm)
+      setOpen(false)
+      await fetchRecords()
+    } catch (err) {
+      const msg =
+        err && typeof err === "object" && "error" in err
+          ? String((err as { error: unknown }).error)
+          : "Failed to add record"
+      setAddError(msg)
+    } finally {
+      setAdding(false)
     }
-    setAllRecords((prev) => ({
-      ...prev,
-      [domain]: [...(prev[domain] ?? []), newRecord],
-    }))
-    setForm(defaultForm)
-    setOpen(false)
   }
+
+  const handleDelete = async (record: DnsRecord) => {
+    if (!domain) return
+    setDeleting(record.id)
+    try {
+      await api.dns.deleteRecord(domain, record.name, record.type)
+      await fetchRecords()
+    } catch (err) {
+      const msg =
+        err && typeof err === "object" && "error" in err
+          ? String((err as { error: unknown }).error)
+          : "Failed to delete record"
+      setError(msg)
+    } finally {
+      setDeleting(null)
+    }
+  }
+
+  const handleEdit = (record: DnsRecord) => {
+    // TODO: implement edit dialog in a follow-up
+    console.log("edit", record)
+  }
+
+  const columns = useColumns({ onDelete: handleDelete, onEdit: handleEdit })
 
   return (
     <div className="space-y-6">
@@ -193,12 +154,17 @@ export default function Dns() {
             </DialogHeader>
 
             <div className="space-y-4 py-2">
+              {addError && (
+                <div className="rounded bg-red-100 px-3 py-2 text-sm text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                  {addError}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Type</Label>
                 <Select
                   value={form.type}
                   onValueChange={(v) =>
-                    setForm({ ...form, type: v as DnsRecord["type"] })
+                    setForm({ ...form, type: v })
                   }
                 >
                   <SelectTrigger className="w-full">
@@ -220,6 +186,7 @@ export default function Dns() {
                   placeholder="@ or subdomain"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  disabled={adding}
                 />
               </div>
 
@@ -235,6 +202,7 @@ export default function Dns() {
                   }
                   value={form.value}
                   onChange={(e) => setForm({ ...form, value: e.target.value })}
+                  disabled={adding}
                 />
               </div>
 
@@ -246,19 +214,21 @@ export default function Dns() {
                   onChange={(e) =>
                     setForm({ ...form, ttl: Number(e.target.value) })
                   }
+                  disabled={adding}
                 />
               </div>
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>
+              <Button variant="outline" onClick={() => setOpen(false)} disabled={adding}>
                 Cancel
               </Button>
               <Button
                 className="bg-orange-500 text-white hover:bg-orange-600"
                 onClick={handleAdd}
+                disabled={adding}
               >
-                Add Record
+                {adding ? "Adding..." : "Add Record"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -315,7 +285,18 @@ export default function Dns() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <DataTable columns={columns} data={records} />
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-zinc-500" />
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center gap-2 py-12 text-red-500">
+              <AlertCircle className="h-5 w-5" />
+              <span className="text-sm">{error}</span>
+            </div>
+          ) : (
+            <DataTable columns={columns} data={records} />
+          )}
         </CardContent>
       </Card>
     </div>

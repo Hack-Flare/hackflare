@@ -11,6 +11,35 @@ export interface AuthenticatedUser {
   eligible: boolean
 }
 
+export interface DnsZone {
+  name: string
+  ns_verified: boolean
+}
+
+export interface DnsRecord {
+  id: string
+  name: string
+  type: string
+  value: string
+  ttl: number
+  status: string
+}
+
+export interface UserSession {
+  id: string
+  user_id: string
+  ip_address: string
+  expires_at: string
+  created_at: string
+  revoked_at: string | null
+}
+
+export interface HealthResponse {
+  status: string
+  database: string
+  dns_zones: number
+}
+
 interface ApiError {
   error: string
   status: number
@@ -92,17 +121,66 @@ export const api = {
   },
 
   dns: {
-    listZones: () => request("/api/v1/dns/zones"),
+    listZones: () => request<DnsZone[]>("/api/v1/dns/zones"),
 
     createZone: (name: string) =>
-      request("/api/v1/dns/zones", {
+      request<DnsZone>("/api/v1/dns/zones", {
         method: "POST",
         body: { name },
       }),
 
-    verifyZone: (zoneName: string) =>
-      request(`/api/v1/dns/zones/${encodeURIComponent(zoneName)}/verify`, {
-        method: "POST",
+    deleteZone: (zoneName: string) =>
+      request<void>(`/api/v1/dns/zones/${encodeURIComponent(zoneName)}`, {
+        method: "DELETE",
       }),
+
+    verifyZone: (zoneName: string) =>
+      request<{ verified: boolean; message?: string }>(
+        `/api/v1/dns/zones/${encodeURIComponent(zoneName)}/verify`,
+        { method: "POST" }
+      ),
+
+    listRecords: (zoneName: string) =>
+      request<DnsRecord[]>(
+        `/api/v1/dns/zones/${encodeURIComponent(zoneName)}/records`
+      ),
+
+    createRecord: (
+      zoneName: string,
+      data: { name: string; type: string; value: string; ttl: number }
+    ) =>
+      request<DnsRecord>(
+        `/api/v1/dns/zones/${encodeURIComponent(zoneName)}/records`,
+        { method: "POST", body: data }
+      ),
+
+    updateRecord: (
+      zoneName: string,
+      recordName: string,
+      recordType: string,
+      data: { value: string; ttl: number }
+    ) =>
+      request<DnsRecord>(
+        `/api/v1/dns/zones/${encodeURIComponent(zoneName)}/records/${encodeURIComponent(recordName)}/${encodeURIComponent(recordType)}`,
+        { method: "PUT", body: data }
+      ),
+
+    deleteRecord: (
+      zoneName: string,
+      recordName: string,
+      recordType: string
+    ) =>
+      request<void>(
+        `/api/v1/dns/zones/${encodeURIComponent(zoneName)}/records/${encodeURIComponent(recordName)}/${encodeURIComponent(recordType)}`,
+        { method: "DELETE" }
+      ),
+  },
+
+  health: {
+    check: () => request<HealthResponse>("/api/v1/health"),
+  },
+
+  sessions: {
+    list: () => request<UserSession[]>("/api/v1/sessions"),
   },
 }

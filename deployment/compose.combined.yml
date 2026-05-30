@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: deployment/Dockerfile.combined
     env_file:
-      - .env
+      - ../.env
     ports:
       - "3000:3000"
       - "53:5353/udp"
@@ -25,7 +25,7 @@ services:
     image: postgres:18
     shm_size: 256mb
     env_file:
-      - .env
+      - ../.env
     ports:
       - "5432:5432"
     volumes:
