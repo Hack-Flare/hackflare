@@ -104,6 +104,7 @@ pub struct Config {
     pub(crate) access_token_minutes: i64,
     pub(crate) refresh_token_days: i64,
     pub(crate) dns_nameservers: Vec<String>,
+    pub(crate) admin_emails: Vec<String>,
 }
 
 impl Config {}
@@ -174,6 +175,12 @@ pub fn from_env() -> Result<Config> {
             .unwrap_or_else(|_| "ns1.hackflare.dev,ns2.hackflare.dev".to_string())
             .split(',')
             .map(|s| s.trim().to_string().trim_end_matches('.').to_string())
+            .filter(|s| !s.is_empty())
+            .collect(),
+        admin_emails: env::var("API_ADMIN_EMAILS")
+            .unwrap_or_default()
+            .split(',')
+            .map(|s| s.trim().to_lowercase())
             .filter(|s| !s.is_empty())
             .collect(),
     })

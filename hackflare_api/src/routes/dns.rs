@@ -410,6 +410,7 @@ mod tests {
                 access_token_minutes: 15,
                 refresh_token_days: 30,
                 dns_nameservers: vec!["ns1.hackflare.dev".into(), "ns2.hackflare.dev".into()],
+                admin_emails: vec![],
             };
 
             let state = AppState::new(config).await.ok()?;

@@ -38,6 +38,7 @@ static CONFIG_METADATA: &[ConfigMeta] = &[
     ConfigMeta { key: "API_SESSION_INACTIVITY_MINUTES", label: "Session Inactivity", description: "Session timeout on inactivity", editable: true, requires_restart: true },
     ConfigMeta { key: "API_DNS_NAMESERVERS", label: "DNS Nameservers", description: "Comma-separated expected nameservers", editable: true, requires_restart: true },
     ConfigMeta { key: "API_CLIENT_IP_SOURCE", label: "Client IP Source", description: "How to determine client IP", editable: true, requires_restart: true },
+    ConfigMeta { key: "API_ADMIN_EMAILS", label: "Admin Emails", description: "Comma-separated list of admin email addresses", editable: true, requires_restart: true },
     ConfigMeta { key: "SLACK_WEBHOOK_URL", label: "Slack Webhook URL", description: "Incoming webhook for contact form", editable: true, requires_restart: false },
     ConfigMeta { key: "DATABASE_URL", label: "Database URL", description: "PostgreSQL connection string", editable: false, requires_restart: true },
     ConfigMeta { key: "API_JWT_SECRET", label: "JWT Secret", description: "Base64-encoded JWT signing secret", editable: false, requires_restart: true },

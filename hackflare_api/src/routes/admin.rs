@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
 use crate::{
-    middlewares::auth_middleware,
+    middlewares::{auth_middleware, admin::require_admin},
     models::CurrentUser,
     services::config_overrides::ConfigEntry,
     state::AppState,
@@ -205,6 +205,7 @@ fn build_env_map(config: &crate::config::Config) -> HashMap<&'static str, String
     m.insert("API_SESSION_INACTIVITY_MINUTES", config.session_inactivity_minutes.to_string());
     m.insert("API_DNS_NAMESERVERS", config.dns_nameservers.join(","));
     m.insert("API_CLIENT_IP_SOURCE", format!("{:?}", config.client_ip_source));
+    m.insert("API_ADMIN_EMAILS", config.admin_emails.join(","));
     m.insert("SLACK_WEBHOOK_URL", config.slack_webhook_url.as_ref().map(|u| u.to_string()).unwrap_or_default());
     m.insert("DATABASE_URL", "postgres://****@****/****".to_string());
     m.insert("API_JWT_SECRET", "********".to_string());
@@ -217,5 +218,6 @@ pub(super) fn routes(state: AppState) -> Router<AppState> {
         .route("/config/{key}", put(upsert_config).delete(delete_config))
         .route("/users", get(list_users))
         .route("/stats", get(get_stats))
+        .layer(middleware::from_fn_with_state(state.clone(), require_admin))
         .layer(middleware::from_fn_with_state(state, auth_middleware))
 }
