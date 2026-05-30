@@ -44,6 +44,21 @@ impl UserSessionsService {
         Ok(id)
     }
 
+    pub(crate) async fn revoke(&self, id: &Uuid) -> Result<bool> {
+        let rows = query(
+            r#"
+            UPDATE user_sessions
+            SET revoked_at = NOW()
+            WHERE id = $1 AND revoked_at IS NULL
+            "#,
+        )
+        .bind(id)
+        .execute(&self.db)
+        .await?;
+
+        Ok(rows.rows_affected() > 0)
+    }
+
     pub(crate) async fn get_by_id(&self, id: &Uuid) -> Result<Option<UserSession>> {
         let session = query_as::<_, UserSession>(
             r#"

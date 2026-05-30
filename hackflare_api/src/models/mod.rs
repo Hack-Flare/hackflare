@@ -36,6 +36,7 @@ pub(crate) struct JwtClaims {
     pub(crate) exp: DateTime<Utc>,
     #[serde_as(as = "TimestampSeconds<i64>")]
     pub(crate) iat: DateTime<Utc>,
+    pub(crate) typ: Option<String>,
 }
 
 #[derive(Clone, Serialize)]

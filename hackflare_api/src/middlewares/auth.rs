@@ -36,6 +36,11 @@ pub(crate) async fn auth_middleware(
             })?
             .claims;
 
+    if claims.typ.as_deref() == Some("refresh") {
+        warn!("refresh token used as access token");
+        return Err((StatusCode::UNAUTHORIZED, "invalid_token_type"));
+    }
+
     let user = users.get_by_id(&claims.sub).await.map_err(|error| {
         error!(%error, "failed to get user");
         (StatusCode::INTERNAL_SERVER_ERROR, "db_error")

@@ -45,6 +45,18 @@ interface ApiError {
   status: number
 }
 
+let refreshing: Promise<void> | null = null
+
+async function refreshTokens(): Promise<void> {
+  const response = await fetch(`${API_ORIGIN}/api/v1/auth/refresh`, {
+    method: "POST",
+    credentials: "include",
+  })
+  if (!response.ok) {
+    throw { error: "Refresh failed", status: response.status } as ApiError
+  }
+}
+
 async function request<T = unknown>(
   endpoint: string,
   options: {
@@ -76,6 +88,21 @@ async function request<T = unknown>(
       data = JSON.parse(text)
     } catch {
       data = text
+    }
+  }
+
+  if (response.status === 401 && !endpoint.includes("/auth/refresh")) {
+    refreshing = refreshing ?? refreshTokens()
+    try {
+      await refreshing
+      refreshing = null
+      return request<T>(endpoint, options)
+    } catch {
+      refreshing = null
+      throw {
+        error: "Session expired",
+        status: 401,
+      } as ApiError
     }
   }
 

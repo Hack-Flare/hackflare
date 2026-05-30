@@ -405,8 +405,9 @@ mod tests {
                     client_secret: "test".into(),
                     redirect_uri: Url::parse("http://localhost:3000/callback").ok()?,
                 },
-                session_duration_hours: 24,
                 session_inactivity_minutes: 15,
+                access_token_minutes: 15,
+                refresh_token_days: 30,
                 dns_nameservers: vec!["ns1.hackflare.dev".into(), "ns2.hackflare.dev".into()],
             };
 
@@ -461,6 +462,7 @@ mod tests {
                 jit: session_id,
                 exp: now + Duration::hours(1),
                 iat: now,
+                typ: None,
             };
             let test_jwt_key = EncodingKey::from_base64_secret(TEST_JWT_SECRET).ok()?;
             let jwt = encode(&Header::default(), &claims, &test_jwt_key).ok()?;

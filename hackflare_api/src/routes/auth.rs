@@ -8,8 +8,9 @@ use axum::{
     routing::{get, post},
 };
 use axum_client_ip::ClientIp;
+use axum_extra::extract::CookieJar;
 use chrono::{Duration, Utc};
-use jsonwebtoken::Header;
+use jsonwebtoken::{Header, Validation};
 use rand::{RngExt, distr::Alphanumeric};
 use reqwest::{StatusCode, Url};
 use serde::Deserialize;
@@ -20,6 +21,7 @@ use tower_sessions::{
     Expiry, MemoryStore, Session, SessionManagerLayer,
     cookie::{self, Cookie, SameSite},
 };
+use uuid::Uuid;
 
 use crate::{
     config::Config,
@@ -94,16 +96,66 @@ fn random_string(len: usize) -> String {
 const SESSION_CSRF_TOKEN_KEY: &str = "auth::csrf_token";
 const SESSION_TARGET_URL_KEY: &str = "auth::target_url";
 
-// TODO: sliding window sessions via dual-token with separate refresh-token for renewal:
-// - short-lived JWT for most auth (15 minutes)
-// - long-lived refresh JWT to refresh both the short-lived one and itself via `/refresh` (30 days)
-// which automatically slides the window every 15 minutes and only requires a new `/login` when the
-// refresh token expired. the refresh token here represents the actual device session, but means we
-// have short-lived sessions referencing the long-lived ones so that invalidation of a device
-// (logging it out remotely) will invalidate the current session effective immediately
-// => two tables for the sessions
-// => more state
-// => more user convenience (not randomly logged out even if currently active)
+fn make_cookie(
+    name: String,
+    value: String,
+    path: String,
+    max_age_seconds: i64,
+    is_secure: bool,
+) -> cookie::Cookie<'static> {
+    let mut c = Cookie::build((name, value))
+        .path(path)
+        .http_only(true)
+        .same_site(SameSite::Lax)
+        .max_age(cookie::time::Duration::seconds(max_age_seconds));
+    if is_secure {
+        c = c.secure(true);
+    }
+    c.build()
+}
+
+fn make_tokens(
+    config: &Config,
+    jit: Uuid,
+    user_id: &str,
+    now: chrono::DateTime<Utc>,
+) -> Result<(String, String), (StatusCode, &'static str)> {
+    let access_exp = now + chrono::Duration::minutes(config.access_token_minutes);
+    let refresh_exp = now + chrono::Duration::days(config.refresh_token_days);
+
+    let access_claims = JwtClaims {
+        sub: user_id.to_string(),
+        iat: now,
+        jit,
+        exp: access_exp,
+        typ: None,
+    };
+
+    let refresh_claims = JwtClaims {
+        sub: user_id.to_string(),
+        iat: now,
+        jit,
+        exp: refresh_exp,
+        typ: Some("refresh".to_string()),
+    };
+
+    let access_token =
+        jsonwebtoken::encode(&Header::default(), &access_claims, &config.jwt_encoding_key)
+            .map_err(|error| {
+                error!(%error, "failed to encode access jwt");
+                (StatusCode::INTERNAL_SERVER_ERROR, "jwt_encode_error")
+            })?;
+
+    let refresh_token =
+        jsonwebtoken::encode(&Header::default(), &refresh_claims, &config.jwt_encoding_key)
+            .map_err(|error| {
+                error!(%error, "failed to encode refresh jwt");
+                (StatusCode::INTERNAL_SERVER_ERROR, "jwt_encode_error")
+            })?;
+
+    Ok((access_token, refresh_token))
+}
+
 async fn login_handler(
     State(state): State<AppState>,
     session: Session,
@@ -244,9 +296,9 @@ async fn callback_handler(
     })?;
 
     let now = Utc::now();
-    let exp = now + chrono::Duration::hours(config.session_duration_hours);
+    let refresh_exp = now + chrono::Duration::days(config.refresh_token_days);
 
-    let jit = UserSessionsService::create_with(&mut *tx, &user_info.id, ip_addr, exp)
+    let jit = UserSessionsService::create_with(&mut *tx, &user_info.id, ip_addr, refresh_exp)
         .await
         .map_err(|error| {
             error!(%error, "failed to create session");
@@ -258,30 +310,12 @@ async fn callback_handler(
         (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
     })?;
 
-    let claims = JwtClaims {
-        sub: user_info.id,
-        iat: now,
-        jit,
-        exp,
-    };
+    let (access_token, refresh_token) =
+        make_tokens(&config, jit, &user_info.id, now).map_err(|e| e)?;
 
-    let token = jsonwebtoken::encode(&Header::default(), &claims, &config.jwt_encoding_key)
-        .map_err(|error| {
-            error!(%error, "failed to encode jwt");
-            (StatusCode::INTERNAL_SERVER_ERROR, "jwt_encode_error")
-        })?;
-
-    let cookie = {
-        let mut c = Cookie::build(("jwt", token))
-            .path("/")
-            .http_only(true)
-            .same_site(SameSite::Lax)
-            .max_age(cookie::time::Duration::hours(config.session_duration_hours));
-        if config.hca.is_secure() {
-            c = c.secure(true);
-        }
-        c.build()
-    };
+    let is_secure = config.hca.is_secure();
+    let access_cookie = make_cookie("jwt".into(), access_token, "/".into(), config.access_token_minutes * 60, is_secure);
+    let refresh_cookie = make_cookie("refresh_jwt".into(), refresh_token, "/api/v1/auth".into(), config.refresh_token_days * 86400, is_secure);
 
     let target_url = session_target_url
         .as_deref()
@@ -291,31 +325,109 @@ async fn callback_handler(
     Ok((
         StatusCode::FOUND,
         [
-            (header::SET_COOKIE, cookie.to_string().as_str()),
+            (header::SET_COOKIE, access_cookie.to_string().as_str()),
+            (header::SET_COOKIE, refresh_cookie.to_string().as_str()),
             (header::LOCATION, target_url),
         ],
     )
         .into_response())
 }
 
-async fn logout_handler(State(state): State<AppState>) -> Response {
-    let cookie = {
-        let mut c = Cookie::build(("jwt", ""))
-            .path("/")
-            .http_only(true)
-            .same_site(SameSite::Lax)
-            .max_age(cookie::time::Duration::ZERO);
-        if state.config.hca.is_secure() {
-            c = c.secure(true);
+async fn logout_handler(
+    State(state): State<AppState>,
+    State(sessions): State<UserSessionsService>,
+    jar: CookieJar,
+) -> Response {
+    let is_secure = state.config.hca.is_secure();
+
+    if let Some(jwt) = jar.get("jwt") {
+        if let Ok(data) =
+            jsonwebtoken::decode::<JwtClaims>(jwt.value(), &state.config.jwt_decoding_key, &Validation::default())
+        {
+            let jit = data.claims.jit;
+            if let Err(e) = sessions.revoke(&jit).await {
+                error!(%e, "failed to revoke session");
+            }
         }
-        c.build()
-    };
+    }
+
+    let clear_access = make_cookie("jwt".into(), "".into(), "/".into(), 0, is_secure);
+    let clear_refresh = make_cookie("refresh_jwt".into(), "".into(), "/api/v1/auth".into(), 0, is_secure);
 
     (
         StatusCode::NO_CONTENT,
-        [(header::SET_COOKIE, cookie.to_string())],
+        [
+            (header::SET_COOKIE, clear_access.to_string()),
+            (header::SET_COOKIE, clear_refresh.to_string()),
+        ],
     )
         .into_response()
+}
+
+async fn refresh_handler(
+    jar: CookieJar,
+    State(config): State<Arc<Config>>,
+    State(sessions): State<UserSessionsService>,
+) -> Result<Response, (StatusCode, &'static str)> {
+    let refresh_jwt = jar
+        .get("refresh_jwt")
+        .map(|c| c.value().to_owned())
+        .ok_or((StatusCode::UNAUTHORIZED, "missing_refresh_token"))?;
+
+    let claims = jsonwebtoken::decode::<JwtClaims>(
+        &refresh_jwt,
+        &config.jwt_decoding_key,
+        &Validation::default(),
+    )
+    .map_err(|error| {
+        debug!(%error, "refresh jwt validation failed");
+        (StatusCode::UNAUTHORIZED, "invalid_refresh_token")
+    })?
+    .claims;
+
+    if claims.typ.as_deref() != Some("refresh") {
+        warn!("access token used as refresh token");
+        return Err((StatusCode::UNAUTHORIZED, "invalid_token_type"));
+    }
+
+    let session = sessions.get_by_id(&claims.jit).await.map_err(|error| {
+        error!(%error, "failed to get session during refresh");
+        (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
+    })?;
+
+    let Some(_session) = session else {
+        warn!("session revoked or expired during refresh");
+        return Err((StatusCode::UNAUTHORIZED, "session_invalid"));
+    };
+
+    let now = Utc::now();
+    let (access_token, refresh_token) =
+        make_tokens(&config, claims.jit, &claims.sub, now).map_err(|e| e)?;
+
+    let is_secure = config.hca.is_secure();
+    let access_cookie = make_cookie(
+        "jwt".into(),
+        access_token,
+        "/".into(),
+        config.access_token_minutes * 60,
+        is_secure,
+    );
+    let refresh_cookie = make_cookie(
+        "refresh_jwt".into(),
+        refresh_token,
+        "/api/v1/auth".into(),
+        config.refresh_token_days * 86400,
+        is_secure,
+    );
+
+    Ok((
+        StatusCode::OK,
+        [
+            (header::SET_COOKIE, access_cookie.to_string()),
+            (header::SET_COOKIE, refresh_cookie.to_string()),
+        ],
+    )
+        .into_response())
 }
 
 pub(super) fn routes(config: &Config) -> Router<AppState> {
@@ -334,6 +446,7 @@ pub(super) fn routes(config: &Config) -> Router<AppState> {
     Router::new()
         .route("/login", get(login_handler))
         .route("/callback", get(callback_handler))
+        .route("/refresh", post(refresh_handler))
         .route("/logout", post(logout_handler))
         .layer(session_layer)
 }
