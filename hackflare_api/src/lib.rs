@@ -1,4 +1,3 @@
-mod hca;
 mod middlewares;
 mod models;
 mod services;

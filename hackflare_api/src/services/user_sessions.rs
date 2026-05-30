@@ -62,22 +62,30 @@ impl UserSessionsService {
         Ok(session)
     }
 
-    pub(crate) async fn get_all_for_user(&self, user_id: &str) -> Result<Vec<UserSession>> {
+    pub(crate) async fn get_all_for_user(
+        &self,
+        user_id: &str,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<UserSession>> {
+        let limit = limit.clamp(1, 100);
+        let offset = offset.max(0);
+
         let sessions = query_as::<_, UserSession>(
             r#"
             SELECT id, user_id, ip_address, expires_at, created_at, revoked_at
             FROM user_sessions
             WHERE user_id = $1
+            ORDER BY created_at DESC
+            LIMIT $2
+            OFFSET $3
             "#,
         )
         .bind(user_id)
+        .bind(limit)
+        .bind(offset)
         .fetch_all(&self.db)
         .await?;
-
-        // TODO: implement pagination
-        if sessions.len() > 100 {
-            warn!("user sessions count exceeds 100, pagination strongly recommended")
-        }
 
         Ok(sessions)
     }

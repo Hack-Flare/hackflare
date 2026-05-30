@@ -99,6 +99,9 @@ pub struct Config {
     pub(crate) jwt_encoding_key: EncodingKey,
     pub(crate) jwt_decoding_key: DecodingKey,
     pub(crate) hca: HcaConfig,
+    pub(crate) session_duration_hours: i64,
+    pub(crate) session_inactivity_minutes: i64,
+    pub(crate) dns_nameservers: Vec<String>,
 }
 
 impl Config {}
@@ -155,5 +158,13 @@ pub fn from_env() -> Result<Config> {
             client_secret: env_req("API_HCA_CLIENT_SECRET")?,
             redirect_uri,
         },
+        session_duration_hours: env_or("API_SESSION_DURATION_HOURS", 24i64)?,
+        session_inactivity_minutes: env_or("API_SESSION_INACTIVITY_MINUTES", 15i64)?,
+        dns_nameservers: env::var("API_DNS_NAMESERVERS")
+            .unwrap_or_else(|_| "ns1.hackflare.dev,ns2.hackflare.dev".to_string())
+            .split(',')
+            .map(|s| s.trim().to_string().trim_end_matches('.').to_string())
+            .filter(|s| !s.is_empty())
+            .collect(),
     })
 }

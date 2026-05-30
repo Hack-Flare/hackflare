@@ -46,9 +46,6 @@ fn login_redirect(config: &Config, csrf_token: &str) -> String {
     url.to_string()
 }
 
-// TODO: make this a config option?
-const SESSION_DURATION_HOURS: i64 = 24;
-
 #[derive(Debug, Deserialize)]
 struct LoginParams {
     #[serde(rename = "target")]
@@ -155,8 +152,7 @@ async fn callback_handler(
         .expect("failed to get target url from session");
 
     if query.csrf_token != session_csrf_token {
-        // TODO: should this be a warn! event instead?
-        debug!(query.csrf_token, session_csrf_token, "csrf token mismatch");
+        warn!(query.csrf_token, session_csrf_token, "csrf token mismatch");
         return Err((StatusCode::BAD_REQUEST, "csrf_token_mismatch"));
     }
 
@@ -248,7 +244,7 @@ async fn callback_handler(
     })?;
 
     let now = Utc::now();
-    let exp = now + chrono::Duration::hours(SESSION_DURATION_HOURS);
+    let exp = now + chrono::Duration::hours(config.session_duration_hours);
 
     let jit = UserSessionsService::create_with(&mut *tx, &user_info.id, ip_addr, exp)
         .await
@@ -280,17 +276,17 @@ async fn callback_handler(
             .path("/")
             .http_only(true)
             .same_site(SameSite::Lax)
-            .max_age(cookie::time::Duration::hours(SESSION_DURATION_HOURS));
+            .max_age(cookie::time::Duration::hours(config.session_duration_hours));
         if config.hca.is_secure() {
             c = c.secure(true);
         }
         c.build()
     };
 
-    // TODO: do we have to validate this cookie? is it not HttpOnly already?
-    // would it allow for open redirects to other origins?
-    // https://github.com/Hack-Flare/hackflare/pull/34#discussion_r3230192477
-    let target_url = session_target_url.as_deref().unwrap_or("/");
+    let target_url = session_target_url
+        .as_deref()
+        .filter(|u| u.starts_with('/') && !u.contains("://") && !u.contains("\\"))
+        .unwrap_or("/");
 
     Ok((
         StatusCode::FOUND,
@@ -327,8 +323,7 @@ pub(super) fn routes(config: &Config) -> Router<AppState> {
 
     let session_store = MemoryStore::default();
     let session_layer = SessionManagerLayer::new(session_store)
-        // TODO: make this duration a config option
-        .with_expiry(Expiry::OnInactivity(cookie::time::Duration::minutes(15)))
+        .with_expiry(Expiry::OnInactivity(cookie::time::Duration::minutes(config.session_inactivity_minutes)))
         .with_secure(is_secure)
         .with_same_site(SameSite::Lax);
 

@@ -60,7 +60,7 @@
 //! [`MemoryPersistence`]: ns::MemoryPersistence
 //! [`PostgresPersistence`]: ns::PostgresPersistence
 
-mod dns;
+pub mod dns;
 mod error;
 pub mod ns;
 

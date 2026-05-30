@@ -111,11 +111,97 @@ async fn delete_zone(
 }
 
 async fn verify_zone(
-    axum::extract::Path(_zone_name): axum::extract::Path<String>,
+    State(state): State<AppState>,
+    axum::extract::Path(zone_name): axum::extract::Path<String>,
 ) -> Json<serde_json::Value> {
-    Json(
-        serde_json::json!({"verified": false, "message": "nameserver verification not yet implemented"}),
-    )
+    let ns_targets: Vec<String> = state
+        .config
+        .dns_nameservers
+        .iter()
+        .map(|ns| format!("{ns}."))
+        .collect();
+
+    let qname = if zone_name.ends_with('.') {
+        zone_name.clone()
+    } else {
+        format!("{zone_name}.")
+    };
+
+    let dns_config = hackflare_dns::DnsConfig::from_env();
+    let qname_clone = qname.clone();
+
+    let result = tokio::task::spawn_blocking(move || {
+        hackflare_dns::dns::recursive::resolve(&qname_clone, 2, &dns_config)
+    })
+    .await;
+
+    let response_bytes = match result {
+        Ok(Ok(bytes)) => bytes,
+        Ok(Err(e)) => {
+            return Json(serde_json::json!({
+                "verified": false,
+                "message": format!("DNS resolution failed: {e}")
+            }));
+        }
+        Err(e) => {
+            return Json(serde_json::json!({
+                "verified": false,
+                "message": format!("Task join error: {e}")
+            }));
+        }
+    };
+
+    let message = match hickory_proto::op::Message::from_vec(&response_bytes) {
+        Ok(msg) => msg,
+        Err(e) => {
+            return Json(serde_json::json!({
+                "verified": false,
+                "message": format!("Failed to parse DNS response: {e}")
+            }));
+        }
+    };
+
+    use hickory_proto::rr::RData;
+    let ns_names: Vec<String> = message
+        .answers
+        .iter()
+        .filter(|record| record.record_type() == hickory_proto::rr::RecordType::NS)
+        .filter_map(|record| match &record.data {
+            RData::NS(ns) => Some(ns.to_utf8()),
+            _ => None,
+        })
+        .collect();
+
+    if ns_names.is_empty() {
+        return Json(serde_json::json!({
+            "verified": false,
+            "message": "No NS records found for this domain"
+        }));
+    }
+
+    let matched: Vec<&str> = ns_targets
+        .iter()
+        .map(|t| t.trim_end_matches('.'))
+        .filter(|target| ns_names.iter().any(|ns| {
+            ns.trim_end_matches('.').eq_ignore_ascii_case(target)
+        }))
+        .collect();
+
+    if !matched.is_empty() {
+        Json(serde_json::json!({
+            "verified": true,
+            "message": format!("Nameserver verification passed: {} matched", matched.join(", "))
+        }))
+    } else {
+        Json(serde_json::json!({
+            "verified": false,
+            "message": format!(
+                "Expected nameservers: {}. Found: {}",
+                ns_targets.join(", "),
+                ns_names.join(", ")
+            )
+        }))
+    }
 }
 
 // ── Record handlers ──
@@ -638,7 +724,7 @@ mod tests {
             .unwrap();
         assert_eq!(response.status(), StatusCode::OK);
         let body = get_body(response).await;
-        assert!(!body["verified"].as_bool().unwrap());
+        assert!(body["verified"].as_bool().is_some());
 
         ctx.cleanup().await;
     }

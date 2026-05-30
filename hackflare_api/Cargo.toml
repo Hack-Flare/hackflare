@@ -47,6 +47,9 @@ dotenvy = "0.15.7"
 # Internal
 hackflare-dns = { path = "../hackflare_dns" }
 
+# DNS protocol parsing
+hickory-proto = "0.26"
+
 [dev-dependencies]
 tower = "0.5"
 http-body-util = "0.1"

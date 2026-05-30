@@ -1,10 +1,11 @@
 use axum::{
     Extension, Json, Router,
-    extract::{Path, State},
+    extract::{Path, Query, State},
     middleware,
     routing::get,
 };
 use reqwest::StatusCode;
+use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::{
@@ -14,12 +15,23 @@ use crate::{
     state::AppState,
 };
 
+#[derive(Deserialize)]
+struct SessionQuery {
+    limit: Option<i64>,
+    offset: Option<i64>,
+}
+
 async fn sessions_handler(
     Extension(current_user): Extension<CurrentUser>,
     State(sessions): State<UserSessionsService>,
+    Query(query): Query<SessionQuery>,
 ) -> Result<Json<Vec<UserSession>>, (StatusCode, &'static str)> {
     let result = sessions
-        .get_all_for_user(&current_user.user.id)
+        .get_all_for_user(
+            &current_user.user.id,
+            query.limit.unwrap_or(20),
+            query.offset.unwrap_or(0),
+        )
         .await
         .map_err(|error| {
             error!(%error, "failed to get user sessions");
