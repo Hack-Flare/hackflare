@@ -55,9 +55,6 @@ jobs:
       - name: Cache Rust artifacts
         uses: Swatinem/rust-cache@v2
 
-      - name: Check formatting
-        run: cargo fmt --all --check
-
       - name: Cargo check
         run: cargo check --all-targets
 
@@ -82,6 +79,9 @@ jobs:
           DATABASE_URL: postgres://hackflare:hackflare@localhost:5432/hackflare
           SQLX_OFFLINE: false
           SQLX_OFFLINE_DIR: database/.sqlx
+
+      - name: Check formatting
+        run: cargo fmt --all --check
 
   frontend:
     name: Frontend Checks
