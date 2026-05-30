@@ -9,11 +9,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{
-    middlewares::auth_middleware,
-    models::CurrentUser,
-    state::AppState,
-};
+use crate::{middlewares::auth_middleware, models::CurrentUser, state::AppState};
 
 #[derive(Serialize)]
 pub(super) struct ApiKeyResponse {
@@ -79,11 +75,13 @@ pub(super) async fn create_key(
     match state.api_keys.create(&current_user.user.id, &name).await {
         Ok((key, raw_key)) => (
             StatusCode::CREATED,
-            Json(serde_json::to_value(CreatedKeyResponse {
-                key: key.into(),
-                raw_key,
-            })
-            .unwrap_or_default()),
+            Json(
+                serde_json::to_value(CreatedKeyResponse {
+                    key: key.into(),
+                    raw_key,
+                })
+                .unwrap_or_default(),
+            ),
         )
             .into_response(),
         Err(_) => (

@@ -32,8 +32,8 @@ fn hash_key(raw: &str) -> String {
 
 fn generate_raw_key() -> String {
     let prefix = &Uuid::new_v4().to_string()[..PREFIX_LEN];
-    let secret = Uuid::new_v4().to_string().replace('-', "")
-        + &Uuid::new_v4().to_string().replace('-', "");
+    let secret =
+        Uuid::new_v4().to_string().replace('-', "") + &Uuid::new_v4().to_string().replace('-', "");
     let secret = &secret[..SECRET_LEN];
     format!("{KEY_PREFIX}_{prefix}_{secret}")
 }

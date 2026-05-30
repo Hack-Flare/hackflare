@@ -15,10 +15,8 @@ use sqlx::{
 use crate::{
     config::Config,
     services::{
-        api_keys::ApiKeysService,
-        config_overrides::ConfigOverridesService,
-        user_sessions::UserSessionsService,
-        users::UsersService,
+        api_keys::ApiKeysService, config_overrides::ConfigOverridesService,
+        user_sessions::UserSessionsService, users::UsersService,
     },
 };
 

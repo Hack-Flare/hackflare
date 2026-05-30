@@ -146,12 +146,15 @@ fn make_tokens(
                 (StatusCode::INTERNAL_SERVER_ERROR, "jwt_encode_error")
             })?;
 
-    let refresh_token =
-        jsonwebtoken::encode(&Header::default(), &refresh_claims, &config.jwt_encoding_key)
-            .map_err(|error| {
-                error!(%error, "failed to encode refresh jwt");
-                (StatusCode::INTERNAL_SERVER_ERROR, "jwt_encode_error")
-            })?;
+    let refresh_token = jsonwebtoken::encode(
+        &Header::default(),
+        &refresh_claims,
+        &config.jwt_encoding_key,
+    )
+    .map_err(|error| {
+        error!(%error, "failed to encode refresh jwt");
+        (StatusCode::INTERNAL_SERVER_ERROR, "jwt_encode_error")
+    })?;
 
     Ok((access_token, refresh_token))
 }
@@ -314,8 +317,20 @@ async fn callback_handler(
         make_tokens(&config, jit, &user_info.id, now).map_err(|e| e)?;
 
     let is_secure = config.hca.is_secure();
-    let access_cookie = make_cookie("jwt".into(), access_token, "/".into(), config.access_token_minutes * 60, is_secure);
-    let refresh_cookie = make_cookie("refresh_jwt".into(), refresh_token, "/api/v1/auth".into(), config.refresh_token_days * 86400, is_secure);
+    let access_cookie = make_cookie(
+        "jwt".into(),
+        access_token,
+        "/".into(),
+        config.access_token_minutes * 60,
+        is_secure,
+    );
+    let refresh_cookie = make_cookie(
+        "refresh_jwt".into(),
+        refresh_token,
+        "/api/v1/auth".into(),
+        config.refresh_token_days * 86400,
+        is_secure,
+    );
 
     let target_url = session_target_url
         .as_deref()
@@ -341,9 +356,11 @@ async fn logout_handler(
     let is_secure = state.config.hca.is_secure();
 
     if let Some(jwt) = jar.get("jwt") {
-        if let Ok(data) =
-            jsonwebtoken::decode::<JwtClaims>(jwt.value(), &state.config.jwt_decoding_key, &Validation::default())
-        {
+        if let Ok(data) = jsonwebtoken::decode::<JwtClaims>(
+            jwt.value(),
+            &state.config.jwt_decoding_key,
+            &Validation::default(),
+        ) {
             let jit = data.claims.jit;
             if let Err(e) = sessions.revoke(&jit).await {
                 error!(%e, "failed to revoke session");
@@ -352,7 +369,13 @@ async fn logout_handler(
     }
 
     let clear_access = make_cookie("jwt".into(), "".into(), "/".into(), 0, is_secure);
-    let clear_refresh = make_cookie("refresh_jwt".into(), "".into(), "/api/v1/auth".into(), 0, is_secure);
+    let clear_refresh = make_cookie(
+        "refresh_jwt".into(),
+        "".into(),
+        "/api/v1/auth".into(),
+        0,
+        is_secure,
+    );
 
     (
         StatusCode::NO_CONTENT,

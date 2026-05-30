@@ -1,4 +1,7 @@
-use std::{net::{IpAddr, Ipv4Addr}, sync::Arc};
+use std::{
+    net::{IpAddr, Ipv4Addr},
+    sync::Arc,
+};
 
 use axum::{
     extract::{Request, State},
@@ -13,11 +16,7 @@ use reqwest::StatusCode;
 use crate::{
     config::Config,
     models::{CurrentUser, JwtClaims, db::UserSession},
-    services::{
-        api_keys::ApiKeysService,
-        user_sessions::UserSessionsService,
-        users::UsersService,
-    },
+    services::{api_keys::ApiKeysService, user_sessions::UserSessionsService, users::UsersService},
     state::AppState,
 };
 

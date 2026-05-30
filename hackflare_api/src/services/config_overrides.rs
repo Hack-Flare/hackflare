@@ -1,7 +1,7 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use sqlx::{PgPool, query, query_as};
 use serde::Serialize;
+use sqlx::{PgPool, query, query_as};
 
 #[derive(Debug, Clone, Serialize, sqlx::FromRow)]
 pub(crate) struct ConfigOverride {
@@ -26,22 +26,118 @@ pub(crate) struct ConfigEntry {
 }
 
 static CONFIG_METADATA: &[ConfigMeta] = &[
-    ConfigMeta { key: "API_BIND_ADDR", label: "Bind Address", description: "HTTP server bind address", editable: true, requires_restart: true },
-    ConfigMeta { key: "API_DNS_BIND_ADDR", label: "DNS Bind Address", description: "DNS server bind address", editable: true, requires_restart: true },
-    ConfigMeta { key: "API_ENVIRONMENT", label: "Environment", description: "Production or development mode", editable: true, requires_restart: true },
-    ConfigMeta { key: "API_AUTO_MIGRATE", label: "Auto Migrate", description: "Run database migrations on startup", editable: true, requires_restart: true },
-    ConfigMeta { key: "API_HCA_CLIENT_ID", label: "HCA Client ID", description: "Hack Club Auth client ID", editable: true, requires_restart: true },
-    ConfigMeta { key: "API_HCA_CLIENT_SECRET", label: "HCA Client Secret", description: "Hack Club Auth client secret", editable: true, requires_restart: true },
-    ConfigMeta { key: "API_HCA_REDIRECT_URI", label: "HCA Redirect URI", description: "OAuth callback URL", editable: true, requires_restart: true },
-    ConfigMeta { key: "API_ACCESS_TOKEN_MINUTES", label: "Access Token TTL", description: "Access token lifetime in minutes", editable: true, requires_restart: true },
-    ConfigMeta { key: "API_REFRESH_TOKEN_DAYS", label: "Refresh Token TTL", description: "Refresh token lifetime in days", editable: true, requires_restart: true },
-    ConfigMeta { key: "API_SESSION_INACTIVITY_MINUTES", label: "Session Inactivity", description: "Session timeout on inactivity", editable: true, requires_restart: true },
-    ConfigMeta { key: "API_DNS_NAMESERVERS", label: "DNS Nameservers", description: "Comma-separated expected nameservers", editable: true, requires_restart: true },
-    ConfigMeta { key: "API_CLIENT_IP_SOURCE", label: "Client IP Source", description: "How to determine client IP", editable: true, requires_restart: true },
-    ConfigMeta { key: "API_ADMIN_EMAILS", label: "Admin Emails", description: "Comma-separated list of admin email addresses", editable: true, requires_restart: true },
-    ConfigMeta { key: "SLACK_WEBHOOK_URL", label: "Slack Webhook URL", description: "Incoming webhook for contact form", editable: true, requires_restart: false },
-    ConfigMeta { key: "DATABASE_URL", label: "Database URL", description: "PostgreSQL connection string", editable: false, requires_restart: true },
-    ConfigMeta { key: "API_JWT_SECRET", label: "JWT Secret", description: "Base64-encoded JWT signing secret", editable: false, requires_restart: true },
+    ConfigMeta {
+        key: "API_BIND_ADDR",
+        label: "Bind Address",
+        description: "HTTP server bind address",
+        editable: true,
+        requires_restart: true,
+    },
+    ConfigMeta {
+        key: "API_DNS_BIND_ADDR",
+        label: "DNS Bind Address",
+        description: "DNS server bind address",
+        editable: true,
+        requires_restart: true,
+    },
+    ConfigMeta {
+        key: "API_ENVIRONMENT",
+        label: "Environment",
+        description: "Production or development mode",
+        editable: true,
+        requires_restart: true,
+    },
+    ConfigMeta {
+        key: "API_AUTO_MIGRATE",
+        label: "Auto Migrate",
+        description: "Run database migrations on startup",
+        editable: true,
+        requires_restart: true,
+    },
+    ConfigMeta {
+        key: "API_HCA_CLIENT_ID",
+        label: "HCA Client ID",
+        description: "Hack Club Auth client ID",
+        editable: true,
+        requires_restart: true,
+    },
+    ConfigMeta {
+        key: "API_HCA_CLIENT_SECRET",
+        label: "HCA Client Secret",
+        description: "Hack Club Auth client secret",
+        editable: true,
+        requires_restart: true,
+    },
+    ConfigMeta {
+        key: "API_HCA_REDIRECT_URI",
+        label: "HCA Redirect URI",
+        description: "OAuth callback URL",
+        editable: true,
+        requires_restart: true,
+    },
+    ConfigMeta {
+        key: "API_ACCESS_TOKEN_MINUTES",
+        label: "Access Token TTL",
+        description: "Access token lifetime in minutes",
+        editable: true,
+        requires_restart: true,
+    },
+    ConfigMeta {
+        key: "API_REFRESH_TOKEN_DAYS",
+        label: "Refresh Token TTL",
+        description: "Refresh token lifetime in days",
+        editable: true,
+        requires_restart: true,
+    },
+    ConfigMeta {
+        key: "API_SESSION_INACTIVITY_MINUTES",
+        label: "Session Inactivity",
+        description: "Session timeout on inactivity",
+        editable: true,
+        requires_restart: true,
+    },
+    ConfigMeta {
+        key: "API_DNS_NAMESERVERS",
+        label: "DNS Nameservers",
+        description: "Comma-separated expected nameservers",
+        editable: true,
+        requires_restart: true,
+    },
+    ConfigMeta {
+        key: "API_CLIENT_IP_SOURCE",
+        label: "Client IP Source",
+        description: "How to determine client IP",
+        editable: true,
+        requires_restart: true,
+    },
+    ConfigMeta {
+        key: "API_ADMIN_EMAILS",
+        label: "Admin Emails",
+        description: "Comma-separated list of admin email addresses",
+        editable: true,
+        requires_restart: true,
+    },
+    ConfigMeta {
+        key: "SLACK_WEBHOOK_URL",
+        label: "Slack Webhook URL",
+        description: "Incoming webhook for contact form",
+        editable: true,
+        requires_restart: false,
+    },
+    ConfigMeta {
+        key: "DATABASE_URL",
+        label: "Database URL",
+        description: "PostgreSQL connection string",
+        editable: false,
+        requires_restart: true,
+    },
+    ConfigMeta {
+        key: "API_JWT_SECRET",
+        label: "JWT Secret",
+        description: "Base64-encoded JWT signing secret",
+        editable: false,
+        requires_restart: true,
+    },
 ];
 
 pub(crate) struct ConfigMeta {
@@ -113,8 +209,6 @@ impl ConfigOverridesService {
     }
 
     pub(crate) fn is_editable(key: &str) -> bool {
-        CONFIG_METADATA
-            .iter()
-            .any(|m| m.key == key && m.editable)
+        CONFIG_METADATA.iter().any(|m| m.key == key && m.editable)
     }
 }

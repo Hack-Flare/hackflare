@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
 use crate::{
-    middlewares::{auth_middleware, admin::require_admin},
+    middlewares::{admin::require_admin, auth_middleware},
     models::CurrentUser,
     services::config_overrides::ConfigEntry,
     state::AppState,
@@ -40,35 +40,34 @@ pub(super) async fn list_config(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let overrides_map: HashMap<String, _> = overrides
-        .into_iter()
-        .map(|o| (o.key.clone(), o))
-        .collect();
+    let overrides_map: HashMap<String, _> =
+        overrides.into_iter().map(|o| (o.key.clone(), o)).collect();
 
-    let entries: Vec<ConfigEntry> = crate::services::config_overrides::ConfigOverridesService::get_known_keys()
-        .iter()
-        .map(|meta| {
-            let env_value = env_map.get(meta.key).cloned();
-            let ov = overrides_map.get(meta.key);
-            let effective_value = ov
-                .map(|o| o.value.clone())
-                .or_else(|| env_value.clone())
-                .unwrap_or_default();
+    let entries: Vec<ConfigEntry> =
+        crate::services::config_overrides::ConfigOverridesService::get_known_keys()
+            .iter()
+            .map(|meta| {
+                let env_value = env_map.get(meta.key).cloned();
+                let ov = overrides_map.get(meta.key);
+                let effective_value = ov
+                    .map(|o| o.value.clone())
+                    .or_else(|| env_value.clone())
+                    .unwrap_or_default();
 
-            ConfigEntry {
-                key: meta.key.to_string(),
-                label: meta.label.to_string(),
-                description: meta.description.to_string(),
-                env_value,
-                override_value: ov.map(|o| o.value.clone()),
-                effective_value,
-                editable: meta.editable,
-                requires_restart: meta.requires_restart,
-                updated_at: ov.map(|o| o.updated_at),
-                updated_by: ov.map(|o| o.updated_by.clone()),
-            }
-        })
-        .collect();
+                ConfigEntry {
+                    key: meta.key.to_string(),
+                    label: meta.label.to_string(),
+                    description: meta.description.to_string(),
+                    env_value,
+                    override_value: ov.map(|o| o.value.clone()),
+                    effective_value,
+                    editable: meta.editable,
+                    requires_restart: meta.requires_restart,
+                    updated_at: ov.map(|o| o.updated_at),
+                    updated_by: ov.map(|o| o.updated_by.clone()),
+                }
+            })
+            .collect();
 
     Ok(Json(entries))
 }
@@ -200,13 +199,32 @@ fn build_env_map(config: &crate::config::Config) -> HashMap<&'static str, String
     m.insert("API_HCA_CLIENT_ID", config.hca.client_id.clone());
     m.insert("API_HCA_CLIENT_SECRET", "********".to_string());
     m.insert("API_HCA_REDIRECT_URI", config.hca.redirect_uri.to_string());
-    m.insert("API_ACCESS_TOKEN_MINUTES", config.access_token_minutes.to_string());
-    m.insert("API_REFRESH_TOKEN_DAYS", config.refresh_token_days.to_string());
-    m.insert("API_SESSION_INACTIVITY_MINUTES", config.session_inactivity_minutes.to_string());
+    m.insert(
+        "API_ACCESS_TOKEN_MINUTES",
+        config.access_token_minutes.to_string(),
+    );
+    m.insert(
+        "API_REFRESH_TOKEN_DAYS",
+        config.refresh_token_days.to_string(),
+    );
+    m.insert(
+        "API_SESSION_INACTIVITY_MINUTES",
+        config.session_inactivity_minutes.to_string(),
+    );
     m.insert("API_DNS_NAMESERVERS", config.dns_nameservers.join(","));
-    m.insert("API_CLIENT_IP_SOURCE", format!("{:?}", config.client_ip_source));
+    m.insert(
+        "API_CLIENT_IP_SOURCE",
+        format!("{:?}", config.client_ip_source),
+    );
     m.insert("API_ADMIN_EMAILS", config.admin_emails.join(","));
-    m.insert("SLACK_WEBHOOK_URL", config.slack_webhook_url.as_ref().map(|u| u.to_string()).unwrap_or_default());
+    m.insert(
+        "SLACK_WEBHOOK_URL",
+        config
+            .slack_webhook_url
+            .as_ref()
+            .map(|u| u.to_string())
+            .unwrap_or_default(),
+    );
     m.insert("DATABASE_URL", "postgres://****@****/****".to_string());
     m.insert("API_JWT_SECRET", "********".to_string());
     m
