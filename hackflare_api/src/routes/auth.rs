@@ -313,8 +313,7 @@ async fn callback_handler(
         (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
     })?;
 
-    let (access_token, refresh_token) =
-        make_tokens(&config, jit, &user_info.id, now)?;
+    let (access_token, refresh_token) = make_tokens(&config, jit, &user_info.id, now)?;
 
     let is_secure = config.hca.is_secure();
     let access_cookie = make_cookie(
@@ -424,8 +423,7 @@ async fn refresh_handler(
     };
 
     let now = Utc::now();
-    let (access_token, refresh_token) =
-        make_tokens(&config, claims.jit, &claims.sub, now)?;
+    let (access_token, refresh_token) = make_tokens(&config, claims.jit, &claims.sub, now)?;
 
     let is_secure = config.hca.is_secure();
     let access_cookie = make_cookie(
