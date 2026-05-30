@@ -34,6 +34,12 @@ export interface UserSession {
   revoked_at: string | null
 }
 
+export interface HealthResponse {
+  status: string
+  database: string
+  dns_zones: number
+}
+
 interface ApiError {
   error: string
   status: number
@@ -168,6 +174,10 @@ export const api = {
         `/api/v1/dns/zones/${encodeURIComponent(zoneName)}/records/${encodeURIComponent(recordName)}/${encodeURIComponent(recordType)}`,
         { method: "DELETE" }
       ),
+  },
+
+  health: {
+    check: () => request<HealthResponse>("/api/v1/health"),
   },
 
   sessions: {

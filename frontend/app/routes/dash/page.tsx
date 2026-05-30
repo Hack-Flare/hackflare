@@ -1,9 +1,11 @@
+import { useEffect, useState } from "react"
 import {
   Globe,
   CheckCircle,
   AlertTriangle,
   TrendingUp,
   ArrowRight,
+  Loader2,
 } from "lucide-react"
 import {
   Card,
@@ -12,44 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card"
-
-const recentActivity = [
-  {
-    id: 1,
-    time: "14:32",
-    action: "Domain added",
-    detail: "example.com",
-    type: "domain",
-  },
-  {
-    id: 2,
-    time: "12:15",
-    action: "DNS record updated",
-    detail: "A record for api.example.com",
-    type: "dns",
-  },
-  {
-    id: 3,
-    time: "10:48",
-    action: "Firewall rule created",
-    detail: "Blocked 128 requests",
-    type: "firewall",
-  },
-  {
-    id: 4,
-    time: "09:22",
-    action: "Certificate renewed",
-    detail: "example.com SSL/TLS",
-    type: "ssl",
-  },
-  {
-    id: 5,
-    time: "08:10",
-    action: "Worker deployed",
-    detail: "Request logger v2.1",
-    type: "worker",
-  },
-]
+import { api, type DnsZone, type HealthResponse } from "~/lib/api"
 
 const shortcuts = [
   {
@@ -79,6 +44,28 @@ const shortcuts = [
 ]
 
 export default function Dashboard() {
+  const [zones, setZones] = useState<DnsZone[]>([])
+  const [health, setHealth] = useState<HealthResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [zonesData, healthData] = await Promise.all([
+          api.dns.listZones(),
+          api.health.check(),
+        ])
+        setZones(zonesData)
+        setHealth(healthData)
+      } catch {
+        // silently fail — dashboard shows defaults
+      } finally {
+        setLoading(false)
+      }
+    }
+    void load()
+  }, [])
+
   return (
     <div className="space-y-6">
       <div>
@@ -97,8 +84,18 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">12</p>
-            <p className="mt-1 text-xs text-green-600">+1 this month</p>
+            {loading ? (
+              <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+            ) : (
+              <>
+                <p className="text-3xl font-bold">{zones.length}</p>
+                <p className="mt-1 text-xs text-green-600">
+                  {zones.length === 0
+                    ? "No domains yet"
+                    : `${zones.length} total`}
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -110,7 +107,7 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">4</p>
+            <p className="text-3xl font-bold">—</p>
             <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
               Today
             </p>
@@ -125,8 +122,24 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-green-600">Healthy</p>
-            <p className="mt-1 text-xs text-green-600">99.9% uptime</p>
+            {loading ? (
+              <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+            ) : (
+              <>
+                <p
+                  className={`text-3xl font-bold ${
+                    health?.status === "ok"
+                      ? "text-green-600"
+                      : "text-orange-500"
+                  }`}
+                >
+                  {health?.status === "ok" ? "Healthy" : "Degraded"}
+                </p>
+                <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                  DB: {health?.database ?? "unknown"}
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -152,27 +165,9 @@ export default function Dashboard() {
               <CardDescription>Latest changes + events</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {recentActivity.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-4 rounded-lg border border-zinc-200 p-3 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
-                  >
-                    <div className="min-w-12 text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                      {item.time}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium">{item.action}</p>
-                      <p className="truncate text-xs text-zinc-600 dark:text-zinc-400">
-                        {item.detail}
-                      </p>
-                    </div>
-                    <span className="rounded bg-zinc-100 px-2 py-1 text-xs font-medium whitespace-nowrap text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
-                      {item.type}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <p className="py-8 text-center text-sm text-zinc-500">
+                Activity feed coming soon
+              </p>
             </CardContent>
           </Card>
         </div>
