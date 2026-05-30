@@ -48,6 +48,10 @@ export default function Dns() {
   const [addError, setAddError] = useState<string | null>(null)
   const [form, setForm] = useState(defaultForm)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [editing, setEditing] = useState<DnsRecord | null>(null)
+  const [editForm, setEditForm] = useState(defaultForm)
+  const [saving, setSaving] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
 
   const fetchRecords = async () => {
     if (!domain) return
@@ -120,8 +124,36 @@ export default function Dns() {
   }
 
   const handleEdit = (record: DnsRecord) => {
-    // TODO: implement edit dialog in a follow-up
-    console.log("edit", record)
+    setEditing(record)
+    setEditForm({
+      name: record.name,
+      type: record.type,
+      value: record.value,
+      ttl: record.ttl,
+    })
+    setEditError(null)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!domain || !editing) return
+    setSaving(true)
+    setEditError(null)
+    try {
+      await api.dns.updateRecord(domain, editing.name, editing.type, {
+        value: editForm.value,
+        ttl: editForm.ttl,
+      })
+      setEditing(null)
+      await fetchRecords()
+    } catch (err) {
+      const msg =
+        err && typeof err === "object" && "error" in err
+          ? String((err as { error: unknown }).error)
+          : "Failed to update record"
+      setEditError(msg)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const columns = useColumns({ onDelete: handleDelete, onEdit: handleEdit })
@@ -229,6 +261,95 @@ export default function Dns() {
                 disabled={adding}
               >
                 {adding ? "Adding..." : "Add Record"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={editing !== null} onOpenChange={(v) => { if (!v) setEditing(null) }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit DNS Record</DialogTitle>
+              <DialogDescription>
+                Update record{" "}
+                <span className="font-medium text-white">{editing?.name}</span> (
+                {editing?.type})
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              {editError && (
+                <div className="rounded bg-red-100 px-3 py-2 text-sm text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                  {editError}
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Select
+                  value={editForm.type}
+                  onValueChange={(v) => setEditForm({ ...editForm, type: v })}
+                  disabled={saving}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["A", "CNAME", "MX", "AAAA", "TXT", "NS"].map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Name</Label>
+                <Input
+                  placeholder="@ or subdomain"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  disabled={saving}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Value</Label>
+                <Input
+                  placeholder={
+                    editForm.type === "A"
+                      ? "192.0.2.1"
+                      : editForm.type === "CNAME"
+                        ? "example.com"
+                        : ""
+                  }
+                  value={editForm.value}
+                  onChange={(e) => setEditForm({ ...editForm, value: e.target.value })}
+                  disabled={saving}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>TTL (seconds)</Label>
+                <Input
+                  type="number"
+                  value={editForm.ttl}
+                  onChange={(e) => setEditForm({ ...editForm, ttl: Number(e.target.value) })}
+                  disabled={saving}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditing(null)} disabled={saving}>
+                Cancel
+              </Button>
+              <Button
+                className="bg-orange-500 text-white hover:bg-orange-600"
+                onClick={handleSaveEdit}
+                disabled={saving}
+              >
+                {saving ? "Saving..." : "Save Changes"}
               </Button>
             </DialogFooter>
           </DialogContent>

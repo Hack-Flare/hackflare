@@ -1,5 +1,5 @@
-import { Plus, Globe, Shield, Clock, Loader2, AlertCircle } from "lucide-react"
-import { NavLink } from "react-router"
+import { Plus, Globe, Shield, Clock, Loader2, AlertCircle, Trash2 } from "lucide-react"
+import { NavLink, useNavigate } from "react-router"
 import { useEffect, useState } from "react"
 import { api, type DnsZone } from "~/lib/api"
 import { Button } from "~/components/ui/button"
@@ -40,6 +40,8 @@ export default function Domains() {
   const [addError, setAddError] = useState<string | null>(null)
   const [verifying, setVerifying] = useState<Record<string, boolean>>({})
   const [verifyMsg, setVerifyMsg] = useState<Record<string, string>>({})
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const fetchZones = async () => {
     setLoading(true)
@@ -103,6 +105,24 @@ export default function Domains() {
       setVerifyMsg((prev) => ({ ...prev, [zoneName]: msg }))
     } finally {
       setVerifying((prev) => ({ ...prev, [zoneName]: false }))
+    }
+  }
+
+  const handleDeleteZone = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await api.dns.deleteZone(deleteTarget)
+      setDeleteTarget(null)
+      await fetchZones()
+    } catch (err) {
+      const msg =
+        err && typeof err === "object" && "error" in err
+          ? String((err as { error: unknown }).error)
+          : "Failed to delete domain"
+      setError(msg)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -319,6 +339,14 @@ export default function Domains() {
                                 {verifyMsg[zone.name]}
                               </span>
                             )}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-xs text-red-400 hover:text-red-300"
+                              onClick={() => setDeleteTarget(zone.name)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -364,6 +392,30 @@ export default function Domains() {
           </CardContent>
         </Card>
       </div>
+      <Dialog open={deleteTarget !== null} onOpenChange={(v) => { if (!v) setDeleteTarget(null) }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Domain</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete{" "}
+              <span className="font-medium text-white">{deleteTarget}</span>?
+              This will permanently remove all DNS records for this domain.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={handleDeleteZone}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

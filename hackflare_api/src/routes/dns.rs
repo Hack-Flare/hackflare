@@ -405,6 +405,9 @@ mod tests {
                     client_secret: "test".into(),
                     redirect_uri: Url::parse("http://localhost:3000/callback").ok()?,
                 },
+                session_duration_hours: 24,
+                session_inactivity_minutes: 15,
+                dns_nameservers: vec!["ns1.hackflare.dev".into(), "ns2.hackflare.dev".into()],
             };
 
             let state = AppState::new(config).await.ok()?;
