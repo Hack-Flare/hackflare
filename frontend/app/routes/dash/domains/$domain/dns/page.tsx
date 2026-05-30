@@ -47,6 +47,7 @@ export default function Dns() {
   const [adding, setAdding] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
   const [form, setForm] = useState(defaultForm)
+  const [deleteConfirm, setDeleteConfirm] = useState<DnsRecord | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [editing, setEditing] = useState<DnsRecord | null>(null)
   const [editForm, setEditForm] = useState(defaultForm)
@@ -106,11 +107,16 @@ export default function Dns() {
     }
   }
 
-  const handleDelete = async (record: DnsRecord) => {
-    if (!domain) return
-    setDeleting(record.id)
+  const handleDelete = (record: DnsRecord) => {
+    setDeleteConfirm(record)
+  }
+
+  const confirmDelete = async () => {
+    if (!domain || !deleteConfirm) return
+    setDeleting(deleteConfirm.id)
+    setDeleteConfirm(null)
     try {
-      await api.dns.deleteRecord(domain, record.name, record.type)
+      await api.dns.deleteRecord(domain, deleteConfirm.name, deleteConfirm.type)
       await fetchRecords()
     } catch (err) {
       const msg =
@@ -350,6 +356,31 @@ export default function Dns() {
                 disabled={saving}
               >
                 {saving ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={deleteConfirm !== null} onOpenChange={(v) => { if (!v) setDeleteConfirm(null) }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Delete DNS Record</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete{" "}
+                <span className="font-medium text-white">{deleteConfirm?.name}</span> (
+                {deleteConfirm?.type})? This will permanently remove this record.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteConfirm(null)} disabled={deleting !== null}>
+                Cancel
+              </Button>
+              <Button
+                className="bg-red-600 text-white hover:bg-red-700"
+                onClick={confirmDelete}
+                disabled={deleting !== null}
+              >
+                {deleting !== null ? "Deleting..." : "Delete"}
               </Button>
             </DialogFooter>
           </DialogContent>
