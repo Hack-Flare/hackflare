@@ -2,7 +2,7 @@ services:
   api:
     profiles: [backend]
     build:
-      context: .
+      context: ../
       dockerfile: hackflare_api/Dockerfile
     env_file:
       - ../.env
@@ -39,10 +39,12 @@ services:
   frontend:
     profiles: [frontend]
     build:
-      context: ./frontend
+      context: ../frontend
       dockerfile: Dockerfile
     env_file:
       - ../.env
+    environment:
+      API_PROXY_TARGET: "http://api:8080"
     ports:
       - "3000:3000"
     networks:
