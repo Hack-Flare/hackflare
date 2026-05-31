@@ -7,19 +7,19 @@ Feel free to submit PRs/issues for anything you want us to work on or you want t
 
 ### Phase 1 (MVP/POC)
 
-- [ ] DNS System
-  - [ ] Backend
-    - [ ] Auth Integration
-    - [ ] Domain Management
+- [x] DNS System
+  - [x] Backend
+    - [x] Auth Integration
+    - [x] Domain Management
       - Domains stay in a pending state until their NS delegation is verified, and record edits are blocked until then.
-- [ ] **DNS Crate** (`hackflare_dns/`)
+- [x] **DNS Crate** (`hackflare_dns/`)
   - [x] Authoritative zone management (hickory-backed `AuthorityStore`)
   - [x] Record type encoding (A, AAAA, CNAME, MX, TXT, SOA, SRV, etc.)
   - [x] Recursive resolver (legacy engine - `dns/recursive.rs`)
   - [x] PostgreSQL persistence (`PostgresPersistence`)
   - [x] In-memory persistence (`MemoryPersistence`)
   - [x] Hickory server integration (`ns/hickory.rs`)
-- [ ] Auth system
+- [x] Auth system
   - [x] Backend
     - [x] HackClub Auth
     - [x] Session Management
@@ -28,20 +28,20 @@ Feel free to submit PRs/issues for anything you want us to work on or you want t
     - [ ] Password Reset
     - [x] Email Verification
     - [ ] Google Auth
-  - [ ] Frontend
-    - [ ] Login/Signup Page
-    - [ ] Dashboard Auth Integration
-  - [ ] ENV Setup
-- [ ] Simple Logging
-- [ ] Proper Frontend
-  - [ ] Dashboard
-  - [ ] Domain Management
+  - [x] Frontend
+    - [x] Login/Signup Page
+    - [x] Dashboard Auth Integration
+  - [x] ENV Setup
+- [x] Simple Logging
+- [x] Proper Frontend
+  - [x] Dashboard
+  - [x] Domain Management
   - [ ] Logging
   - [ ] Notifications
-  - [ ] Admin Panel
-  - [ ] Settings
+  - [x] Admin Panel
+  - [x] Settings
   - [ ] Error Pages
-  - [ ] Auth System
+  - [x] Auth System
 - [x] Docker
 - [ ] Big Haj on error pages
 - [ ] Organize readme and documentation better
