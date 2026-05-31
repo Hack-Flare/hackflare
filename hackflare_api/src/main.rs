@@ -29,6 +29,7 @@ async fn run() -> Result<()> {
 
     // Spawn the DNS server on a background thread
     let dns_authority = state.dns_authority.clone();
+    let db = state.db.clone();
     std::thread::Builder::new()
         .name("hackflare-dns".into())
         .spawn(move || {
@@ -39,7 +40,7 @@ async fn run() -> Result<()> {
                 database_url: None,
             };
             info!("starting DNS server on {dns_bind_addr}");
-            if let Err(e) = run_with_hickory(ns_config, dns_authority, dns_config) {
+            if let Err(e) = run_with_hickory(ns_config, dns_authority, dns_config, Some(db)) {
                 error!("DNS server failed: {e}");
             } else {
                 info!("DNS server stopped");

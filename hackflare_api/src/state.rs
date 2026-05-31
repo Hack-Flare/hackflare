@@ -24,7 +24,7 @@ use crate::{
 pub struct AppState {
     pub config: Arc<Config>,
     pub(crate) http_client: reqwest::Client,
-    pub(crate) db: PgPool,
+    pub db: PgPool,
 
     // -- dns --
     pub dns_authority: Arc<AuthorityStore>,

@@ -40,6 +40,24 @@ export interface HealthResponse {
   dns_zones: number
 }
 
+export interface QueryLogEntry {
+  id: number
+  timestamp: string
+  level: "info" | "warning" | "error"
+  path: string
+  status: number
+  ms: number
+}
+
+export interface QueryLogsResponse {
+  logs: QueryLogEntry[]
+  summary: {
+    errors_today: number
+    warnings_today: number
+    info_today: number
+  }
+}
+
 export interface ConfigEntry {
   key: string
   label: string
@@ -285,6 +303,10 @@ export const api = {
     listUsers: () => request<AdminUser[]>("/api/v1/admin/users"),
 
     getStats: () => request<AdminStats>("/api/v1/admin/stats"),
+  },
+
+  logs: {
+    queryLogs: () => request<QueryLogsResponse>("/api/v1/logs/query-logs"),
   },
 
   slack: {

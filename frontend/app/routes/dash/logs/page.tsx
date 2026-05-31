@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { AlertTriangle, Info, CheckCircle, Filter } from "lucide-react"
 import {
   Card,
@@ -18,64 +18,32 @@ import {
 } from "~/components/ui/dropdown-menu"
 import { DataTable } from "./data-table"
 import { columns, type LogEntry } from "./columns"
-
-const logs: LogEntry[] = [
-  {
-    id: 1,
-    timestamp: "2024-01-15 14:32:10",
-    level: "info",
-    path: "/api/v1/auth/login",
-    status: 200,
-    ms: 145,
-  },
-  {
-    id: 2,
-    timestamp: "2024-01-15 14:31:45",
-    level: "warning",
-    path: "/missing-asset.js",
-    status: 404,
-    ms: 8,
-  },
-  {
-    id: 3,
-    timestamp: "2024-01-15 14:31:20",
-    level: "error",
-    path: "/api/v1/users",
-    status: 500,
-    ms: 1250,
-  },
-  {
-    id: 4,
-    timestamp: "2024-01-15 14:30:55",
-    level: "info",
-    path: "/static/css/main.css",
-    status: 304,
-    ms: 2,
-  },
-  {
-    id: 5,
-    timestamp: "2024-01-15 14:30:40",
-    level: "error",
-    path: "/api/v1/db/query",
-    status: 503,
-    ms: 5000,
-  },
-  {
-    id: 6,
-    timestamp: "2024-01-15 14:30:15",
-    level: "warning",
-    path: "/api/v1/search",
-    status: 429,
-    ms: 50,
-  },
-]
+import { api } from "~/lib/api"
 
 type Level = LogEntry["level"]
 
 export default function Logs() {
+  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [errorsToday, setErrorsToday] = useState(0)
+  const [warningsToday, setWarningsToday] = useState(0)
+  const [infoToday, setInfoToday] = useState(0)
+  const [loading, setLoading] = useState(true)
   const [activeLevels, setActiveLevels] = useState<Set<Level>>(
     new Set(["info", "warning", "error"])
   )
+
+  useEffect(() => {
+    api.logs
+      .queryLogs()
+      .then((res) => {
+        setLogs(res.logs)
+        setErrorsToday(res.summary.errors_today)
+        setWarningsToday(res.summary.warnings_today)
+        setInfoToday(res.summary.info_today)
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [])
 
   const toggleLevel = (level: Level) => {
     setActiveLevels((prev) => {
@@ -152,9 +120,11 @@ export default function Logs() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">7</p>
+            <p className="text-2xl font-bold">
+              {loading ? "..." : errorsToday}
+            </p>
             <p className="mt-1 text-xs text-red-600 dark:text-red-500">
-              5xx errors
+              DNS errors
             </p>
           </CardContent>
         </Card>
@@ -167,9 +137,11 @@ export default function Logs() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">14</p>
+            <p className="text-2xl font-bold">
+              {loading ? "..." : warningsToday}
+            </p>
             <p className="mt-1 text-xs text-yellow-600 dark:text-yellow-500">
-              4xx + rate limits
+              NXDOMAIN responses
             </p>
           </CardContent>
         </Card>
@@ -182,9 +154,11 @@ export default function Logs() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">1.2K</p>
+            <p className="text-2xl font-bold">
+              {loading ? "..." : infoToday}
+            </p>
             <p className="mt-1 text-xs text-green-600 dark:text-green-500">
-              Successful requests
+              Successful queries
             </p>
           </CardContent>
         </Card>
@@ -196,7 +170,11 @@ export default function Logs() {
           <CardDescription>Logs + errors from past 24 hours</CardDescription>
         </CardHeader>
         <CardContent>
-          <DataTable columns={columns} data={filteredLogs} />
+          {loading ? (
+            <p className="text-sm text-zinc-500">Loading...</p>
+          ) : (
+            <DataTable columns={columns} data={filteredLogs} />
+          )}
         </CardContent>
       </Card>
     </div>

@@ -7,6 +7,7 @@ pub(crate) mod admin;
 pub(crate) mod auth;
 pub(crate) mod dns;
 pub(crate) mod health;
+pub(crate) mod logs;
 pub(crate) mod sessions;
 pub(crate) mod settings;
 pub mod slack;
@@ -21,6 +22,7 @@ fn v1_routes(state: AppState, config: &Config) -> Router<AppState> {
         .nest("/dns", dns::routes(state.clone()))
         .nest("/admin", admin::routes(state.clone()))
         .nest("/settings", settings::routes(state.clone()))
+        .nest("/logs", logs::routes(state.clone()))
         .route("/slack/contact", axum::routing::post(slack::slack_contact))
 }
 

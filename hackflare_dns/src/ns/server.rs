@@ -4,6 +4,7 @@ use crate::error::DnsError;
 use crate::ns::authority::AuthorityStore;
 use crate::ns::hickory::run_with_hickory;
 use crate::ns::persistence::ZonePersistence;
+use sqlx::PgPool;
 use std::io;
 use std::sync::Arc;
 
@@ -11,6 +12,7 @@ pub struct Nameserver {
     pub config: NsConfig,
     dns_config: DnsConfig,
     authority: Arc<AuthorityStore>,
+    db_pool: Option<PgPool>,
     runtime: tokio::runtime::Runtime,
 }
 
@@ -44,6 +46,7 @@ impl Nameserver {
             authority: Arc::new(AuthorityStore::new(dns_config.clone())),
             config,
             dns_config,
+            db_pool: None,
             runtime: tokio::runtime::Runtime::new()?,
         })
     }
@@ -66,7 +69,8 @@ impl Nameserver {
     /// let nameserver = Nameserver::with_persistence(
     ///     NsConfig::default(),
     ///     DnsConfig::from_env(),
-    ///     persistence
+    ///     persistence,
+    ///     None,
     /// )?;
     ///
     /// // Restore zones on startup
@@ -81,6 +85,7 @@ impl Nameserver {
         config: NsConfig,
         dns_config: DnsConfig,
         persistence: Arc<dyn ZonePersistence>,
+        db_pool: Option<PgPool>,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         Ok(Self {
             authority: Arc::new(AuthorityStore::with_persistence(
@@ -89,6 +94,7 @@ impl Nameserver {
             )),
             config,
             dns_config,
+            db_pool,
             runtime: tokio::runtime::Runtime::new()?,
         })
     }
@@ -179,6 +185,7 @@ impl Nameserver {
             self.config.clone(),
             Arc::clone(&self.authority),
             self.dns_config.clone(),
+            self.db_pool.clone(),
         )
     }
 }
@@ -202,10 +209,12 @@ mod tests {
         assert_eq!(empty.config.bind_addr, "127.0.0.1");
         assert_eq!(empty.config.port, 5300);
         assert_eq!(empty.config.zone_file.as_deref(), Some("zones.json"));
+        assert!(empty.db_pool.is_none());
         assert!(empty.list_zones().is_empty());
 
         let with_engine =
             Nameserver::with_dns_config(NsConfig::default(), DnsConfig::default_config()).unwrap();
+        assert!(with_engine.db_pool.is_none());
         assert!(with_engine.list_zones().is_empty());
     }
 }
