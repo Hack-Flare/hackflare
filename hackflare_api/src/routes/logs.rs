@@ -1,10 +1,4 @@
-use axum::{
-    Json, Router,
-    extract::State,
-    http::StatusCode,
-    middleware,
-    routing::get,
-};
+use axum::{Json, Router, extract::State, http::StatusCode, middleware, routing::get};
 use serde::Serialize;
 use sqlx::PgPool;
 
@@ -93,16 +87,18 @@ pub(super) async fn list_query_logs(
 
     let logs: Vec<LogEntryResponse> = rows
         .into_iter()
-        .map(|(id, query_name, _query_type, response_code, _resp_size, _src_ip, processing_us)| {
-            LogEntryResponse {
-                id,
-                timestamp: String::new(),
-                level: derive_level(&response_code).to_string(),
-                path: query_name,
-                status: derive_status(&response_code),
-                ms: (processing_us as i64) / 1000,
-            }
-        })
+        .map(
+            |(id, query_name, _query_type, response_code, _resp_size, _src_ip, processing_us)| {
+                LogEntryResponse {
+                    id,
+                    timestamp: String::new(),
+                    level: derive_level(&response_code).to_string(),
+                    path: query_name,
+                    status: derive_status(&response_code),
+                    ms: (processing_us as i64) / 1000,
+                }
+            },
+        )
         .collect();
 
     Ok(Json(LogsResponse {

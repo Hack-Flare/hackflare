@@ -61,36 +61,38 @@ impl HickoryRequestHandler {
             db,
         }
     }
+}
 
-    async fn log_query(
-        &self,
-        query_name: &str,
-        query_type: &str,
-        response_code: &str,
-        source_ip: &str,
-        protocol: &str,
-        response_size: i32,
-        elapsed: std::time::Duration,
-        answers_count: i32,
-    ) {
+struct QueryLogEntry {
+    query_name: String,
+    query_type: String,
+    response_code: String,
+    source_ip: String,
+    protocol: String,
+    response_size: i32,
+    processing_us: i32,
+    answers_count: i32,
+}
+
+impl HickoryRequestHandler {
+    async fn log_query(&self, entry: QueryLogEntry) {
         let Some(db) = &self.db else {
             return;
         };
-        let processing_us = elapsed.as_micros().min(u64::MAX as u128) as i32;
         let _ = sqlx::query(
             r#"
             INSERT INTO dns_query_logs (query_name, query_type, response_code, source_ip, protocol, response_size, processing_us, answers_count)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             "#,
         )
-        .bind(query_name)
-        .bind(query_type)
-        .bind(response_code)
-        .bind(source_ip)
-        .bind(protocol)
-        .bind(response_size)
-        .bind(processing_us)
-        .bind(answers_count)
+        .bind(entry.query_name)
+        .bind(entry.query_type)
+        .bind(entry.response_code)
+        .bind(entry.source_ip)
+        .bind(entry.protocol)
+        .bind(entry.response_size)
+        .bind(entry.processing_us)
+        .bind(entry.answers_count)
         .execute(db)
         .await;
     }
@@ -156,24 +158,35 @@ impl RequestHandler for HickoryRequestHandler {
             let qname = query_name.clone();
             let qtype = u16::from(query_info.query.query_type());
 
-            let response_bytes = match crate::dns::recursive::resolve(&qname, qtype, &self.dns_config) {
-                Ok(bytes) => bytes,
-                Err(e) => {
-                    eprintln!("recursive resolve failed for {qname}: {e}");
-                    response_info = send_servfail_response(
-                        request,
-                        response_handle,
-                        "Failed to process recursive query",
-                    )
-                    .await;
-                    response_code = "SERVFAIL".to_string();
-                    response_size = 0;
-                    answers_count = 0;
-                    let elapsed = start.elapsed();
-                    self.log_query(&query_name, &query_type_str, &response_code, &source_ip, protocol_str, response_size, elapsed, answers_count).await;
-                    return response_info;
-                }
-            };
+            let response_bytes =
+                match crate::dns::recursive::resolve(&qname, qtype, &self.dns_config) {
+                    Ok(bytes) => bytes,
+                    Err(e) => {
+                        eprintln!("recursive resolve failed for {qname}: {e}");
+                        response_info = send_servfail_response(
+                            request,
+                            response_handle,
+                            "Failed to process recursive query",
+                        )
+                        .await;
+                        response_code = "SERVFAIL".to_string();
+                        response_size = 0;
+                        answers_count = 0;
+                        let elapsed = start.elapsed();
+                        self.log_query(QueryLogEntry {
+                            query_name: query_name.clone(),
+                            query_type: query_type_str.clone(),
+                            response_code: response_code.clone(),
+                            source_ip: source_ip.clone(),
+                            protocol: protocol_str.to_string(),
+                            response_size,
+                            processing_us: elapsed.as_micros().min(u64::MAX as u128) as i32,
+                            answers_count,
+                        })
+                        .await;
+                        return response_info;
+                    }
+                };
 
             response_size = response_bytes.len() as i32;
             let mut response = match Message::from_vec(response_bytes.as_slice()) {
@@ -189,7 +202,17 @@ impl RequestHandler for HickoryRequestHandler {
                         response_code = "SERVFAIL".to_string();
                         answers_count = 0;
                         let elapsed = start.elapsed();
-                        self.log_query(&query_name, &query_type_str, &response_code, &source_ip, protocol_str, response_size, elapsed, answers_count).await;
+                        self.log_query(QueryLogEntry {
+                            query_name: query_name.clone(),
+                            query_type: query_type_str.clone(),
+                            response_code: response_code.clone(),
+                            source_ip: source_ip.clone(),
+                            protocol: protocol_str.to_string(),
+                            response_size,
+                            processing_us: elapsed.as_micros().min(u64::MAX as u128) as i32,
+                            answers_count,
+                        })
+                        .await;
                         return response_info;
                     }
                 },
@@ -203,7 +226,17 @@ impl RequestHandler for HickoryRequestHandler {
                     response_code = "SERVFAIL".to_string();
                     answers_count = 0;
                     let elapsed = start.elapsed();
-                    self.log_query(&query_name, &query_type_str, &response_code, &source_ip, protocol_str, response_size, elapsed, answers_count).await;
+                    self.log_query(QueryLogEntry {
+                        query_name: query_name.clone(),
+                        query_type: query_type_str.clone(),
+                        response_code: response_code.clone(),
+                        source_ip: source_ip.clone(),
+                        protocol: protocol_str.to_string(),
+                        response_size,
+                        processing_us: elapsed.as_micros().min(u64::MAX as u128) as i32,
+                        answers_count,
+                    })
+                    .await;
                     return response_info;
                 }
             };
@@ -261,7 +294,17 @@ impl RequestHandler for HickoryRequestHandler {
         }
 
         let elapsed = start.elapsed();
-        self.log_query(&query_name, &query_type_str, &response_code, &source_ip, protocol_str, response_size, elapsed, answers_count).await;
+        self.log_query(QueryLogEntry {
+            query_name,
+            query_type: query_type_str,
+            response_code,
+            source_ip,
+            protocol: protocol_str.to_string(),
+            response_size,
+            processing_us: elapsed.as_micros().min(u64::MAX as u128) as i32,
+            answers_count,
+        })
+        .await;
         response_info
     }
 }
