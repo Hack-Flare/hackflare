@@ -51,17 +51,36 @@ struct UpdateRecordRequest {
     ttl: u32,
 }
 
+// ── Helpers ──
+
+async fn is_zone_verified(db: &PgPool, zone_name: &str) -> Result<bool, sqlx::Error> {
+    let row: Option<(bool,)> =
+        sqlx::query_as("SELECT ns_verified FROM dns_zones WHERE name = $1")
+            .bind(zone_name)
+            .fetch_optional(db)
+            .await?;
+    Ok(row.map(|r| r.0).unwrap_or(false))
+}
+
+async fn set_zone_verified(db: &PgPool, zone_name: &str) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "UPDATE dns_zones SET ns_verified = true, updated_at = now() WHERE name = $1",
+    )
+    .bind(zone_name)
+    .execute(db)
+    .await?;
+    Ok(())
+}
+
 // ── Zone handlers ──
 
 async fn list_zones(State(state): State<AppState>) -> Json<Vec<ZoneResponse>> {
     let names = state.dns_authority.list_zones().await;
-    let zones = names
-        .into_iter()
-        .map(|name| ZoneResponse {
-            name,
-            ns_verified: false,
-        })
-        .collect();
+    let mut zones = Vec::with_capacity(names.len());
+    for name in names {
+        let ns_verified = is_zone_verified(&state.db, &name).await.unwrap_or(false);
+        zones.push(ZoneResponse { name, ns_verified });
+    }
     Json(zones)
 }
 
@@ -190,6 +209,8 @@ async fn verify_zone(
         .collect();
 
     if !matched.is_empty() {
+        // Persist verification status so record edits are unblocked
+        let _ = set_zone_verified(&state.db, &zone_name).await;
         Json(serde_json::json!({
             "verified": true,
             "message": format!("Nameserver verification passed: {} matched", matched.join(", "))
@@ -229,11 +250,30 @@ async fn create_record(
     axum::extract::Path(zone_name): axum::extract::Path<String>,
     Json(req): Json<CreateRecordRequest>,
 ) -> impl IntoResponse {
-    let ok = state
+    // Verify zone exists
+    let zones = state.dns_authority.list_zones().await;
+    if !zones.iter().any(|z| z == &zone_name) {
+        return (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "zone not found"})),
+        )
+            .into_response();
+    }
+
+    // Block record edits until NS delegation is verified
+    if !is_zone_verified(&state.db, &zone_name).await.unwrap_or(false) {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({"error": "zone not verified, record edits are blocked until NS delegation is verified"})),
+        )
+            .into_response();
+    }
+
+    if state
         .dns_authority
         .add_record(&zone_name, &req.name, &req.rtype, req.ttl, &req.value)
-        .await;
-    if ok {
+        .await
+    {
         (
             StatusCode::CREATED,
             Json(serde_json::json!({
@@ -247,8 +287,8 @@ async fn create_record(
             .into_response()
     } else {
         (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "zone not found or invalid record"})),
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "failed to create record"})),
         )
             .into_response()
     }
@@ -262,19 +302,32 @@ async fn update_record(
         String,
     )>,
     Json(req): Json<UpdateRecordRequest>,
-) -> StatusCode {
+) -> impl IntoResponse {
+    // Block record edits until NS delegation is verified
+    if !is_zone_verified(&state.db, &zone_name).await.unwrap_or(false) {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({"error": "zone not verified, record edits are blocked until NS delegation is verified"})),
+        )
+            .into_response();
+    }
+
     if !state
         .dns_authority
         .remove_record(&zone_name, &record_name, &record_type)
         .await
     {
-        return StatusCode::NOT_FOUND;
+        return (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "record not found"})),
+        )
+            .into_response();
     }
     state
         .dns_authority
         .add_record(&zone_name, &record_name, &record_type, req.ttl, &req.value)
         .await;
-    StatusCode::OK
+    (StatusCode::OK, Json(serde_json::json!({"status": "updated"}))).into_response()
 }
 
 async fn delete_record(
@@ -284,15 +337,28 @@ async fn delete_record(
         String,
         String,
     )>,
-) -> StatusCode {
+) -> impl IntoResponse {
+    // Block record edits until NS delegation is verified
+    if !is_zone_verified(&state.db, &zone_name).await.unwrap_or(false) {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({"error": "zone not verified, record edits are blocked until NS delegation is verified"})),
+        )
+            .into_response();
+    }
+
     if state
         .dns_authority
         .remove_record(&zone_name, &record_name, &record_type)
         .await
     {
-        StatusCode::NO_CONTENT
+        StatusCode::NO_CONTENT.into_response()
     } else {
-        StatusCode::NOT_FOUND
+        (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "record not found"})),
+        )
+            .into_response()
     }
 }
 
@@ -627,6 +693,10 @@ mod tests {
         };
 
         ctx.state.dns_authority.create_zone("test-rec.com").await;
+        // Mark zone as verified so record CRUD is allowed
+        let _ = sqlx::query("UPDATE dns_zones SET ns_verified = true WHERE name = 'test-rec.com'")
+            .execute(&ctx.state.db)
+            .await;
 
         // Create record
         let response = build_router(ctx.state.clone())
@@ -717,6 +787,54 @@ mod tests {
             .unwrap();
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
 
+        ctx.cleanup().await;
+    }
+
+    #[tokio::test]
+    async fn test_records_blocked_on_unverified_zone() {
+        let Some(ctx) = TestCtx::setup().await else {
+            eprintln!("skipping: DATABASE_URL not set or unreachable");
+            return;
+        };
+
+        // Create zone (starts unverified)
+        ctx.state.dns_authority.create_zone("test-unverified.com").await;
+
+        // Create record should be blocked
+        let response = build_router(ctx.state.clone())
+            .oneshot(ctx.authed_request(
+                "POST",
+                "/api/v1/dns/zones/test-unverified.com/records",
+                Some(r#"{"name":"www","type":"A","value":"1.2.3.4","ttl":300}"#),
+            ))
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+        // Update record should be blocked
+        ctx.state.dns_authority.add_record("test-unverified.com", "www", "A", 300, "1.2.3.4").await;
+        let response = build_router(ctx.state.clone())
+            .oneshot(ctx.authed_request(
+                "PUT",
+                "/api/v1/dns/zones/test-unverified.com/records/www/A",
+                Some(r#"{"value":"10.0.0.1","ttl":600}"#),
+            ))
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+        // Delete record should be blocked
+        let response = build_router(ctx.state.clone())
+            .oneshot(ctx.authed_request(
+                "DELETE",
+                "/api/v1/dns/zones/test-unverified.com/records/www/A",
+                None,
+            ))
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+        let _ = ctx.state.dns_authority.delete_zone("test-unverified.com").await;
         ctx.cleanup().await;
     }
 

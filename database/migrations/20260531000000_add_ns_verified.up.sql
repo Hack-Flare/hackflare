@@ -1,0 +1,1 @@
+ALTER TABLE dns_zones ADD COLUMN ns_verified BOOLEAN NOT NULL DEFAULT false;

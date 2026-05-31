@@ -1,7 +1,7 @@
-import { useParams } from "react-router"
+import { useParams, useNavigate } from "react-router"
 import { useEffect, useState } from "react"
 import { Button } from "~/components/ui/button"
-import { Plus, Globe, Zap, Activity, Loader2, AlertCircle } from "lucide-react"
+import { Plus, Globe, Zap, Activity, Loader2, AlertCircle, ShieldAlert } from "lucide-react"
 import {
   Card,
   CardContent,
@@ -29,7 +29,7 @@ import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { DataTable } from "./data-table"
 import { useColumns, type DnsRecord } from "./columns"
-import { api } from "~/lib/api"
+import { api, type DnsZone } from "~/lib/api"
 
 const defaultForm = {
   name: "",
@@ -40,9 +40,12 @@ const defaultForm = {
 
 export default function Dns() {
   const { domain } = useParams<{ domain: string }>()
+  const navigate = useNavigate()
   const [records, setRecords] = useState<DnsRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [nsVerified, setNsVerified] = useState(true)
+  const [nsVerifiedLoaded, setNsVerifiedLoaded] = useState(false)
   const [open, setOpen] = useState(false)
   const [adding, setAdding] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
@@ -59,8 +62,14 @@ export default function Dns() {
     setLoading(true)
     setError(null)
     try {
-      const data = await api.dns.listRecords(domain)
-      setRecords(data)
+      const [recordsData, zonesData] = await Promise.all([
+        api.dns.listRecords(domain),
+        api.dns.listZones(),
+      ])
+      setRecords(recordsData)
+      const zone = zonesData.find((z: DnsZone) => z.name === domain)
+      setNsVerified(zone?.ns_verified ?? false)
+      setNsVerifiedLoaded(true)
     } catch (err) {
       const msg =
         err && typeof err === "object" && "error" in err
@@ -162,7 +171,7 @@ export default function Dns() {
     }
   }
 
-  const columns = useColumns({ onDelete: handleDelete, onEdit: handleEdit })
+  const columns = useColumns({ onDelete: handleDelete, onEdit: handleEdit, disabled: !nsVerified })
 
   return (
     <div className="space-y-6">
@@ -177,7 +186,11 @@ export default function Dns() {
 
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="flex items-center gap-2 rounded-lg bg-orange-500 py-2 text-white hover:bg-orange-600">
+            <Button
+              className="flex items-center gap-2 rounded-lg bg-orange-500 py-2 text-white hover:bg-orange-600 disabled:opacity-50"
+              disabled={!nsVerified}
+              title={!nsVerified ? "Verify NS delegation before adding records" : undefined}
+            >
               <Plus className="h-5 w-5" />
               Add Record
             </Button>
@@ -386,6 +399,30 @@ export default function Dns() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {nsVerifiedLoaded && !nsVerified && (
+        <div className="rounded-lg border border-orange-700 bg-orange-900/20 p-4">
+          <div className="flex items-center gap-3">
+            <ShieldAlert className="h-5 w-5 shrink-0 text-orange-400" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-orange-300">
+                Zone Not Verified
+              </p>
+              <p className="mt-1 text-xs text-zinc-400">
+                Record edits are blocked until NS delegation is verified.{" "}
+                Point your domain&apos;s nameservers to Hackflare, then{" "}
+                <button
+                  onClick={() => navigate(`/dash/domains`)}
+                  className="text-orange-400 underline hover:text-orange-300"
+                >
+                  verify from the domains page
+                </button>
+                .
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card>

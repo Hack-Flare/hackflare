@@ -97,6 +97,9 @@ export default function Domains() {
           ? "Verified!"
           : result.message || "Verification failed",
       }))
+      if (result.verified) {
+        await fetchZones()
+      }
     } catch (err) {
       const msg =
         err && typeof err === "object" && "error" in err
