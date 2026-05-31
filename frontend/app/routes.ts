@@ -11,6 +11,10 @@ export default [
   route("login", "routes/login.tsx"),
   route("auth/hackclub", "routes/auth/hackclub-callback.tsx"),
   route("ourteam", "routes/ourteam.tsx"),
+  route("401", "routes/401.tsx"),
+  route("403", "routes/403.tsx"),
+  route("404", "routes/404.tsx"),
+  route("500", "routes/500.tsx"),
   route("502", "routes/502.tsx"),
   route("api/slack/contact", "routes/api.slack.contact.ts"),
 
