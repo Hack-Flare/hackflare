@@ -122,7 +122,8 @@ async function request<T = unknown>(
   options: {
     method?: string
     body?: unknown
-  } = {}
+  } = {},
+  _retried?: boolean,
 ): Promise<T> {
   const url = `${API_ORIGIN}${endpoint}`
   const headers: Record<string, string> = {}
@@ -151,12 +152,12 @@ async function request<T = unknown>(
     }
   }
 
-  if (response.status === 401 && !endpoint.includes("/auth/refresh")) {
+  if (response.status === 401 && !endpoint.includes("/auth/refresh") && !_retried) {
     refreshing = refreshing ?? refreshTokens()
     try {
       await refreshing
       refreshing = null
-      return request<T>(endpoint, options)
+      return request<T>(endpoint, options, true)
     } catch {
       refreshing = null
       throw {

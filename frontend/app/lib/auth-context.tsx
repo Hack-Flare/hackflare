@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react"
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react"
 import { api, type AuthenticatedUser } from "./api"
 
 export interface User extends AuthenticatedUser {}
@@ -24,7 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [ready, setReady] = useState(false)
 
-  const refreshUser = async (): Promise<User | null> => {
+  const refreshUser = useCallback(async (): Promise<User | null> => {
     try {
       const currentUser = await api.auth.me()
       console.info("[Auth] session user loaded", {
@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setReady(true)
     }
-  }
+  }, [])
 
   useEffect(() => {
     void refreshUser()
