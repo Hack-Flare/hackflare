@@ -147,7 +147,7 @@ jobs:
           done <<< "$TAGS"
   
   coolify-webhook:
-    needs: publish
+    needs: [publish, merge-manifest]
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to Coolify
