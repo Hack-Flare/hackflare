@@ -195,6 +195,8 @@ async fn callback_handler(
     Query(query): Query<AuthCallbackParams>,
     ClientIp(ip_addr): ClientIp,
 ) -> Result<Response, (StatusCode, &'static str)> {
+    info!("callback_handler called with code={:?}", query.code);
+
     let session_csrf_token: String = session
         .remove(SESSION_CSRF_TOKEN_KEY)
         .await
@@ -345,21 +347,36 @@ async fn callback_handler(
         })
         .unwrap_or("/");
 
+    let access_cookie_str = access_cookie.to_string();
+    let refresh_cookie_str = refresh_cookie.to_string();
+
+    info!(
+        "setting cookies: jwt=[{}] refresh=[{}]",
+        &access_cookie_str[..access_cookie_str.len().min(80)],
+        &refresh_cookie_str[..refresh_cookie_str.len().min(80)],
+    );
+
     let mut response = (StatusCode::FOUND, ()).into_response();
     response.headers_mut().append(
         header::SET_COOKIE,
-        HeaderValue::from_str(&access_cookie.to_string())
+        HeaderValue::from_str(&access_cookie_str)
             .expect("access cookie is valid header value"),
     );
     response.headers_mut().append(
         header::SET_COOKIE,
-        HeaderValue::from_str(&refresh_cookie.to_string())
+        HeaderValue::from_str(&refresh_cookie_str)
             .expect("refresh cookie is valid header value"),
     );
     response.headers_mut().append(
         header::LOCATION,
         HeaderValue::from_str(target_url).expect("target url is valid header value"),
     );
+
+    info!(
+        "response set-cookie headers: {:?}",
+        response.headers().get_all(header::SET_COOKIE).iter().collect::<Vec<_>>(),
+    );
+
     Ok(response)
 }
 
