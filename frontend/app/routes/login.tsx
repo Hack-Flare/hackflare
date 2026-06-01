@@ -116,6 +116,13 @@ export default function Login() {
             <HackClubIcon className="h-6 w-6" />
             {loading ? "Redirecting\u2026" : "Sign in with Hack Club"}
           </button>
+
+          <a
+            href="/"
+            className="mt-4 flex w-full items-center justify-center gap-1.5 text-sm text-zinc-500 underline underline-offset-2 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+          >
+            &larr; Back to home
+          </a>
         </CardContent>
       </Card>
     </div>
