@@ -1,8 +1,6 @@
 services:
   app:
-    build:
-      context: .
-      dockerfile: deployment/Dockerfile.combined
+    image: ghcr.io/hack-flare/hackflare-combined:latest
     env_file:
       - ../.env
     ports:
