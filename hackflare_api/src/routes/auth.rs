@@ -333,7 +333,17 @@ async fn callback_handler(
 
     let target_url = session_target_url
         .as_deref()
-        .filter(|u| u.starts_with('/') && !u.contains("://") && !u.contains("\\"))
+        .filter(|u| {
+            if u.starts_with('/') && !u.contains("://") && !u.contains("\\") {
+                return true;
+            }
+            // Accept absolute URLs on the same host (for dev: different port)
+            if let Ok(url) = Url::parse(u) {
+                return url.host_str() == config.hca.redirect_uri.host_str()
+                    && !u.contains("\\");
+            }
+            false
+        })
         .unwrap_or("/");
 
     let mut response = (StatusCode::FOUND, ()).into_response();
