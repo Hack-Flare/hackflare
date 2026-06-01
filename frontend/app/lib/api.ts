@@ -157,7 +157,7 @@ async function request<T = unknown>(
     try {
       await refreshing
       refreshing = null
-      return request<T>(endpoint, options, true)
+      return await request<T>(endpoint, options, true)
     } catch {
       refreshing = null
       throw {
