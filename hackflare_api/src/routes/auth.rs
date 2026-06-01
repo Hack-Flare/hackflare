@@ -339,8 +339,7 @@ async fn callback_handler(
             }
             // Accept absolute URLs on the same host (for dev: different port)
             if let Ok(url) = Url::parse(u) {
-                return url.host_str() == config.hca.redirect_uri.host_str()
-                    && !u.contains("\\");
+                return url.host_str() == config.hca.redirect_uri.host_str() && !u.contains("\\");
             }
             false
         })
