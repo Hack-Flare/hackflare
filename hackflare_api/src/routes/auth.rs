@@ -359,13 +359,11 @@ async fn callback_handler(
     let mut response = (StatusCode::FOUND, ()).into_response();
     response.headers_mut().append(
         header::SET_COOKIE,
-        HeaderValue::from_str(&access_cookie_str)
-            .expect("access cookie is valid header value"),
+        HeaderValue::from_str(&access_cookie_str).expect("access cookie is valid header value"),
     );
     response.headers_mut().append(
         header::SET_COOKIE,
-        HeaderValue::from_str(&refresh_cookie_str)
-            .expect("refresh cookie is valid header value"),
+        HeaderValue::from_str(&refresh_cookie_str).expect("refresh cookie is valid header value"),
     );
     response.headers_mut().append(
         header::LOCATION,
@@ -374,7 +372,11 @@ async fn callback_handler(
 
     info!(
         "response set-cookie headers: {:?}",
-        response.headers().get_all(header::SET_COOKIE).iter().collect::<Vec<_>>(),
+        response
+            .headers()
+            .get_all(header::SET_COOKIE)
+            .iter()
+            .collect::<Vec<_>>(),
     );
 
     Ok(response)
