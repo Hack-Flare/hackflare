@@ -157,36 +157,66 @@ impl RequestHandler for HickoryRequestHandler {
         } else {
             let qname = query_name.clone();
             let qtype = u16::from(query_info.query.query_type());
+            let dns_config = self.dns_config.clone();
+            let resolve_qname = qname.clone();
 
-            let response_bytes =
-                match crate::dns::recursive::resolve(&qname, qtype, &self.dns_config) {
-                    Ok(bytes) => bytes,
-                    Err(e) => {
-                        eprintln!("recursive resolve failed for {qname}: {e}");
-                        response_info = send_servfail_response(
-                            request,
-                            response_handle,
-                            "Failed to process recursive query",
-                        )
-                        .await;
-                        response_code = "SERVFAIL".to_string();
-                        response_size = 0;
-                        answers_count = 0;
-                        let elapsed = start.elapsed();
-                        self.log_query(QueryLogEntry {
-                            query_name: query_name.clone(),
-                            query_type: query_type_str.clone(),
-                            response_code: response_code.clone(),
-                            source_ip: source_ip.clone(),
-                            protocol: protocol_str.to_string(),
-                            response_size,
-                            processing_us: elapsed.as_micros().min(u64::MAX as u128) as i32,
-                            answers_count,
-                        })
-                        .await;
-                        return response_info;
-                    }
-                };
+            let response_bytes = match tokio::task::spawn_blocking(move || {
+                crate::dns::recursive::resolve(&resolve_qname, qtype, &dns_config)
+            })
+            .await
+            {
+                Ok(Ok(bytes)) => bytes,
+                Ok(Err(e)) => {
+                    eprintln!("recursive resolve failed for {qname}: {e}");
+                    response_info = send_servfail_response(
+                        request,
+                        response_handle,
+                        "Failed to process recursive query",
+                    )
+                    .await;
+                    response_code = "SERVFAIL".to_string();
+                    response_size = 0;
+                    answers_count = 0;
+                    let elapsed = start.elapsed();
+                    self.log_query(QueryLogEntry {
+                        query_name: query_name.clone(),
+                        query_type: query_type_str.clone(),
+                        response_code: response_code.clone(),
+                        source_ip: source_ip.clone(),
+                        protocol: protocol_str.to_string(),
+                        response_size,
+                        processing_us: elapsed.as_micros().min(u64::MAX as u128) as i32,
+                        answers_count,
+                    })
+                    .await;
+                    return response_info;
+                }
+                Err(e) => {
+                    eprintln!("recursive resolve task failed for {qname}: {e}");
+                    response_info = send_servfail_response(
+                        request,
+                        response_handle,
+                        "Failed to process recursive query",
+                    )
+                    .await;
+                    response_code = "SERVFAIL".to_string();
+                    response_size = 0;
+                    answers_count = 0;
+                    let elapsed = start.elapsed();
+                    self.log_query(QueryLogEntry {
+                        query_name: query_name.clone(),
+                        query_type: query_type_str.clone(),
+                        response_code: response_code.clone(),
+                        source_ip: source_ip.clone(),
+                        protocol: protocol_str.to_string(),
+                        response_size,
+                        processing_us: elapsed.as_micros().min(u64::MAX as u128) as i32,
+                        answers_count,
+                    })
+                    .await;
+                    return response_info;
+                }
+            };
 
             response_size = response_bytes.len() as i32;
             let mut response = match Message::from_vec(response_bytes.as_slice()) {
