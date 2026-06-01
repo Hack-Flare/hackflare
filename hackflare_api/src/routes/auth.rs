@@ -339,15 +339,17 @@ async fn callback_handler(
     let mut response = (StatusCode::FOUND, ()).into_response();
     response.headers_mut().append(
         header::SET_COOKIE,
-        HeaderValue::from_str(&access_cookie.to_string()).unwrap(),
+        HeaderValue::from_str(&access_cookie.to_string())
+            .expect("access cookie is valid header value"),
     );
     response.headers_mut().append(
         header::SET_COOKIE,
-        HeaderValue::from_str(&refresh_cookie.to_string()).unwrap(),
+        HeaderValue::from_str(&refresh_cookie.to_string())
+            .expect("refresh cookie is valid header value"),
     );
     response.headers_mut().append(
         header::LOCATION,
-        HeaderValue::from_str(target_url).unwrap(),
+        HeaderValue::from_str(target_url).expect("target url is valid header value"),
     );
     Ok(response)
 }
@@ -384,11 +386,13 @@ async fn logout_handler(
     let mut response = (StatusCode::NO_CONTENT, ()).into_response();
     response.headers_mut().append(
         header::SET_COOKIE,
-        HeaderValue::from_str(&clear_access.to_string()).unwrap(),
+        HeaderValue::from_str(&clear_access.to_string())
+            .expect("clear access cookie is valid header value"),
     );
     response.headers_mut().append(
         header::SET_COOKIE,
-        HeaderValue::from_str(&clear_refresh.to_string()).unwrap(),
+        HeaderValue::from_str(&clear_refresh.to_string())
+            .expect("clear refresh cookie is valid header value"),
     );
     response
 }
@@ -451,11 +455,13 @@ async fn refresh_handler(
     let mut response = (StatusCode::OK, ()).into_response();
     response.headers_mut().append(
         header::SET_COOKIE,
-        HeaderValue::from_str(&access_cookie.to_string()).unwrap(),
+        HeaderValue::from_str(&access_cookie.to_string())
+            .expect("access cookie is valid header value"),
     );
     response.headers_mut().append(
         header::SET_COOKIE,
-        HeaderValue::from_str(&refresh_cookie.to_string()).unwrap(),
+        HeaderValue::from_str(&refresh_cookie.to_string())
+            .expect("refresh cookie is valid header value"),
     );
     Ok(response)
 }
