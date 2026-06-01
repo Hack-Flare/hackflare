@@ -12,6 +12,7 @@ on:
       - 'hackflare_dns/**'
       - 'database/migrations/**'
       - 'Cargo.toml'
+      - '.github/workflows/ci-backend.yml'
       - '.github/workflows/docker-backend.yml'
       - '.dockerignore'
 

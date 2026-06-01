@@ -9,6 +9,7 @@ on:
     types: [opened, synchronize, closed]
     paths:
       - 'frontend/**'
+      - '.github/workflows/ci-frontend.yml'
       - '.github/workflows/docker-frontend.yml'
 
 env:

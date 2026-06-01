@@ -1,19 +1,40 @@
-name: CI
+name: Backend CI
 
 on:
-  workflow_dispatch:
-  workflow_call:
+  push:
+    paths:
+      - "hackflare_api/**"
+      - "hackflare_dns/**"
+      - "database/migrations/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/ci-backend.yml"
+      - ".github/workflows/ci.yml"
+      - ".github/actions/setup-rust/**"
+      - "!**/*.md"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "hackflare_api/**"
+      - "hackflare_dns/**"
+      - "database/migrations/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/ci-backend.yml"
+      - ".github/workflows/ci.yml"
+      - ".github/actions/setup-rust/**"
+      - "!**/*.md"
 
 permissions:
   contents: read
   packages: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: backend-ci-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  # Run SQLx checks locally instead of against a real DB during CI
   SQLX_OFFLINE: true
 
 jobs:
@@ -70,31 +91,3 @@ jobs:
 
       - name: Check formatting
         run: cargo fmt --all --check
-
-  frontend:
-    name: Frontend Checks
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: TypeScript type check
-        run: npm run typecheck
-
-      - name: Build
-        run: npm run build
-
-      #- name: Format check
-      #  run: npx prettier --check "**/*.{ts,tsx}"
