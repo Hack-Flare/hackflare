@@ -70,15 +70,6 @@ export default function Login() {
             </div>
           )}
 
-          <button
-            onClick={handleHackclubLogin}
-            disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-hackclub-500 py-2 text-sm font-medium text-white hover:bg-hackclub-600 disabled:bg-hackclub-400"
-          >
-            <HackClubIcon className="h-6 w-6" />
-            {loading ? "Redirecting\u2026" : "Sign in with Hack Club"}
-          </button>
-
           <div className="relative my-4">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-zinc-200 dark:border-zinc-800" />
@@ -102,6 +93,28 @@ export default function Login() {
           >
             <GitHubIcon className="h-5 w-5" />
             Sign in with GitHub
+          </button>
+
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-zinc-200 dark:border-zinc-800" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-card px-2 text-muted-foreground">preferred method</span>
+            </div>
+          </div>
+
+          <div className="mb-4 rounded-lg border border-orange-200 bg-orange-50 p-3 text-xs text-orange-800 dark:border-orange-900/50 dark:bg-orange-950/50 dark:text-orange-400">
+            Hack Club Auth is the only supported sign-in method at this time
+          </div>
+
+          <button
+            onClick={handleHackclubLogin}
+            disabled={loading}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-hackclub-500 py-2 text-sm font-medium text-white hover:bg-hackclub-600 disabled:bg-hackclub-400"
+          >
+            <HackClubIcon className="h-6 w-6" />
+            {loading ? "Redirecting\u2026" : "Sign in with Hack Club"}
           </button>
         </CardContent>
       </Card>
