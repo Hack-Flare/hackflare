@@ -51,7 +51,7 @@ services:
       - backend
 
   pgadmin4:
-    profiles: [backend]
+    profiles: [pg]
     image: dpage/pgadmin4
     env_file:
       - ../.env
