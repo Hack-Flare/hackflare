@@ -1,6 +1,6 @@
 services:
   app:
-    image: ghcr.io/hack-flare/hackflare-combined:latest
+    image: ghcr.io/hack-flare/hackflare-app:latest
     pull_policy: always
     env_file:
       - ../.env

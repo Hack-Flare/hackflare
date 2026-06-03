@@ -20,7 +20,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: hack-flare/hackflare-combined
+  IMAGE_NAME: hack-flare/hackflare-app
 
 jobs:
   build-check:
