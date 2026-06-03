@@ -19,7 +19,7 @@ env:
 jobs:
   rust:
     name: Rust Checks
-    runs-on: blacksmith-8vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     services:
       postgres:
         image: postgres:18
@@ -73,7 +73,7 @@ jobs:
 
   frontend:
     name: Frontend Checks
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: frontend
