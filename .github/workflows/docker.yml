@@ -15,7 +15,7 @@ on:
       - 'Cargo.toml'
       - 'deployment/Dockerfile.combined'
       - 'deployment/hackflare_supervisord.conf'
-      - '.github/workflows/docker-combined.yml'
+      - '.github/workflows/docker.yml'
       - '.dockerignore'
 
 env:
