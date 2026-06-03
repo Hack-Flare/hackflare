@@ -1,34 +1,27 @@
 services:
-  api:
-    profiles: [backend]
-    image: ghcr.io/hack-flare/hackflare-backend:latest
-    platform: linux/amd64
-    env_file:
-      - ../.env
-    environment:
-      - RUST_LOG=debug,hackflare=trace
-    ports:
-      - "8080:8080"
-      - "53:5353/udp"
-      - "53:5353/tcp"
-    depends_on:
-      - db
-
-  frontend:
-    profiles: [frontend]
-    image: ghcr.io/hack-flare/hackflare-frontend:latest
-    platform: linux/amd64
+  app:
+    image: ghcr.io/hack-flare/hackflare-combined:latest
+    pull_policy: always
     env_file:
       - ../.env
     ports:
       - "3000:3000"
+      - "53:5353/udp"
+      - "53:5353/tcp"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     depends_on:
-      - api
+      db:
+        condition: service_healthy
+    networks:
+      - backend
 
   db:
-    profiles: [backend]
     image: postgres:18
-    restart: always
     shm_size: 256mb
     env_file:
       - ../.env
@@ -36,6 +29,16 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/18
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hackflare"]
+      interval: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - backend
 
 volumes:
   pgdata:
+
+networks:
+  backend:
