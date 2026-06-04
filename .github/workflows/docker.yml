@@ -43,7 +43,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image (smoke test)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./deployment/Dockerfile.combined
@@ -93,7 +93,7 @@ jobs:
             type=raw,value=latest${{ matrix.tag-suffix }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./deployment/Dockerfile.combined
