@@ -19,7 +19,7 @@
     "clsx": "^2.1.1",
     "framer-motion": "^12.39.0",
     "http-proxy-middleware": "^4.0.0",
-    "isbot": "^5.1.36",
+    "isbot": "^5.1.42",
     "lucide-react": "^1.17.0",
     "radix-ui": "^1.4.3",
     "react": "^19.2.4",
