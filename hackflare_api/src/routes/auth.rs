@@ -317,8 +317,8 @@ async fn callback_handler(
         (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
     })?;
 
-    UsersService::upsert_with(
-        &mut *tx,
+    let user_id = UsersService::upsert_with(
+        &mut tx,
         &user_info,
         &token_response.access_token,
         &token_response.refresh_token,
@@ -333,7 +333,7 @@ async fn callback_handler(
     let now = Utc::now();
     let refresh_exp = now + chrono::Duration::days(config.refresh_token_days);
 
-    let jit = UserSessionsService::create_with(&mut *tx, &user_info.id, ip_addr, refresh_exp)
+    let jit = UserSessionsService::create_with(&mut *tx, &user_id, ip_addr, refresh_exp)
         .await
         .map_err(|error| {
             error!(%error, "failed to create session");
@@ -345,7 +345,7 @@ async fn callback_handler(
         (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
     })?;
 
-    let (access_token, refresh_token) = make_tokens(&config, jit, &user_info.id, now)?;
+    let (access_token, refresh_token) = make_tokens(&config, jit, &user_id, now)?;
 
     let is_secure = config.hca.is_secure();
     let (access_cookie, refresh_cookie) =

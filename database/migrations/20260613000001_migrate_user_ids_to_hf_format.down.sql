@@ -1,0 +1,2 @@
+-- This migration is not reversible — old HCA-provided IDs cannot be recovered.
+-- To undo, restore a database backup taken before applying this migration.
