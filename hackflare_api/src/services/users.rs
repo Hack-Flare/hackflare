@@ -23,11 +23,10 @@ impl UsersService {
         token_expires_at: DateTime<Utc>,
     ) -> Result<String> {
         // Look up existing user by email to link social accounts
-        let existing: Option<(String,)> =
-            query_as("SELECT id FROM users WHERE email = $1 LIMIT 1")
-                .bind(&user.primary_email)
-                .fetch_optional(&mut **tx)
-                .await?;
+        let existing: Option<(String,)> = query_as("SELECT id FROM users WHERE email = $1 LIMIT 1")
+            .bind(&user.primary_email)
+            .fetch_optional(&mut **tx)
+            .await?;
 
         let user_id = if let Some((existing_id,)) = existing {
             query(

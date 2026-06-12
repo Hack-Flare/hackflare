@@ -9,11 +9,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
-use crate::{
-    middlewares::auth_middleware,
-    models::CurrentUser,
-    state::AppState,
-};
+use crate::{middlewares::auth_middleware, models::CurrentUser, state::AppState};
 
 // ── Response types ──
 
@@ -90,7 +86,9 @@ fn record_not_found() -> (StatusCode, Json<serde_json::Value>) {
 fn zone_not_verified() -> (StatusCode, Json<serde_json::Value>) {
     (
         StatusCode::FORBIDDEN,
-        Json(serde_json::json!({"error": "zone not verified, record edits are blocked until NS delegation is verified"})),
+        Json(
+            serde_json::json!({"error": "zone not verified, record edits are blocked until NS delegation is verified"}),
+        ),
     )
 }
 
