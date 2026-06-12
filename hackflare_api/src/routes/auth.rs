@@ -159,6 +159,36 @@ fn make_tokens(
     Ok((access_token, refresh_token))
 }
 
+fn set_cookie_header(response: &mut Response, cookie: &Cookie<'static>) {
+    response.headers_mut().append(
+        header::SET_COOKIE,
+        HeaderValue::from_str(&cookie.to_string()).expect("cookie is valid header value"),
+    );
+}
+
+fn make_auth_cookies(
+    config: &Config,
+    access_token: String,
+    refresh_token: String,
+    is_secure: bool,
+) -> (Cookie<'static>, Cookie<'static>) {
+    let access = make_cookie(
+        "jwt".into(),
+        access_token,
+        "/".into(),
+        config.access_token_minutes * 60,
+        is_secure,
+    );
+    let refresh = make_cookie(
+        "refresh_jwt".into(),
+        refresh_token,
+        "/api/v1/auth".into(),
+        config.refresh_token_days * 86400,
+        is_secure,
+    );
+    (access, refresh)
+}
+
 async fn login_handler(
     State(state): State<AppState>,
     session: Session,
@@ -318,20 +348,8 @@ async fn callback_handler(
     let (access_token, refresh_token) = make_tokens(&config, jit, &user_info.id, now)?;
 
     let is_secure = config.hca.is_secure();
-    let access_cookie = make_cookie(
-        "jwt".into(),
-        access_token,
-        "/".into(),
-        config.access_token_minutes * 60,
-        is_secure,
-    );
-    let refresh_cookie = make_cookie(
-        "refresh_jwt".into(),
-        refresh_token,
-        "/api/v1/auth".into(),
-        config.refresh_token_days * 86400,
-        is_secure,
-    );
+    let (access_cookie, refresh_cookie) =
+        make_auth_cookies(&config, access_token, refresh_token, is_secure);
 
     let target_url = session_target_url
         .as_deref()
@@ -347,24 +365,9 @@ async fn callback_handler(
         })
         .unwrap_or("/");
 
-    let access_cookie_str = access_cookie.to_string();
-    let refresh_cookie_str = refresh_cookie.to_string();
-
-    info!(
-        "setting cookies: jwt=[{}] refresh=[{}]",
-        &access_cookie_str[..access_cookie_str.len().min(80)],
-        &refresh_cookie_str[..refresh_cookie_str.len().min(80)],
-    );
-
     let mut response = (StatusCode::FOUND, ()).into_response();
-    response.headers_mut().append(
-        header::SET_COOKIE,
-        HeaderValue::from_str(&access_cookie_str).expect("access cookie is valid header value"),
-    );
-    response.headers_mut().append(
-        header::SET_COOKIE,
-        HeaderValue::from_str(&refresh_cookie_str).expect("refresh cookie is valid header value"),
-    );
+    set_cookie_header(&mut response, &access_cookie);
+    set_cookie_header(&mut response, &refresh_cookie);
     response.headers_mut().append(
         header::LOCATION,
         HeaderValue::from_str(target_url).expect("target url is valid header value"),
@@ -412,16 +415,8 @@ async fn logout_handler(
     );
 
     let mut response = (StatusCode::NO_CONTENT, ()).into_response();
-    response.headers_mut().append(
-        header::SET_COOKIE,
-        HeaderValue::from_str(&clear_access.to_string())
-            .expect("clear access cookie is valid header value"),
-    );
-    response.headers_mut().append(
-        header::SET_COOKIE,
-        HeaderValue::from_str(&clear_refresh.to_string())
-            .expect("clear refresh cookie is valid header value"),
-    );
+    set_cookie_header(&mut response, &clear_access);
+    set_cookie_header(&mut response, &clear_refresh);
     response
 }
 
@@ -465,32 +460,12 @@ async fn refresh_handler(
     let (access_token, refresh_token) = make_tokens(&config, claims.jit, &claims.sub, now)?;
 
     let is_secure = config.hca.is_secure();
-    let access_cookie = make_cookie(
-        "jwt".into(),
-        access_token,
-        "/".into(),
-        config.access_token_minutes * 60,
-        is_secure,
-    );
-    let refresh_cookie = make_cookie(
-        "refresh_jwt".into(),
-        refresh_token,
-        "/api/v1/auth".into(),
-        config.refresh_token_days * 86400,
-        is_secure,
-    );
+    let (access_cookie, refresh_cookie) =
+        make_auth_cookies(&config, access_token, refresh_token, is_secure);
 
     let mut response = (StatusCode::OK, ()).into_response();
-    response.headers_mut().append(
-        header::SET_COOKIE,
-        HeaderValue::from_str(&access_cookie.to_string())
-            .expect("access cookie is valid header value"),
-    );
-    response.headers_mut().append(
-        header::SET_COOKIE,
-        HeaderValue::from_str(&refresh_cookie.to_string())
-            .expect("refresh cookie is valid header value"),
-    );
+    set_cookie_header(&mut response, &access_cookie);
+    set_cookie_header(&mut response, &refresh_cookie);
     Ok(response)
 }
 

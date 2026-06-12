@@ -73,6 +73,34 @@ async fn set_zone_verified(db: &PgPool, zone_name: &str) -> Result<(), sqlx::Err
     Ok(())
 }
 
+fn zone_not_found() -> (StatusCode, Json<serde_json::Value>) {
+    (
+        StatusCode::NOT_FOUND,
+        Json(serde_json::json!({"error": "zone not found"})),
+    )
+}
+
+fn record_not_found() -> (StatusCode, Json<serde_json::Value>) {
+    (
+        StatusCode::NOT_FOUND,
+        Json(serde_json::json!({"error": "record not found"})),
+    )
+}
+
+fn zone_not_verified() -> (StatusCode, Json<serde_json::Value>) {
+    (
+        StatusCode::FORBIDDEN,
+        Json(serde_json::json!({"error": "zone not verified, record edits are blocked until NS delegation is verified"})),
+    )
+}
+
+fn internal_error(msg: &str) -> (StatusCode, Json<serde_json::Value>) {
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(serde_json::json!({"error": msg})),
+    )
+}
+
 // ── Ownership helper ──
 
 async fn ensure_zone_ownership(
@@ -90,6 +118,13 @@ async fn ensure_zone_ownership(
         Some(owner) if owner == user_id => Ok(()),
         _ => Err(StatusCode::NOT_FOUND),
     }
+}
+
+async fn ensure_zone_verified(db: &PgPool, zone_name: &str) -> Result<(), StatusCode> {
+    if !is_zone_verified(db, zone_name).await.unwrap_or(false) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    Ok(())
 }
 
 // ── Zone handlers ──
@@ -293,23 +328,11 @@ async fn create_record(
         .await
         .is_err()
     {
-        return (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "zone not found"})),
-        )
-            .into_response();
+        return zone_not_found().into_response();
     }
 
-    // Block record edits until NS delegation is verified
-    if !is_zone_verified(&state.db, &zone_name)
-        .await
-        .unwrap_or(false)
-    {
-        return (
-            StatusCode::FORBIDDEN,
-            Json(serde_json::json!({"error": "zone not verified, record edits are blocked until NS delegation is verified"})),
-        )
-            .into_response();
+    if ensure_zone_verified(&state.db, &zone_name).await.is_err() {
+        return zone_not_verified().into_response();
     }
 
     if state
@@ -329,11 +352,7 @@ async fn create_record(
         )
             .into_response()
     } else {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "failed to create record"})),
-        )
-            .into_response()
+        internal_error("failed to create record").into_response()
     }
 }
 
@@ -351,23 +370,11 @@ async fn update_record(
         .await
         .is_err()
     {
-        return (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "zone not found"})),
-        )
-            .into_response();
+        return zone_not_found().into_response();
     }
 
-    // Block record edits until NS delegation is verified
-    if !is_zone_verified(&state.db, &zone_name)
-        .await
-        .unwrap_or(false)
-    {
-        return (
-            StatusCode::FORBIDDEN,
-            Json(serde_json::json!({"error": "zone not verified, record edits are blocked until NS delegation is verified"})),
-        )
-            .into_response();
+    if ensure_zone_verified(&state.db, &zone_name).await.is_err() {
+        return zone_not_verified().into_response();
     }
 
     if !state
@@ -375,11 +382,7 @@ async fn update_record(
         .remove_record(&zone_name, &record_name, &record_type)
         .await
     {
-        return (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "record not found"})),
-        )
-            .into_response();
+        return record_not_found().into_response();
     }
     state
         .dns_authority
@@ -405,23 +408,11 @@ async fn delete_record(
         .await
         .is_err()
     {
-        return (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "zone not found"})),
-        )
-            .into_response();
+        return zone_not_found().into_response();
     }
 
-    // Block record edits until NS delegation is verified
-    if !is_zone_verified(&state.db, &zone_name)
-        .await
-        .unwrap_or(false)
-    {
-        return (
-            StatusCode::FORBIDDEN,
-            Json(serde_json::json!({"error": "zone not verified, record edits are blocked until NS delegation is verified"})),
-        )
-            .into_response();
+    if ensure_zone_verified(&state.db, &zone_name).await.is_err() {
+        return zone_not_verified().into_response();
     }
 
     if state
@@ -431,11 +422,7 @@ async fn delete_record(
     {
         StatusCode::NO_CONTENT.into_response()
     } else {
-        (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "record not found"})),
-        )
-            .into_response()
+        record_not_found().into_response()
     }
 }
 
