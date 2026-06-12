@@ -1,6 +1,6 @@
 use axum::{
     Json, Router,
-    extract::State,
+    extract::{Extension, State},
     http::StatusCode,
     middleware,
     response::IntoResponse,
@@ -9,7 +9,11 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
-use crate::{middlewares::auth_middleware, state::AppState};
+use crate::{
+    middlewares::auth_middleware,
+    models::CurrentUser,
+    state::AppState,
+};
 
 // ── Response types ──
 
@@ -69,20 +73,47 @@ async fn set_zone_verified(db: &PgPool, zone_name: &str) -> Result<(), sqlx::Err
     Ok(())
 }
 
+// ── Ownership helper ──
+
+async fn ensure_zone_ownership(
+    db: &PgPool,
+    zone_name: &str,
+    user_id: &str,
+) -> Result<(), StatusCode> {
+    let result: Option<String> =
+        sqlx::query_scalar("SELECT user_id FROM dns_zones WHERE name = $1")
+            .bind(zone_name)
+            .fetch_optional(db)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    match result.as_deref() {
+        Some(owner) if owner == user_id => Ok(()),
+        _ => Err(StatusCode::NOT_FOUND),
+    }
+}
+
 // ── Zone handlers ──
 
-async fn list_zones(State(state): State<AppState>) -> Json<Vec<ZoneResponse>> {
-    let names = state.dns_authority.list_zones().await;
-    let mut zones = Vec::with_capacity(names.len());
-    for name in names {
-        let ns_verified = is_zone_verified(&state.db, &name).await.unwrap_or(false);
-        zones.push(ZoneResponse { name, ns_verified });
-    }
-    Json(zones)
+async fn list_zones(
+    State(state): State<AppState>,
+    Extension(current_user): Extension<CurrentUser>,
+) -> Json<Vec<ZoneResponse>> {
+    let rows: Vec<(String, bool)> =
+        sqlx::query_as("SELECT name, ns_verified FROM dns_zones WHERE user_id = $1 ORDER BY name")
+            .bind(&current_user.user.id)
+            .fetch_all(&state.db)
+            .await
+            .unwrap_or_default();
+    Json(
+        rows.into_iter()
+            .map(|(name, ns_verified)| ZoneResponse { name, ns_verified })
+            .collect(),
+    )
 }
 
 async fn create_zone(
     State(state): State<AppState>,
+    Extension(current_user): Extension<CurrentUser>,
     Json(req): Json<CreateZoneRequest>,
 ) -> impl IntoResponse {
     let name = req.name.trim().to_string();
@@ -94,7 +125,7 @@ async fn create_zone(
             .into_response();
     }
 
-    // Check zone doesn't already exist
+    // Check zone doesn't already exist globally
     let zones = state.dns_authority.list_zones().await;
     if zones.iter().any(|z| z == &name) {
         return (
@@ -105,6 +136,12 @@ async fn create_zone(
     }
 
     if state.dns_authority.create_zone(&name).await {
+        // Associate zone with the authenticated user
+        let _ = sqlx::query("UPDATE dns_zones SET user_id = $1 WHERE name = $2")
+            .bind(&current_user.user.id)
+            .bind(&name)
+            .execute(&state.db)
+            .await;
         (StatusCode::CREATED, Json(serde_json::json!({"name": name}))).into_response()
     } else {
         (
@@ -117,8 +154,15 @@ async fn create_zone(
 
 async fn delete_zone(
     State(state): State<AppState>,
+    Extension(current_user): Extension<CurrentUser>,
     axum::extract::Path(zone_name): axum::extract::Path<String>,
 ) -> StatusCode {
+    if ensure_zone_ownership(&state.db, &zone_name, &current_user.user.id)
+        .await
+        .is_err()
+    {
+        return StatusCode::NOT_FOUND;
+    }
     if state.dns_authority.delete_zone(&zone_name).await {
         StatusCode::NO_CONTENT
     } else {
@@ -228,13 +272,10 @@ async fn verify_zone(
 
 async fn list_records(
     State(state): State<AppState>,
+    Extension(current_user): Extension<CurrentUser>,
     axum::extract::Path(zone_name): axum::extract::Path<String>,
 ) -> Result<Json<Vec<RecordResponse>>, StatusCode> {
-    // Verify zone exists
-    let zones = state.dns_authority.list_zones().await;
-    if !zones.iter().any(|z| z == &zone_name) {
-        return Err(StatusCode::NOT_FOUND);
-    }
+    ensure_zone_ownership(&state.db, &zone_name, &current_user.user.id).await?;
 
     let records = get_records_from_db(&state.db, &zone_name)
         .await
@@ -244,12 +285,14 @@ async fn list_records(
 
 async fn create_record(
     State(state): State<AppState>,
+    Extension(current_user): Extension<CurrentUser>,
     axum::extract::Path(zone_name): axum::extract::Path<String>,
     Json(req): Json<CreateRecordRequest>,
 ) -> impl IntoResponse {
-    // Verify zone exists
-    let zones = state.dns_authority.list_zones().await;
-    if !zones.iter().any(|z| z == &zone_name) {
+    if ensure_zone_ownership(&state.db, &zone_name, &current_user.user.id)
+        .await
+        .is_err()
+    {
         return (
             StatusCode::NOT_FOUND,
             Json(serde_json::json!({"error": "zone not found"})),
@@ -296,6 +339,7 @@ async fn create_record(
 
 async fn update_record(
     State(state): State<AppState>,
+    Extension(current_user): Extension<CurrentUser>,
     axum::extract::Path((zone_name, record_name, record_type)): axum::extract::Path<(
         String,
         String,
@@ -303,6 +347,17 @@ async fn update_record(
     )>,
     Json(req): Json<UpdateRecordRequest>,
 ) -> impl IntoResponse {
+    if ensure_zone_ownership(&state.db, &zone_name, &current_user.user.id)
+        .await
+        .is_err()
+    {
+        return (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "zone not found"})),
+        )
+            .into_response();
+    }
+
     // Block record edits until NS delegation is verified
     if !is_zone_verified(&state.db, &zone_name)
         .await
@@ -339,12 +394,24 @@ async fn update_record(
 
 async fn delete_record(
     State(state): State<AppState>,
+    Extension(current_user): Extension<CurrentUser>,
     axum::extract::Path((zone_name, record_name, record_type)): axum::extract::Path<(
         String,
         String,
         String,
     )>,
 ) -> impl IntoResponse {
+    if ensure_zone_ownership(&state.db, &zone_name, &current_user.user.id)
+        .await
+        .is_err()
+    {
+        return (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "zone not found"})),
+        )
+            .into_response();
+    }
+
     // Block record edits until NS delegation is verified
     if !is_zone_verified(&state.db, &zone_name)
         .await
@@ -671,6 +738,11 @@ mod tests {
         };
 
         ctx.state.dns_authority.create_zone("test-del.com").await;
+        sqlx::query("UPDATE dns_zones SET user_id = $1 WHERE name = 'test-del.com'")
+            .bind(&ctx.user_id)
+            .execute(&ctx.state.db)
+            .await
+            .ok();
 
         let response = build_router(ctx.state.clone())
             .oneshot(ctx.authed_request("DELETE", "/api/v1/dns/zones/test-del.com", None))
@@ -703,6 +775,11 @@ mod tests {
         };
 
         ctx.state.dns_authority.create_zone("test-rec.com").await;
+        sqlx::query("UPDATE dns_zones SET user_id = $1 WHERE name = 'test-rec.com'")
+            .bind(&ctx.user_id)
+            .execute(&ctx.state.db)
+            .await
+            .ok();
         // Mark zone as verified so record CRUD is allowed
         let _ = sqlx::query("UPDATE dns_zones SET ns_verified = true WHERE name = 'test-rec.com'")
             .execute(&ctx.state.db)
@@ -812,6 +889,11 @@ mod tests {
             .dns_authority
             .create_zone("test-unverified.com")
             .await;
+        sqlx::query("UPDATE dns_zones SET user_id = $1 WHERE name = 'test-unverified.com'")
+            .bind(&ctx.user_id)
+            .execute(&ctx.state.db)
+            .await
+            .ok();
 
         // Create record should be blocked
         let response = build_router(ctx.state.clone())
