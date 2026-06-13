@@ -108,7 +108,11 @@ function ConfigTab() {
 
   const startEdit = (entry: ConfigEntry) => {
     setEditKey(entry.key)
-    setEditValue(entry.override_value ?? entry.env_value ?? "")
+    setEditValue(
+      entry.override_value ??
+        (entry.default_override ? entry.default_value : entry.env_value) ??
+        ""
+    )
   }
 
   const cancelEdit = () => {
@@ -190,10 +194,15 @@ function ConfigTab() {
                     <span className="text-xs text-zinc-500">{entry.key}</span>
                   </div>
                 </TableCell>
-                <TableCell className="font-mono text-xs text-zinc-400">
-                  <div className="max-w-48 truncate" title={entry.env_value ?? ""}>
-                    {entry.env_value || "—"}
+                <TableCell className="font-mono text-xs text-zinc-500">
+                  <div className="max-w-48 truncate" title={entry.default_value ?? ""}>
+                    {entry.default_value || "—"}
                   </div>
+                  {entry.default_override && entry.env_value && (
+                    <div className="mt-0.5 max-w-48 truncate text-[10px] text-zinc-600 line-through" title={entry.env_value}>
+                      env: {entry.env_value}
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell className="font-mono text-xs">
                   {editKey === entry.key ? (

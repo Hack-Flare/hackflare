@@ -68,6 +68,8 @@ export interface ConfigEntry {
   env_value: string | null
   override_value: string | null
   effective_value: string
+  default_value: string | null
+  default_override: boolean
   editable: boolean
   requires_restart: boolean
   updated_at: string | null

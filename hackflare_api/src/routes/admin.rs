@@ -49,9 +49,23 @@ pub(super) async fn list_config(
             .map(|meta| {
                 let env_value = env_map.get(meta.key).cloned();
                 let ov = overrides_map.get(meta.key);
+                let default_value = meta.default_value.map(|s| s.to_string());
                 let effective_value = ov
                     .map(|o| o.value.clone())
-                    .or_else(|| env_value.clone())
+                    .or_else(|| {
+                        if meta.default_override {
+                            default_value.clone()
+                        } else {
+                            env_value.clone()
+                        }
+                    })
+                    .or_else(|| {
+                        if meta.default_override {
+                            env_value.clone()
+                        } else {
+                            default_value.clone()
+                        }
+                    })
                     .unwrap_or_default();
 
                 ConfigEntry {
@@ -61,6 +75,8 @@ pub(super) async fn list_config(
                     env_value,
                     override_value: ov.map(|o| o.value.clone()),
                     effective_value,
+                    default_value,
+                    default_override: meta.default_override,
                     editable: meta.editable,
                     requires_restart: meta.requires_restart,
                     updated_at: ov.map(|o| o.updated_at),
