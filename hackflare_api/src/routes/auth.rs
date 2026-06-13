@@ -634,6 +634,127 @@ async fn email_login_handler(
     Ok(response)
 }
 
+#[derive(Debug, Deserialize)]
+struct ForgotPasswordRequest {
+    email: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct ResetPasswordRequest {
+    token: String,
+    password: String,
+}
+
+async fn forgot_password_handler(
+    State(state): State<AppState>,
+    Json(req): Json<ForgotPasswordRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, &'static str)> {
+    if req.email.is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "email_required"));
+    }
+
+    let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1 LIMIT 1")
+        .bind(&req.email)
+        .fetch_optional(&state.db)
+        .await
+        .map_err(|error| {
+            error!(%error, "failed to look up user");
+            (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
+        })?;
+
+    // Always return 200 to avoid revealing whether the email exists
+    let Some(user) = user else {
+        return Ok(Json(serde_json::json!({"message": "if the email exists, a reset link has been sent"})));
+    };
+
+    // Revoke existing reset tokens for this user, then create a new one
+    if let Err(e) = state.password_reset.revoke_all_for_user(&user.id).await {
+        error!(%e, "failed to revoke existing tokens");
+    }
+
+    let token = match state.password_reset.create_token(&user.id).await {
+        Ok(t) => t,
+        Err(error) => {
+            error!(%error, "failed to create reset token");
+            return Err((StatusCode::INTERNAL_SERVER_ERROR, "db_error"));
+        }
+    };
+
+    // Send email (best-effort)
+    if let Some(ref email_svc) = state.email {
+        let reset_link = match state.config.frontend_url.as_ref() {
+            Some(base) => format!("{}/reset-password?token={}", base.as_str().trim_end_matches('/'), token),
+            None => format!("{}/api/v1/auth/reset-password?token={}", state.config.hca.redirect_uri.as_str().trim_end_matches('/'), token),
+        };
+
+        let subject = "Password Reset for Hackflare";
+        let body = format!(
+            "Someone requested a password reset for your Hackflare account.\n\n\
+             If this was you, click the link below to reset your password:\n\n\
+             {reset_link}\n\n\
+             This link will expire in 1 hour.\n\n\
+             If you didn't request this, you can safely ignore this email."
+        );
+
+        if let Err(e) = email_svc.send(&user.email, subject, &body).await {
+            error!(%e, "failed to send password reset email");
+        }
+    } else {
+        warn!("password reset requested but SMTP not configured, email not sent");
+    }
+
+    Ok(Json(serde_json::json!({"message": "if the email exists, a reset link has been sent"})))
+}
+
+async fn reset_password_handler(
+    State(state): State<AppState>,
+    Json(req): Json<ResetPasswordRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, &'static str)> {
+    if req.token.is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "token_required"));
+    }
+    if req.password.len() < 8 {
+        return Err((StatusCode::BAD_REQUEST, "password_too_short"));
+    }
+
+    let user_id = state
+        .password_reset
+        .consume_token(&req.token)
+        .await
+        .map_err(|error| {
+            error!(%error, "failed to consume reset token");
+            (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
+        })?
+        .ok_or((StatusCode::BAD_REQUEST, "invalid_or_expired_token"))?;
+
+    use argon2::{Argon2, PasswordHasher, password_hash::{SaltString, rand_core::OsRng}};
+    let salt = SaltString::generate(&mut OsRng);
+    let password_hash = Argon2::default()
+        .hash_password(req.password.as_bytes(), &salt)
+        .map_err(|error| {
+            error!(%error, "failed to hash password");
+            (StatusCode::INTERNAL_SERVER_ERROR, "password_hash_error")
+        })?
+        .to_string();
+
+    sqlx::query("UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2")
+        .bind(&password_hash)
+        .bind(&user_id)
+        .execute(&state.db)
+        .await
+        .map_err(|error| {
+            error!(%error, "failed to update password");
+            (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
+        })?;
+
+    // Revoke all sessions for this user after password reset
+    if let Err(e) = state.user_sessions.revoke_all_for_user(&user_id).await {
+        error!(%e, "failed to revoke sessions after password reset");
+    }
+
+    Ok(Json(serde_json::json!({"message": "password reset successfully"})))
+}
+
 pub(super) fn routes(config: &Config) -> Router<AppState> {
     let is_secure = config.hca.is_secure();
 
@@ -650,6 +771,8 @@ pub(super) fn routes(config: &Config) -> Router<AppState> {
     Router::new()
         .route("/login", get(login_handler).post(email_login_handler))
         .route("/register", post(register_handler))
+        .route("/forgot-password", post(forgot_password_handler))
+        .route("/reset-password", post(reset_password_handler))
         .route("/callback", get(callback_handler))
         .route("/refresh", post(refresh_handler))
         .route("/logout", post(logout_handler))

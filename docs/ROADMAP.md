@@ -23,7 +23,7 @@ Feel free to submit PRs/issues for anything you want us to work on or you want t
     - [x] Session Management
     - [ ] Github Auth
     - [x] Email Auth
-    - [ ] Password Reset
+    - [x] Password Reset
     - [x] Email Verification
     - [ ] Google Auth
   - [x] Frontend

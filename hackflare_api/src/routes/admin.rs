@@ -228,6 +228,15 @@ fn build_env_map(config: &crate::config::Config) -> HashMap<&'static str, String
     m.insert("DATABASE_URL", "postgres://****@****/****".to_string());
     m.insert("API_JWT_SECRET", "********".to_string());
 
+    m.insert(
+        "FRONTEND_URL",
+        config
+            .frontend_url
+            .as_ref()
+            .map(|u| u.to_string())
+            .unwrap_or_default(),
+    );
+
     if let Some(smtp) = &config.smtp {
         m.insert("SMTP_HOST", smtp.host.clone());
         m.insert("SMTP_PORT", smtp.port.to_string());

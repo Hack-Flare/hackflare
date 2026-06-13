@@ -77,6 +77,21 @@ impl UserSessionsService {
         Ok(session)
     }
 
+    pub(crate) async fn revoke_all_for_user(&self, user_id: &str) -> Result<bool> {
+        let rows = query(
+            r#"
+            UPDATE user_sessions
+            SET revoked_at = NOW()
+            WHERE user_id = $1 AND revoked_at IS NULL
+            "#,
+        )
+        .bind(user_id)
+        .execute(&self.db)
+        .await?;
+
+        Ok(rows.rows_affected() > 0)
+    }
+
     pub(crate) async fn get_all_for_user(
         &self,
         user_id: &str,

@@ -540,6 +540,7 @@ mod tests {
                 dns_nameservers: vec!["ns1.hackflare.dev".into(), "ns2.hackflare.dev".into()],
                 admin_emails: vec![],
                 smtp: None,
+                frontend_url: None,
             };
 
             let state = AppState::new(config).await.ok()?;

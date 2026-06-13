@@ -16,7 +16,8 @@ use crate::{
     config::Config,
     services::{
         api_keys::ApiKeysService, config_overrides::ConfigOverridesService,
-        email::EmailService, user_sessions::UserSessionsService, users::UsersService,
+        email::EmailService, password_reset::PasswordResetService,
+        user_sessions::UserSessionsService, users::UsersService,
     },
 };
 
@@ -35,6 +36,7 @@ pub struct AppState {
     pub(crate) user_sessions: UserSessionsService,
     pub(crate) config_overrides: ConfigOverridesService,
     pub(crate) email: Option<EmailService>,
+    pub(crate) password_reset: PasswordResetService,
 }
 
 #[instrument(skip(db))]
@@ -143,6 +145,7 @@ impl AppState {
         info!("dns zones loaded from storage");
 
         let email = config.smtp.as_ref().map(EmailService::new);
+        let password_reset = PasswordResetService::new(db.clone());
 
         Ok(Self {
             config: Arc::new(config),
@@ -154,6 +157,7 @@ impl AppState {
             user_sessions,
             config_overrides,
             email,
+            password_reset,
         })
     }
 }
