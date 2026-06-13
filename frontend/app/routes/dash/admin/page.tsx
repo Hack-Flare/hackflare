@@ -90,6 +90,21 @@ function ConfigTab() {
   const [editKey, setEditKey] = useState<string | null>(null)
   const [editValue, setEditValue] = useState("")
   const [saving, setSaving] = useState(false)
+  const [applying, setApplying] = useState(false)
+  const [applyMsg, setApplyMsg] = useState<string | null>(null)
+
+  const apply = async () => {
+    setApplying(true)
+    setApplyMsg(null)
+    try {
+      await api.admin.applyConfig()
+      setApplyMsg("Configuration applied.")
+      setTimeout(() => setApplyMsg(null), 3000)
+    } catch {
+      setApplyMsg("Failed to apply configuration.")
+    }
+    setApplying(false)
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -164,10 +179,26 @@ function ConfigTab() {
               Environment variables and overrides. Live values are highlighted.
             </CardDescription>
           </div>
-          <Button variant="outline" size="sm" onClick={load}>
-            <RefreshCw className="mr-1 h-4 w-4" />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            {applyMsg && (
+              <span className="text-xs text-green-500">{applyMsg}</span>
+            )}
+            <Button
+              variant="default"
+              size="sm"
+              onClick={apply}
+              disabled={applying}
+            >
+              <RefreshCw
+                className={`mr-1 h-4 w-4 ${applying ? "animate-spin" : ""}`}
+              />
+              {applying ? "Applying..." : "Take Effect Now"}
+            </Button>
+            <Button variant="outline" size="sm" onClick={load}>
+              <RefreshCw className="mr-1 h-4 w-4" />
+              Refresh
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>

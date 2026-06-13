@@ -1,4 +1,6 @@
-use std::{path::Path, sync::Arc, time::Duration};
+use std::{collections::HashMap, path::Path, sync::Arc, time::Duration};
+
+use tokio::sync::RwLock;
 
 use anyhow::Result;
 use axum::extract::FromRef;
@@ -35,7 +37,8 @@ pub struct AppState {
     pub(crate) users: UsersService,
     pub(crate) user_sessions: UserSessionsService,
     pub(crate) config_overrides: ConfigOverridesService,
-    pub(crate) email: Option<EmailService>,
+    pub(crate) email: Arc<RwLock<Option<EmailService>>>,
+    pub(crate) live_overrides: Arc<RwLock<HashMap<String, String>>>,
     pub(crate) password_reset: PasswordResetService,
 }
 
@@ -144,7 +147,16 @@ impl AppState {
         dns_authority.load_zones_from_storage().await?;
         info!("dns zones loaded from storage");
 
-        let email = config.smtp.as_ref().map(EmailService::new);
+        let email = Arc::new(RwLock::new(config.smtp.as_ref().map(EmailService::new)));
+        let live_overrides = Arc::new(RwLock::new(
+            config_overrides
+                .list_overrides()
+                .await
+                .unwrap_or_default()
+                .into_iter()
+                .map(|o| (o.key, o.value))
+                .collect::<HashMap<_, _>>(),
+        ));
         let password_reset = PasswordResetService::new(db.clone());
 
         Ok(Self {
@@ -157,6 +169,7 @@ impl AppState {
             user_sessions,
             config_overrides,
             email,
+            live_overrides,
             password_reset,
         })
     }

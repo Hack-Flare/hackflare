@@ -78,7 +78,7 @@ static CONFIG_METADATA: &[ConfigMeta] = &[
         default_value: None,
         default_override: false,
         editable: true,
-        requires_restart: true,
+        requires_restart: false,
     },
     ConfigMeta {
         key: "API_HCA_CLIENT_SECRET",
@@ -87,7 +87,7 @@ static CONFIG_METADATA: &[ConfigMeta] = &[
         default_value: None,
         default_override: false,
         editable: true,
-        requires_restart: true,
+        requires_restart: false,
     },
     ConfigMeta {
         key: "API_HCA_REDIRECT_URI",
@@ -96,7 +96,7 @@ static CONFIG_METADATA: &[ConfigMeta] = &[
         default_value: None,
         default_override: false,
         editable: true,
-        requires_restart: true,
+        requires_restart: false,
     },
     ConfigMeta {
         key: "API_ACCESS_TOKEN_MINUTES",
@@ -105,7 +105,7 @@ static CONFIG_METADATA: &[ConfigMeta] = &[
         default_value: Some("15"),
         default_override: false,
         editable: true,
-        requires_restart: true,
+        requires_restart: false,
     },
     ConfigMeta {
         key: "API_REFRESH_TOKEN_DAYS",
@@ -114,7 +114,7 @@ static CONFIG_METADATA: &[ConfigMeta] = &[
         default_value: Some("30"),
         default_override: false,
         editable: true,
-        requires_restart: true,
+        requires_restart: false,
     },
     ConfigMeta {
         key: "API_SESSION_INACTIVITY_MINUTES",
@@ -123,7 +123,7 @@ static CONFIG_METADATA: &[ConfigMeta] = &[
         default_value: Some("15"),
         default_override: false,
         editable: true,
-        requires_restart: true,
+        requires_restart: false,
     },
     ConfigMeta {
         key: "API_DNS_NAMESERVERS",
@@ -132,7 +132,7 @@ static CONFIG_METADATA: &[ConfigMeta] = &[
         default_value: Some("ns1.hackflare.dev,ns2.hackflare.dev"),
         default_override: false,
         editable: true,
-        requires_restart: true,
+        requires_restart: false,
     },
     ConfigMeta {
         key: "API_CLIENT_IP_SOURCE",
@@ -141,7 +141,7 @@ static CONFIG_METADATA: &[ConfigMeta] = &[
         default_value: Some("ConnectInfo"),
         default_override: false,
         editable: true,
-        requires_restart: true,
+        requires_restart: false,
     },
     ConfigMeta {
         key: "API_ADMIN_EMAILS",
@@ -150,7 +150,7 @@ static CONFIG_METADATA: &[ConfigMeta] = &[
         default_value: Some(""),
         default_override: false,
         editable: true,
-        requires_restart: true,
+        requires_restart: false,
     },
     ConfigMeta {
         key: "SLACK_WEBHOOK_URL",
@@ -186,7 +186,7 @@ static CONFIG_METADATA: &[ConfigMeta] = &[
         default_value: None,
         default_override: true,
         editable: true,
-        requires_restart: true,
+        requires_restart: false,
     },
     ConfigMeta {
         key: "SMTP_PORT",
@@ -195,7 +195,7 @@ static CONFIG_METADATA: &[ConfigMeta] = &[
         default_value: Some("587"),
         default_override: true,
         editable: true,
-        requires_restart: true,
+        requires_restart: false,
     },
     ConfigMeta {
         key: "SMTP_USERNAME",
@@ -204,7 +204,7 @@ static CONFIG_METADATA: &[ConfigMeta] = &[
         default_value: None,
         default_override: true,
         editable: true,
-        requires_restart: true,
+        requires_restart: false,
     },
     ConfigMeta {
         key: "SMTP_PASSWORD",
@@ -213,7 +213,7 @@ static CONFIG_METADATA: &[ConfigMeta] = &[
         default_value: None,
         default_override: true,
         editable: true,
-        requires_restart: true,
+        requires_restart: false,
     },
     ConfigMeta {
         key: "SMTP_FROM",
@@ -222,7 +222,7 @@ static CONFIG_METADATA: &[ConfigMeta] = &[
         default_value: None,
         default_override: true,
         editable: true,
-        requires_restart: true,
+        requires_restart: false,
     },
     ConfigMeta {
         key: "FRONTEND_URL",
@@ -231,7 +231,7 @@ static CONFIG_METADATA: &[ConfigMeta] = &[
         default_value: Some(""),
         default_override: true,
         editable: true,
-        requires_restart: true,
+        requires_restart: false,
     },
 ];
 

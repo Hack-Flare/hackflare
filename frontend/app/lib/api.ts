@@ -347,6 +347,10 @@ export const api = {
 
   admin: {
     listConfig: () => request<ConfigEntry[]>("/api/v1/admin/config"),
+    applyConfig: () =>
+      request<{ status: string }>("/api/v1/admin/config/apply", {
+        method: "POST",
+      }),
 
     upsertConfig: (key: string, value: string) =>
       request<void>(`/api/v1/admin/config/${encodeURIComponent(key)}`, {

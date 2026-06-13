@@ -6,15 +6,16 @@ use axum::{
     http::StatusCode,
     middleware,
     response::IntoResponse,
-    routing::{get, put},
+    routing::{get, post, put},
 };
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
 use crate::{
+    config::SmtpConfig,
     middlewares::{admin::require_admin, auth_middleware},
     models::CurrentUser,
-    services::config_overrides::ConfigEntry,
+    services::{config_overrides::ConfigEntry, email::EmailService},
     state::AppState,
 };
 
@@ -264,9 +265,63 @@ fn build_env_map(config: &crate::config::Config) -> HashMap<&'static str, String
     m
 }
 
+fn override_or_env(key: &str, overrides: &HashMap<String, String>) -> Option<String> {
+    overrides
+        .get(key)
+        .cloned()
+        .filter(|v| !v.is_empty())
+        .or_else(|| std::env::var(key).ok())
+}
+
+async fn apply_config(
+    State(state): State<AppState>,
+) -> Result<Json<serde_json::Value>, (StatusCode, &'static str)> {
+    let overrides = state
+        .config_overrides
+        .list_overrides()
+        .await
+        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "db_error"))?;
+
+    let map: HashMap<String, String> = overrides.into_iter().map(|o| (o.key, o.value)).collect();
+
+    // Update live overrides
+    *state.live_overrides.write().await = map.clone();
+
+    // Try to rebuild email service from overrides + env
+    if let (
+        Some(host),
+        Some(username),
+        Some(password),
+        Some(from),
+    ) = (
+        override_or_env("SMTP_HOST", &map),
+        override_or_env("SMTP_USERNAME", &map),
+        override_or_env("SMTP_PASSWORD", &map),
+        override_or_env("SMTP_FROM", &map),
+    ) {
+        let port: u16 = override_or_env("SMTP_PORT", &map)
+            .and_then(|p| p.parse().ok())
+            .unwrap_or(587);
+        let smtp = SmtpConfig {
+            host,
+            port,
+            username,
+            password,
+            from,
+        };
+        *state.email.write().await = Some(EmailService::new(&smtp));
+    } else {
+        // SMTP config incomplete -> disable email service
+        *state.email.write().await = None;
+    }
+
+    Ok(Json(serde_json::json!({"status": "applied"})))
+}
+
 pub(super) fn routes(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/config", get(list_config))
+        .route("/config/apply", post(apply_config))
         .route("/config/{key}", put(upsert_config).delete(delete_config))
         .route("/users", get(list_users))
         .route("/stats", get(get_stats))

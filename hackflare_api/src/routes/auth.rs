@@ -679,7 +679,7 @@ async fn forgot_password_handler(
     };
 
     // Send email (best-effort)
-    if let Some(ref email_svc) = state.email {
+    if let Some(ref email_svc) = *state.email.read().await {
         let reset_link = match state.config.frontend_url.as_ref() {
             Some(base) => format!(
                 "{}/reset-password?token={}",
