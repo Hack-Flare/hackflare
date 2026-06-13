@@ -10,6 +10,7 @@ export interface AuthenticatedUser {
   email: string
   eligible: boolean
   has_password: boolean
+  is_admin: boolean
   created_at: string
 }
 
