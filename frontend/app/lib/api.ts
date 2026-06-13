@@ -4,11 +4,13 @@ const API_ORIGIN = import.meta.env.DEV
 
 export interface AuthenticatedUser {
   id: string
+  slack_id: string | null
   first_name: string
   last_name: string
   email: string
-  slack_id: string
   eligible: boolean
+  has_password: boolean
+  created_at: string
 }
 
 export interface DnsZone {
@@ -105,6 +107,22 @@ interface ApiError {
   status: number
 }
 
+const ERROR_MESSAGES: Record<string, string> = {
+  invalid_email_or_password: "Invalid email or password.",
+  email_already_registered: "An account with this email already exists.",
+  password_too_short: "Password must be at least 8 characters.",
+  invalid_email: "Please enter a valid email address.",
+  email_and_password_required: "Email and password are required.",
+  invalid_or_expired_token: "This reset link is invalid or has expired.",
+  email_required: "Please enter your email address.",
+  token_required: "Reset token is required.",
+  current_password_incorrect: "Your current password is incorrect.",
+}
+
+export function friendlyError(error: string): string {
+  return ERROR_MESSAGES[error] || error
+}
+
 let refreshing: Promise<void> | null = null
 
 async function refreshTokens(): Promise<void> {
@@ -190,6 +208,35 @@ export const api = {
   auth: {
     loginUrl: (target: string) =>
       `${API_ORIGIN}/api/v1/auth/login?target=${encodeURIComponent(target)}`,
+
+    register: (data: {
+      email: string
+      password: string
+      first_name: string
+      last_name: string
+    }) =>
+      request<void>("/api/v1/auth/register", {
+        method: "POST",
+        body: data,
+      }),
+
+    emailLogin: (data: { email: string; password: string }) =>
+      request<void>("/api/v1/auth/login", {
+        method: "POST",
+        body: data,
+      }),
+
+    forgotPassword: (data: { email: string }) =>
+      request<{ message: string }>("/api/v1/auth/forgot-password", {
+        method: "POST",
+        body: data,
+      }),
+
+    resetPassword: (data: { token: string; password: string }) =>
+      request<{ message: string }>("/api/v1/auth/reset-password", {
+        method: "POST",
+        body: data,
+      }),
 
     me: () => request<AuthenticatedUser>("/api/v1/users/me"),
 
@@ -285,6 +332,14 @@ export const api = {
       request<void>(`/api/v1/settings/api-keys/${id}`, {
         method: "DELETE",
       }),
+
+    setPassword: (data: {
+      current_password?: string
+      new_password: string
+    }) => request<{ message: string }>("/api/v1/settings/password", {
+      method: "PUT",
+      body: data,
+    }),
   },
 
   admin: {

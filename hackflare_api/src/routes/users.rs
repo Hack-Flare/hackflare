@@ -16,6 +16,7 @@ struct Me {
     last_name: String,
     email: String,
     eligible: bool,
+    has_password: bool,
     created_at: DateTime<Utc>,
 }
 
@@ -28,6 +29,7 @@ impl From<User> for Me {
             last_name: user.last_name,
             email: user.email,
             eligible: user.ysws_eligible,
+            has_password: user.password_hash.is_some(),
             created_at: user.created_at,
         }
     }

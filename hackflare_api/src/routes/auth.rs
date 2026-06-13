@@ -612,10 +612,7 @@ async fn email_login_handler(
     let refresh_exp = now + chrono::Duration::days(state.config.refresh_token_days);
 
     let jit =
-        UserSessionsService::create_with(&mut *state.db.begin().await.map_err(|error| {
-            error!(%error, "failed to start transaction");
-            (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
-        })?, &user.id, ip_addr, refresh_exp)
+        UserSessionsService::create_with(&state.db, &user.id, ip_addr, refresh_exp)
             .await
             .map_err(|error| {
                 error!(%error, "failed to create session");

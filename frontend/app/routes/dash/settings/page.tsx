@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useState } from "react"
 import {
   Bell,
+  Check,
   Copy,
+  Eye,
+  EyeOff,
   Key,
+  KeyRound,
   Lock,
   Plus,
   Shield,
@@ -17,6 +21,7 @@ import {
 } from "~/components/ui/card"
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
+import { Label } from "~/components/ui/label"
 import {
   Dialog,
   DialogClose,
@@ -28,7 +33,7 @@ import {
   DialogTrigger,
 } from "~/components/ui/dialog"
 import { getUserDisplayName, useAuth } from "~/lib/auth-context"
-import { api, type ApiKey, type CreatedApiKey } from "~/lib/api"
+import { api, friendlyError, type ApiKey, type CreatedApiKey } from "~/lib/api"
 
 export default function Settings() {
   const { user } = useAuth()
@@ -142,21 +147,27 @@ export default function Settings() {
                 {user?.id || "Unknown"}
               </p>
             </div>
-            <div>
-              <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                Status
-              </p>
-              <p className="mt-1 text-sm font-medium">
-                Authenticated via Hack Club
-              </p>
+              <div>
+                <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                  Status
+                </p>
+                <p className="mt-1 text-sm font-medium">
+                  {user?.slack_id && user?.has_password
+                    ? "Hack Club + Password"
+                    : user?.slack_id
+                      ? "Hack Club"
+                      : "Email + Password"}
+                </p>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
+        <PasswordCard />
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Key className="h-5 w-5" />
@@ -372,6 +383,155 @@ export default function Settings() {
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+function PasswordCard() {
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [showCurrent, setShowCurrent] = useState(false)
+  const [showNew, setShowNew] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState<{
+    text: string
+    type: "success" | "error"
+  } | null>(null)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setMessage(null)
+
+    if (newPassword !== confirmPassword) {
+      setMessage({ text: "Passwords do not match.", type: "error" })
+      return
+    }
+
+    setLoading(true)
+    try {
+      await api.settings.setPassword({
+        current_password:
+          currentPassword.length > 0 ? currentPassword : undefined,
+        new_password: newPassword,
+      })
+      setMessage({
+        text: "Password updated successfully.",
+        type: "success",
+      })
+      setCurrentPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
+    } catch (err: unknown) {
+      const code =
+        err && typeof err === "object" && "error" in err
+          ? String((err as { error: unknown }).error)
+          : ""
+      setMessage({
+        text: friendlyError(code) || "Failed to update password.",
+        type: "error",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="rounded-full bg-zinc-100 p-2 dark:bg-zinc-800">
+              <Lock className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
+            </div>
+            <div>
+              <CardTitle>Password</CardTitle>
+              <CardDescription>
+                Set or change your account password
+              </CardDescription>
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="relative">
+            <Label>Current password</Label>
+            <div className="relative">
+              <Input
+                type={showCurrent ? "text" : "password"}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Leave blank if none set"
+                className="pr-9"
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrent(!showCurrent)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+              >
+                {showCurrent ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div className="relative">
+            <Label>New password</Label>
+            <div className="relative">
+              <Input
+                type={showNew ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="At least 8 characters"
+                required
+                className="pr-9"
+              />
+              <button
+                type="button"
+                onClick={() => setShowNew(!showNew)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+              >
+                {showNew ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <Label>Confirm new password</Label>
+            <Input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Repeat new password"
+              required
+            />
+          </div>
+
+          {message && (
+            <div
+              className={`rounded p-3 text-sm ${
+                message.type === "success"
+                  ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                  : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+              }`}
+            >
+              {message.text}
+            </div>
+          )}
+
+          <Button type="submit" disabled={loading || !newPassword}>
+            {loading ? "Saving..." : "Update Password"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   )
 }
 
