@@ -16,7 +16,7 @@ use crate::{
     config::Config,
     services::{
         api_keys::ApiKeysService, config_overrides::ConfigOverridesService,
-        user_sessions::UserSessionsService, users::UsersService,
+        email::EmailService, user_sessions::UserSessionsService, users::UsersService,
     },
 };
 
@@ -34,6 +34,7 @@ pub struct AppState {
     pub(crate) users: UsersService,
     pub(crate) user_sessions: UserSessionsService,
     pub(crate) config_overrides: ConfigOverridesService,
+    pub(crate) email: Option<EmailService>,
 }
 
 #[instrument(skip(db))]
@@ -141,6 +142,8 @@ impl AppState {
         dns_authority.load_zones_from_storage().await?;
         info!("dns zones loaded from storage");
 
+        let email = config.smtp.as_ref().map(EmailService::new);
+
         Ok(Self {
             config: Arc::new(config),
             http_client,
@@ -150,6 +153,7 @@ impl AppState {
             users,
             user_sessions,
             config_overrides,
+            email,
         })
     }
 }

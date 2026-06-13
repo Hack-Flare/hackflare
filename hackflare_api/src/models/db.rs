@@ -14,6 +14,8 @@ pub struct User {
     pub last_name: String,
     pub verification_status: String,
     pub ysws_eligible: bool,
+    pub password_hash: Option<String>,
+    pub email_verified: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 

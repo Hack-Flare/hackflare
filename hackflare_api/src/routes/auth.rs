@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::{
-    Router,
+    Json, Router,
     extract::{Query, State},
     http::{HeaderValue, header},
     response::{IntoResponse, Redirect, Response},
@@ -25,7 +25,7 @@ use uuid::Uuid;
 
 use crate::{
     config::Config,
-    models::{HcaUser, JwtClaims},
+    models::{HcaUser, JwtClaims, db::User},
     services::{user_sessions::UserSessionsService, users::UsersService},
     state::AppState,
 };
@@ -469,6 +469,171 @@ async fn refresh_handler(
     Ok(response)
 }
 
+#[derive(Debug, Deserialize)]
+struct RegisterRequest {
+    email: String,
+    password: String,
+    first_name: String,
+    last_name: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct LoginRequest {
+    email: String,
+    password: String,
+}
+
+async fn register_handler(
+    State(state): State<AppState>,
+    ClientIp(ip_addr): ClientIp,
+    Json(req): Json<RegisterRequest>,
+) -> Result<Response, (StatusCode, &'static str)> {
+    if req.email.is_empty() || !req.email.contains('@') {
+        return Err((StatusCode::BAD_REQUEST, "invalid_email"));
+    }
+    if req.password.len() < 8 {
+        return Err((StatusCode::BAD_REQUEST, "password_too_short"));
+    }
+    if req.first_name.is_empty() || req.last_name.is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "name_required"));
+    }
+
+    let existing = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM users WHERE email = $1")
+        .bind(&req.email)
+        .fetch_one(&state.db)
+        .await
+        .map_err(|error| {
+            error!(%error, "failed to check existing user");
+            (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
+        })?;
+
+    if existing > 0 {
+        return Err((StatusCode::CONFLICT, "email_already_registered"));
+    }
+
+    use argon2::{Argon2, PasswordHasher, password_hash::{SaltString, rand_core::OsRng}};
+    let salt = SaltString::generate(&mut OsRng);
+    let password_hash = Argon2::default()
+        .hash_password(req.password.as_bytes(), &salt)
+        .map_err(|error| {
+            error!(%error, "failed to hash password");
+            (StatusCode::INTERNAL_SERVER_ERROR, "password_hash_error")
+        })?
+        .to_string();
+
+    let user_id = format!("hf!{}", Uuid::new_v4());
+    let now = Utc::now();
+
+    let mut tx = state.db.begin().await.map_err(|error| {
+        error!(%error, "failed to start transaction");
+        (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
+    })?;
+
+    sqlx::query(
+        r#"
+        INSERT INTO users (id, email, slack_id, first_name, last_name, verification_status, ysws_eligible, password_hash, email_verified, hca_access_token, hca_refresh_token, hca_token_expires_at)
+        VALUES ($1, $2, NULL, $3, $4, 'email', false, $5, false, '', '', NOW())
+        "#,
+    )
+    .bind(&user_id)
+    .bind(&req.email)
+    .bind(&req.first_name)
+    .bind(&req.last_name)
+    .bind(&password_hash)
+    .execute(&mut *tx)
+    .await
+    .map_err(|error| {
+        error!(%error, "failed to insert user");
+        (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
+    })?;
+
+    let refresh_exp = now + chrono::Duration::days(state.config.refresh_token_days);
+    let jit =
+        UserSessionsService::create_with(&mut *tx, &user_id, ip_addr, refresh_exp)
+            .await
+            .map_err(|error| {
+                error!(%error, "failed to create session");
+                (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
+            })?;
+
+    tx.commit().await.map_err(|error| {
+        error!(%error, "failed to commit transaction");
+        (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
+    })?;
+
+    let (access_token, refresh_token) = make_tokens(&state.config, jit, &user_id, now)?;
+
+    let is_secure = state.config.hca.is_secure();
+    let (access_cookie, refresh_cookie) =
+        make_auth_cookies(&state.config, access_token, refresh_token, is_secure);
+
+    let mut response = (StatusCode::CREATED, ()).into_response();
+    set_cookie_header(&mut response, &access_cookie);
+    set_cookie_header(&mut response, &refresh_cookie);
+    Ok(response)
+}
+
+async fn email_login_handler(
+    State(state): State<AppState>,
+    ClientIp(ip_addr): ClientIp,
+    Json(req): Json<LoginRequest>,
+) -> Result<Response, (StatusCode, &'static str)> {
+    if req.email.is_empty() || req.password.is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "email_and_password_required"));
+    }
+
+    let user = sqlx::query_as::<_, User>(
+        "SELECT * FROM users WHERE email = $1 LIMIT 1",
+    )
+    .bind(&req.email)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|error| {
+        error!(%error, "failed to look up user");
+        (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
+    })?
+    .ok_or((StatusCode::UNAUTHORIZED, "invalid_email_or_password"))?;
+
+    let Some(ref stored_hash) = user.password_hash else {
+        return Err((StatusCode::UNAUTHORIZED, "invalid_email_or_password"));
+    };
+
+    use argon2::{Argon2, PasswordHash, PasswordVerifier};
+    let parsed_hash = PasswordHash::new(stored_hash).map_err(|error| {
+        error!(%error, "failed to parse stored password hash");
+        (StatusCode::INTERNAL_SERVER_ERROR, "password_parse_error")
+    })?;
+
+    Argon2::default()
+        .verify_password(req.password.as_bytes(), &parsed_hash)
+        .map_err(|_| (StatusCode::UNAUTHORIZED, "invalid_email_or_password"))?;
+
+    let now = Utc::now();
+    let refresh_exp = now + chrono::Duration::days(state.config.refresh_token_days);
+
+    let jit =
+        UserSessionsService::create_with(&mut *state.db.begin().await.map_err(|error| {
+            error!(%error, "failed to start transaction");
+            (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
+        })?, &user.id, ip_addr, refresh_exp)
+            .await
+            .map_err(|error| {
+                error!(%error, "failed to create session");
+                (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
+            })?;
+
+    let (access_token, refresh_token) = make_tokens(&state.config, jit, &user.id, now)?;
+
+    let is_secure = state.config.hca.is_secure();
+    let (access_cookie, refresh_cookie) =
+        make_auth_cookies(&state.config, access_token, refresh_token, is_secure);
+
+    let mut response = (StatusCode::OK, ()).into_response();
+    set_cookie_header(&mut response, &access_cookie);
+    set_cookie_header(&mut response, &refresh_cookie);
+    Ok(response)
+}
+
 pub(super) fn routes(config: &Config) -> Router<AppState> {
     let is_secure = config.hca.is_secure();
 
@@ -483,7 +648,8 @@ pub(super) fn routes(config: &Config) -> Router<AppState> {
     debug!(is_secure, "setting up auth routes");
 
     Router::new()
-        .route("/login", get(login_handler))
+        .route("/login", get(login_handler).post(email_login_handler))
+        .route("/register", post(register_handler))
         .route("/callback", get(callback_handler))
         .route("/refresh", post(refresh_handler))
         .route("/logout", post(logout_handler))

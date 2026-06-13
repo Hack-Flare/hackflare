@@ -30,6 +30,8 @@ uuid = { version = "1.23.1", features = ["serde", "v4"] }
 
 # Auth
 jsonwebtoken = { version = "10.4.0", default-features = false, features = ["hmac", "rust_crypto"] }
+argon2 = "0.5"
+lettre = { version = "0.11", default-features = false, features = ["builder", "smtp-transport", "tokio1", "tokio1-rustls-tls"] }
 
 # Database
 sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "postgres", "chrono", "ipnet", "uuid", "migrate", "derive"] }

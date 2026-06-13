@@ -88,6 +88,15 @@ impl HcaConfig {
     }
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct SmtpConfig {
+    pub(crate) host: String,
+    pub(crate) port: u16,
+    pub(crate) username: String,
+    pub(crate) password: String,
+    pub(crate) from: String,
+}
+
 #[derive(Debug)]
 pub struct Config {
     pub bind_addr: SocketAddr,
@@ -105,6 +114,7 @@ pub struct Config {
     pub(crate) refresh_token_days: i64,
     pub(crate) dns_nameservers: Vec<String>,
     pub(crate) admin_emails: Vec<String>,
+    pub(crate) smtp: Option<SmtpConfig>,
 }
 
 impl Config {}
@@ -183,5 +193,16 @@ pub fn from_env() -> Result<Config> {
             .map(|s| s.trim().to_lowercase())
             .filter(|s| !s.is_empty())
             .collect(),
+        smtp: if let Ok(host) = env::var("SMTP_HOST") {
+            Some(SmtpConfig {
+                host,
+                port: env_or("SMTP_PORT", 587u16)?,
+                username: env_req("SMTP_USERNAME")?,
+                password: env_req("SMTP_PASSWORD")?,
+                from: env_req("SMTP_FROM")?,
+            })
+        } else {
+            None
+        },
     })
 }
