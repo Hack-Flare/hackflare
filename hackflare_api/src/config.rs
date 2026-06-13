@@ -196,9 +196,8 @@ pub fn from_env() -> Result<Config> {
             .collect(),
         frontend_url: env::var("FRONTEND_URL").ok().and_then(|u| {
             Url::parse(&u)
-                .map_err(|e| {
+                .inspect_err(|&e| {
                     warn!("invalid FRONTEND_URL: {e}");
-                    e
                 })
                 .ok()
         }),

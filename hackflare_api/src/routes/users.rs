@@ -1,12 +1,10 @@
-use axum::{Extension, Json, Router, extract::State, middleware, response::IntoResponse, routing::get};
+use axum::{
+    Extension, Json, Router, extract::State, middleware, response::IntoResponse, routing::get,
+};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 
-use crate::{
-    middlewares::auth_middleware,
-    models::CurrentUser,
-    state::AppState,
-};
+use crate::{middlewares::auth_middleware, models::CurrentUser, state::AppState};
 
 #[derive(Serialize)]
 struct Me {
@@ -26,11 +24,7 @@ async fn me_handler(
     Extension(current_user): Extension<CurrentUser>,
 ) -> impl IntoResponse {
     let user = current_user.user;
-    let is_admin = state
-        .config
-        .admin_emails
-        .iter()
-        .any(|e| e == &user.email);
+    let is_admin = state.config.admin_emails.iter().any(|e| e == &user.email);
     Json(Me {
         id: user.id,
         slack_id: user.slack_id,
