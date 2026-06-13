@@ -288,12 +288,7 @@ async fn apply_config(
     *state.live_overrides.write().await = map.clone();
 
     // Try to rebuild email service from overrides + env
-    if let (
-        Some(host),
-        Some(username),
-        Some(password),
-        Some(from),
-    ) = (
+    if let (Some(host), Some(username), Some(password), Some(from)) = (
         override_or_env("SMTP_HOST", &map),
         override_or_env("SMTP_USERNAME", &map),
         override_or_env("SMTP_PASSWORD", &map),
