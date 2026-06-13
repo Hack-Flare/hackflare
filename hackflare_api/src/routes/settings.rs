@@ -134,10 +134,13 @@ async fn set_password(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(serde_json::json!({"error": "internal_error"})),
                 )
-                    .into_response()
+                    .into_response();
             }
         };
-        if Argon2::default().verify_password(current.as_bytes(), &parsed).is_err() {
+        if Argon2::default()
+            .verify_password(current.as_bytes(), &parsed)
+            .is_err()
+        {
             return (
                 StatusCode::BAD_REQUEST,
                 Json(serde_json::json!({"error": "current_password_incorrect"})),
@@ -146,18 +149,19 @@ async fn set_password(
         }
     }
 
-    use argon2::{Argon2, PasswordHasher, password_hash::{SaltString, rand_core::OsRng}};
+    use argon2::{
+        Argon2, PasswordHasher,
+        password_hash::{SaltString, rand_core::OsRng},
+    };
     let salt = SaltString::generate(&mut OsRng);
-    let password_hash = match Argon2::default()
-        .hash_password(req.new_password.as_bytes(), &salt)
-    {
+    let password_hash = match Argon2::default().hash_password(req.new_password.as_bytes(), &salt) {
         Ok(h) => h.to_string(),
         Err(_) => {
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(serde_json::json!({"error": "hash_error"})),
             )
-                .into_response()
+                .into_response();
         }
     };
 

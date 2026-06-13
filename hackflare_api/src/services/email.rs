@@ -30,9 +30,8 @@ impl EmailService {
         body: &str,
     ) -> Result<(), anyhow::Error> {
         use lettre::{
-            AsyncSmtpTransport, AsyncTransport, Message,
+            AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
             transport::smtp::authentication::Credentials,
-            Tokio1Executor,
         };
 
         let email = Message::builder()

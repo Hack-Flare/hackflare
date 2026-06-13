@@ -194,7 +194,14 @@ pub fn from_env() -> Result<Config> {
             .map(|s| s.trim().to_lowercase())
             .filter(|s| !s.is_empty())
             .collect(),
-        frontend_url: env::var("FRONTEND_URL").ok().and_then(|u| Url::parse(&u).map_err(|e| { warn!("invalid FRONTEND_URL: {e}"); e }).ok()),
+        frontend_url: env::var("FRONTEND_URL").ok().and_then(|u| {
+            Url::parse(&u)
+                .map_err(|e| {
+                    warn!("invalid FRONTEND_URL: {e}");
+                    e
+                })
+                .ok()
+        }),
         smtp: if let Ok(host) = env::var("SMTP_HOST") {
             Some(SmtpConfig {
                 host,

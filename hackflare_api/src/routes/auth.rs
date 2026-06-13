@@ -511,7 +511,10 @@ async fn register_handler(
         return Err((StatusCode::CONFLICT, "email_already_registered"));
     }
 
-    use argon2::{Argon2, PasswordHasher, password_hash::{SaltString, rand_core::OsRng}};
+    use argon2::{
+        Argon2, PasswordHasher,
+        password_hash::{SaltString, rand_core::OsRng},
+    };
     let salt = SaltString::generate(&mut OsRng);
     let password_hash = Argon2::default()
         .hash_password(req.password.as_bytes(), &salt)
@@ -548,13 +551,12 @@ async fn register_handler(
     })?;
 
     let refresh_exp = now + chrono::Duration::days(state.config.refresh_token_days);
-    let jit =
-        UserSessionsService::create_with(&mut *tx, &user_id, ip_addr, refresh_exp)
-            .await
-            .map_err(|error| {
-                error!(%error, "failed to create session");
-                (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
-            })?;
+    let jit = UserSessionsService::create_with(&mut *tx, &user_id, ip_addr, refresh_exp)
+        .await
+        .map_err(|error| {
+            error!(%error, "failed to create session");
+            (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
+        })?;
 
     tx.commit().await.map_err(|error| {
         error!(%error, "failed to commit transaction");
@@ -582,17 +584,15 @@ async fn email_login_handler(
         return Err((StatusCode::BAD_REQUEST, "email_and_password_required"));
     }
 
-    let user = sqlx::query_as::<_, User>(
-        "SELECT * FROM users WHERE email = $1 LIMIT 1",
-    )
-    .bind(&req.email)
-    .fetch_optional(&state.db)
-    .await
-    .map_err(|error| {
-        error!(%error, "failed to look up user");
-        (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
-    })?
-    .ok_or((StatusCode::UNAUTHORIZED, "invalid_email_or_password"))?;
+    let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1 LIMIT 1")
+        .bind(&req.email)
+        .fetch_optional(&state.db)
+        .await
+        .map_err(|error| {
+            error!(%error, "failed to look up user");
+            (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
+        })?
+        .ok_or((StatusCode::UNAUTHORIZED, "invalid_email_or_password"))?;
 
     let Some(ref stored_hash) = user.password_hash else {
         return Err((StatusCode::UNAUTHORIZED, "invalid_email_or_password"));
@@ -611,13 +611,12 @@ async fn email_login_handler(
     let now = Utc::now();
     let refresh_exp = now + chrono::Duration::days(state.config.refresh_token_days);
 
-    let jit =
-        UserSessionsService::create_with(&state.db, &user.id, ip_addr, refresh_exp)
-            .await
-            .map_err(|error| {
-                error!(%error, "failed to create session");
-                (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
-            })?;
+    let jit = UserSessionsService::create_with(&state.db, &user.id, ip_addr, refresh_exp)
+        .await
+        .map_err(|error| {
+            error!(%error, "failed to create session");
+            (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
+        })?;
 
     let (access_token, refresh_token) = make_tokens(&state.config, jit, &user.id, now)?;
 
@@ -661,7 +660,9 @@ async fn forgot_password_handler(
 
     // Always return 200 to avoid revealing whether the email exists
     let Some(user) = user else {
-        return Ok(Json(serde_json::json!({"message": "if the email exists, a reset link has been sent"})));
+        return Ok(Json(
+            serde_json::json!({"message": "if the email exists, a reset link has been sent"}),
+        ));
     };
 
     // Revoke existing reset tokens for this user, then create a new one
@@ -680,8 +681,16 @@ async fn forgot_password_handler(
     // Send email (best-effort)
     if let Some(ref email_svc) = state.email {
         let reset_link = match state.config.frontend_url.as_ref() {
-            Some(base) => format!("{}/reset-password?token={}", base.as_str().trim_end_matches('/'), token),
-            None => format!("{}/api/v1/auth/reset-password?token={}", state.config.hca.redirect_uri.as_str().trim_end_matches('/'), token),
+            Some(base) => format!(
+                "{}/reset-password?token={}",
+                base.as_str().trim_end_matches('/'),
+                token
+            ),
+            None => format!(
+                "{}/api/v1/auth/reset-password?token={}",
+                state.config.hca.redirect_uri.as_str().trim_end_matches('/'),
+                token
+            ),
         };
 
         let subject = "Password Reset for Hackflare";
@@ -700,7 +709,9 @@ async fn forgot_password_handler(
         warn!("password reset requested but SMTP not configured, email not sent");
     }
 
-    Ok(Json(serde_json::json!({"message": "if the email exists, a reset link has been sent"})))
+    Ok(Json(
+        serde_json::json!({"message": "if the email exists, a reset link has been sent"}),
+    ))
 }
 
 async fn reset_password_handler(
@@ -724,7 +735,10 @@ async fn reset_password_handler(
         })?
         .ok_or((StatusCode::BAD_REQUEST, "invalid_or_expired_token"))?;
 
-    use argon2::{Argon2, PasswordHasher, password_hash::{SaltString, rand_core::OsRng}};
+    use argon2::{
+        Argon2, PasswordHasher,
+        password_hash::{SaltString, rand_core::OsRng},
+    };
     let salt = SaltString::generate(&mut OsRng);
     let password_hash = Argon2::default()
         .hash_password(req.password.as_bytes(), &salt)
@@ -749,7 +763,9 @@ async fn reset_password_handler(
         error!(%e, "failed to revoke sessions after password reset");
     }
 
-    Ok(Json(serde_json::json!({"message": "password reset successfully"})))
+    Ok(Json(
+        serde_json::json!({"message": "password reset successfully"}),
+    ))
 }
 
 pub(super) fn routes(config: &Config) -> Router<AppState> {
