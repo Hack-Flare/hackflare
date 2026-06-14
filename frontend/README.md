@@ -1,6 +1,8 @@
-# React Router + shadcn/ui
+# HackFlare Frontend
 
-This is a template for a new React Router project with React, TypeScript, and shadcn/ui.
+The frontend part of the app uses React Router with React, TypeScript, and shadcn/ui.
+
+The frontend is maintained by [Vejas](https://vejas.zip) and [Nayte](https://github.com/seradedstripes)
 
 ## Adding components
 
