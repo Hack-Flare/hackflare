@@ -19,6 +19,7 @@ export default [
   route("404", "routes/404.tsx"),
   route("500", "routes/500.tsx"),
   route("502", "routes/502.tsx"),
+  route("docs", "routes/docs.tsx"),
   route("api/slack/contact", "routes/api.slack.contact.ts"),
 
   layout("layouts/sidebar-layout.tsx", [
