@@ -13,18 +13,18 @@ fn socket_target(addr: &str) -> String {
     }
 }
 
-pub(super) struct UdpTransport {
+pub(crate) struct UdpTransport {
     sock: UdpSocket,
 }
 
 impl UdpTransport {
-    pub(super) fn bind(timeout: Duration) -> Option<Self> {
+    pub(crate) fn bind(timeout: Duration) -> Option<Self> {
         let sock = UdpSocket::bind(("0.0.0.0", 0)).ok()?;
         let _ = sock.set_read_timeout(Some(timeout));
         Some(Self { sock })
     }
 
-    pub(super) fn send_recv(
+    pub(crate) fn send_recv(
         &self,
         addr: &str,
         msg: &[u8],

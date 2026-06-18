@@ -6,6 +6,7 @@ use axum::{
     response::IntoResponse,
     routing::{delete, get, post, put},
 };
+use hackflare_dns::dns::authoritative::resolve_ns_authoritative;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
@@ -215,55 +216,21 @@ async fn verify_zone(
         .collect();
 
     let qname = if zone_name.ends_with('.') {
-        zone_name.clone()
+        zone_name.trim_end_matches('.').to_string()
     } else {
-        format!("{zone_name}.")
+        zone_name.clone()
     };
 
     let dns_config = hackflare_dns::DnsConfig::from_env();
-    let qname_clone = qname.clone();
-
-    let result = tokio::task::spawn_blocking(move || {
-        hackflare_dns::dns::recursive::resolve(&qname_clone, 2, &dns_config)
-    })
-    .await;
-
-    let response_bytes = match result {
-        Ok(Ok(bytes)) => bytes,
-        Ok(Err(e)) => {
-            return Json(serde_json::json!({
-                "verified": false,
-                "message": format!("DNS resolution failed: {e}")
-            }));
-        }
+    let ns_names = match resolve_ns_authoritative(&qname, &dns_config) {
+        Ok(names) => names,
         Err(e) => {
             return Json(serde_json::json!({
                 "verified": false,
-                "message": format!("Task join error: {e}")
+                "message": format!("Authoritative NS lookup failed: {e}")
             }));
         }
     };
-
-    let message = match hickory_proto::op::Message::from_vec(&response_bytes) {
-        Ok(msg) => msg,
-        Err(e) => {
-            return Json(serde_json::json!({
-                "verified": false,
-                "message": format!("Failed to parse DNS response: {e}")
-            }));
-        }
-    };
-
-    use hickory_proto::rr::RData;
-    let ns_names: Vec<String> = message
-        .answers
-        .iter()
-        .filter(|record| record.record_type() == hickory_proto::rr::RecordType::NS)
-        .filter_map(|record| match &record.data {
-            RData::NS(ns) => Some(ns.to_utf8()),
-            _ => None,
-        })
-        .collect();
 
     if ns_names.is_empty() {
         return Json(serde_json::json!({

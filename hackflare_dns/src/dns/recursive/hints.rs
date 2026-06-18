@@ -109,18 +109,18 @@ fn load_root_hint_servers_internal(custom_path: Option<&PathBuf>) -> Vec<String>
     ROOT_SERVERS.iter().map(|&s| s.to_string()).collect()
 }
 
-pub(super) struct RootHints {
+pub(crate) struct RootHints {
     servers: Vec<String>,
 }
 
 impl RootHints {
-    pub(super) fn load() -> Self {
+    pub(crate) fn load() -> Self {
         Self {
             servers: load_root_hint_servers_internal(None),
         }
     }
 
-    pub(super) fn servers(&self) -> &[String] {
+    pub(crate) fn servers(&self) -> &[String] {
         &self.servers
     }
 }

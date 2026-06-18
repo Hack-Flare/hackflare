@@ -1,3 +1,4 @@
+pub mod authoritative;
 pub mod config;
 pub mod recursive;
 pub mod wire;
