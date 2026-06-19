@@ -1,31 +1,21 @@
 import { Outlet, useNavigate, useLocation } from "react-router"
-import { useEffect, useRef } from "react"
+import { useEffect } from "react"
 import { motion } from "framer-motion"
 import { SidebarProvider, SidebarTrigger } from "~/components/ui/sidebar"
 import { AppSidebar } from "~/components/app-sidebar"
 import { DarkModeToggle } from "~/components/dark-mode-toggle"
 import { useAuth } from "~/lib/auth-context"
-import { useToast } from "~/lib/toast"
 
 export default function SidebarLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, ready } = useAuth()
-  const { toast } = useToast()
-  const shown = useRef(false)
 
   useEffect(() => {
     if (ready && !user) {
       navigate("/auth")
     }
   }, [ready, user, navigate])
-
-  useEffect(() => {
-    if (ready && user && !shown.current) {
-      shown.current = true
-      toast("Signed in", "success")
-    }
-  }, [ready, user, toast])
 
   if (!ready || !user) {
     return null
