@@ -13,13 +13,13 @@ fn build_auth_query(id: u16, qname: &str, qtype: u16) -> Vec<u8> {
     let mut out = Vec::new();
     out.extend_from_slice(&id.to_be_bytes());
     out.extend_from_slice(&0x0000u16.to_be_bytes()); // flags: RD=0
-    out.extend_from_slice(&1u16.to_be_bytes());  // qdcount = 1
-    out.extend_from_slice(&0u16.to_be_bytes());  // ancount = 0
-    out.extend_from_slice(&0u16.to_be_bytes());  // nscount = 0
-    out.extend_from_slice(&0u16.to_be_bytes());  // arcount = 0
+    out.extend_from_slice(&1u16.to_be_bytes()); // qdcount = 1
+    out.extend_from_slice(&0u16.to_be_bytes()); // ancount = 0
+    out.extend_from_slice(&0u16.to_be_bytes()); // nscount = 0
+    out.extend_from_slice(&0u16.to_be_bytes()); // arcount = 0
     out.extend_from_slice(&encode_name_labels_vec(qname));
     out.extend_from_slice(&qtype.to_be_bytes());
-    out.extend_from_slice(&1u16.to_be_bytes());  // qclass = IN
+    out.extend_from_slice(&1u16.to_be_bytes()); // qclass = IN
     out
 }
 
@@ -29,10 +29,7 @@ fn normalize_name(name: &str) -> String {
 }
 
 /// Resolve A records for a nameserver name via authoritative-only resolution
-fn resolve_a_authoritative(
-    ns_name: &str,
-    dns_config: &DnsConfig,
-) -> Result<Vec<String>, String> {
+fn resolve_a_authoritative(ns_name: &str, dns_config: &DnsConfig) -> Result<Vec<String>, String> {
     let timeout = dns_config.udp_timeout.max(Duration::from_secs(2));
     let transport = UdpTransport::bind(timeout).ok_or("Failed to bind UDP socket")?;
     let hints = RootHints::load();
@@ -49,12 +46,16 @@ fn resolve_a_authoritative(
                 Some(b) => b,
                 None => continue,
             };
-            let Ok(msg) = Message::from_vec(&resp_bytes) else { continue };
+            let Ok(msg) = Message::from_vec(&resp_bytes) else {
+                continue;
+            };
 
             // Check answer section for A records
             let mut addrs: Vec<String> = Vec::new();
             for rec in &msg.answers {
-                if rec.record_type() == RecordType::A && let RData::A(ip) = &rec.data {
+                if rec.record_type() == RecordType::A
+                    && let RData::A(ip) = &rec.data
+                {
                     addrs.push(ip.to_string());
                 }
             }
@@ -66,14 +67,20 @@ fn resolve_a_authoritative(
             let mut ns_names: Vec<String> = Vec::new();
             let mut glue_ips: Vec<String> = Vec::new();
             for rec in &msg.authorities {
-                if rec.record_type() == RecordType::NS && let RData::NS(ns) = &rec.data {
+                if rec.record_type() == RecordType::NS
+                    && let RData::NS(ns) = &rec.data
+                {
                     ns_names.push(ns.to_utf8());
                 }
             }
             for rec in &msg.additionals {
-                if rec.record_type() == RecordType::A && let RData::A(ip) = &rec.data {
+                if rec.record_type() == RecordType::A
+                    && let RData::A(ip) = &rec.data
+                {
                     glue_ips.push(ip.to_string());
-                } else if rec.record_type() == RecordType::AAAA && let RData::AAAA(ip) = &rec.data {
+                } else if rec.record_type() == RecordType::AAAA
+                    && let RData::AAAA(ip) = &rec.data
+                {
                     glue_ips.push(ip.to_string());
                 }
             }
@@ -130,7 +137,9 @@ pub fn resolve_ns_authoritative(
                 Some(b) => b,
                 None => continue,
             };
-            let Ok(msg) = Message::from_vec(&resp_bytes) else { continue };
+            let Ok(msg) = Message::from_vec(&resp_bytes) else {
+                continue;
+            };
 
             // Collect NS records from both authority and answer sections.
             let mut found: Vec<(String, String)> = Vec::new(); // (owner_name, ns_target)
