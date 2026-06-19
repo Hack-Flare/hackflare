@@ -211,10 +211,14 @@ async fn verify_zone(
     let ns_targets: Vec<String> = {
         let overrides = state.live_overrides.read().await;
         if let Some(ov) = overrides.get("API_DNS_NAMESERVERS") {
-            ov.split(',').map(|ns| format!("{}.",
-                ns.trim())).collect()
+            ov.split(',').map(|ns| format!("{}.", ns.trim())).collect()
         } else {
-            state.config.dns_nameservers.iter().map(|ns| format!("{ns}.")).collect()
+            state
+                .config
+                .dns_nameservers
+                .iter()
+                .map(|ns| format!("{ns}."))
+                .collect()
         }
     };
 
