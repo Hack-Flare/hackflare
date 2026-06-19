@@ -251,23 +251,23 @@ export default function Domains() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-zinc-800 hover:bg-transparent">
-                    <TableHead className="font-semibold text-zinc-400">
+                  <TableRow className="border-zinc-200 hover:bg-transparent dark:border-zinc-800">
+                    <TableHead className="font-semibold text-zinc-500 dark:text-zinc-400">
                       Domain
                     </TableHead>
-                    <TableHead className="font-semibold text-zinc-400">
+                    <TableHead className="font-semibold text-zinc-500 dark:text-zinc-400">
                       Registrar
                     </TableHead>
-                    <TableHead className="font-semibold text-zinc-400">
+                    <TableHead className="font-semibold text-zinc-500 dark:text-zinc-400">
                       DNS
                     </TableHead>
-                    <TableHead className="font-semibold text-zinc-400">
+                    <TableHead className="font-semibold text-zinc-500 dark:text-zinc-400">
                       SSL
                     </TableHead>
-                    <TableHead className="font-semibold text-zinc-400">
+                    <TableHead className="font-semibold text-zinc-500 dark:text-zinc-400">
                       Expires
                     </TableHead>
-                    <TableHead className="font-semibold text-zinc-400">
+                    <TableHead className="font-semibold text-zinc-500 dark:text-zinc-400">
                       Status
                     </TableHead>
                   </TableRow>
@@ -286,7 +286,7 @@ export default function Domains() {
                     zones.map((zone) => (
                       <TableRow
                         key={zone.name}
-                        className="border-zinc-800 hover:bg-zinc-800/50"
+                        className="border-zinc-100 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
                       >
                         <TableCell className="font-medium">
                           <NavLink
@@ -299,7 +299,7 @@ export default function Domains() {
                         <TableCell className="text-zinc-400">—</TableCell>
                         <TableCell className="text-zinc-400">Hackflare</TableCell>
                         <TableCell>
-                          <span className="rounded border border-green-700 bg-green-900/30 px-2 py-1 text-xs font-medium text-green-400">
+                          <span className="rounded border border-green-300 bg-green-50 px-2 py-1 text-xs font-medium text-green-700 dark:border-green-700 dark:bg-green-900/30 dark:text-green-400">
                             Valid
                           </span>
                         </TableCell>
@@ -309,8 +309,8 @@ export default function Domains() {
                             <span
                               className={`rounded px-2 py-1 text-xs font-medium ${
                                 zone.ns_verified
-                                  ? "border border-green-700 bg-green-900/30 text-green-400"
-                                  : "border border-orange-700 bg-orange-900/30 text-orange-400"
+                                  ? "border border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                  : "border border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
                               }`}
                             >
                               {zone.ns_verified ? "Verified" : "Pending"}
@@ -319,7 +319,7 @@ export default function Domains() {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-7 px-2 text-xs text-orange-400 hover:text-orange-300"
+                                className="h-7 px-2 text-xs text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300"
                                 onClick={() => handleVerify(zone.name)}
                                 disabled={verifying[zone.name]}
                               >
@@ -333,7 +333,7 @@ export default function Domains() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-7 px-2 text-xs text-red-400 hover:text-red-300"
+                              className="h-7 px-2 text-xs text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                               onClick={() => setDeleteTarget(zone.name)}
                             >
                               <Trash2 className="h-3 w-3" />

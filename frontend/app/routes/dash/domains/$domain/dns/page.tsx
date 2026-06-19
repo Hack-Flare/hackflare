@@ -392,19 +392,19 @@ export default function Dns() {
       </div>
 
       {nsVerifiedLoaded && !nsVerified && (
-        <div className="rounded-lg border border-orange-700 bg-orange-900/20 p-4">
+        <div className="rounded-lg border border-orange-300 bg-orange-50 p-4 dark:border-orange-700 dark:bg-orange-900/20">
           <div className="flex items-center gap-3">
-            <ShieldAlert className="h-5 w-5 shrink-0 text-orange-400" />
+            <ShieldAlert className="h-5 w-5 shrink-0 text-orange-600 dark:text-orange-400" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-orange-300">
+              <p className="text-sm font-medium text-orange-700 dark:text-orange-300">
                 Zone Not Verified
               </p>
-              <p className="mt-1 text-xs text-zinc-400">
+              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                 Record edits are blocked until NS delegation is verified.{" "}
                 Point your domain&apos;s nameservers to Hackflare, then{" "}
                 <button
                   onClick={() => navigate(`/dash/domains`)}
-                  className="text-orange-400 underline hover:text-orange-300"
+                  className="text-orange-600 underline hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300"
                 >
                   verify from the domains page
                 </button>
