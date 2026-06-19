@@ -208,12 +208,15 @@ async fn verify_zone(
     State(state): State<AppState>,
     axum::extract::Path(zone_name): axum::extract::Path<String>,
 ) -> Json<serde_json::Value> {
-    let ns_targets: Vec<String> = state
-        .config
-        .dns_nameservers
-        .iter()
-        .map(|ns| format!("{ns}."))
-        .collect();
+    let ns_targets: Vec<String> = {
+        let overrides = state.live_overrides.read().await;
+        if let Some(ov) = overrides.get("API_DNS_NAMESERVERS") {
+            ov.split(',').map(|ns| format!("{}.",
+                ns.trim())).collect()
+        } else {
+            state.config.dns_nameservers.iter().map(|ns| format!("{ns}.")).collect()
+        }
+    };
 
     let qname = if zone_name.ends_with('.') {
         zone_name.trim_end_matches('.').to_string()
