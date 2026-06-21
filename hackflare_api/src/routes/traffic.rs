@@ -295,7 +295,7 @@ pub(super) async fn user_timeseries(
     Extension(current_user): Extension<CurrentUser>,
     Query(params): Query<TimeseriesParams>,
 ) -> Result<Json<Vec<TimeseriesPoint>>, StatusCode> {
-    let days = params.days.unwrap_or(30).max(1).min(365);
+    let days = params.days.unwrap_or(30).clamp(1, 365);
     get_timeseries(&db, Some(&current_user.user.id), days)
         .await
         .map(Json)
@@ -313,7 +313,7 @@ pub(super) async fn user_top_queries(
     Extension(current_user): Extension<CurrentUser>,
     Query(params): Query<TopQueriesParams>,
 ) -> Result<Json<Vec<TopQuery>>, StatusCode> {
-    let limit = params.limit.unwrap_or(10).max(1).min(100);
+    let limit = params.limit.unwrap_or(10).clamp(1, 100);
     get_top_queries(&db, Some(&current_user.user.id), limit)
         .await
         .map(Json)
@@ -331,7 +331,7 @@ pub(super) async fn admin_timeseries(
     State(db): State<PgPool>,
     Query(params): Query<TimeseriesParams>,
 ) -> Result<Json<Vec<TimeseriesPoint>>, StatusCode> {
-    let days = params.days.unwrap_or(30).max(1).min(365);
+    let days = params.days.unwrap_or(30).clamp(1, 365);
     get_timeseries(&db, None, days).await.map(Json)
 }
 
@@ -339,7 +339,7 @@ pub(super) async fn admin_top_queries(
     State(db): State<PgPool>,
     Query(params): Query<TopQueriesParams>,
 ) -> Result<Json<Vec<TopQuery>>, StatusCode> {
-    let limit = params.limit.unwrap_or(10).max(1).min(100);
+    let limit = params.limit.unwrap_or(10).clamp(1, 100);
     get_top_queries(&db, None, limit).await.map(Json)
 }
 
