@@ -1,5 +1,5 @@
 import { Plus, Globe, Shield, Clock, Loader2, AlertCircle, Trash2 } from "lucide-react"
-import { NavLink, useNavigate } from "react-router"
+import { Link, NavLink, useNavigate } from "react-router"
 import { useEffect, useState } from "react"
 import { api, type DnsZone } from "~/lib/api"
 import { Button } from "~/components/ui/button"
@@ -33,6 +33,7 @@ import { Label } from "~/components/ui/label"
 
 export default function Domains() {
   const { toast } = useToast()
+  const navigate = useNavigate()
   const [zones, setZones] = useState<DnsZone[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -315,6 +316,15 @@ export default function Domains() {
                             >
                               {zone.ns_verified ? "Verified" : "Pending"}
                             </span>
+                            <Link to={`/dash/domains/${zone.name}/dns`}>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-2 text-xs"
+                              >
+                                Manage
+                              </Button>
+                            </Link>
                             {!zone.ns_verified && (
                               <Button
                                 size="sm"
@@ -352,7 +362,13 @@ export default function Domains() {
 
       {/* Quick Links */}
       <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card className="cursor-pointer transition-all hover:border-orange-500 hover:shadow-md">
+        <Card
+          className="cursor-pointer transition-all hover:border-orange-500 hover:shadow-md"
+          onClick={() => {
+            if (zones.length === 0) { toast("Add a domain first", "error"); return }
+            navigate(`/dash/domains/${zones[0].name}/dns`)
+          }}
+        >
           <CardHeader>
             <CardTitle className="text-base">DNS Records</CardTitle>
           </CardHeader>
@@ -362,7 +378,13 @@ export default function Domains() {
             </p>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer transition-all hover:border-orange-500 hover:shadow-md">
+        <Card
+          className="cursor-pointer transition-all hover:border-orange-500 hover:shadow-md"
+          onClick={() => {
+            if (zones.length === 0) { toast("Add a domain first", "error"); return }
+            navigate(`/dash/domains/${zones[0].name}/ssl`)
+          }}
+        >
           <CardHeader>
             <CardTitle className="text-base">SSL Certificates</CardTitle>
           </CardHeader>
@@ -372,7 +394,13 @@ export default function Domains() {
             </p>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer transition-all hover:border-orange-500 hover:shadow-md">
+        <Card
+          className="cursor-pointer transition-all hover:border-orange-500 hover:shadow-md"
+          onClick={() => {
+            if (zones.length === 0) { toast("Add a domain first", "error"); return }
+            navigate(`/dash/domains/${zones[0].name}/redirects`)
+          }}
+        >
           <CardHeader>
             <CardTitle className="text-base">Domain Settings</CardTitle>
           </CardHeader>
