@@ -1,18 +1,14 @@
 use axum::{
+    Json, Router,
     extract::{Extension, Query, State},
     http::StatusCode,
     middleware,
     routing::get,
-    Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
-use crate::{
-    middlewares::auth_middleware,
-    models::CurrentUser,
-    state::AppState,
-};
+use crate::{middlewares::auth_middleware, models::CurrentUser, state::AppState};
 
 #[derive(Serialize)]
 pub(super) struct LogEntryResponse {
@@ -117,8 +113,8 @@ pub(super) async fn list_query_logs(
 
     let logs: Vec<LogEntryResponse> = rows
         .into_iter()
-        .map(|(id, ts, query_name, response_code, zone_name, processing_us)| {
-            LogEntryResponse {
+        .map(
+            |(id, ts, query_name, response_code, zone_name, processing_us)| LogEntryResponse {
                 id,
                 timestamp: ts.format("%Y-%m-%d %H:%M:%S UTC").to_string(),
                 level: derive_level(&response_code).to_string(),
@@ -126,8 +122,8 @@ pub(super) async fn list_query_logs(
                 zone: zone_name,
                 status: derive_status(&response_code),
                 ms: (processing_us as i64) / 1000,
-            }
-        })
+            },
+        )
         .collect();
 
     Ok(Json(LogsResponse {

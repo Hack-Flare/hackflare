@@ -7,10 +7,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
-use crate::{
-    models::CurrentUser,
-    state::AppState,
-};
+use crate::{models::CurrentUser, state::AppState};
 
 #[derive(Serialize)]
 pub(super) struct TrafficSummaryResponse {
@@ -56,9 +53,9 @@ async fn get_traffic_summary(
     db: &PgPool,
     user_id: Option<&str>,
 ) -> Result<TrafficSummaryResponse, StatusCode> {
-    let (total_requests, avg_processing_us, success_count, error_count) =
-        if let Some(uid) = user_id {
-            let total: i64 = sqlx::query_scalar(
+    let (total_requests, avg_processing_us, success_count, error_count) = if let Some(uid) = user_id
+    {
+        let total: i64 = sqlx::query_scalar(
                 "SELECT COUNT(*) FROM dns_query_logs dql JOIN dns_zones dz ON dql.zone_name = dz.name WHERE dz.user_id = $1",
             )
             .bind(uid)
@@ -66,7 +63,7 @@ async fn get_traffic_summary(
             .await
             .map_err(|e| { tracing::error!("failed to fetch total_requests: {e}"); StatusCode::INTERNAL_SERVER_ERROR })?;
 
-            let avg: Option<f64> = sqlx::query_scalar(
+        let avg: Option<f64> = sqlx::query_scalar(
                 "SELECT AVG(processing_us)::float8 FROM dns_query_logs dql JOIN dns_zones dz ON dql.zone_name = dz.name WHERE dz.user_id = $1",
             )
             .bind(uid)
@@ -74,7 +71,7 @@ async fn get_traffic_summary(
             .await
             .map_err(|e| { tracing::error!("failed to fetch avg_processing_us: {e}"); StatusCode::INTERNAL_SERVER_ERROR })?;
 
-            let success: i64 = sqlx::query_scalar(
+        let success: i64 = sqlx::query_scalar(
                 "SELECT COUNT(*) FROM dns_query_logs dql JOIN dns_zones dz ON dql.zone_name = dz.name WHERE dql.response_code = 'NOERROR' AND dz.user_id = $1",
             )
             .bind(uid)
@@ -82,7 +79,7 @@ async fn get_traffic_summary(
             .await
             .map_err(|e| { tracing::error!("failed to fetch success_count: {e}"); StatusCode::INTERNAL_SERVER_ERROR })?;
 
-            let errors: i64 = sqlx::query_scalar(
+        let errors: i64 = sqlx::query_scalar(
                 "SELECT COUNT(*) FROM dns_query_logs dql JOIN dns_zones dz ON dql.zone_name = dz.name WHERE dql.response_code NOT IN ('NOERROR', 'NXDOMAIN') AND dz.user_id = $1",
             )
             .bind(uid)
@@ -90,30 +87,42 @@ async fn get_traffic_summary(
             .await
             .map_err(|e| { tracing::error!("failed to fetch error_count: {e}"); StatusCode::INTERNAL_SERVER_ERROR })?;
 
-            (total, avg, success, errors)
-        } else {
-            let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM dns_query_logs")
+        (total, avg, success, errors)
+    } else {
+        let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM dns_query_logs")
+            .fetch_one(db)
+            .await
+            .map_err(|e| {
+                tracing::error!("failed to fetch total_requests: {e}");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+
+        let avg: Option<f64> =
+            sqlx::query_scalar("SELECT AVG(processing_us)::float8 FROM dns_query_logs")
                 .fetch_one(db)
                 .await
-                .map_err(|e| { tracing::error!("failed to fetch total_requests: {e}"); StatusCode::INTERNAL_SERVER_ERROR })?;
+                .map_err(|e| {
+                    tracing::error!("failed to fetch avg_processing_us: {e}");
+                    StatusCode::INTERNAL_SERVER_ERROR
+                })?;
 
-            let avg: Option<f64> = sqlx::query_scalar("SELECT AVG(processing_us)::float8 FROM dns_query_logs")
-                .fetch_one(db)
-                .await
-                .map_err(|e| { tracing::error!("failed to fetch avg_processing_us: {e}"); StatusCode::INTERNAL_SERVER_ERROR })?;
+        let success: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM dns_query_logs WHERE response_code = 'NOERROR'",
+        )
+        .fetch_one(db)
+        .await
+        .map_err(|e| {
+            tracing::error!("failed to fetch success_count: {e}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
-            let success: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM dns_query_logs WHERE response_code = 'NOERROR'")
-                .fetch_one(db)
-                .await
-                .map_err(|e| { tracing::error!("failed to fetch success_count: {e}"); StatusCode::INTERNAL_SERVER_ERROR })?;
-
-            let errors: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM dns_query_logs WHERE response_code NOT IN ('NOERROR', 'NXDOMAIN')")
+        let errors: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM dns_query_logs WHERE response_code NOT IN ('NOERROR', 'NXDOMAIN')")
                 .fetch_one(db)
                 .await
                 .map_err(|e| { tracing::error!("failed to fetch error_count: {e}"); StatusCode::INTERNAL_SERVER_ERROR })?;
 
-            (total, avg, success, errors)
-        };
+        (total, avg, success, errors)
+    };
 
     let total = total_requests.max(1);
     Ok(TrafficSummaryResponse {
@@ -148,7 +157,10 @@ async fn get_timeseries(
         .bind(days)
         .fetch_all(db)
         .await
-        .map_err(|e| { tracing::error!("failed to fetch timeseries: {e}"); StatusCode::INTERNAL_SERVER_ERROR })?
+        .map_err(|e| {
+            tracing::error!("failed to fetch timeseries: {e}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
     } else {
         sqlx::query_as::<_, (chrono::NaiveDate, i64, i64, i64)>(
             r#"
@@ -166,7 +178,10 @@ async fn get_timeseries(
         .bind(days)
         .fetch_all(db)
         .await
-        .map_err(|e| { tracing::error!("failed to fetch timeseries: {e}"); StatusCode::INTERNAL_SERVER_ERROR })?
+        .map_err(|e| {
+            tracing::error!("failed to fetch timeseries: {e}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
     };
 
     Ok(rows
@@ -180,10 +195,7 @@ async fn get_timeseries(
         .collect())
 }
 
-async fn get_by_zone(
-    db: &PgPool,
-    user_id: &str,
-) -> Result<Vec<ZoneTraffic>, StatusCode> {
+async fn get_by_zone(db: &PgPool, user_id: &str) -> Result<Vec<ZoneTraffic>, StatusCode> {
     let rows = sqlx::query_as::<_, (String, i64, i64, Option<f64>)>(
         r#"
         SELECT
@@ -238,7 +250,10 @@ async fn get_top_queries(
         .bind(limit)
         .fetch_all(db)
         .await
-        .map_err(|e| { tracing::error!("failed to fetch top queries: {e}"); StatusCode::INTERNAL_SERVER_ERROR })?
+        .map_err(|e| {
+            tracing::error!("failed to fetch top queries: {e}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
     } else {
         sqlx::query_as::<_, (String, i64)>(
             r#"
@@ -252,7 +267,10 @@ async fn get_top_queries(
         .bind(limit)
         .fetch_all(db)
         .await
-        .map_err(|e| { tracing::error!("failed to fetch top queries: {e}"); StatusCode::INTERNAL_SERVER_ERROR })?
+        .map_err(|e| {
+            tracing::error!("failed to fetch top queries: {e}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
     };
 
     Ok(rows
@@ -267,7 +285,9 @@ pub(super) async fn user_summary(
     State(db): State<PgPool>,
     Extension(current_user): Extension<CurrentUser>,
 ) -> Result<Json<TrafficSummaryResponse>, StatusCode> {
-    get_traffic_summary(&db, Some(&current_user.user.id)).await.map(Json)
+    get_traffic_summary(&db, Some(&current_user.user.id))
+        .await
+        .map(Json)
 }
 
 pub(super) async fn user_timeseries(
@@ -276,7 +296,9 @@ pub(super) async fn user_timeseries(
     Query(params): Query<TimeseriesParams>,
 ) -> Result<Json<Vec<TimeseriesPoint>>, StatusCode> {
     let days = params.days.unwrap_or(30).max(1).min(365);
-    get_timeseries(&db, Some(&current_user.user.id), days).await.map(Json)
+    get_timeseries(&db, Some(&current_user.user.id), days)
+        .await
+        .map(Json)
 }
 
 pub(super) async fn user_by_zone(
@@ -292,7 +314,9 @@ pub(super) async fn user_top_queries(
     Query(params): Query<TopQueriesParams>,
 ) -> Result<Json<Vec<TopQuery>>, StatusCode> {
     let limit = params.limit.unwrap_or(10).max(1).min(100);
-    get_top_queries(&db, Some(&current_user.user.id), limit).await.map(Json)
+    get_top_queries(&db, Some(&current_user.user.id), limit)
+        .await
+        .map(Json)
 }
 
 // ── Admin (platform-wide) endpoints ──
