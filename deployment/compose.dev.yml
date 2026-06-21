@@ -1,6 +1,5 @@
 services:
   api:
-    profiles: [backend]
     build:
       context: ../
       dockerfile: hackflare_api/Dockerfile
@@ -19,7 +18,6 @@ services:
       - backend
 
   db:
-    profiles: [backend]
     image: postgres:18
     shm_size: 256mb
     env_file:
@@ -37,7 +35,6 @@ services:
       - backend
 
   frontend:
-    profiles: [frontend]
     build:
       context: ../frontend
       dockerfile: Dockerfile
@@ -51,7 +48,6 @@ services:
       - backend
 
   pgadmin4:
-    profiles: [pg]
     image: dpage/pgadmin4
     env_file:
       - ../.env
