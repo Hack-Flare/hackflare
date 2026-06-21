@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
-import { AlertTriangle, Info, CheckCircle, Filter } from "lucide-react"
+import { useSearchParams } from "react-router"
+import { AlertTriangle, Info, CheckCircle, Filter, X } from "lucide-react"
 import {
   Card,
   CardContent,
@@ -23,6 +24,7 @@ import { api } from "~/lib/api"
 type Level = LogEntry["level"]
 
 export default function Logs() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [errorsToday, setErrorsToday] = useState(0)
   const [warningsToday, setWarningsToday] = useState(0)
@@ -32,9 +34,13 @@ export default function Logs() {
     new Set(["info", "warning", "error"])
   )
 
+  const zoneFilter = searchParams.get("zone") || ""
+
   useEffect(() => {
-    api.logs
-      .queryLogs()
+    const fetchLogs = zoneFilter
+      ? api.logs.queryLogsByZone(zoneFilter)
+      : api.logs.queryLogs()
+    fetchLogs
       .then((res) => {
         setLogs(res.logs)
         setErrorsToday(res.summary.errors_today)
@@ -43,7 +49,7 @@ export default function Logs() {
       })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [])
+  }, [zoneFilter])
 
   const toggleLevel = (level: Level) => {
     setActiveLevels((prev) => {
@@ -51,6 +57,10 @@ export default function Logs() {
       next.has(level) ? next.delete(level) : next.add(level)
       return next
     })
+  }
+
+  const clearZoneFilter = () => {
+    setSearchParams({})
   }
 
   const filteredLogs = logs.filter((log) => activeLevels.has(log.level))
@@ -65,7 +75,17 @@ export default function Logs() {
           </p>
         </div>
 
-        <DropdownMenu>
+        <div className="flex items-center gap-2">
+          {zoneFilter && (
+            <div className="flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-800">
+              <span className="text-zinc-600 dark:text-zinc-400">Zone:</span>
+              <span className="font-medium">{zoneFilter}</span>
+              <button onClick={clearZoneFilter} className="ml-1 text-zinc-400 hover:text-zinc-600">
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          )}
+          <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="orange" className="flex items-center gap-2">
               <Filter className="h-4 w-4" />
@@ -109,6 +129,7 @@ export default function Logs() {
             </DropdownMenuCheckboxItem>
           </DropdownMenuContent>
         </DropdownMenu>
+      </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

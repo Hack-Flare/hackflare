@@ -1,8 +1,18 @@
-use axum::{Json, Router, extract::State, http::StatusCode, middleware, routing::get};
-use serde::Serialize;
+use axum::{
+    extract::{Extension, Query, State},
+    http::StatusCode,
+    middleware,
+    routing::get,
+    Json, Router,
+};
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
-use crate::{middlewares::auth_middleware, state::AppState};
+use crate::{
+    middlewares::auth_middleware,
+    models::CurrentUser,
+    state::AppState,
+};
 
 #[derive(Serialize)]
 pub(super) struct LogEntryResponse {
@@ -10,6 +20,7 @@ pub(super) struct LogEntryResponse {
     timestamp: String,
     level: String,
     path: String,
+    zone: String,
     status: i32,
     ms: i64,
 }
@@ -25,6 +36,11 @@ pub(super) struct LogsSummaryResponse {
 pub(super) struct LogsResponse {
     logs: Vec<LogEntryResponse>,
     summary: LogsSummaryResponse,
+}
+
+#[derive(Deserialize)]
+pub(super) struct LogsQueryParams {
+    zone: Option<String>,
 }
 
 fn derive_level(response_code: &str) -> &'static str {
@@ -52,16 +68,25 @@ fn derive_status(response_code: &str) -> i32 {
 
 pub(super) async fn list_query_logs(
     State(db): State<PgPool>,
+    Extension(current_user): Extension<CurrentUser>,
+    Query(params): Query<LogsQueryParams>,
 ) -> Result<Json<LogsResponse>, StatusCode> {
-    let rows = sqlx::query_as::<_, (i64, String, String, String, i32, String, i32)>(
+    let zone_filter = params.zone.unwrap_or_default();
+
+    let rows = sqlx::query_as::<_, (i64, chrono::DateTime<chrono::Utc>, String, String, String, i32)>(
         r#"
-        SELECT id, query_name, query_type, response_code, response_size, source_ip, processing_us
-        FROM dns_query_logs
-        WHERE timestamp >= now() - interval '24 hours'
-        ORDER BY id DESC
+        SELECT dql.id, dql.timestamp, dql.query_name, dql.response_code, dql.zone_name, dql.processing_us
+        FROM dns_query_logs dql
+        JOIN dns_zones dz ON dql.zone_name = dz.name
+        WHERE dz.user_id = $1
+          AND dql.timestamp >= now() - interval '24 hours'
+          AND ($2 = '' OR dql.zone_name = $2)
+        ORDER BY dql.id DESC
         LIMIT 200
         "#,
     )
+    .bind(&current_user.user.id)
+    .bind(&zone_filter)
     .fetch_all(&db)
     .await
     .map_err(|e| {
@@ -72,12 +97,17 @@ pub(super) async fn list_query_logs(
     let summary = sqlx::query_as::<_, (i64, i64, i64)>(
         r#"
         SELECT
-            COUNT(*) FILTER (WHERE response_code NOT IN ('NOERROR', 'NXDOMAIN') AND timestamp >= now()::date) AS errors_today,
-            COUNT(*) FILTER (WHERE response_code = 'NXDOMAIN' AND timestamp >= now()::date) AS warnings_today,
-            COUNT(*) FILTER (WHERE response_code = 'NOERROR' AND timestamp >= now()::date) AS info_today
-        FROM dns_query_logs
+            COUNT(*) FILTER (WHERE dql.response_code NOT IN ('NOERROR', 'NXDOMAIN') AND dql.timestamp >= now()::date) AS errors_today,
+            COUNT(*) FILTER (WHERE dql.response_code = 'NXDOMAIN' AND dql.timestamp >= now()::date) AS warnings_today,
+            COUNT(*) FILTER (WHERE dql.response_code = 'NOERROR' AND dql.timestamp >= now()::date) AS info_today
+        FROM dns_query_logs dql
+        JOIN dns_zones dz ON dql.zone_name = dz.name
+        WHERE dz.user_id = $1
+          AND ($2 = '' OR dql.zone_name = $2)
         "#,
     )
+    .bind(&current_user.user.id)
+    .bind(&zone_filter)
     .fetch_one(&db)
     .await
     .map_err(|e| {
@@ -87,18 +117,17 @@ pub(super) async fn list_query_logs(
 
     let logs: Vec<LogEntryResponse> = rows
         .into_iter()
-        .map(
-            |(id, query_name, _query_type, response_code, _resp_size, _src_ip, processing_us)| {
-                LogEntryResponse {
-                    id,
-                    timestamp: String::new(),
-                    level: derive_level(&response_code).to_string(),
-                    path: query_name,
-                    status: derive_status(&response_code),
-                    ms: (processing_us as i64) / 1000,
-                }
-            },
-        )
+        .map(|(id, ts, query_name, response_code, zone_name, processing_us)| {
+            LogEntryResponse {
+                id,
+                timestamp: ts.format("%Y-%m-%d %H:%M:%S UTC").to_string(),
+                level: derive_level(&response_code).to_string(),
+                path: query_name,
+                zone: zone_name,
+                status: derive_status(&response_code),
+                ms: (processing_us as i64) / 1000,
+            }
+        })
         .collect();
 
     Ok(Json(LogsResponse {

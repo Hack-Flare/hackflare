@@ -1,7 +1,7 @@
-import { useParams, useNavigate } from "react-router"
+import { Link, useParams, useNavigate } from "react-router"
 import { useEffect, useState } from "react"
 import { Button } from "~/components/ui/button"
-import { Plus, Globe, Zap, Activity, Loader2, AlertCircle, ShieldAlert } from "lucide-react"
+import { Plus, Globe, Zap, Activity, Loader2, AlertCircle, ShieldAlert, List } from "lucide-react"
 import {
   Card,
   CardContent,
@@ -29,7 +29,7 @@ import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { DataTable } from "./data-table"
 import { useColumns, type DnsRecord } from "./columns"
-import { api, type DnsZone } from "~/lib/api"
+import { api, type DnsZone, type QueryLogEntry } from "~/lib/api"
 import { useToast } from "~/lib/toast"
 
 const defaultForm = {
@@ -56,6 +56,8 @@ export default function Dns() {
   const [editing, setEditing] = useState<DnsRecord | null>(null)
   const [editForm, setEditForm] = useState(defaultForm)
   const [saving, setSaving] = useState(false)
+  const [logs, setLogs] = useState<QueryLogEntry[]>([])
+  const [logsLoading, setLogsLoading] = useState(true)
 
   const fetchRecords = async () => {
     if (!domain) return
@@ -82,8 +84,21 @@ export default function Dns() {
     }
   }
 
+  const fetchLogs = async () => {
+    if (!domain) return
+    try {
+      const data = await api.logs.queryLogsByZone(domain)
+      setLogs(data.logs.slice(0, 20))
+    } catch {
+      // silent
+    } finally {
+      setLogsLoading(false)
+    }
+  }
+
   useEffect(() => {
     void fetchRecords()
+    void fetchLogs()
   }, [domain])
 
   const aRecords = records.filter((r) => r.type === "A")
@@ -476,6 +491,76 @@ export default function Dns() {
             </div>
           ) : (
             <DataTable columns={columns} data={records} />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Recent Queries */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Recent Queries</CardTitle>
+              <CardDescription>
+                DNS query logs for this domain (last 24h)
+              </CardDescription>
+            </div>
+            <Link to={`/dash/logs?zone=${encodeURIComponent(domain ?? "")}`}>
+              <Button variant="outline" size="sm" className="gap-2">
+                <List className="h-4 w-4" />
+                All Logs
+              </Button>
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {logsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+            </div>
+          ) : logs.length === 0 ? (
+            <p className="py-8 text-center text-sm text-zinc-500">
+              No recent queries for this domain.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-zinc-200 text-left dark:border-zinc-800">
+                    <th className="pb-2 pr-4 font-medium text-zinc-500 dark:text-zinc-400">Time</th>
+                    <th className="pb-2 pr-4 font-medium text-zinc-500 dark:text-zinc-400">Level</th>
+                    <th className="pb-2 pr-4 font-medium text-zinc-500 dark:text-zinc-400">Query</th>
+                    <th className="pb-2 pr-4 font-medium text-zinc-500 dark:text-zinc-400">Status</th>
+                    <th className="pb-2 font-medium text-zinc-500 dark:text-zinc-400">Duration</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logs.map((log) => (
+                    <tr key={log.id} className="border-b border-zinc-100 dark:border-zinc-800">
+                      <td className="py-2 pr-4 text-zinc-500">{log.timestamp}</td>
+                      <td className="py-2 pr-4">
+                        <span
+                          className={`rounded px-2 py-0.5 text-xs font-medium ${
+                            log.level === "error"
+                              ? "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                              : log.level === "warning"
+                                ? "bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                : "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                          }`}
+                        >
+                          {log.level}
+                        </span>
+                      </td>
+                      <td className="max-w-[200px] truncate py-2 pr-4 font-mono text-xs">
+                        {log.path}
+                      </td>
+                      <td className="py-2 pr-4 text-zinc-500">{log.status}</td>
+                      <td className="py-2 text-zinc-500">{log.ms}ms</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </CardContent>
       </Card>

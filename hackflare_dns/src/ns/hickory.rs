@@ -72,6 +72,7 @@ struct QueryLogEntry {
     response_size: i32,
     processing_us: i32,
     answers_count: i32,
+    zone_name: String,
 }
 
 impl HickoryRequestHandler {
@@ -81,8 +82,8 @@ impl HickoryRequestHandler {
         };
         let _ = sqlx::query(
             r#"
-            INSERT INTO dns_query_logs (query_name, query_type, response_code, source_ip, protocol, response_size, processing_us, answers_count)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            INSERT INTO dns_query_logs (query_name, query_type, response_code, source_ip, protocol, response_size, processing_us, answers_count, zone_name)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             "#,
         )
         .bind(entry.query_name)
@@ -93,6 +94,7 @@ impl HickoryRequestHandler {
         .bind(entry.response_size)
         .bind(entry.processing_us)
         .bind(entry.answers_count)
+        .bind(entry.zone_name)
         .execute(db)
         .await;
     }
@@ -141,19 +143,26 @@ impl RequestHandler for HickoryRequestHandler {
             "TCP"
         };
 
-        let response_code;
-        let response_size;
-        let answers_count;
-        let response_info;
-
         if self.authority.contains_zone_for(&query_lower).await {
-            response_info = self
+            let zone_name = self.authority.find_zone_name(&query_lower).await;
+            let response_info = self
                 .authority
                 .handle_request::<R, T>(request, response_handle)
                 .await;
-            response_code = response_info.response_code.to_string();
-            response_size = 0;
-            answers_count = 0;
+            let elapsed = start.elapsed();
+            self.log_query(QueryLogEntry {
+                query_name,
+                query_type: query_type_str,
+                response_code: response_info.response_code.to_string(),
+                source_ip,
+                protocol: protocol_str.to_string(),
+                response_size: 0,
+                processing_us: elapsed.as_micros().min(u64::MAX as u128) as i32,
+                answers_count: 0,
+                zone_name: zone_name.unwrap_or_default(),
+            })
+            .await;
+            response_info
         } else {
             let qname = query_name.clone();
             let qtype = u16::from(query_info.query.query_type());
@@ -168,111 +177,46 @@ impl RequestHandler for HickoryRequestHandler {
                 Ok(Ok(bytes)) => bytes,
                 Ok(Err(e)) => {
                     eprintln!("recursive resolve failed for {qname}: {e}");
-                    response_info = send_servfail_response(
+                    return send_servfail_response(
                         request,
                         response_handle,
                         "Failed to process recursive query",
                     )
                     .await;
-                    response_code = "SERVFAIL".to_string();
-                    response_size = 0;
-                    answers_count = 0;
-                    let elapsed = start.elapsed();
-                    self.log_query(QueryLogEntry {
-                        query_name: query_name.clone(),
-                        query_type: query_type_str.clone(),
-                        response_code: response_code.clone(),
-                        source_ip: source_ip.clone(),
-                        protocol: protocol_str.to_string(),
-                        response_size,
-                        processing_us: elapsed.as_micros().min(u64::MAX as u128) as i32,
-                        answers_count,
-                    })
-                    .await;
-                    return response_info;
                 }
                 Err(e) => {
                     eprintln!("recursive resolve task failed for {qname}: {e}");
-                    response_info = send_servfail_response(
+                    return send_servfail_response(
                         request,
                         response_handle,
                         "Failed to process recursive query",
                     )
                     .await;
-                    response_code = "SERVFAIL".to_string();
-                    response_size = 0;
-                    answers_count = 0;
-                    let elapsed = start.elapsed();
-                    self.log_query(QueryLogEntry {
-                        query_name: query_name.clone(),
-                        query_type: query_type_str.clone(),
-                        response_code: response_code.clone(),
-                        source_ip: source_ip.clone(),
-                        protocol: protocol_str.to_string(),
-                        response_size,
-                        processing_us: elapsed.as_micros().min(u64::MAX as u128) as i32,
-                        answers_count,
-                    })
-                    .await;
-                    return response_info;
                 }
             };
 
-            response_size = response_bytes.len() as i32;
+            let response_size = response_bytes.len() as i32;
             let mut response = match Message::from_vec(response_bytes.as_slice()) {
                 Ok(message) => match DnsResponse::from_message(message) {
                     Ok(resp) => resp,
                     Err(err) => {
-                        response_info = send_servfail_response(
+                        return send_servfail_response(
                             request,
                             response_handle,
                             format!("Failed to decode DNS response: {err}"),
                         )
                         .await;
-                        response_code = "SERVFAIL".to_string();
-                        answers_count = 0;
-                        let elapsed = start.elapsed();
-                        self.log_query(QueryLogEntry {
-                            query_name: query_name.clone(),
-                            query_type: query_type_str.clone(),
-                            response_code: response_code.clone(),
-                            source_ip: source_ip.clone(),
-                            protocol: protocol_str.to_string(),
-                            response_size,
-                            processing_us: elapsed.as_micros().min(u64::MAX as u128) as i32,
-                            answers_count,
-                        })
-                        .await;
-                        return response_info;
                     }
                 },
                 Err(err) => {
-                    response_info = send_servfail_response(
+                    return send_servfail_response(
                         request,
                         response_handle,
                         format!("Failed to parse DNS response bytes: {err}"),
                     )
                     .await;
-                    response_code = "SERVFAIL".to_string();
-                    answers_count = 0;
-                    let elapsed = start.elapsed();
-                    self.log_query(QueryLogEntry {
-                        query_name: query_name.clone(),
-                        query_type: query_type_str.clone(),
-                        response_code: response_code.clone(),
-                        source_ip: source_ip.clone(),
-                        protocol: protocol_str.to_string(),
-                        response_size,
-                        processing_us: elapsed.as_micros().min(u64::MAX as u128) as i32,
-                        answers_count,
-                    })
-                    .await;
-                    return response_info;
                 }
             };
-
-            response_code = response.metadata.response_code.to_string();
-            answers_count = response.answers.len() as i32;
 
             // Build response metadata from the request so the ID matches
             let mut response_meta = Metadata::response_from_request(&request.metadata);
@@ -304,9 +248,7 @@ impl RequestHandler for HickoryRequestHandler {
             );
 
             match response_handle.send_response(message_response).await {
-                Ok(info) => {
-                    response_info = info;
-                }
+                Ok(info) => info,
                 Err(err) => {
                     log(
                         "error",
@@ -315,27 +257,13 @@ impl RequestHandler for HickoryRequestHandler {
                     );
                     let mut metadata = Metadata::response_from_request(&request.metadata);
                     metadata.response_code = ResponseCode::ServFail;
-                    response_info = ResponseInfo::from(hickory_server::proto::op::Header {
+                    ResponseInfo::from(hickory_server::proto::op::Header {
                         metadata,
                         counts: hickory_server::proto::op::HeaderCounts::default(),
-                    });
+                    })
                 }
             }
         }
-
-        let elapsed = start.elapsed();
-        self.log_query(QueryLogEntry {
-            query_name,
-            query_type: query_type_str,
-            response_code,
-            source_ip,
-            protocol: protocol_str.to_string(),
-            response_size,
-            processing_us: elapsed.as_micros().min(u64::MAX as u128) as i32,
-            answers_count,
-        })
-        .await;
-        response_info
     }
 }
 

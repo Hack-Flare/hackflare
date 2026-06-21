@@ -193,6 +193,22 @@ impl AuthorityStore {
         find_zone(&zones, name).is_some()
     }
 
+    /// Return the zone name that best matches the given name, if any.
+    pub async fn find_zone_name(&self, name: &LowerName) -> Option<String> {
+        let zones = self.zones.read().await;
+        let mut current = name.clone();
+        loop {
+            let key = current.to_utf8().trim_end_matches('.').to_string();
+            if zones.contains_key(&key) {
+                return Some(key);
+            }
+            if current.is_root() {
+                return None;
+            }
+            current = current.base_name();
+        }
+    }
+
     /// Load all zones from persistence storage.
     pub async fn load_zones_from_storage(&self) -> Result<(), DnsError> {
         let Some(persistence) = &self.persistence else {

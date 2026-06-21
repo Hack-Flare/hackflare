@@ -48,6 +48,7 @@ export interface QueryLogEntry {
   timestamp: string
   level: "info" | "warning" | "error"
   path: string
+  zone: string
   status: number
   ms: number
 }
@@ -370,6 +371,7 @@ export const api = {
 
   logs: {
     queryLogs: () => request<QueryLogsResponse>("/api/v1/logs/query-logs"),
+    queryLogsByZone: (zone: string) => request<QueryLogsResponse>(`/api/v1/logs/query-logs?zone=${encodeURIComponent(zone)}`),
   },
 
   slack: {

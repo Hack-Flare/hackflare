@@ -6,6 +6,7 @@ export type LogEntry = {
   timestamp: string
   level: "info" | "warning" | "error"
   path: string
+  zone: string
   status: number
   ms: number
 }
@@ -73,6 +74,15 @@ export const columns: ColumnDef<LogEntry>[] = [
     cell: ({ row }) => (
       <span className="font-mono text-xs text-zinc-600 dark:text-zinc-400">
         {row.getValue("path")}
+      </span>
+    ),
+  },
+  {
+    accessorKey: "zone",
+    header: "Zone",
+    cell: ({ row }) => (
+      <span className="text-xs text-zinc-600 dark:text-zinc-400">
+        {row.getValue("zone")}
       </span>
     ),
   },
