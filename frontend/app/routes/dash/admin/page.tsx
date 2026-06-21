@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import {
   Activity,
+  BarChart2,
   CheckCircle2,
   Database,
   Globe,
@@ -13,6 +14,7 @@ import {
   X,
   XCircle,
 } from "lucide-react"
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from "recharts"
 import {
   Card,
   CardContent,
@@ -20,6 +22,14 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card"
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "~/components/ui/chart"
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
 import {
@@ -30,9 +40,9 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table"
-import { api, type AdminStats, type AdminUser, type ConfigEntry } from "~/lib/api"
+import { api, type AdminStats, type AdminUser, type ConfigEntry, type TrafficSummary, type TimeseriesPoint, type TopQuery } from "~/lib/api"
 
-type Tab = "config" | "users" | "stats"
+type Tab = "config" | "users" | "stats" | "traffic"
 
 export default function Admin() {
   const [tab, setTab] = useState<Tab>("config")
@@ -51,6 +61,7 @@ export default function Admin() {
       {tab === "config" && <ConfigTab />}
       {tab === "users" && <UsersTab />}
       {tab === "stats" && <StatsTab />}
+      {tab === "traffic" && <TrafficTab />}
     </div>
   )
 }
@@ -60,6 +71,7 @@ function TabNav({ tab, onTabChange }: { tab: Tab; onTabChange: (t: Tab) => void 
     { key: "config", label: "Config", icon: <Settings className="h-4 w-4" /> },
     { key: "users", label: "Users", icon: <Users className="h-4 w-4" /> },
     { key: "stats", label: "Stats", icon: <Activity className="h-4 w-4" /> },
+    { key: "traffic", label: "Traffic", icon: <BarChart2 className="h-4 w-4" /> },
   ]
 
   return (
@@ -406,6 +418,237 @@ function UsersTab() {
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+// ── Traffic Tab ──
+
+const adminTrafficConfig = {
+  requests: {
+    label: "Requests",
+    color: "hsl(200, 100%, 50%)",
+  },
+  errors: {
+    label: "Errors",
+    color: "hsl(0, 100%, 50%)",
+  },
+} satisfies ChartConfig
+
+const adminStatusColors = [
+  "hsl(120, 100%, 40%)",
+  "hsl(40, 100%, 50%)",
+  "hsl(0, 100%, 50%)",
+  "hsl(240, 100%, 60%)",
+]
+
+function TrafficTab() {
+  const [summary, setSummary] = useState<TrafficSummary | null>(null)
+  const [timeseries, setTimeseries] = useState<TimeseriesPoint[]>([])
+  const [topQueries, setTopQueries] = useState<TopQuery[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    Promise.all([
+      api.admin.trafficSummary(),
+      api.admin.trafficTimeseries(30),
+      api.admin.trafficTopQueries(10),
+    ])
+      .then(([s, ts, tq]) => {
+        setSummary(s)
+        setTimeseries(ts)
+        setTopQueries(tq)
+      })
+      .catch((err) => {
+        setError(
+          err && typeof err === "object" && "error" in err
+            ? String((err as { error: unknown }).error)
+            : "Failed to load traffic data",
+        )
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-12">
+          <RefreshCw className="h-6 w-6 animate-spin text-zinc-400" />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center gap-2 py-12 text-red-500">
+          <p className="text-sm">{error}</p>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const statusCodeData = summary
+    ? [
+        {
+          name: "NOERROR",
+          value: Math.round(summary.total_requests * (summary.success_rate / 100)),
+          fill: adminStatusColors[0],
+        },
+        { name: "Other", value: Math.round(summary.total_requests * (summary.error_rate / 100)), fill: adminStatusColors[2] },
+      ]
+    : []
+
+  return (
+    <div className="space-y-6">
+      {summary && (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Total Queries</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">{summary.total_requests.toLocaleString()}</p>
+              <p className="mt-2 text-xs text-zinc-500">Platform-wide all time</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Avg Processing Time</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">{summary.avg_processing_ms.toFixed(1)}ms</p>
+              <p className="mt-2 text-xs text-zinc-500">Per query</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold text-green-600">{summary.success_rate.toFixed(1)}%</p>
+              <p className="mt-2 text-xs text-zinc-500">NOERROR responses</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Error Rate</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className={`text-2xl font-bold ${summary.error_rate > 1 ? "text-red-600" : "text-zinc-900 dark:text-white"}`}>
+                {summary.error_rate.toFixed(2)}%
+              </p>
+              <p className="mt-2 text-xs text-zinc-500">SERVFAIL + other errors</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Queries Over Time</CardTitle>
+            <CardDescription>Platform-wide DNS queries over the last 30 days</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={adminTrafficConfig} className="h-62.5 w-full">
+              <AreaChart data={timeseries}>
+                <defs>
+                  <linearGradient id="fillAdminRequests" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-requests)" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="var(--color-requests)" stopOpacity={0.1} />
+                  </linearGradient>
+                  <linearGradient id="fillAdminErrors" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-errors)" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="var(--color-errors)" stopOpacity={0.1} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  tickFormatter={(value) => {
+                    const date = new Date(value)
+                    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                  }}
+                />
+                <YAxis tickLine={false} axisLine={false} />
+                <ChartTooltip
+                  cursor={false}
+                  content={
+                    <ChartTooltipContent
+                      labelFormatter={(value) => new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      indicator="dot"
+                    />
+                  }
+                />
+                <Area dataKey="errors" type="natural" fill="url(#fillAdminErrors)" stroke="var(--color-errors)" stackId="a" />
+                <Area dataKey="requests" type="natural" fill="url(#fillAdminRequests)" stroke="var(--color-requests)" stackId="a" />
+                <ChartLegend content={<ChartLegendContent />} />
+              </AreaChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Response Code Distribution</CardTitle>
+            <CardDescription>Platform-wide DNS response codes</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={adminTrafficConfig} className="h-62.5 w-full">
+              <BarChart data={statusCodeData}>
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} />
+                <YAxis tickLine={false} axisLine={false} />
+                <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                <Bar dataKey="value" radius={4}>
+                  {statusCodeData.map((entry) => (
+                    <Cell key={entry.name} fill={entry.fill} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Top Queries</CardTitle>
+          <CardDescription>Most frequently queried names platform-wide</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-zinc-200 dark:border-zinc-800">
+                  <th className="px-4 py-2 text-left dark:text-zinc-400">Query</th>
+                  <th className="px-4 py-2 text-right dark:text-zinc-400">Requests</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topQueries.length === 0 ? (
+                  <tr>
+                    <td colSpan={2} className="py-8 text-center text-zinc-500">No query data yet</td>
+                  </tr>
+                ) : (
+                  topQueries.map((q, i) => (
+                    <tr key={i} className="border-b border-zinc-100 dark:border-zinc-800">
+                      <td className="px-4 py-3 font-mono text-xs dark:text-white">{q.query}</td>
+                      <td className="px-4 py-3 text-right dark:text-zinc-300">{q.count.toLocaleString()}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 

@@ -92,6 +92,32 @@ export interface AdminStats {
   total_sessions: number
 }
 
+export interface TrafficSummary {
+  total_requests: number
+  avg_processing_ms: number
+  success_rate: number
+  error_rate: number
+}
+
+export interface TimeseriesPoint {
+  date: string
+  requests: number
+  errors: number
+  nxdomain: number
+}
+
+export interface ZoneTraffic {
+  zone: string
+  requests: number
+  errors: number
+  avg_ms: number
+}
+
+export interface TopQuery {
+  query: string
+  count: number
+}
+
 export interface ApiKey {
   id: string
   name: string
@@ -367,6 +393,16 @@ export const api = {
     listUsers: () => request<AdminUser[]>("/api/v1/admin/users"),
 
     getStats: () => request<AdminStats>("/api/v1/admin/stats"),
+    trafficSummary: () => request<TrafficSummary>("/api/v1/admin/traffic/summary"),
+    trafficTimeseries: (days = 30) => request<TimeseriesPoint[]>(`/api/v1/admin/traffic/timeseries?days=${days}`),
+    trafficTopQueries: (limit = 10) => request<TopQuery[]>(`/api/v1/admin/traffic/top-queries?limit=${limit}`),
+  },
+
+  traffic: {
+    summary: () => request<TrafficSummary>("/api/v1/traffic/summary"),
+    timeseries: (days = 30) => request<TimeseriesPoint[]>(`/api/v1/traffic/timeseries?days=${days}`),
+    byZone: () => request<ZoneTraffic[]>("/api/v1/traffic/by-zone"),
+    topQueries: (limit = 5) => request<TopQuery[]>(`/api/v1/traffic/top-queries?limit=${limit}`),
   },
 
   logs: {

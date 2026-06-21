@@ -320,6 +320,7 @@ pub(super) fn routes(state: AppState) -> Router<AppState> {
         .route("/config/{key}", put(upsert_config).delete(delete_config))
         .route("/users", get(list_users))
         .route("/stats", get(get_stats))
+        .merge(super::traffic::admin_traffic_routes())
         .layer(middleware::from_fn_with_state(state.clone(), require_admin))
         .layer(middleware::from_fn_with_state(state, auth_middleware))
 }

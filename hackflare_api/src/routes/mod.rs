@@ -11,6 +11,7 @@ pub(crate) mod logs;
 pub(crate) mod sessions;
 pub(crate) mod settings;
 pub mod slack;
+pub(crate) mod traffic;
 pub(crate) mod users;
 
 fn v1_routes(state: AppState, config: &Config) -> Router<AppState> {
@@ -23,6 +24,7 @@ fn v1_routes(state: AppState, config: &Config) -> Router<AppState> {
         .nest("/admin", admin::routes(state.clone()))
         .nest("/settings", settings::routes(state.clone()))
         .nest("/logs", logs::routes(state.clone()))
+        .nest("/traffic", traffic::user_routes().route_layer(axum::middleware::from_fn_with_state(state.clone(), crate::middlewares::auth_middleware)))
         .route("/slack/contact", axum::routing::post(slack::slack_contact))
 }
 
