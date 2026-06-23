@@ -21,11 +21,9 @@ Feel free to submit PRs/issues for anything you want us to work on or you want t
   - [x] Backend
     - [x] HackClub Auth
     - [x] Session Management
-    - [ ] Github Auth
     - [x] Email Auth
     - [x] Password Reset
     - [x] Email Verification
-    - [ ] Google Auth
   - [x] Frontend
     - [x] Login/Signup Page
     - [x] Dashboard Auth Integration
@@ -41,17 +39,12 @@ Feel free to submit PRs/issues for anything you want us to work on or you want t
   - [x] Error Pages
   - [x] Auth System
 - [x] Docker
-- [ ] Big Haj on error pages
-- [ ] Organize readme and documentation better
-
-- [ ] Working Production
 
 ### Phase 2 (Post MVP)
 - [ ] API
 - [ ] Caching (incl. DNS caching, minimal site caching)
 - [ ] DDoS Protection
 - [ ] Load Balancing
-- [ ] Clerk Integration - Maybe
 - [ ] Tunneling
 - [ ] Node Based Nameservers (All can connect to main server through api)
 - [ ] Community Server Support

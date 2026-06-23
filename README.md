@@ -20,16 +20,21 @@ Note: These are the active features. For planned features please see the [roadma
 - Dashboard
 - Domain management
 - Admin panel
+- Logging
+- Analytics
+- Settings
 
 **Backend:**
 
 - DNS management
 - Account Registration and Authentication
   - [HackClub Auth](https://auth.hackclub.com/docs/welcome)
-  - [GitHub OAuth](https://docs.github.com/en/developers/apps/building-oauth-apps/authorizing-oauth-apps)
-  - [Google OAuth](https://developers.google.com/identity/protocols/oauth2)
   - Email and Password Auth
 - Account management
+- Authoritative DNS server
+- Recursive DNS server
+- PostgreSQL persistence
+- Working internal API
 
 ## Roadmap
 
