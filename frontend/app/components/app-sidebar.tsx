@@ -20,17 +20,12 @@ import {
   Activity,
   ScrollText,
   Settings,
-  BookOpen,
   ChevronsUpDown,
   LogOut,
   UserCircle,
-  Plus,
-  Check,
   ChevronRight,
   Shield,
-  BadgeQuestionMark,
   MessageCircleQuestionMark,
-  ArrowLeftRight,
 } from "lucide-react"
 
 import {
@@ -54,27 +49,15 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuShortcut,
 } from "~/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
-import { SlackIcon } from "./icons/slack"
-
-// ── Workspaces ───────────────────────────────────────────────────────────────
-
-const workspaces = [
-  { id: "1", name: "My Projects", plan: "Free tier", icon: "⚡" },
-  { id: "2", name: "Hack Club HQ", plan: "Team", icon: "🏠" },
-  { id: "3", name: "Café Nerd", plan: "Free tier", icon: "☕" },
-]
-
-// ── Static nav ────────────────────────────────────────────────────────────────
 
 const overviewItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/dash" },
 ]
 
 const edgeItems = [
-  { title: "Firewall", icon: ShieldAlert, href: "/dash/firewall", badge: "2" },
+  { title: "Firewall", icon: ShieldAlert, href: "/dash/firewall" },
   { title: "Workers", icon: Zap, href: "/dash/workers" },
   { title: "Tunnel", icon: Network, href: "/dash/tunnel" },
 ]
@@ -87,15 +70,12 @@ const analyticsItems = [
 
 const adminItems = [{ title: "Admin Panel", icon: Shield, href: "/dash/admin" }]
 
-// ── Component ────────────────────────────────────────────────────────────────
-
 export function AppSidebar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { domain } = useParams()
   const { user, logout } = useAuth()
 
-  const [activeWorkspace, setActiveWorkspace] = useState(workspaces[0])
   const [domainsExpanded, setDomainsExpanded] = useState(
     location.pathname.startsWith("/dash/domains")
   )
@@ -148,70 +128,41 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      {/* Workspace switcher */}
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-500 text-base text-white">
-                    {activeWorkspace.icon}
-                  </div>
-                  <div className="flex min-w-0 flex-col leading-none">
-                    <span className="truncate text-sm font-semibold">
-                      {activeWorkspace.name}
-                    </span>
-                    <span className="truncate text-xs text-muted-foreground">
-                      {activeWorkspace.plan}
-                    </span>
-                  </div>
-                  <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-[--radix-dropdown-menu-trigger-width] min-w-52 rounded-lg"
-                align="start"
-                side="bottom"
-                sideOffset={4}
-              >
-                <DropdownMenuLabel className="text-xs text-muted-foreground">
-                  Workspaces
-                </DropdownMenuLabel>
-                {workspaces.map((ws, i) => (
-                  <DropdownMenuItem
-                    key={ws.id}
-                    onClick={() => setActiveWorkspace(ws)}
-                    className="gap-2 p-2"
-                  >
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border bg-background text-sm">
-                      {ws.icon}
-                    </div>
-                    <span className="flex-1 truncate">{ws.name}</span>
-                    {activeWorkspace.id === ws.id && (
-                      <Check className="h-3.5 w-3.5 text-muted-foreground" />
-                    )}
-                    <DropdownMenuShortcut>⌘{i + 1}</DropdownMenuShortcut>
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="gap-2 p-2">
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border bg-background">
-                    <Plus className="h-4 w-4" />
-                  </div>
-                  <span className="text-muted-foreground">Add workspace</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <SidebarMenuButton size="lg" className="gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-500 text-base font-bold text-white">
+                H
+              </div>
+              <span className="text-base font-semibold">Hackflare</span>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
 
       {/* Nav */}
       <SidebarContent>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={isActive("/dash/notifications")}>
+              <NavLink
+                prefetch="intent"
+                to="/dash/notifications"
+                className="flex items-center gap-2"
+              >
+                <Bell className="h-4 w-4" />
+                <span>Notifications</span>
+              </NavLink>
+            </SidebarMenuButton>
+            {unreadCount > 0 && (
+              <SidebarMenuBadge>{unreadCount}</SidebarMenuBadge>
+            )}
+          </SidebarMenuItem>
+        </SidebarMenu>
+
+        <SidebarSeparator className="my-2" />
+
         {/* Overview */}
         <SidebarGroup>
           <SidebarGroupLabel>Overview</SidebarGroupLabel>
@@ -231,21 +182,6 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive("/dash/notifications")}>
-                  <NavLink
-                    prefetch="intent"
-                    to="/dash/notifications"
-                    className="flex items-center gap-2"
-                  >
-                    <Bell className="h-4 w-4" />
-                    <span>Notifications</span>
-                  </NavLink>
-                </SidebarMenuButton>
-                {unreadCount > 0 && (
-                  <SidebarMenuBadge>{unreadCount}</SidebarMenuBadge>
-                )}
-              </SidebarMenuItem>
 
               {/* Domains collapsible */}
               <SidebarMenuItem>
