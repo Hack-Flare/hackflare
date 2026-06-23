@@ -1,46 +1,10 @@
-## Roadmap
+# Roadmap
 
 Feel free to submit PRs/issues for anything you want us to work on or you want to work on.
 
+## Ongoing:
 
-### Phase 1 (MVP/POC)
-
-- [x] DNS System
-  - [x] Backend
-    - [x] Auth Integration
-    - [x] Domain Management
-      - Domains stay in a pending state until their NS delegation is verified, and record edits are blocked until then.
-- [x] **DNS Crate** (`hackflare_dns/`)
-  - [x] Authoritative zone management (hickory-backed `AuthorityStore`)
-  - [x] Record type encoding (A, AAAA, CNAME, MX, TXT, SOA, SRV, etc.)
-  - [x] Recursive resolver (legacy engine - `dns/recursive.rs`)
-  - [x] PostgreSQL persistence (`PostgresPersistence`)
-  - [x] In-memory persistence (`MemoryPersistence`)
-  - [x] Hickory server integration (`ns/hickory.rs`)
-- [x] Auth system
-  - [x] Backend
-    - [x] HackClub Auth
-    - [x] Session Management
-    - [x] Email Auth
-    - [x] Password Reset
-    - [x] Email Verification
-  - [x] Frontend
-    - [x] Login/Signup Page
-    - [x] Dashboard Auth Integration
-  - [x] ENV Setup
-- [x] Simple Logging
-- [x] Proper Frontend
-  - [x] Dashboard
-  - [x] Domain Management
-  - [x] Logging
-  - [x] Notifications
-  - [x] Admin Panel
-  - [x] Settings
-  - [x] Error Pages
-  - [x] Auth System
-- [x] Docker
-
-### Phase 2 (Post MVP)
+### Phase 2
 - [ ] API
 - [ ] Caching (incl. DNS caching, minimal site caching)
 - [ ] DDoS Protection
@@ -80,3 +44,41 @@ Feel free to submit PRs/issues for anything you want us to work on or you want t
 - [ ] Anti Scanning/Scraping measures
 - [ ] Custom Error Pages
 
+## Completed:
+
+### Phase 1 (MVP/POC)
+
+- [x] DNS System
+  - [x] Backend
+    - [x] Auth Integration
+    - [x] Domain Management
+      - Domains stay in a pending state until their NS delegation is verified, and record edits are blocked until then.
+- [x] **DNS Crate** (`hackflare_dns/`)
+  - [x] Authoritative zone management (hickory-backed `AuthorityStore`)
+  - [x] Record type encoding (A, AAAA, CNAME, MX, TXT, SOA, SRV, etc.)
+  - [x] Recursive resolver (legacy engine - `dns/recursive.rs`)
+  - [x] PostgreSQL persistence (`PostgresPersistence`)
+  - [x] In-memory persistence (`MemoryPersistence`)
+  - [x] Hickory server integration (`ns/hickory.rs`)
+- [x] Auth system
+  - [x] Backend
+    - [x] HackClub Auth
+    - [x] Session Management
+    - [x] Email Auth
+    - [x] Password Reset
+    - [x] Email Verification
+  - [x] Frontend
+    - [x] Login/Signup Page
+    - [x] Dashboard Auth Integration
+  - [x] ENV Setup
+- [x] Simple Logging
+- [x] Proper Frontend
+  - [x] Dashboard
+  - [x] Domain Management
+  - [x] Logging
+  - [x] Notifications
+  - [x] Admin Panel
+  - [x] Settings
+  - [x] Error Pages
+  - [x] Auth System
+- [x] Docker
