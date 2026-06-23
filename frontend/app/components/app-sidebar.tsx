@@ -5,10 +5,12 @@ import {
   useParams,
   Link,
 } from "react-router"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { api } from "~/lib/api"
 import { getUserDisplayName, useAuth } from "~/lib/auth-context"
 
 import {
+  Bell,
   LayoutDashboard,
   Globe,
   ShieldAlert,
@@ -116,6 +118,15 @@ export function AppSidebar() {
 
   const userLabel = getUserDisplayName(user)
 
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  useEffect(() => {
+    api.notifications
+      .unreadCount()
+      .then((res) => setUnreadCount(res.count))
+      .catch(() => {})
+  }, [])
+
   const handleLogout = async () => {
     await logout()
     navigate("/")
@@ -220,6 +231,21 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/dash/notifications")}>
+                  <NavLink
+                    prefetch="intent"
+                    to="/dash/notifications"
+                    className="flex items-center gap-2"
+                  >
+                    <Bell className="h-4 w-4" />
+                    <span>Notifications</span>
+                  </NavLink>
+                </SidebarMenuButton>
+                {unreadCount > 0 && (
+                  <SidebarMenuBadge>{unreadCount}</SidebarMenuBadge>
+                )}
+              </SidebarMenuItem>
 
               {/* Domains collapsible */}
               <SidebarMenuItem>

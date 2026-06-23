@@ -30,6 +30,7 @@ export default [
     route("dash/tunnel", "routes/dash/tunnel/page.tsx"),
     route("dash/workers", "routes/dash/workers/page.tsx"),
     route("dash/logs", "routes/dash/logs/page.tsx"),
+    route("dash/notifications", "routes/dash/notifications/page.tsx"),
     route("dash/performance", "routes/dash/performance/page.tsx"),
     route("dash/profile", "routes/dash/profile/page.tsx"),
     route("dash/admin", "routes/dash/admin/page.tsx"),

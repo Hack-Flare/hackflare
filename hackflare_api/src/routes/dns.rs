@@ -176,6 +176,17 @@ async fn create_zone(
             .bind(&name)
             .execute(&state.db)
             .await;
+
+        let _ = crate::services::notifications::create_notification(
+            &state.db,
+            &current_user.user.id,
+            "Domain Added",
+            &format!("{} has been added and is pending NS delegation verification.", name),
+            "domain_added",
+            Some("/dash/domains"),
+        )
+        .await;
+
         (StatusCode::CREATED, Json(serde_json::json!({"name": name}))).into_response()
     } else {
         (
@@ -259,6 +270,25 @@ async fn verify_zone(
     if !matched.is_empty() {
         // Persist verification status so record edits are unblocked
         let _ = set_zone_verified(&state.db, &zone_name).await;
+
+        // Notify the zone owner
+        if let Ok(Some((owner_id,))) =
+            sqlx::query_as::<_, (String,)>("SELECT user_id FROM dns_zones WHERE name = $1 AND user_id IS NOT NULL")
+                .bind(&zone_name)
+                .fetch_optional(&state.db)
+                .await
+        {
+            let _ = crate::services::notifications::create_notification(
+                &state.db,
+                &owner_id,
+                "Domain Verified",
+                &format!("{} has been verified. You can now manage DNS records.", zone_name),
+                "domain_verified",
+                Some(&format!("/dash/domains/{}/dns", zone_name)),
+            )
+            .await;
+        }
+
         Json(serde_json::json!({
             "verified": true,
             "message": format!("Nameserver verification passed: {} matched", matched.join(", "))

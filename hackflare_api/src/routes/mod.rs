@@ -8,6 +8,7 @@ pub(crate) mod auth;
 pub(crate) mod dns;
 pub(crate) mod health;
 pub(crate) mod logs;
+pub(crate) mod notifications;
 pub(crate) mod sessions;
 pub(crate) mod settings;
 pub mod slack;
@@ -24,6 +25,13 @@ fn v1_routes(state: AppState, config: &Config) -> Router<AppState> {
         .nest("/admin", admin::routes(state.clone()))
         .nest("/settings", settings::routes(state.clone()))
         .nest("/logs", logs::routes(state.clone()))
+        .nest(
+            "/notifications",
+            notifications::routes().route_layer(axum::middleware::from_fn_with_state(
+                state.clone(),
+                crate::middlewares::auth_middleware,
+            )),
+        )
         .nest(
             "/traffic",
             traffic::user_routes().route_layer(axum::middleware::from_fn_with_state(

@@ -26,6 +26,19 @@ pub struct User {
 }
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
+pub struct UserNotification {
+    pub id: Uuid,
+    pub user_id: String,
+    pub title: String,
+    pub message: String,
+    #[sqlx(rename = "type")]
+    pub notif_type: String,
+    pub read: bool,
+    pub link: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct UserSession {
     pub id: Uuid,
     pub user_id: String,

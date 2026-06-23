@@ -92,6 +92,21 @@ export interface AdminStats {
   total_sessions: number
 }
 
+export interface Notification {
+  id: string
+  user_id: string
+  title: string
+  message: string
+  type: string
+  read: boolean
+  link: string | null
+  created_at: string
+}
+
+export interface UnreadCount {
+  count: number
+}
+
 export interface TrafficSummary {
   total_requests: number
   avg_processing_ms: number
@@ -403,6 +418,15 @@ export const api = {
     timeseries: (days = 30) => request<TimeseriesPoint[]>(`/api/v1/traffic/timeseries?days=${days}`),
     byZone: () => request<ZoneTraffic[]>("/api/v1/traffic/by-zone"),
     topQueries: (limit = 5) => request<TopQuery[]>(`/api/v1/traffic/top-queries?limit=${limit}`),
+  },
+
+  notifications: {
+    list: () => request<Notification[]>("/api/v1/notifications"),
+    unreadCount: () => request<UnreadCount>("/api/v1/notifications/unread-count"),
+    markRead: (id: string) =>
+      request<void>(`/api/v1/notifications/${id}/read`, { method: "PUT" }),
+    markAllRead: () =>
+      request<void>("/api/v1/notifications/read-all", { method: "PUT" }),
   },
 
   logs: {

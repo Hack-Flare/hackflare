@@ -33,7 +33,7 @@ Feel free to submit PRs/issues for anything you want us to work on or you want t
   - [x] Dashboard
   - [x] Domain Management
   - [x] Logging
-  - [ ] Notifications
+  - [x] Notifications
   - [x] Admin Panel
   - [x] Settings
   - [x] Error Pages
