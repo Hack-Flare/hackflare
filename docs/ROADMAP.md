@@ -87,17 +87,3 @@ Feel free to submit PRs/issues for anything you want us to work on or you want t
 - [ ] Anti Scanning/Scraping measures
 - [ ] Custom Error Pages
 
-
-## Stardance Phase
-All stuff here should be done in stardance
-
-- [ ] Captcha // Redac1ed
-  - [ ] Core working
-  - [ ] IP scanning (VPNs, proxies etc.)
-  - [ ] JS/React SDK
-
-- [ ] Registrar // SeradedStripes
-  - [ ] Domain purchasing
-  - [ ] Domain management (renewals, transfers, etc.)
-  - [ ] Registrar API integration
-  - [ ] Good Frontend for domain management
