@@ -34,7 +34,7 @@ Feel free to submit PRs/issues for anything you want us to work on or you want t
 - [x] Proper Frontend
   - [x] Dashboard
   - [x] Domain Management
-  - [ ] Logging
+  - [x] Logging
   - [ ] Notifications
   - [x] Admin Panel
   - [x] Settings
@@ -58,7 +58,7 @@ Feel free to submit PRs/issues for anything you want us to work on or you want t
 - [ ] Dynamic Firewall (Optional)
 - [ ] Custom CDN
 - [ ] Email Notifications
-- [ ] Analytics
+- [x] Analytics
 - [ ] Performance Monitoring
 - [ ] SSL/TLS Management
 - [ ] API Support (gRPC and REST)
