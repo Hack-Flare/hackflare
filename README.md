@@ -6,6 +6,9 @@
 
 Cloudflare alternative for Hack Club. Hence the name HackFlare.  
 
+> [!IMPORTANT]  
+> Hackflare is still in development, if production goes down, please let us know!
+
 ## Introduction
 
 HackFlare is a project that aims to provide a free, open-source and open-infra alternative to Cloudflare.
