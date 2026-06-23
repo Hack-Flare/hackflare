@@ -1,14 +1,16 @@
 import { reactRouter } from "@react-router/dev/vite"
 import tailwindcss from "@tailwindcss/vite"
 import { defineConfig } from "vite"
-import tsconfigPaths from "vite-tsconfig-paths"
 
 export default defineConfig({
-  plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
+  plugins: [tailwindcss(), reactRouter() ],
   server: {
     port: 3000,
     proxy: {
       "/api": "http://localhost:8080",
     },
+  },
+  resolve: {
+    tsconfigPaths: true,
   },
 })
