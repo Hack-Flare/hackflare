@@ -46,10 +46,7 @@ pub(crate) async fn list_notifications(
     .await
 }
 
-pub(crate) async fn unread_count(
-    db: &PgPool,
-    user_id: &str,
-) -> Result<i64, sqlx::Error> {
+pub(crate) async fn unread_count(db: &PgPool, user_id: &str) -> Result<i64, sqlx::Error> {
     sqlx::query_scalar(
         r#"
         SELECT COUNT(*) FROM user_notifications
@@ -61,11 +58,7 @@ pub(crate) async fn unread_count(
     .await
 }
 
-pub(crate) async fn mark_read(
-    db: &PgPool,
-    id: Uuid,
-    user_id: &str,
-) -> Result<(), sqlx::Error> {
+pub(crate) async fn mark_read(db: &PgPool, id: Uuid, user_id: &str) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
         UPDATE user_notifications SET read = TRUE
@@ -79,10 +72,7 @@ pub(crate) async fn mark_read(
     Ok(())
 }
 
-pub(crate) async fn mark_all_read(
-    db: &PgPool,
-    user_id: &str,
-) -> Result<(), sqlx::Error> {
+pub(crate) async fn mark_all_read(db: &PgPool, user_id: &str) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
         UPDATE user_notifications SET read = TRUE
