@@ -1,6 +1,9 @@
 use crate::dns::DnsConfig;
 use rand::seq::SliceRandom;
+use std::cell::Cell;
+use std::ptr::NonNull;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::Duration;
 
 use super::cache::{self, ROOT_CACHE_TTL_SECS};
 use super::error::ResolveError;
@@ -10,6 +13,20 @@ use super::message::{
     tld_from_name,
 };
 use super::transport::{UdpTransport, tcp_send_recv};
+
+/// Maximum queries served by a single UDP socket before rotating to a new one.
+const MAX_QUERIES_PER_SOCKET: u32 = 1000;
+
+thread_local! {
+    /// Leaked `Box<UdpTransport>` behind a raw pointer.  `Cell` lets us replace
+    /// the pointer from any call depth without borrow-checker conflicts.
+    static TLS_TRANSPORT: Cell<Option<NonNull<UdpTransport>>> = const { Cell::new(None) };
+    /// Per-thread query counter.  Rotates the socket every
+    /// `MAX_QUERIES_PER_SOCKET` queries.
+    static TLS_QUERY_COUNT: Cell<u32> = const { Cell::new(0) };
+    /// Re-entrancy guard.  `true` while a resolve is in-flight on this thread.
+    static TLS_IN_RESOLVE: Cell<bool> = const { Cell::new(false) };
+}
 
 const MAX_UPSTREAM_SERVERS_PER_ROUND: usize = 8;
 const MAX_CONCURRENT_RESOLVES: usize = 128;
@@ -179,6 +196,44 @@ fn resolve_ns_ips(ns_names: &[String], max_depth: usize, config: &DnsConfig) -> 
     ips
 }
 
+fn get_or_create_transport(timeout: Duration, is_reentrant: bool) -> &'static UdpTransport {
+    let should_rotate = TLS_QUERY_COUNT.with(|c| {
+        let n = c.get() + 1;
+        c.set(n);
+        !is_reentrant && n > MAX_QUERIES_PER_SOCKET
+    });
+
+    if should_rotate {
+        TLS_QUERY_COUNT.with(|c| c.set(0));
+        TLS_TRANSPORT.with(|c| {
+            if let Some(old) = c.replace(None) {
+                drop(unsafe { Box::from_raw(old.as_ptr()) });
+            }
+            let new = Box::new(
+                UdpTransport::bind(timeout)
+                    .expect("failed to bind recursive DNS resolver UDP socket"),
+            );
+            let ptr = NonNull::new(Box::into_raw(new)).expect("Box::into_raw returned null");
+            c.set(Some(ptr));
+        });
+    }
+
+    // Return a reference to the current transport (init on first call).
+    TLS_TRANSPORT.with(|c| {
+        let ptr = c.get().unwrap_or_else(|| {
+            let new = Box::new(
+                UdpTransport::bind(timeout)
+                    .expect("failed to bind recursive DNS resolver UDP socket"),
+            );
+            let ptr = NonNull::new(Box::into_raw(new)).expect("Box::into_raw returned null");
+            c.set(Some(ptr));
+            ptr
+        });
+
+        unsafe { &*ptr.as_ptr() }
+    })
+}
+
 fn resolve_internal(
     name: &str,
     qtype: u16,
@@ -189,9 +244,25 @@ fn resolve_internal(
         return Err(ResolveError::ResolutionFailed);
     }
     let _resolve_guard = acquire_resolve_slot().ok_or(ResolveError::TooManyConcurrentResolves)?;
-    let transport = UdpTransport::bind(config.udp_timeout)
-        .ok_or_else(|| ResolveError::BindFailed("udp socket bind".to_string()))?;
 
+    let was_in_resolve = TLS_IN_RESOLVE.with(|c| c.replace(true));
+
+    let transport = get_or_create_transport(config.udp_timeout, was_in_resolve);
+    let result = resolve_with_transport(transport, name, qtype, max_depth, config);
+
+    if !was_in_resolve {
+        TLS_IN_RESOLVE.with(|c| c.set(false));
+    }
+    result
+}
+
+fn resolve_with_transport(
+    transport: &UdpTransport,
+    name: &str,
+    qtype: u16,
+    max_depth: usize,
+    config: &DnsConfig,
+) -> Result<Vec<u8>, ResolveError> {
     cache::CACHE.seed_root_cache(ROOT_HINTS.servers(), ROOT_CACHE_TTL_SECS);
 
     if let Some(data) = cache::CACHE.get_query(name, qtype) {
@@ -215,7 +286,7 @@ fn resolve_internal(
         round_servers.truncate(MAX_UPSTREAM_SERVERS_PER_ROUND);
 
         for srv in &round_servers {
-            let resp = try_query(&transport, srv, &req, qid, &qname, qtype, config);
+            let resp = try_query(transport, srv, &req, qid, &qname, qtype, config);
             let Some(resp) = resp else {
                 debug_log(
                     &format!("no response from {srv} while resolving {qname}"),
