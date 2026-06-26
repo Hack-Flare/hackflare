@@ -3,6 +3,7 @@ use crate::ns::NsConfig;
 use crate::ns::authority::AuthorityStore;
 use hickory_server::net::xfer::Protocol;
 use hickory_server::proto::op::{DnsResponse, Message, Metadata, ResponseCode};
+use hickory_server::proto::rr::DNSClass;
 use hickory_server::server::{Request, RequestHandler, ResponseHandler, ResponseInfo};
 use hickory_server::zone_handler::MessageResponseBuilder;
 use sqlx::PgPool;
@@ -143,6 +144,23 @@ impl RequestHandler for HickoryRequestHandler {
             "TCP"
         };
 
+        let query_class = query_info.query.query_class();
+        if query_class != DNSClass::IN {
+            let mut metadata = Metadata::response_from_request(&request.metadata);
+            metadata.response_code = ResponseCode::Refused;
+            let response =
+                MessageResponseBuilder::from_message_request(request).build_no_records(metadata);
+            return response_handle
+                .send_response(response)
+                .await
+                .unwrap_or_else(|_| {
+                    ResponseInfo::from(hickory_server::proto::op::Header {
+                        metadata,
+                        counts: hickory_server::proto::op::HeaderCounts::default(),
+                    })
+                });
+        }
+
         if self.authority.contains_zone_for(&query_lower).await {
             let zone_name = self.authority.find_zone_name(&query_lower).await;
             let response_info = self
@@ -163,6 +181,33 @@ impl RequestHandler for HickoryRequestHandler {
             })
             .await;
             response_info
+        } else if !self.dns_config.recursion_enabled {
+            let mut metadata = Metadata::response_from_request(&request.metadata);
+            metadata.response_code = ResponseCode::Refused;
+            let response =
+                MessageResponseBuilder::from_message_request(request).build_no_records(metadata);
+            let _ = self
+                .log_query(QueryLogEntry {
+                    query_name,
+                    query_type: query_type_str,
+                    response_code: "REFUSED".to_string(),
+                    source_ip,
+                    protocol: protocol_str.to_string(),
+                    response_size: 0,
+                    processing_us: 0,
+                    answers_count: 0,
+                    zone_name: String::new(),
+                })
+                .await;
+            response_handle
+                .send_response(response)
+                .await
+                .unwrap_or_else(|_| {
+                    ResponseInfo::from(hickory_server::proto::op::Header {
+                        metadata,
+                        counts: hickory_server::proto::op::HeaderCounts::default(),
+                    })
+                })
         } else {
             let qname = query_name.clone();
             let qtype = u16::from(query_info.query.query_type());
