@@ -4,6 +4,8 @@ import {
   AlertTriangle,
   BarChart2,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
   Database,
   Globe,
   Pencil,
@@ -183,6 +185,32 @@ function ConfigTab() {
     }
   }
 
+  const [collapsed, setCollapsed] = useState<Set<string>>(
+    () => new Set(["Server", "Authentication", "Database", "DNS", "Email", "Admin", "Frontend"])
+  )
+  const toggle = (cat: string) =>
+    setCollapsed((prev) => {
+      const next = new Set(prev)
+      if (next.has(cat)) next.delete(cat)
+      else next.add(cat)
+      return next
+    })
+
+  const grouped = entries.reduce<Record<string, ConfigEntry[]>>((acc, e) => {
+    ;(acc[e.category] ??= []).push(e)
+    return acc
+  }, {})
+
+  const categoryOrder = [
+    "Server",
+    "Authentication",
+    "Database",
+    "DNS",
+    "Email",
+    "Admin",
+    "Frontend",
+  ]
+
   if (loading) {
     return (
       <Card>
@@ -219,7 +247,7 @@ function ConfigTab() {
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-6">
         {entries.length === 0 ? (
           <Card>
             <CardContent className="flex items-center justify-center py-12 text-zinc-500">
@@ -227,147 +255,182 @@ function ConfigTab() {
             </CardContent>
           </Card>
         ) : (
-          entries.map((entry) => (
-            <div
-              key={entry.key}
-              className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
-            >
-              {/* Row 1: Label + Key | Badge | Actions */}
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">{entry.label}</span>
-                    {entry.requires_restart ? (
-                      <span className="rounded bg-amber-900/30 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
-                        Restart
-                      </span>
-                    ) : (
-                      <span className="rounded bg-green-900/30 px-1.5 py-0.5 text-[10px] font-medium text-green-400">
-                        Live
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-0.5 truncate font-mono text-xs text-zinc-500">
-                    {entry.key}
-                  </div>
-                  {entry.description && (
-                    <div className="mt-0.5 text-xs text-zinc-400">
-                      {entry.description}
-                    </div>
+          categoryOrder.map((category) => {
+            const catEntries = grouped[category]
+            if (!catEntries) return null
+            const isCollapsed = collapsed.has(category)
+            return (
+              <div key={category}>
+                <button
+                  type="button"
+                  onClick={() => toggle(category)}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                >
+                  {isCollapsed ? (
+                    <ChevronRight className="h-4 w-4 text-zinc-400" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-zinc-400" />
                   )}
-                </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  {entry.editable && editKey !== entry.key && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => startEdit(entry)}
-                        title="Edit"
+                  {category}
+                  <span className="ml-auto text-xs font-normal text-zinc-500">
+                    {catEntries.length} {catEntries.length === 1 ? "key" : "keys"}
+                  </span>
+                </button>
+                {!isCollapsed && (
+                  <div className="mt-2 space-y-2 pl-2">
+                    {catEntries.map((entry) => (
+                      <div
+                        key={entry.key}
+                        className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
                       >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      {entry.override_value && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => setDeleteKey(entry.key)}
-                          title="Delete override"
-                        >
-                          <Trash2 className="h-4 w-4 text-red-400" />
-                        </Button>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium">
+                                {entry.label}
+                              </span>
+                              {entry.requires_restart ? (
+                                <span className="rounded bg-amber-900/30 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
+                                  Restart
+                                </span>
+                              ) : (
+                                <span className="rounded bg-green-900/30 px-1.5 py-0.5 text-[10px] font-medium text-green-400">
+                                  Live
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-0.5 truncate font-mono text-xs text-zinc-500">
+                              {entry.key}
+                            </div>
+                            {entry.description && (
+                              <div className="mt-0.5 text-xs text-zinc-400">
+                                {entry.description}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1">
+                            {entry.editable && editKey !== entry.key && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => startEdit(entry)}
+                                  title="Edit"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                {entry.override_value && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => setDeleteKey(entry.key)}
+                                    title="Delete override"
+                                  >
+                                    <Trash2 className="h-4 w-4 text-red-400" />
+                                  </Button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
 
-              {/* Row 2: Default | Effective | Updated */}
-              <div className="mt-3 grid grid-cols-3 gap-4 rounded-md bg-zinc-50 p-3 text-xs dark:bg-zinc-800/50">
-                <div className="min-w-0">
-                  <span className="text-zinc-500">Default</span>
-                  <div
-                    className="mt-0.5 truncate font-mono"
-                    title={entry.default_value ?? ""}
-                  >
-                    {entry.default_value || <span className="text-zinc-500 italic">none</span>}
-                  </div>
-                  {entry.default_override && entry.env_value && (
-                    <div
-                      className="mt-0.5 truncate text-[10px] text-zinc-500 line-through"
-                      title={entry.env_value}
-                    >
-                      env: {entry.env_value}
-                    </div>
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <span className="text-zinc-500">Effective</span>
-                  <div className="mt-0.5 flex items-center gap-1.5">
-                    <span
-                      className={`inline-block h-2 w-2 shrink-0 rounded-full ${
-                        entry.override_value ? "bg-green-500" : "bg-zinc-500"
-                      }`}
-                    />
-                    <div
-                      className="truncate font-mono"
-                      title={entry.effective_value}
-                    >
-                      {entry.effective_value || (
-                        <span className="text-zinc-500 italic">none</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="min-w-0">
-                  <span className="text-zinc-500">Updated</span>
-                  <div className="mt-0.5 truncate text-zinc-400">
-                    {entry.updated_at
-                      ? new Date(entry.updated_at).toLocaleString()
-                      : "—"}
-                  </div>
-                  {entry.updated_by && (
-                    <div className="truncate text-[10px] text-zinc-500">
-                      by {entry.updated_by}
-                    </div>
-                  )}
-                </div>
-              </div>
+                        <div className="mt-3 grid grid-cols-3 gap-4 rounded-md bg-zinc-50 p-3 text-xs dark:bg-zinc-800/50">
+                          <div className="min-w-0">
+                            <span className="text-zinc-500">Default</span>
+                            <div
+                              className="mt-0.5 truncate font-mono"
+                              title={entry.default_value ?? ""}
+                            >
+                              {entry.default_value || (
+                                <span className="text-zinc-500 italic">
+                                  none
+                                </span>
+                              )}
+                            </div>
+                            {entry.default_override && entry.env_value && (
+                              <div
+                                className="mt-0.5 truncate text-[10px] text-zinc-500 line-through"
+                                title={entry.env_value}
+                              >
+                                env: {entry.env_value}
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-zinc-500">Effective</span>
+                            <div className="mt-0.5 flex items-center gap-1.5">
+                              <span
+                                className={`inline-block h-2 w-2 shrink-0 rounded-full ${
+                                  entry.override_value
+                                    ? "bg-green-500"
+                                    : "bg-zinc-500"
+                                }`}
+                              />
+                              <div
+                                className="truncate font-mono"
+                                title={entry.effective_value}
+                              >
+                                {entry.effective_value || (
+                                  <span className="text-zinc-500 italic">
+                                    none
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-zinc-500">Updated</span>
+                            <div className="mt-0.5 truncate text-zinc-400">
+                              {entry.updated_at
+                                ? new Date(entry.updated_at).toLocaleString()
+                                : "—"}
+                            </div>
+                            {entry.updated_by && (
+                              <div className="truncate text-[10px] text-zinc-500">
+                                by {entry.updated_by}
+                              </div>
+                            )}
+                          </div>
+                        </div>
 
-              {/* Row 3: Override editor */}
-              {editKey === entry.key && (
-                <div className="mt-3 flex items-center gap-2">
-                  <Input
-                    ref={editRef}
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    className="flex-1"
-                    autoFocus
-                    placeholder="Enter override value..."
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") saveEdit(entry.key)
-                      if (e.key === "Escape") cancelEdit()
-                    }}
-                  />
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={() => saveEdit(entry.key)}
-                    disabled={saving}
-                  >
-                    <Save className="mr-1 h-4 w-4" />
-                    Save
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={cancelEdit}>
-                    <X className="mr-1 h-4 w-4" />
-                    Cancel
-                  </Button>
-                </div>
-              )}
-            </div>
-          ))
+                        {editKey === entry.key && (
+                          <div className="mt-3 flex items-center gap-2">
+                            <Input
+                              ref={editRef}
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              className="flex-1"
+                              autoFocus
+                              placeholder="Enter override value..."
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") saveEdit(entry.key)
+                                if (e.key === "Escape") cancelEdit()
+                              }}
+                            />
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => saveEdit(entry.key)}
+                              disabled={saving}
+                            >
+                              <Save className="mr-1 h-4 w-4" />
+                              Save
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={cancelEdit}>
+                              <X className="mr-1 h-4 w-4" />
+                              Cancel
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })
         )}
       </div>
 

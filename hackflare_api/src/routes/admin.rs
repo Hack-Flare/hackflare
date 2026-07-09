@@ -74,6 +74,7 @@ pub(super) async fn list_config(
                     key: meta.key.to_string(),
                     label: meta.label.to_string(),
                     description: meta.description.to_string(),
+                    category: meta.category.to_string(),
                     env_value,
                     override_value: ov.map(|o| o.value.clone()),
                     effective_value,

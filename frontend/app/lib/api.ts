@@ -66,6 +66,7 @@ export interface ConfigEntry {
   key: string
   label: string
   description: string
+  category: string
   env_value: string | null
   override_value: string | null
   effective_value: string
