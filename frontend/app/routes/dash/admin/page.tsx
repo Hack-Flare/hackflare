@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import {
   Activity,
+  AlertTriangle,
   BarChart2,
   CheckCircle2,
   Database,
@@ -33,6 +34,14 @@ import {
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog"
+import {
   Table,
   TableBody,
   TableCell,
@@ -40,6 +49,7 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table"
+import { useToast } from "~/lib/toast"
 import { api, type AdminStats, type AdminUser, type ConfigEntry, type TrafficSummary, type TimeseriesPoint, type TopQuery } from "~/lib/api"
 
 type Tab = "config" | "users" | "stats" | "traffic"
@@ -103,17 +113,17 @@ function ConfigTab() {
   const [editValue, setEditValue] = useState("")
   const [saving, setSaving] = useState(false)
   const [applying, setApplying] = useState(false)
-  const [applyMsg, setApplyMsg] = useState<string | null>(null)
+  const [deleteKey, setDeleteKey] = useState<string | null>(null)
+  const editRef = useRef<HTMLInputElement>(null)
+  const { toast } = useToast()
 
   const apply = async () => {
     setApplying(true)
-    setApplyMsg(null)
     try {
       await api.admin.applyConfig()
-      setApplyMsg("Configuration applied.")
-      setTimeout(() => setApplyMsg(null), 3000)
+      toast("Configuration applied.", "success")
     } catch {
-      setApplyMsg("Failed to apply configuration.")
+      toast("Failed to apply configuration.", "error")
     }
     setApplying(false)
   }
@@ -124,10 +134,10 @@ function ConfigTab() {
       const data = await api.admin.listConfig()
       setEntries(data)
     } catch {
-      /* ignore */
+      toast("Failed to load configuration.", "error")
     }
     setLoading(false)
-  }, [])
+  }, [toast])
 
   useEffect(() => {
     load()
@@ -152,19 +162,24 @@ function ConfigTab() {
     try {
       await api.admin.upsertConfig(key, editValue)
       setEditKey(null)
+      toast("Config saved.", "success")
       await load()
     } catch {
-      /* ignore */
+      toast("Failed to save config.", "error")
     }
     setSaving(false)
   }
 
-  const deleteOverride = async (key: string) => {
+  const confirmDelete = async () => {
+    if (!deleteKey) return
     try {
-      await api.admin.deleteConfig(key)
+      await api.admin.deleteConfig(deleteKey)
+      toast("Override deleted.", "success")
+      setDeleteKey(null)
       await load()
     } catch {
-      /* ignore */
+      toast("Failed to delete override.", "error")
+      setDeleteKey(null)
     }
   }
 
@@ -179,165 +194,207 @@ function ConfigTab() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              Configuration
-            </CardTitle>
-            <CardDescription>
-              Environment variables and overrides. Live values are highlighted.
-            </CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            {applyMsg && (
-              <span className="text-xs text-green-500">{applyMsg}</span>
-            )}
-            <Button
-              variant="default"
-              size="sm"
-              onClick={apply}
-              disabled={applying}
-            >
-              <RefreshCw
-                className={`mr-1 h-4 w-4 ${applying ? "animate-spin" : ""}`}
-              />
-              {applying ? "Applying..." : "Take Effect Now"}
-            </Button>
-            <Button variant="outline" size="sm" onClick={load}>
-              <RefreshCw className="mr-1 h-4 w-4" />
-              Refresh
-            </Button>
-          </div>
+    <>
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h2 className="flex items-center gap-2 text-lg font-semibold">
+            <Settings className="h-5 w-5" />
+            Configuration
+          </h2>
+          <p className="text-sm text-zinc-500">
+            Environment variables and live overrides
+          </p>
         </div>
-      </CardHeader>
-      <CardContent>
-        <Table className="[&_td]:h-auto [&_th]:h-auto">
-          <TableHeader>
-            <TableRow className="border-zinc-800 hover:bg-transparent">
-              <TableHead className="font-semibold text-zinc-400">Key</TableHead>
-              <TableHead className="font-semibold text-zinc-400">Default</TableHead>
-              <TableHead className="font-semibold text-zinc-400">Override</TableHead>
-              <TableHead className="font-semibold text-zinc-400">Effective</TableHead>
-              <TableHead className="font-semibold text-zinc-400">Updated</TableHead>
-              <TableHead className="text-center font-semibold text-zinc-400">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {entries.map((entry) => (
-              <TableRow
-                key={entry.key}
-                className="border-zinc-800 hover:bg-zinc-800/50"
-              >
-                <TableCell>
-                  <div className="flex flex-col">
-                    <span className="font-medium">{entry.label}</span>
-                    <span className="text-xs text-zinc-500">{entry.key}</span>
-                  </div>
-                </TableCell>
-                <TableCell className="font-mono text-xs text-zinc-500">
-                  <div className="max-w-48 truncate" title={entry.default_value ?? ""}>
-                    {entry.default_value || "—"}
-                  </div>
-                  {entry.default_override && entry.env_value && (
-                    <div className="mt-0.5 max-w-48 truncate text-[10px] text-zinc-600 line-through" title={entry.env_value}>
-                      env: {entry.env_value}
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell className="font-mono text-xs">
-                  {editKey === entry.key ? (
-                    <div className="flex items-center gap-1">
-                      <Input
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        className="h-8 w-48 text-xs"
-                        autoFocus
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => saveEdit(entry.key)}
-                        disabled={saving}
-                      >
-                        <Save className="h-4 w-4 text-green-500" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={cancelEdit}
-                      >
-                        <X className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="max-w-48 truncate text-orange-400" title={entry.override_value ?? ""}>
-                      {entry.override_value || "—"}
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={load}>
+            <RefreshCw className="mr-1 h-4 w-4" />
+            Refresh
+          </Button>
+          <Button variant="default" size="sm" onClick={apply} disabled={applying}>
+            <RefreshCw
+              className={`mr-1 h-4 w-4 ${applying ? "animate-spin" : ""}`}
+            />
+            {applying ? "Applying..." : "Take Effect Now"}
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {entries.length === 0 ? (
+          <Card>
+            <CardContent className="flex items-center justify-center py-12 text-zinc-500">
+              No configuration entries found.
+            </CardContent>
+          </Card>
+        ) : (
+          entries.map((entry) => (
+            <div
+              key={entry.key}
+              className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
+            >
+              {/* Row 1: Label + Key | Badge | Actions */}
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span
-                      className={`inline-block h-2 w-2 rounded-full ${
-                        entry.override_value ? "bg-green-500" : "bg-zinc-500"
-                      }`}
-                    />
-                    <span className="font-mono text-xs">
-                      <div className="max-w-48 truncate" title={entry.effective_value}>
-                        {entry.effective_value || "—"}
-                      </div>
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell className="text-xs text-zinc-400">
-                  {entry.updated_at ? new Date(entry.updated_at).toLocaleString() : "—"}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center justify-center gap-1">
+                    <span className="text-sm font-medium">{entry.label}</span>
                     {entry.requires_restart ? (
-                      <span className="rounded bg-amber-900/30 px-2 py-0.5 text-xs text-amber-400">
+                      <span className="rounded bg-amber-900/30 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
                         Restart
                       </span>
                     ) : (
-                      <span className="rounded bg-green-900/30 px-2 py-0.5 text-xs text-green-400">
+                      <span className="rounded bg-green-900/30 px-1.5 py-0.5 text-[10px] font-medium text-green-400">
                         Live
                       </span>
                     )}
-                    {entry.editable && editKey !== entry.key && (
-                      <>
+                  </div>
+                  <div className="mt-0.5 truncate font-mono text-xs text-zinc-500">
+                    {entry.key}
+                  </div>
+                  {entry.description && (
+                    <div className="mt-0.5 text-xs text-zinc-400">
+                      {entry.description}
+                    </div>
+                  )}
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  {entry.editable && editKey !== entry.key && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => startEdit(entry)}
+                        title="Edit"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      {entry.override_value && (
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => startEdit(entry)}
+                          onClick={() => setDeleteKey(entry.key)}
+                          title="Delete override"
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4 text-red-400" />
                         </Button>
-                        {entry.override_value && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => deleteOverride(entry.key)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-400" />
-                          </Button>
-                        )}
-                      </>
-                    )}
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Row 2: Default | Effective | Updated */}
+              <div className="mt-3 grid grid-cols-3 gap-4 rounded-md bg-zinc-50 p-3 text-xs dark:bg-zinc-800/50">
+                <div className="min-w-0">
+                  <span className="text-zinc-500">Default</span>
+                  <div
+                    className="mt-0.5 truncate font-mono"
+                    title={entry.default_value ?? ""}
+                  >
+                    {entry.default_value || <span className="text-zinc-500 italic">none</span>}
                   </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+                  {entry.default_override && entry.env_value && (
+                    <div
+                      className="mt-0.5 truncate text-[10px] text-zinc-500 line-through"
+                      title={entry.env_value}
+                    >
+                      env: {entry.env_value}
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <span className="text-zinc-500">Effective</span>
+                  <div className="mt-0.5 flex items-center gap-1.5">
+                    <span
+                      className={`inline-block h-2 w-2 shrink-0 rounded-full ${
+                        entry.override_value ? "bg-green-500" : "bg-zinc-500"
+                      }`}
+                    />
+                    <div
+                      className="truncate font-mono"
+                      title={entry.effective_value}
+                    >
+                      {entry.effective_value || (
+                        <span className="text-zinc-500 italic">none</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="min-w-0">
+                  <span className="text-zinc-500">Updated</span>
+                  <div className="mt-0.5 truncate text-zinc-400">
+                    {entry.updated_at
+                      ? new Date(entry.updated_at).toLocaleString()
+                      : "—"}
+                  </div>
+                  {entry.updated_by && (
+                    <div className="truncate text-[10px] text-zinc-500">
+                      by {entry.updated_by}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Row 3: Override editor */}
+              {editKey === entry.key && (
+                <div className="mt-3 flex items-center gap-2">
+                  <Input
+                    ref={editRef}
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    className="flex-1"
+                    autoFocus
+                    placeholder="Enter override value..."
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") saveEdit(entry.key)
+                      if (e.key === "Escape") cancelEdit()
+                    }}
+                  />
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => saveEdit(entry.key)}
+                    disabled={saving}
+                  >
+                    <Save className="mr-1 h-4 w-4" />
+                    Save
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={cancelEdit}>
+                    <X className="mr-1 h-4 w-4" />
+                    Cancel
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      <Dialog open={deleteKey !== null} onOpenChange={(open) => !open && setDeleteKey(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-400" />
+              Delete override?
+            </DialogTitle>
+            <DialogDescription>
+              This will remove the override for <code className="rounded bg-zinc-800 px-1 py-0.5 font-mono text-sm">{deleteKey}</code>. The
+              effective value will revert to the default or environment value.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteKey(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              <Trash2 className="mr-1 h-4 w-4" />
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 
