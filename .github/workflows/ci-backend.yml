@@ -25,6 +25,8 @@ on:
       - ".github/workflows/ci.yml"
       - ".github/actions/setup-rust/**"
       - "!**/*.md"
+  workflow_call:
+  workflow_dispatch:
 
 permissions:
   contents: read
