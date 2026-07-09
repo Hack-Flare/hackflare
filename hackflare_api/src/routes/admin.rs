@@ -289,8 +289,8 @@ async fn apply_config(
     *state.live_overrides.write().await = map.clone();
 
     // Reload HCA config from overrides
-    if let Some(redirect_uri_str) = override_or_env("API_HCA_REDIRECT_URI", &map)
-        .filter(|v| !v.is_empty())
+    if let Some(redirect_uri_str) =
+        override_or_env("API_HCA_REDIRECT_URI", &map).filter(|v| !v.is_empty())
     {
         if let Ok(redirect_uri) = Url::parse(&redirect_uri_str) {
             let hca = HcaConfig {

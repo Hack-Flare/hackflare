@@ -693,7 +693,13 @@ async fn forgot_password_handler(
             ),
             None => format!(
                 "{}/api/v1/auth/reset-password?token={}",
-                state.live_hca.read().await.redirect_uri.as_str().trim_end_matches('/'),
+                state
+                    .live_hca
+                    .read()
+                    .await
+                    .redirect_uri
+                    .as_str()
+                    .trim_end_matches('/'),
                 token
             ),
         };
