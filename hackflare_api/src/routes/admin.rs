@@ -8,11 +8,12 @@ use axum::{
     response::IntoResponse,
     routing::{get, post, put},
 };
+use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
 use crate::{
-    config::SmtpConfig,
+    config::{HcaConfig, SmtpConfig},
     middlewares::{admin::require_admin, auth_middleware},
     models::CurrentUser,
     services::{config_overrides::ConfigEntry, email::EmailService},
@@ -286,6 +287,25 @@ async fn apply_config(
 
     // Update live overrides
     *state.live_overrides.write().await = map.clone();
+
+    // Reload HCA config from overrides
+    if let Some(redirect_uri_str) = override_or_env("API_HCA_REDIRECT_URI", &map)
+        .filter(|v| !v.is_empty())
+    {
+        if let Ok(redirect_uri) = Url::parse(&redirect_uri_str) {
+            let hca = HcaConfig {
+                client_id: override_or_env("API_HCA_CLIENT_ID", &map)
+                    .filter(|v| !v.is_empty())
+                    .unwrap_or_else(|| state.config.hca.client_id.clone()),
+                client_secret: override_or_env("API_HCA_CLIENT_SECRET", &map)
+                    .filter(|v| !v.is_empty())
+                    .unwrap_or_else(|| state.config.hca.client_secret.clone()),
+                redirect_uri,
+            };
+            *state.live_hca.write().await = hca;
+            info!("live HCA config updated from overrides");
+        }
+    }
 
     // Try to rebuild email service from overrides + env
     if let (Some(host), Some(username), Some(password), Some(from)) = (

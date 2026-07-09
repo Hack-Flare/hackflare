@@ -74,7 +74,7 @@ impl FromStr for Environment {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct HcaConfig {
     pub(crate) client_id: String,
     pub(crate) client_secret: String,

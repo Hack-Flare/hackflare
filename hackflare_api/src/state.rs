@@ -15,7 +15,7 @@ use sqlx::{
 };
 
 use crate::{
-    config::Config,
+    config::{Config, HcaConfig},
     services::{
         api_keys::ApiKeysService, config_overrides::ConfigOverridesService, email::EmailService,
         password_reset::PasswordResetService, user_sessions::UserSessionsService,
@@ -39,6 +39,7 @@ pub struct AppState {
     pub(crate) config_overrides: ConfigOverridesService,
     pub(crate) email: Arc<RwLock<Option<EmailService>>>,
     pub(crate) live_overrides: Arc<RwLock<HashMap<String, String>>>,
+    pub(crate) live_hca: Arc<RwLock<HcaConfig>>,
     pub(crate) password_reset: PasswordResetService,
 }
 
@@ -158,6 +159,7 @@ impl AppState {
                 .collect::<HashMap<_, _>>(),
         ));
         let password_reset = PasswordResetService::new(db.clone());
+        let live_hca = Arc::new(RwLock::new(config.hca.clone()));
 
         Ok(Self {
             config: Arc::new(config),
@@ -170,6 +172,7 @@ impl AppState {
             config_overrides,
             email,
             live_overrides,
+            live_hca,
             password_reset,
         })
     }

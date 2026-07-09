@@ -24,19 +24,19 @@ use tower_sessions::{
 use uuid::Uuid;
 
 use crate::{
-    config::Config,
+    config::{Config, HcaConfig},
     models::{HcaUser, JwtClaims, db::User},
     services::{user_sessions::UserSessionsService, users::UsersService},
     state::AppState,
 };
 
-fn login_redirect(config: &Config, csrf_token: &str) -> String {
+fn login_redirect(hca: &HcaConfig, csrf_token: &str) -> String {
     let scopes = "email name profile verification_status slack_id";
 
     let path = "https://auth.hackclub.com/oauth/authorize";
     let params = [
-        ("client_id", config.hca.client_id.as_str()),
-        ("redirect_uri", config.hca.redirect_uri.as_str()),
+        ("client_id", hca.client_id.as_str()),
+        ("redirect_uri", hca.redirect_uri.as_str()),
         ("response_type", "code"),
         ("scope", scopes),
         ("state", csrf_token),
@@ -212,12 +212,14 @@ async fn login_handler(
             .expect("failed to set target url in session");
     }
     trace!(target_url, "persisted login state");
+    let hca = state.live_hca.read().await;
+    let redirect = login_redirect(&hca, &csrf_token);
 
-    let redirect = login_redirect(&state.config, &csrf_token);
     Redirect::to(&redirect)
 }
 
 async fn callback_handler(
+    State(state): State<AppState>,
     State(config): State<Arc<Config>>,
     State(http_client): State<reqwest::Client>,
     State(db): State<PgPool>,
@@ -250,10 +252,12 @@ async fn callback_handler(
         "got auth callback"
     );
 
+    let hca = state.live_hca.read().await;
+
     let payload = json!({
-        "client_id": config.hca.client_id,
-        "client_secret": config.hca.client_secret,
-        "redirect_uri": config.hca.redirect_uri.to_string(),
+        "client_id": &hca.client_id,
+        "client_secret": &hca.client_secret,
+        "redirect_uri": hca.redirect_uri.to_string(),
         "code": query.code,
         "grant_type": "authorization_code",
     });
@@ -347,7 +351,7 @@ async fn callback_handler(
 
     let (access_token, refresh_token) = make_tokens(&config, jit, &user_id, now)?;
 
-    let is_secure = config.hca.is_secure();
+    let is_secure = hca.is_secure();
     let (access_cookie, refresh_cookie) =
         make_auth_cookies(&config, access_token, refresh_token, is_secure);
 
@@ -359,7 +363,7 @@ async fn callback_handler(
             }
             // Accept absolute URLs on the same host (for dev: different port)
             if let Ok(url) = Url::parse(u) {
-                return url.host_str() == config.hca.redirect_uri.host_str() && !u.contains("\\");
+                return url.host_str() == hca.redirect_uri.host_str() && !u.contains("\\");
             }
             false
         })
@@ -390,7 +394,7 @@ async fn logout_handler(
     State(sessions): State<UserSessionsService>,
     jar: CookieJar,
 ) -> Response {
-    let is_secure = state.config.hca.is_secure();
+    let is_secure = state.live_hca.read().await.is_secure();
 
     if let Some(jwt) = jar.get("jwt")
         && let Ok(data) = jsonwebtoken::decode::<JwtClaims>(
@@ -422,6 +426,7 @@ async fn logout_handler(
 
 async fn refresh_handler(
     jar: CookieJar,
+    State(state): State<AppState>,
     State(config): State<Arc<Config>>,
     State(sessions): State<UserSessionsService>,
 ) -> Result<Response, (StatusCode, &'static str)> {
@@ -459,7 +464,7 @@ async fn refresh_handler(
     let now = Utc::now();
     let (access_token, refresh_token) = make_tokens(&config, claims.jit, &claims.sub, now)?;
 
-    let is_secure = config.hca.is_secure();
+    let is_secure = state.live_hca.read().await.is_secure();
     let (access_cookie, refresh_cookie) =
         make_auth_cookies(&config, access_token, refresh_token, is_secure);
 
@@ -565,7 +570,7 @@ async fn register_handler(
 
     let (access_token, refresh_token) = make_tokens(&state.config, jit, &user_id, now)?;
 
-    let is_secure = state.config.hca.is_secure();
+    let is_secure = state.live_hca.read().await.is_secure();
     let (access_cookie, refresh_cookie) =
         make_auth_cookies(&state.config, access_token, refresh_token, is_secure);
 
@@ -620,7 +625,7 @@ async fn email_login_handler(
 
     let (access_token, refresh_token) = make_tokens(&state.config, jit, &user.id, now)?;
 
-    let is_secure = state.config.hca.is_secure();
+    let is_secure = state.live_hca.read().await.is_secure();
     let (access_cookie, refresh_cookie) =
         make_auth_cookies(&state.config, access_token, refresh_token, is_secure);
 
@@ -688,7 +693,7 @@ async fn forgot_password_handler(
             ),
             None => format!(
                 "{}/api/v1/auth/reset-password?token={}",
-                state.config.hca.redirect_uri.as_str().trim_end_matches('/'),
+                state.live_hca.read().await.redirect_uri.as_str().trim_end_matches('/'),
                 token
             ),
         };
