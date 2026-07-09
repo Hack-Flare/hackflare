@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react"
 import {
-  Globe,
-  CheckCircle,
+  Activity,
   AlertTriangle,
-  TrendingUp,
   ArrowRight,
+  BarChart2,
+  CheckCircle2,
+  Clock,
+  Globe,
   Loader2,
+  Shield,
+  XCircle,
 } from "lucide-react"
 import {
   Card,
@@ -14,7 +18,12 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card"
-import { api, type DnsZone, type HealthResponse } from "~/lib/api"
+import {
+  api,
+  type DnsZone,
+  type QueryLogEntry,
+  type QueryLogsResponse,
+} from "~/lib/api"
 
 const shortcuts = [
   {
@@ -27,36 +36,50 @@ const shortcuts = [
     title: "DNS Records",
     description: "Manage DNS entries",
     href: "/dash/dns",
-    icon: TrendingUp,
+    icon: Globe,
   },
   {
     title: "Traffic Analytics",
     description: "View traffic stats",
     href: "/dash/traffic",
-    icon: TrendingUp,
+    icon: BarChart2,
   },
   {
     title: "Security",
     description: "Firewall rules",
     href: "/dash/firewall",
-    icon: AlertTriangle,
+    icon: Shield,
   },
 ]
 
+function formatTime(ts: string) {
+  const d = new Date(ts)
+  const now = new Date()
+  const diffMs = now.getTime() - d.getTime()
+  const diffMin = Math.floor(diffMs / 60000)
+  if (diffMin < 1) return "just now"
+  if (diffMin < 60) return `${diffMin}m ago`
+  const diffHr = Math.floor(diffMin / 60)
+  if (diffHr < 24) return `${diffHr}h ago`
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+}
+
 export default function Dashboard() {
   const [zones, setZones] = useState<DnsZone[]>([])
-  const [health, setHealth] = useState<HealthResponse | null>(null)
+  const [logs, setLogs] = useState<QueryLogEntry[]>([])
+  const [logsSummary, setLogsSummary] = useState<QueryLogsResponse["summary"] | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [zonesData, healthData] = await Promise.all([
+        const [zonesData, logsData] = await Promise.all([
           api.dns.listZones(),
-          api.health.check(),
+          api.logs.queryLogs(),
         ])
         setZones(zonesData)
-        setHealth(healthData)
+        setLogs(logsData.logs ?? [])
+        setLogsSummary(logsData.summary)
       } catch {
         // silently fail — dashboard shows defaults
       } finally {
@@ -71,7 +94,7 @@ export default function Dashboard() {
       <div>
         <h1 className="text-3xl font-bold dark:text-white">Dashboard</h1>
         <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-          Quick snapshot of domains, DNS + account health
+          Quick snapshot of your domains and recent activity
         </p>
       </div>
 
@@ -102,23 +125,35 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <CheckCircle className="h-4 w-4" />
-              DNS Changes
+              <Activity className="h-4 w-4" />
+              Queries Today
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">—</p>
-            <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-              Today
-            </p>
+            {loading ? (
+              <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+            ) : (
+              <>
+                <p className="text-3xl font-bold">
+                  {logsSummary
+                    ? (logsSummary.info_today +
+                        logsSummary.warnings_today +
+                        logsSummary.errors_today).toLocaleString()
+                    : 0}
+                </p>
+                <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                  Total DNS queries today
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <TrendingUp className="h-4 w-4" />
-              Service Status
+              <XCircle className="h-4 w-4" />
+              Today's Errors
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -128,15 +163,15 @@ export default function Dashboard() {
               <>
                 <p
                   className={`text-3xl font-bold ${
-                    health?.status === "ok"
-                      ? "text-green-600"
-                      : "text-orange-500"
+                    (logsSummary?.errors_today ?? 0) > 0
+                      ? "text-red-500"
+                      : ""
                   }`}
                 >
-                  {health?.status === "ok" ? "Healthy" : "Degraded"}
+                  {logsSummary?.errors_today ?? 0}
                 </p>
                 <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-                  DB: {health?.database ?? "unknown"}
+                  Failed queries today
                 </p>
               </>
             )}
@@ -147,12 +182,30 @@ export default function Dashboard() {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <AlertTriangle className="h-4 w-4" />
-              Issues
+              Warnings
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">0</p>
-            <p className="mt-1 text-xs text-green-600">No alerts</p>
+            {loading ? (
+              <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+            ) : (
+              <>
+                <p
+                  className={`text-3xl font-bold ${
+                    (logsSummary?.warnings_today ?? 0) > 0
+                      ? "text-amber-500"
+                      : ""
+                  }`}
+                >
+                  {logsSummary?.warnings_today ?? 0}
+                </p>
+                <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                  {logsSummary && logsSummary.warnings_today > 0
+                    ? "Requires attention"
+                    : "No warnings"}
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -162,12 +215,43 @@ export default function Dashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>Latest changes + events</CardDescription>
+              <CardDescription>Latest DNS queries across your domains</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="py-8 text-center text-sm text-zinc-500">
-                Activity feed coming soon
-              </p>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+                </div>
+              ) : logs.length === 0 ? (
+                <p className="py-8 text-center text-sm text-zinc-500">
+                  No recent activity
+                </p>
+              ) : (
+                <div className="space-y-1">
+                  {logs.slice(0, 10).map((log) => (
+                    <div
+                      key={log.id}
+                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                    >
+                      {log.status === 0 ? (
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
+                      ) : (
+                        <XCircle className="h-4 w-4 shrink-0 text-red-400" />
+                      )}
+                      <span className="min-w-0 flex-1 truncate font-mono text-xs">
+                        {log.path}
+                      </span>
+                      <span className="shrink-0 text-xs text-zinc-400">
+                        {log.ms}ms
+                      </span>
+                      <span className="flex shrink-0 items-center gap-1 text-xs text-zinc-500">
+                        <Clock className="h-3 w-3" />
+                        {formatTime(log.timestamp)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
