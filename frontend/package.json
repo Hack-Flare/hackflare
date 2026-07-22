@@ -21,7 +21,7 @@
     "framer-motion": "^12.39.0",
     "http-proxy-middleware": "^4.1.1",
     "isbot": "^5.1.36",
-    "lucide-react": "^1.21.0",
+    "lucide-react": "^1.25.0",
     "radix-ui": "^1.4.3",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
