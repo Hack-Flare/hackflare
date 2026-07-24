@@ -22,7 +22,7 @@
     "http-proxy-middleware": "^4.1.1",
     "isbot": "^5.1.36",
     "lucide-react": "^1.21.0",
-    "radix-ui": "^1.4.3",
+    "radix-ui": "^1.6.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-markdown": "^10.1.0",
