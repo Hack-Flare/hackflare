@@ -1,0 +1,2 @@
+-- No-op: the response_code backfill in the .up migration is idempotent and
+-- leaves nothing to undo.

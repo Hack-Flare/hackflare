@@ -44,6 +44,37 @@ fn record_request(protocol: Protocol) {
     };
 }
 
+/// Convert a hickory `ResponseCode` to its RFC DNS mnemonic (e.g. "NOERROR").
+///
+/// Note: `ResponseCode::to_string()` returns a human-readable phrase
+/// ("No Error", "Server Failure", ...) which does not match the wire mnemonics
+/// the rest of the system (query log classification, traffic stats) expects.
+fn response_code_mnemonic(code: ResponseCode) -> &'static str {
+    match code {
+        ResponseCode::NoError => "NOERROR",
+        ResponseCode::FormErr => "FORMERR",
+        ResponseCode::ServFail => "SERVFAIL",
+        ResponseCode::NXDomain => "NXDOMAIN",
+        ResponseCode::NotImp => "NOTIMP",
+        ResponseCode::Refused => "REFUSED",
+        ResponseCode::YXDomain => "YXDOMAIN",
+        ResponseCode::YXRRSet => "XRRSET",
+        ResponseCode::NXRRSet => "NXRRSET",
+        ResponseCode::NotAuth => "NOTAUTH",
+        ResponseCode::NotZone => "NOTZONE",
+        ResponseCode::BADVERS => "BADVERS",
+        ResponseCode::BADSIG => "BADSIG",
+        ResponseCode::BADKEY => "BADKEY",
+        ResponseCode::BADTIME => "BADTIME",
+        ResponseCode::BADMODE => "BADMODE",
+        ResponseCode::BADNAME => "BADNAME",
+        ResponseCode::BADALG => "BADALG",
+        ResponseCode::BADTRUNC => "BADTRUNC",
+        ResponseCode::BADCOOKIE => "BADCOOKIE",
+        ResponseCode::Unknown(_) => "UNKNOWN",
+    }
+}
+
 pub(super) struct HickoryRequestHandler {
     authority: Arc<AuthorityStore>,
     dns_config: DnsConfig,
@@ -171,7 +202,7 @@ impl RequestHandler for HickoryRequestHandler {
             self.log_query(QueryLogEntry {
                 query_name,
                 query_type: query_type_str,
-                response_code: response_info.response_code.to_string(),
+                response_code: response_code_mnemonic(response_info.response_code).to_string(),
                 source_ip,
                 protocol: protocol_str.to_string(),
                 response_size: 0,
@@ -353,6 +384,17 @@ mod tests {
     fn log_function_creates_valid_json() {
         log("info", "Test message", None);
         log("error", "Test error", Some("127.0.0.1:53".parse().unwrap()));
+    }
+
+    #[test]
+    fn response_code_mnemonic_uses_wire_codes() {
+        assert_eq!(response_code_mnemonic(ResponseCode::NoError), "NOERROR");
+        assert_eq!(response_code_mnemonic(ResponseCode::NXDomain), "NXDOMAIN");
+        assert_eq!(response_code_mnemonic(ResponseCode::ServFail), "SERVFAIL");
+        assert_eq!(response_code_mnemonic(ResponseCode::Refused), "REFUSED");
+        assert_eq!(response_code_mnemonic(ResponseCode::FormErr), "FORMERR");
+        assert_eq!(response_code_mnemonic(ResponseCode::Unknown(42)), "UNKNOWN");
+        assert_ne!(response_code_mnemonic(ResponseCode::NoError), "No Error");
     }
 
     #[test]
