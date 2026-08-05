@@ -24,7 +24,19 @@ async fn me_handler(
     Extension(current_user): Extension<CurrentUser>,
 ) -> impl IntoResponse {
     let user = current_user.user;
-    let is_admin = state.config.admin_emails.iter().any(|e| e == &user.email);
+    let is_admin = {
+        let overrides = state.live_overrides.read().await;
+        overrides
+            .get("API_ADMIN_EMAILS")
+            .map(|v| {
+                v.split(',')
+                    .map(|s| s.trim().to_lowercase())
+                    .any(|e| e == user.email.to_lowercase())
+            })
+            .unwrap_or_else(|| {
+                state.config.admin_emails.iter().any(|e| e == &user.email)
+            })
+    };
     Json(Me {
         id: user.id,
         slack_id: user.slack_id,

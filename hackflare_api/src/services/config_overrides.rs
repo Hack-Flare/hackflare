@@ -130,12 +130,12 @@ static CONFIG_METADATA: &[ConfigMeta] = &[
     ConfigMeta {
         key: "API_SESSION_INACTIVITY_MINUTES",
         label: "Session Inactivity",
-        description: "Session timeout on inactivity",
+        description: "Session timeout on inactivity (requires restart)",
         category: "Authentication",
         default_value: Some("15"),
         default_override: false,
         editable: true,
-        requires_restart: false,
+        requires_restart: true,
     },
     ConfigMeta {
         key: "API_DNS_NAMESERVERS",
@@ -150,12 +150,12 @@ static CONFIG_METADATA: &[ConfigMeta] = &[
     ConfigMeta {
         key: "API_CLIENT_IP_SOURCE",
         label: "Client IP Source",
-        description: "How to determine client IP",
+        description: "How to determine client IP (requires restart)",
         category: "Server",
         default_value: Some("ConnectInfo"),
         default_override: false,
         editable: true,
-        requires_restart: false,
+        requires_restart: true,
     },
     ConfigMeta {
         key: "API_ADMIN_EMAILS",

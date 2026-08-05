@@ -115,13 +115,15 @@ fn make_cookie(
 }
 
 fn make_tokens(
-    config: &Config,
+    jwt_encoding_key: &jsonwebtoken::EncodingKey,
+    access_minutes: i64,
+    refresh_days: i64,
     jit: Uuid,
     user_id: &str,
     now: chrono::DateTime<Utc>,
 ) -> Result<(String, String), (StatusCode, &'static str)> {
-    let access_exp = now + chrono::Duration::minutes(config.access_token_minutes);
-    let refresh_exp = now + chrono::Duration::days(config.refresh_token_days);
+    let access_exp = now + chrono::Duration::minutes(access_minutes);
+    let refresh_exp = now + chrono::Duration::days(refresh_days);
 
     let access_claims = JwtClaims {
         sub: user_id.to_string(),
@@ -140,21 +142,20 @@ fn make_tokens(
     };
 
     let access_token =
-        jsonwebtoken::encode(&Header::default(), &access_claims, &config.jwt_encoding_key)
-            .map_err(|error| {
+        jsonwebtoken::encode(&Header::default(), &access_claims, jwt_encoding_key).map_err(
+            |error| {
                 error!(%error, "failed to encode access jwt");
                 (StatusCode::INTERNAL_SERVER_ERROR, "jwt_encode_error")
-            })?;
+            },
+        )?;
 
-    let refresh_token = jsonwebtoken::encode(
-        &Header::default(),
-        &refresh_claims,
-        &config.jwt_encoding_key,
-    )
-    .map_err(|error| {
-        error!(%error, "failed to encode refresh jwt");
-        (StatusCode::INTERNAL_SERVER_ERROR, "jwt_encode_error")
-    })?;
+    let refresh_token =
+        jsonwebtoken::encode(&Header::default(), &refresh_claims, jwt_encoding_key).map_err(
+            |error| {
+                error!(%error, "failed to encode refresh jwt");
+                (StatusCode::INTERNAL_SERVER_ERROR, "jwt_encode_error")
+            },
+        )?;
 
     Ok((access_token, refresh_token))
 }
@@ -167,7 +168,8 @@ fn set_cookie_header(response: &mut Response, cookie: &Cookie<'static>) {
 }
 
 fn make_auth_cookies(
-    config: &Config,
+    access_minutes: i64,
+    refresh_days: i64,
     access_token: String,
     refresh_token: String,
     is_secure: bool,
@@ -176,16 +178,30 @@ fn make_auth_cookies(
         "jwt".into(),
         access_token,
         "/".into(),
-        config.access_token_minutes * 60,
+        access_minutes * 60,
         is_secure,
     );
     let refresh = make_cookie(
         "refresh_jwt".into(),
         refresh_token,
         "/api/v1/auth".into(),
-        config.refresh_token_days * 86400,
+        refresh_days * 86400,
         is_secure,
     );
+    (access, refresh)
+}
+
+/// Resolve token TTLs from live overrides, falling back to static config.
+async fn effective_ttls(state: &AppState) -> (i64, i64) {
+    let overrides = state.live_overrides.read().await;
+    let access = overrides
+        .get("API_ACCESS_TOKEN_MINUTES")
+        .and_then(|v| v.trim().parse::<i64>().ok())
+        .unwrap_or(state.config.access_token_minutes);
+    let refresh = overrides
+        .get("API_REFRESH_TOKEN_DAYS")
+        .and_then(|v| v.trim().parse::<i64>().ok())
+        .unwrap_or(state.config.refresh_token_days);
     (access, refresh)
 }
 
@@ -335,7 +351,8 @@ async fn callback_handler(
     })?;
 
     let now = Utc::now();
-    let refresh_exp = now + chrono::Duration::days(config.refresh_token_days);
+    let (access_minutes, refresh_days) = effective_ttls(&state).await;
+    let refresh_exp = now + chrono::Duration::days(refresh_days);
 
     let jit = UserSessionsService::create_with(&mut *tx, &user_id, ip_addr, refresh_exp)
         .await
@@ -349,11 +366,23 @@ async fn callback_handler(
         (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
     })?;
 
-    let (access_token, refresh_token) = make_tokens(&config, jit, &user_id, now)?;
+    let (access_token, refresh_token) = make_tokens(
+        &config.jwt_encoding_key,
+        access_minutes,
+        refresh_days,
+        jit,
+        &user_id,
+        now,
+    )?;
 
     let is_secure = hca.is_secure();
-    let (access_cookie, refresh_cookie) =
-        make_auth_cookies(&config, access_token, refresh_token, is_secure);
+    let (access_cookie, refresh_cookie) = make_auth_cookies(
+        access_minutes,
+        refresh_days,
+        access_token,
+        refresh_token,
+        is_secure,
+    );
 
     let target_url = session_target_url
         .as_deref()
@@ -462,11 +491,24 @@ async fn refresh_handler(
     };
 
     let now = Utc::now();
-    let (access_token, refresh_token) = make_tokens(&config, claims.jit, &claims.sub, now)?;
+    let (access_minutes, refresh_days) = effective_ttls(&state).await;
+    let (access_token, refresh_token) = make_tokens(
+        &config.jwt_encoding_key,
+        access_minutes,
+        refresh_days,
+        claims.jit,
+        &claims.sub,
+        now,
+    )?;
 
     let is_secure = state.live_hca.read().await.is_secure();
-    let (access_cookie, refresh_cookie) =
-        make_auth_cookies(&config, access_token, refresh_token, is_secure);
+    let (access_cookie, refresh_cookie) = make_auth_cookies(
+        access_minutes,
+        refresh_days,
+        access_token,
+        refresh_token,
+        is_secure,
+    );
 
     let mut response = (StatusCode::OK, ()).into_response();
     set_cookie_header(&mut response, &access_cookie);
@@ -555,7 +597,8 @@ async fn register_handler(
         (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
     })?;
 
-    let refresh_exp = now + chrono::Duration::days(state.config.refresh_token_days);
+    let (access_minutes, refresh_days) = effective_ttls(&state).await;
+    let refresh_exp = now + chrono::Duration::days(refresh_days);
     let jit = UserSessionsService::create_with(&mut *tx, &user_id, ip_addr, refresh_exp)
         .await
         .map_err(|error| {
@@ -568,11 +611,23 @@ async fn register_handler(
         (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
     })?;
 
-    let (access_token, refresh_token) = make_tokens(&state.config, jit, &user_id, now)?;
+    let (access_token, refresh_token) = make_tokens(
+        &state.config.jwt_encoding_key,
+        access_minutes,
+        refresh_days,
+        jit,
+        &user_id,
+        now,
+    )?;
 
     let is_secure = state.live_hca.read().await.is_secure();
-    let (access_cookie, refresh_cookie) =
-        make_auth_cookies(&state.config, access_token, refresh_token, is_secure);
+    let (access_cookie, refresh_cookie) = make_auth_cookies(
+        access_minutes,
+        refresh_days,
+        access_token,
+        refresh_token,
+        is_secure,
+    );
 
     let mut response = (StatusCode::CREATED, ()).into_response();
     set_cookie_header(&mut response, &access_cookie);
@@ -614,7 +669,8 @@ async fn email_login_handler(
         .map_err(|_| (StatusCode::UNAUTHORIZED, "invalid_email_or_password"))?;
 
     let now = Utc::now();
-    let refresh_exp = now + chrono::Duration::days(state.config.refresh_token_days);
+    let (access_minutes, refresh_days) = effective_ttls(&state).await;
+    let refresh_exp = now + chrono::Duration::days(refresh_days);
 
     let jit = UserSessionsService::create_with(&state.db, &user.id, ip_addr, refresh_exp)
         .await
@@ -623,11 +679,23 @@ async fn email_login_handler(
             (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
         })?;
 
-    let (access_token, refresh_token) = make_tokens(&state.config, jit, &user.id, now)?;
+    let (access_token, refresh_token) = make_tokens(
+        &state.config.jwt_encoding_key,
+        access_minutes,
+        refresh_days,
+        jit,
+        &user.id,
+        now,
+    )?;
 
     let is_secure = state.live_hca.read().await.is_secure();
-    let (access_cookie, refresh_cookie) =
-        make_auth_cookies(&state.config, access_token, refresh_token, is_secure);
+    let (access_cookie, refresh_cookie) = make_auth_cookies(
+        access_minutes,
+        refresh_days,
+        access_token,
+        refresh_token,
+        is_secure,
+    );
 
     let mut response = (StatusCode::OK, ()).into_response();
     set_cookie_header(&mut response, &access_cookie);
@@ -685,7 +753,15 @@ async fn forgot_password_handler(
 
     // Send email (best-effort)
     if let Some(ref email_svc) = *state.email.read().await {
-        let reset_link = match state.config.frontend_url.as_ref() {
+        let frontend_url = {
+            let overrides = state.live_overrides.read().await;
+            overrides
+                .get("FRONTEND_URL")
+                .filter(|v| !v.is_empty())
+                .and_then(|v| Url::parse(v).ok())
+                .or_else(|| state.config.frontend_url.clone())
+        };
+        let reset_link = match frontend_url {
             Some(base) => format!(
                 "{}/reset-password?token={}",
                 base.as_str().trim_end_matches('/'),
