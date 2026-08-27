@@ -5,21 +5,37 @@ updates:
     schedule:
       interval: daily
     open-pull-requests-limit: 20
+    groups:
+      all-actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: cargo
     directory: "/hackflare_api"
     schedule:
       interval: daily
     open-pull-requests-limit: 20
+    groups:
+      all-actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: cargo
     directory: "/hackflare_dns"
     schedule:
       interval: daily
     open-pull-requests-limit: 20
+    groups:
+      all-actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: npm
     directory: "/frontend"
     schedule:
       interval: daily
     open-pull-requests-limit: 20
+    groups:
+      all-actions:
+        patterns:
+          - "*"
