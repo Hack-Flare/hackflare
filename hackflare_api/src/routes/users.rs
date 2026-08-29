@@ -33,9 +33,7 @@ async fn me_handler(
                     .map(|s| s.trim().to_lowercase())
                     .any(|e| e == user.email.to_lowercase())
             })
-            .unwrap_or_else(|| {
-                state.config.admin_emails.iter().any(|e| e == &user.email)
-            })
+            .unwrap_or_else(|| state.config.admin_emails.iter().any(|e| e == &user.email))
     };
     Json(Me {
         id: user.id,

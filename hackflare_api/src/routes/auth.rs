@@ -141,21 +141,17 @@ fn make_tokens(
         typ: Some("refresh".to_string()),
     };
 
-    let access_token =
-        jsonwebtoken::encode(&Header::default(), &access_claims, jwt_encoding_key).map_err(
-            |error| {
-                error!(%error, "failed to encode access jwt");
-                (StatusCode::INTERNAL_SERVER_ERROR, "jwt_encode_error")
-            },
-        )?;
+    let access_token = jsonwebtoken::encode(&Header::default(), &access_claims, jwt_encoding_key)
+        .map_err(|error| {
+        error!(%error, "failed to encode access jwt");
+        (StatusCode::INTERNAL_SERVER_ERROR, "jwt_encode_error")
+    })?;
 
-    let refresh_token =
-        jsonwebtoken::encode(&Header::default(), &refresh_claims, jwt_encoding_key).map_err(
-            |error| {
-                error!(%error, "failed to encode refresh jwt");
-                (StatusCode::INTERNAL_SERVER_ERROR, "jwt_encode_error")
-            },
-        )?;
+    let refresh_token = jsonwebtoken::encode(&Header::default(), &refresh_claims, jwt_encoding_key)
+        .map_err(|error| {
+            error!(%error, "failed to encode refresh jwt");
+            (StatusCode::INTERNAL_SERVER_ERROR, "jwt_encode_error")
+        })?;
 
     Ok((access_token, refresh_token))
 }

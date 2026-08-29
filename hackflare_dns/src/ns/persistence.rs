@@ -430,9 +430,11 @@ impl ZonePersistence for MemoryPersistence {
                 name: zone_name.to_string(),
                 records: Vec::new(),
             });
-        if let Some(existing) = zone.records.iter_mut().find(|r| {
-            r.name == record.name && r.rtype == record.rtype && r.data == record.data
-        }) {
+        if let Some(existing) = zone
+            .records
+            .iter_mut()
+            .find(|r| r.name == record.name && r.rtype == record.rtype && r.data == record.data)
+        {
             existing.ttl = record.ttl;
         } else {
             zone.records.push(record.clone());
@@ -693,7 +695,10 @@ mod tests {
             ttl: 999,
             data: "10.0.0.2".to_string(),
         };
-        storage.save_record("example.com", &refreshed).await.unwrap();
+        storage
+            .save_record("example.com", &refreshed)
+            .await
+            .unwrap();
 
         let zone = storage.load_zone("example.com").await.unwrap().unwrap();
         assert_eq!(zone.records.len(), 4);

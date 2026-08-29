@@ -540,24 +540,12 @@ mod tests {
         // and two TXT records on _acme-challenge (wildcard + root dns01) co-exist.
         assert!(
             store
-                .add_record(
-                    "example.com",
-                    "_acme-challenge",
-                    "TXT",
-                    60,
-                    "challenge-one"
-                )
+                .add_record("example.com", "_acme-challenge", "TXT", 60, "challenge-one")
                 .await
         );
         assert!(
             store
-                .add_record(
-                    "example.com",
-                    "_acme-challenge",
-                    "TXT",
-                    60,
-                    "challenge-two"
-                )
+                .add_record("example.com", "_acme-challenge", "TXT", 60, "challenge-two")
                 .await
         );
 
