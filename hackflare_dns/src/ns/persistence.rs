@@ -76,6 +76,19 @@ pub trait ZonePersistence: Send + Sync {
         name: &str,
         rtype: &str,
     ) -> Result<(), Box<dyn Error>>;
+
+    /// Delete a single record value from a zone
+    ///
+    /// Only removes records that match the given `data`, leaving other records
+    /// with the same name + rtype intact (e.g. duplicate A records, or multiple
+    /// `_acme-challenge` TXT records). Idempotent.
+    async fn delete_record_value(
+        &self,
+        zone_name: &str,
+        name: &str,
+        rtype: &str,
+        data: &str,
+    ) -> Result<(), Box<dyn Error>>;
 }
 
 /// SQL schema for PostgreSQL persistence backend.
@@ -355,6 +368,31 @@ impl ZonePersistence for PostgresPersistence {
         .await?;
         Ok(())
     }
+
+    async fn delete_record_value(
+        &self,
+        zone_name: &str,
+        name: &str,
+        rtype: &str,
+        data: &str,
+    ) -> Result<(), Box<dyn Error>> {
+        sqlx::query(
+            r#"
+            DELETE FROM dns_records
+            WHERE zone_id = (SELECT id FROM dns_zones WHERE name = $1)
+              AND name = $2
+              AND rtype = $3
+              AND data = $4
+            "#,
+        )
+        .bind(zone_name)
+        .bind(name)
+        .bind(rtype)
+        .bind(data)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
 }
 
 /// In-memory implementation for testing or when no database is available
@@ -457,6 +495,22 @@ impl ZonePersistence for MemoryPersistence {
         drop(zones);
         Ok(())
     }
+
+    async fn delete_record_value(
+        &self,
+        zone_name: &str,
+        name: &str,
+        rtype: &str,
+        data: &str,
+    ) -> Result<(), Box<dyn Error>> {
+        let mut zones = self.zones.write();
+        if let Some(zone) = zones.get_mut(zone_name) {
+            zone.records
+                .retain(|r| !(r.name == name && r.rtype == rtype && r.data == data));
+        }
+        drop(zones);
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -545,6 +599,71 @@ mod tests {
 
         let zone = storage.load_zone("example.com").await.unwrap();
         assert_eq!(zone.unwrap().records.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn memory_persistence_deletes_single_value_only() {
+        let storage = MemoryPersistence::new();
+
+        let zone = PersistedZone {
+            name: "example.com".to_string(),
+            records: vec![],
+        };
+
+        let first = PersistedRecord {
+            name: "www".to_string(),
+            rtype: "A".to_string(),
+            ttl: 300,
+            data: "192.168.1.1".to_string(),
+        };
+        let second = PersistedRecord {
+            name: "www".to_string(),
+            rtype: "A".to_string(),
+            ttl: 300,
+            data: "192.168.1.2".to_string(),
+        };
+
+        storage.save_zone(&zone).await.unwrap();
+        storage.save_record("example.com", &first).await.unwrap();
+        storage.save_record("example.com", &second).await.unwrap();
+
+        storage
+            .delete_record_value("example.com", "www", "A", "192.168.1.1")
+            .await
+            .unwrap();
+
+        let zone = storage.load_zone("example.com").await.unwrap().unwrap();
+        let remaining: Vec<_> = zone.records.iter().filter(|r| r.name == "www").cloned().collect();
+        assert_eq!(remaining.len(), 1);
+        assert_eq!(remaining[0].data, "192.168.1.2");
+    }
+
+    #[tokio::test]
+    async fn memory_persistence_delete_value_is_idempotent() {
+        let storage = MemoryPersistence::new();
+
+        let zone = PersistedZone {
+            name: "example.com".to_string(),
+            records: vec![PersistedRecord {
+                name: "www".to_string(),
+                rtype: "A".to_string(),
+                ttl: 300,
+                data: "192.168.1.1".to_string(),
+            }],
+        };
+        storage.save_zone(&zone).await.unwrap();
+
+        storage
+            .delete_record_value("example.com", "www", "A", "192.168.1.1")
+            .await
+            .unwrap();
+        storage
+            .delete_record_value("example.com", "www", "A", "192.168.1.1")
+            .await
+            .unwrap();
+
+        let zone = storage.load_zone("example.com").await.unwrap().unwrap();
+        assert_eq!(zone.records.len(), 0);
     }
 
     // ── PostgreSQL persistence tests (require DATABASE_URL env) ──
@@ -727,6 +846,48 @@ mod tests {
         let zone = storage.load_zone("example.com").await.unwrap().unwrap();
         assert_eq!(zone.records.len(), 1);
         assert_eq!(zone.records[0].name, "mail");
+    }
+
+    #[tokio::test]
+    async fn postgres_delete_record_value_removes_only_one() {
+        let Some(pool) = get_test_pool().await else {
+            eprintln!("skipping: DATABASE_URL not set or unreachable");
+            return;
+        };
+        let storage = PostgresPersistence::new(pool);
+
+        storage.save_zone(&test_zone("example.com")).await.unwrap();
+
+        let first = PersistedRecord {
+            name: "www".to_string(),
+            rtype: "A".to_string(),
+            ttl: 300,
+            data: "192.168.1.1".to_string(),
+        };
+        let second = PersistedRecord {
+            name: "www".to_string(),
+            rtype: "A".to_string(),
+            ttl: 300,
+            data: "192.168.1.2".to_string(),
+        };
+        storage.save_record("example.com", &first).await.unwrap();
+        storage.save_record("example.com", &second).await.unwrap();
+
+        storage
+            .delete_record_value("example.com", "www", "A", "192.168.1.1")
+            .await
+            .unwrap();
+
+        let zone = storage.load_zone("example.com").await.unwrap().unwrap();
+        assert_eq!(zone.records.len(), 3);
+        let www: Vec<_> = zone
+            .records
+            .iter()
+            .filter(|r| r.name == "www")
+            .cloned()
+            .collect();
+        assert_eq!(www.len(), 1);
+        assert_eq!(www[0].data, "192.168.1.2");
     }
 
     #[tokio::test]

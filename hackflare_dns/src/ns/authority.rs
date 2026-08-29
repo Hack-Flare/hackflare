@@ -182,6 +182,77 @@ impl AuthorityStore {
         removed
     }
 
+    /// Remove a single DNS record value from a zone.
+    pub async fn remove_record_value(
+        &self,
+        zone_name: &str,
+        name: &str,
+        rtype: &str,
+        data: &str,
+    ) -> bool {
+        let normalized_zone = Self::normalize_zone_name(zone_name);
+        let zone_key = normalized_zone.trim_end_matches('.').to_string();
+
+        let Some(handler) = self.zones.read().await.get(&zone_key).cloned() else {
+            return false;
+        };
+
+        let fqdn = Self::build_fqdn(&normalized_zone, name);
+        let Ok(record_name) = Name::from_utf8(&fqdn) else {
+            return false;
+        };
+
+        let Ok(record_type) = RecordType::from_str(rtype.trim()) else {
+            return false;
+        };
+        let Ok(rdata) = RData::try_from_str(record_type, data) else {
+            return false;
+        };
+
+        let target = Record::from_rdata(record_name.clone(), 0, rdata);
+        let target_name = LowerName::new(&record_name);
+
+        let mut records = handler.records_mut().await;
+        let key = records
+            .keys()
+            .find(|k| k.name() == &target_name && k.record_type == record_type)
+            .cloned();
+
+        let Some(key) = key else {
+            return false;
+        };
+
+        let Some(current) = records.get(&key).cloned() else {
+            return false;
+        };
+
+        // Clone the RecordSet out of the Arc so we can drop a single value.
+        let mut new_set = Arc::try_unwrap(current).unwrap_or_else(|arc| (*arc).clone());
+        if !new_set.remove(&target, self.config.soa_serial) {
+            return false;
+        }
+
+        let removed = if new_set.is_empty() {
+            records.remove(&key).is_some()
+        } else {
+            records.insert(key, Arc::new(new_set));
+            true
+        };
+
+        if removed
+            && let Some(persistence) = &self.persistence
+            && let Err(e) = persistence
+                .delete_record_value(zone_name, name, rtype.trim(), data)
+                .await
+        {
+            eprintln!(
+                "[hackflare:dns] failed to remove record {name} ({rtype}) value from storage: {e}"
+            );
+        }
+
+        removed
+    }
+
     /// List all zones.
     pub async fn list_zones(&self) -> Vec<String> {
         self.zones.read().await.keys().cloned().collect()
@@ -600,6 +671,85 @@ mod tests {
 
         let result = store.remove_record("example.com", "nonexistent", "A").await;
         assert!(!result);
+    }
+
+    #[tokio::test]
+    async fn remove_record_value_removes_only_matching_value() {
+        let config = DnsConfig::default_config();
+        let store = AuthorityStore::new(config);
+
+        store.create_zone("example.com").await;
+        store
+            .add_record("example.com", "www", "A", 300, "192.168.1.1")
+            .await;
+        store
+            .add_record("example.com", "www", "A", 300, "192.168.1.2")
+            .await;
+
+        let result = store
+            .remove_record_value("example.com", "www", "A", "192.168.1.1")
+            .await;
+        assert!(result);
+
+        // The other value remains unpublished/queryable.
+        let name = LowerName::new(&Name::from_utf8("www.example.com.").unwrap());
+        {
+            let handler = find_zone(&*store.zones.read().await, &name)
+                .expect("example.com handler exists");
+            let records = handler.records().await;
+            let mut remaining: Vec<String> = records
+                .values()
+                .flat_map(|set| {
+                    set.records_without_rrsigs()
+                        .map(|r| r.data.to_string())
+                        .collect::<Vec<_>>()
+                })
+                .filter(|d| d.contains("192.168.1."))
+                .collect();
+            remaining.sort();
+            assert_eq!(remaining, vec!["192.168.1.2"]);
+        }
+
+        // Removing the other value as well empties the RRset.
+        let result = store
+            .remove_record_value("example.com", "www", "A", "192.168.1.2")
+            .await;
+        assert!(result);
+    }
+
+    #[tokio::test]
+    async fn remove_record_value_succeeds_for_acme_challenge_duplicates() {
+        let config = DnsConfig::default_config();
+        let store = AuthorityStore::new(config);
+
+        store.create_zone("example.com").await;
+        store
+            .add_record("example.com", "_acme-challenge", "TXT", 60, "challenge-one")
+            .await;
+        store
+            .add_record("example.com", "_acme-challenge", "TXT", 60, "challenge-two")
+            .await;
+
+        // Deleting one TXT leaves the other in place (wildcard + root dns01).
+        assert!(
+            store
+                .remove_record_value("example.com", "_acme-challenge", "TXT", "challenge-one")
+                .await
+        );
+
+        let name = LowerName::new(&Name::from_utf8("_acme-challenge.example.com.").unwrap());
+        let handler = find_zone(&*store.zones.read().await, &name).expect("handler exists");
+        let records = handler.records().await;
+        let remaining: Vec<String> = records
+            .values()
+            .flat_map(|set| {
+                set.records_without_rrsigs()
+                    .map(|r| r.data.to_string())
+                    .collect::<Vec<_>>()
+            })
+            .filter(|d| d.contains("challenge"))
+            .collect();
+        assert_eq!(remaining, vec!["challenge-two"]);
     }
 
     #[test]

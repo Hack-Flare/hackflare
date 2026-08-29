@@ -44,8 +44,8 @@ DELETE /dns/zones/:id          Delete a zone
 ```
 GET    /dns/zones/:id/records     List records
 POST   /dns/zones/:id/records     Create a record
-PUT    /dns/zones/:id/records/:record  Update a record
-DELETE /dns/zones/:id/records/:record  Delete a record
+PUT    /dns/zones/:id/records/:recordId  Update a single record
+DELETE /dns/zones/:id/records/:recordId  Delete a single record
 ```
 
 ### Users

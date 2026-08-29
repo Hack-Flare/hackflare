@@ -337,22 +337,17 @@ export const api = {
 
     updateRecord: (
       zoneName: string,
-      recordName: string,
-      recordType: string,
-      data: { value: string; ttl: number }
+      recordId: string,
+      data: { name: string; type: string; value: string; ttl: number }
     ) =>
       request<DnsRecord>(
-        `/api/v1/dns/zones/${encodeURIComponent(zoneName)}/records/${encodeURIComponent(recordName)}/${encodeURIComponent(recordType)}`,
+        `/api/v1/dns/zones/${encodeURIComponent(zoneName)}/records/${encodeURIComponent(recordId)}`,
         { method: "PUT", body: data }
       ),
 
-    deleteRecord: (
-      zoneName: string,
-      recordName: string,
-      recordType: string
-    ) =>
+    deleteRecord: (zoneName: string, recordId: string) =>
       request<void>(
-        `/api/v1/dns/zones/${encodeURIComponent(zoneName)}/records/${encodeURIComponent(recordName)}/${encodeURIComponent(recordType)}`,
+        `/api/v1/dns/zones/${encodeURIComponent(zoneName)}/records/${encodeURIComponent(recordId)}`,
         { method: "DELETE" }
       ),
   },

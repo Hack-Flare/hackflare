@@ -141,7 +141,7 @@ export default function Dns() {
     setDeleting(deleteConfirm.id)
     setDeleteConfirm(null)
     try {
-      await api.dns.deleteRecord(domain, deleteConfirm.name, deleteConfirm.type)
+      await api.dns.deleteRecord(domain, deleteConfirm.id)
       toast("Record deleted", "success")
       await fetchRecords()
     } catch (err) {
@@ -169,7 +169,9 @@ export default function Dns() {
     if (!domain || !editing) return
     setSaving(true)
     try {
-      await api.dns.updateRecord(domain, editing.name, editing.type, {
+      await api.dns.updateRecord(domain, editing.id, {
+        name: editForm.name,
+        type: editForm.type,
         value: editForm.value,
         ttl: editForm.ttl,
       })

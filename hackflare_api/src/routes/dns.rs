@@ -48,6 +48,9 @@ struct CreateRecordRequest {
 
 #[derive(Deserialize)]
 struct UpdateRecordRequest {
+    name: String,
+    #[serde(rename = "type")]
+    rtype: String,
     value: String,
     ttl: u32,
 }
@@ -368,11 +371,7 @@ async fn create_record(
 async fn update_record(
     State(state): State<AppState>,
     Extension(current_user): Extension<CurrentUser>,
-    axum::extract::Path((zone_name, record_name, record_type)): axum::extract::Path<(
-        String,
-        String,
-        String,
-    )>,
+    axum::extract::Path((zone_name, record_id)): axum::extract::Path<(String, uuid::Uuid)>,
     Json(req): Json<UpdateRecordRequest>,
 ) -> impl IntoResponse {
     if ensure_zone_ownership(&state.db, &zone_name, &current_user.user.id)
@@ -386,20 +385,37 @@ async fn update_record(
         return zone_not_verified().into_response();
     }
 
+    let Some((old_name, old_rtype, old_data)) =
+        get_record_by_id(&state.db, &zone_name, record_id).await
+    else {
+        return record_not_found().into_response();
+    };
+
     if !state
         .dns_authority
-        .remove_record(&zone_name, &record_name, &record_type)
+        .remove_record_value(&zone_name, &old_name, &old_rtype, &old_data)
         .await
     {
         return record_not_found().into_response();
     }
-    state
+
+    if !state
         .dns_authority
-        .add_record(&zone_name, &record_name, &record_type, req.ttl, &req.value)
-        .await;
+        .add_record(&zone_name, &req.name, &req.rtype, req.ttl, &req.value)
+        .await
+    {
+        return internal_error("failed to update record").into_response();
+    }
+
     (
         StatusCode::OK,
-        Json(serde_json::json!({"status": "updated"})),
+        Json(serde_json::json!({
+            "name": req.name,
+            "type": req.rtype,
+            "value": req.value,
+            "ttl": req.ttl,
+            "status": "active"
+        })),
     )
         .into_response()
 }
@@ -407,11 +423,7 @@ async fn update_record(
 async fn delete_record(
     State(state): State<AppState>,
     Extension(current_user): Extension<CurrentUser>,
-    axum::extract::Path((zone_name, record_name, record_type)): axum::extract::Path<(
-        String,
-        String,
-        String,
-    )>,
+    axum::extract::Path((zone_name, record_id)): axum::extract::Path<(String, uuid::Uuid)>,
 ) -> impl IntoResponse {
     if ensure_zone_ownership(&state.db, &zone_name, &current_user.user.id)
         .await
@@ -424,9 +436,14 @@ async fn delete_record(
         return zone_not_verified().into_response();
     }
 
+    let Some((name, rtype, data)) = get_record_by_id(&state.db, &zone_name, record_id).await
+    else {
+        return record_not_found().into_response();
+    };
+
     if state
         .dns_authority
-        .remove_record(&zone_name, &record_name, &record_type)
+        .remove_record_value(&zone_name, &name, &rtype, &data)
         .await
     {
         StatusCode::NO_CONTENT.into_response()
@@ -437,6 +454,29 @@ async fn delete_record(
 
 // ── DB helpers ──
 
+async fn get_record_by_id(
+    db: &PgPool,
+    zone_name: &str,
+    record_id: uuid::Uuid,
+) -> Option<(String, String, String)> {
+    let row: Option<(uuid::Uuid, String, String, String)> = sqlx::query_as(
+        r#"
+        SELECT r.id, r.name, r.rtype, r.data
+        FROM dns_records r
+        JOIN dns_zones z ON z.id = r.zone_id
+        WHERE r.id = $1 AND z.name = $2
+        "#,
+    )
+    .bind(record_id)
+    .bind(zone_name)
+    .fetch_optional(db)
+    .await
+    .ok()?;
+
+    row.map(|(_, name, rtype, data)| (name, rtype, data))
+}
+
+/// List all records for a zone.
 async fn get_records_from_db(
     db: &PgPool,
     zone_name: &str,
@@ -488,7 +528,7 @@ pub(super) fn routes(state: AppState) -> Router<AppState> {
             get(list_records).post(create_record),
         )
         .route(
-            "/zones/{zone_name}/records/{record_name}/{record_type}",
+            "/zones/{zone_name}/records/{record_id}",
             put(update_record).delete(delete_record),
         )
         .layer(middleware::from_fn_with_state(state, auth_middleware))
@@ -806,13 +846,14 @@ mod tests {
         assert_eq!(records[0]["name"], "www");
         assert_eq!(records[0]["type"], "A");
         assert_eq!(records[0]["value"], "1.2.3.4");
+        let record_id = records[0]["id"].as_str().unwrap().to_string();
 
-        // Update
+        // Update by record id
         let response = build_router(ctx.state.clone())
             .oneshot(ctx.authed_request(
                 "PUT",
-                "/api/v1/dns/zones/test-rec.com/records/www/A",
-                Some(r#"{"value":"10.0.0.1","ttl":600}"#),
+                &format!("/api/v1/dns/zones/test-rec.com/records/{record_id}"),
+                Some(r#"{"name":"www","type":"A","value":"10.0.0.1","ttl":600}"#),
             ))
             .await
             .unwrap();
@@ -826,12 +867,13 @@ mod tests {
         let rec = &body.as_array().unwrap()[0];
         assert_eq!(rec["value"], "10.0.0.1");
         assert_eq!(rec["ttl"], 600);
+        assert_eq!(rec["id"].as_str().unwrap(), record_id);
 
-        // Delete record
+        // Delete record by id
         let response = build_router(ctx.state.clone())
             .oneshot(ctx.authed_request(
                 "DELETE",
-                "/api/v1/dns/zones/test-rec.com/records/www/A",
+                &format!("/api/v1/dns/zones/test-rec.com/records/{record_id}"),
                 None,
             ))
             .await
@@ -846,6 +888,91 @@ mod tests {
         assert_eq!(body.as_array().unwrap().len(), 0);
 
         let _ = ctx.state.dns_authority.delete_zone("test-rec.com").await;
+        ctx.cleanup().await;
+    }
+
+    #[tokio::test]
+    async fn test_delete_duplicate_record_keeps_others() {
+        let Some(ctx) = TestCtx::setup().await else {
+            eprintln!("skipping: DATABASE_URL not set or unreachable");
+            return;
+        };
+
+        ctx.state.dns_authority.create_zone("test-dup.com").await;
+        sqlx::query("UPDATE dns_zones SET user_id = $1 WHERE name = 'test-dup.com'")
+            .bind(&ctx.user_id)
+            .execute(&ctx.state.db)
+            .await
+            .ok();
+        let _ = sqlx::query("UPDATE dns_zones SET ns_verified = true WHERE name = 'test-dup.com'")
+            .execute(&ctx.state.db)
+            .await;
+
+        // Two TXT records at the same name (acme dns01 wildcard + root)
+        let response = build_router(ctx.state.clone())
+            .oneshot(ctx.authed_request(
+                "POST",
+                "/api/v1/dns/zones/test-dup.com/records",
+                Some(
+                    r#"{"name":"_acme-challenge","type":"TXT","value":"challenge-one","ttl":60}"#,
+                ),
+            ))
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::CREATED);
+        let response = build_router(ctx.state.clone())
+            .oneshot(ctx.authed_request(
+                "POST",
+                "/api/v1/dns/zones/test-dup.com/records",
+                Some(
+                    r#"{"name":"_acme-challenge","type":"TXT","value":"challenge-two","ttl":60}"#,
+                ),
+            ))
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::CREATED);
+
+        let response = build_router(ctx.state.clone())
+            .oneshot(ctx.authed_request("GET", "/api/v1/dns/zones/test-dup.com/records", None))
+            .await
+            .unwrap();
+        let body = get_body(response).await;
+        let records = body.as_array().unwrap();
+        assert_eq!(records.len(), 2);
+        let first_id = records[0]["id"].as_str().unwrap().to_string();
+
+        // Deleting one record must leave the sibling intact
+        let response = build_router(ctx.state.clone())
+            .oneshot(ctx.authed_request(
+                "DELETE",
+                &format!("/api/v1/dns/zones/test-dup.com/records/{first_id}"),
+                None,
+            ))
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+
+        let response = build_router(ctx.state.clone())
+            .oneshot(ctx.authed_request("GET", "/api/v1/dns/zones/test-dup.com/records", None))
+            .await
+            .unwrap();
+        let body = get_body(response).await;
+        let records = body.as_array().unwrap();
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0]["value"], "challenge-two");
+
+        // Record ids that don't exist for this zone are 404
+        let response = build_router(ctx.state.clone())
+            .oneshot(ctx.authed_request(
+                "DELETE",
+                "/api/v1/dns/zones/test-dup.com/records/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                None,
+            ))
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        let _ = ctx.state.dns_authority.delete_zone("test-dup.com").await;
         ctx.cleanup().await;
     }
 
@@ -912,8 +1039,8 @@ mod tests {
         let response = build_router(ctx.state.clone())
             .oneshot(ctx.authed_request(
                 "PUT",
-                "/api/v1/dns/zones/test-unverified.com/records/www/A",
-                Some(r#"{"value":"10.0.0.1","ttl":600}"#),
+                "/api/v1/dns/zones/test-unverified.com/records/00000000-0000-0000-0000-000000000000",
+                Some(r#"{"name":"www","type":"A","value":"10.0.0.1","ttl":600}"#),
             ))
             .await
             .unwrap();
@@ -923,7 +1050,7 @@ mod tests {
         let response = build_router(ctx.state.clone())
             .oneshot(ctx.authed_request(
                 "DELETE",
-                "/api/v1/dns/zones/test-unverified.com/records/www/A",
+                "/api/v1/dns/zones/test-unverified.com/records/00000000-0000-0000-0000-000000000000",
                 None,
             ))
             .await
