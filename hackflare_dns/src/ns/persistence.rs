@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS dns_records (
     data TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE(zone_id, name, rtype)
+    UNIQUE(zone_id, name, rtype, data)
 );
 "#;
 
@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS dns_records (
 ///     data TEXT NOT NULL,
 ///     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 ///     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-///     UNIQUE(zone_id, name, rtype)
+///     UNIQUE(zone_id, name, rtype, data)
 /// );
 /// ```
 ///
@@ -312,6 +312,7 @@ impl ZonePersistence for PostgresPersistence {
         zone_name: &str,
         record: &PersistedRecord,
     ) -> Result<(), Box<dyn Error>> {
+        // Multiple records with the same name + type but different data are valid (e.g. two A records, or multiple TXT records for ACME dns01 challenges)
         sqlx::query(
             r#"
             INSERT INTO dns_records (zone_id, name, rtype, ttl, data)
@@ -319,8 +320,8 @@ impl ZonePersistence for PostgresPersistence {
                 (SELECT id FROM dns_zones WHERE name = $1),
                 $2, $3, $4, $5
             )
-            ON CONFLICT (zone_id, name, rtype)
-            DO UPDATE SET ttl = EXCLUDED.ttl, data = EXCLUDED.data, updated_at = now()
+            ON CONFLICT (zone_id, name, rtype, data)
+            DO UPDATE SET ttl = EXCLUDED.ttl, updated_at = now()
             "#,
         )
         .bind(zone_name)
@@ -429,13 +430,10 @@ impl ZonePersistence for MemoryPersistence {
                 name: zone_name.to_string(),
                 records: Vec::new(),
             });
-        if let Some(existing) = zone
-            .records
-            .iter_mut()
-            .find(|r| r.name == record.name && r.rtype == record.rtype)
-        {
+        if let Some(existing) = zone.records.iter_mut().find(|r| {
+            r.name == record.name && r.rtype == record.rtype && r.data == record.data
+        }) {
             existing.ttl = record.ttl;
-            existing.data.clone_from(&record.data);
         } else {
             zone.records.push(record.clone());
         }
@@ -649,7 +647,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn postgres_save_record_upserts() {
+    async fn postgres_save_record_stores_duplicate_values() {
         let Some(pool) = get_test_pool().await else {
             eprintln!("skipping: DATABASE_URL not set or unreachable");
             return;
@@ -667,27 +665,44 @@ mod tests {
         };
         storage.save_record("example.com", &extra).await.unwrap();
 
-        let zone = storage.load_zone("example.com").await.unwrap().unwrap();
-        assert_eq!(zone.records.len(), 3);
+        // duplicate - same name + rtype, different data is stored as its own row
+        let second = PersistedRecord {
+            name: "api".to_string(),
+            rtype: "A".to_string(),
+            ttl: 120,
+            data: "10.0.0.2".to_string(),
+        };
+        storage.save_record("example.com", &second).await.unwrap();
 
-        // upsert — same name + rtype, different ttl/data
-        let updated = PersistedRecord {
+        let zone = storage.load_zone("example.com").await.unwrap().unwrap();
+        assert_eq!(zone.records.len(), 4);
+        let api_records: Vec<_> = zone
+            .records
+            .iter()
+            .filter(|r| r.name == "api")
+            .cloned()
+            .collect();
+        assert_eq!(api_records.len(), 2);
+        assert!(api_records.iter().any(|r| r.data == "10.0.0.1"));
+        assert!(api_records.iter().any(|r| r.data == "10.0.0.2"));
+
+        // identical data - ttl is refreshed in place, no new row
+        let refreshed = PersistedRecord {
             name: "api".to_string(),
             rtype: "A".to_string(),
             ttl: 999,
             data: "10.0.0.2".to_string(),
         };
-        storage.save_record("example.com", &updated).await.unwrap();
+        storage.save_record("example.com", &refreshed).await.unwrap();
 
         let zone = storage.load_zone("example.com").await.unwrap().unwrap();
-        assert_eq!(zone.records.len(), 3);
+        assert_eq!(zone.records.len(), 4);
         let rec = zone
             .records
             .iter()
-            .find(|r| r.name == "api")
+            .find(|r| r.name == "api" && r.data == "10.0.0.2")
             .expect("api record should exist");
         assert_eq!(rec.ttl, 999);
-        assert_eq!(rec.data, "10.0.0.2");
     }
 
     #[tokio::test]

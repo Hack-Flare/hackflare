@@ -519,6 +519,53 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn add_record_allows_multiple_values_same_name_type() {
+        let config = DnsConfig::default_config();
+        let store = AuthorityStore::new(config);
+
+        store.create_zone("example.com").await;
+
+        // Two A records on the same hostname co-exist
+        assert!(
+            store
+                .add_record("example.com", "www", "A", 300, "192.168.1.1")
+                .await
+        );
+        assert!(
+            store
+                .add_record("example.com", "www", "A", 300, "192.168.1.2")
+                .await
+        );
+
+        // and two TXT records on _acme-challenge (wildcard + root dns01) co-exist.
+        assert!(
+            store
+                .add_record(
+                    "example.com",
+                    "_acme-challenge",
+                    "TXT",
+                    60,
+                    "challenge-one"
+                )
+                .await
+        );
+        assert!(
+            store
+                .add_record(
+                    "example.com",
+                    "_acme-challenge",
+                    "TXT",
+                    60,
+                    "challenge-two"
+                )
+                .await
+        );
+
+        let zones = store.list_zones().await;
+        assert!(zones.contains(&"example.com".to_string()));
+    }
+
+    #[tokio::test]
     async fn add_record_with_various_types() {
         let config = DnsConfig::default_config();
         let store = AuthorityStore::new(config);
