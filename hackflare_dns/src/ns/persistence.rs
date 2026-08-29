@@ -633,7 +633,12 @@ mod tests {
             .unwrap();
 
         let zone = storage.load_zone("example.com").await.unwrap().unwrap();
-        let remaining: Vec<_> = zone.records.iter().filter(|r| r.name == "www").cloned().collect();
+        let remaining: Vec<_> = zone
+            .records
+            .iter()
+            .filter(|r| r.name == "www")
+            .cloned()
+            .collect();
         assert_eq!(remaining.len(), 1);
         assert_eq!(remaining[0].data, "192.168.1.2");
     }

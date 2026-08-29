@@ -694,8 +694,8 @@ mod tests {
         // The other value remains unpublished/queryable.
         let name = LowerName::new(&Name::from_utf8("www.example.com.").unwrap());
         {
-            let handler = find_zone(&*store.zones.read().await, &name)
-                .expect("example.com handler exists");
+            let handler =
+                find_zone(&*store.zones.read().await, &name).expect("example.com handler exists");
             let records = handler.records().await;
             let mut remaining: Vec<String> = records
                 .values()

@@ -436,8 +436,7 @@ async fn delete_record(
         return zone_not_verified().into_response();
     }
 
-    let Some((name, rtype, data)) = get_record_by_id(&state.db, &zone_name, record_id).await
-    else {
+    let Some((name, rtype, data)) = get_record_by_id(&state.db, &zone_name, record_id).await else {
         return record_not_found().into_response();
     };
 
@@ -913,9 +912,7 @@ mod tests {
             .oneshot(ctx.authed_request(
                 "POST",
                 "/api/v1/dns/zones/test-dup.com/records",
-                Some(
-                    r#"{"name":"_acme-challenge","type":"TXT","value":"challenge-one","ttl":60}"#,
-                ),
+                Some(r#"{"name":"_acme-challenge","type":"TXT","value":"challenge-one","ttl":60}"#),
             ))
             .await
             .unwrap();
@@ -924,9 +921,7 @@ mod tests {
             .oneshot(ctx.authed_request(
                 "POST",
                 "/api/v1/dns/zones/test-dup.com/records",
-                Some(
-                    r#"{"name":"_acme-challenge","type":"TXT","value":"challenge-two","ttl":60}"#,
-                ),
+                Some(r#"{"name":"_acme-challenge","type":"TXT","value":"challenge-two","ttl":60}"#),
             ))
             .await
             .unwrap();
