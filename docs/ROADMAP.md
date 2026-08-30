@@ -1,6 +1,7 @@
 # Roadmap
 
-Feel free to submit PRs/issues for anything you want us to work on or you want to work on.
+Feel free to submit PRs/issues for anything you want us to work on or you want to work on.  
+This file is not getting updates sob
 
 ## Ongoing:
 
