@@ -4,7 +4,9 @@ use crate::ns::persistence::{PersistedRecord, PersistedZone, ZonePersistence};
 use hickory_server::net::runtime::TokioRuntimeProvider;
 use hickory_server::net::xfer::Protocol;
 use hickory_server::proto::op::{Header, HeaderCounts, Message, Metadata, ResponseCode};
-use hickory_server::proto::rr::{LowerName, Name, RData, Record, RecordType, rdata::SOA};
+use hickory_server::proto::rr::{
+    LowerName, Name, RData, Record, RecordType, rdata::{NS, SOA},
+};
 use hickory_server::proto::serialize::binary::BinEncodable;
 use hickory_server::server::{Request, RequestHandler, ResponseHandler, ResponseInfo};
 use hickory_server::store::in_memory::InMemoryZoneHandler;
@@ -78,6 +80,21 @@ impl AuthorityStore {
 
         if !handler.upsert(soa_record, serial).await {
             return false;
+        }
+
+        // Advertise the configured nameservers at the zone apex so that
+        // authoritative NS queries resolve to Hackflare's own servers.
+        for ns_name in &self.config.nameservers {
+            let Ok(ns_name) = Name::from_utf8(ns_name.trim()) else {
+                eprintln!("[hackflare:dns] skipping invalid nameserver {ns_name:?} in config");
+                continue;
+            };
+            handler
+                .upsert(
+                    Record::from_rdata(origin.clone(), self.config.soa_ttl, RData::NS(NS(ns_name))),
+                    serial,
+                )
+                .await;
         }
 
         let zone_key = zone_name.trim_end_matches('.').to_string();
@@ -199,6 +216,11 @@ impl AuthorityStore {
             return false;
         };
 
+        // Apex NS records are managed by the authoritative server; refuse deletion
+        if record_type == RecordType::NS && fqdn == normalized_zone {
+            return false;
+        }
+
         let removed = {
             let mut records = handler.records_mut().await;
             let before_count = records.len();
@@ -247,6 +269,11 @@ impl AuthorityStore {
         let Ok(rdata) = RData::try_from_str(record_type, data) else {
             return false;
         };
+
+        // Apex NS records are managed by the authoritative server; refuse deletion.
+        if record_type == RecordType::NS && fqdn == normalized_zone {
+            return false;
+        }
 
         let target = Record::from_rdata(record_name.clone(), 0, rdata);
         let target_name = LowerName::new(&record_name);
@@ -892,6 +919,109 @@ mod tests {
 
         let name = LowerName::new(&Name::from_utf8("nonexistent.com.").unwrap());
         assert!(!store.contains_zone_for(&name).await);
+    }
+
+    #[tokio::test]
+    async fn create_zone_adds_apex_ns_records() {
+        let config = DnsConfig::default_config();
+        let store = AuthorityStore::new(config.clone());
+        store.create_zone("example.com").await;
+
+        let handler = store.zones.read().await.get("example.com").unwrap().clone();
+        let records = handler.records().await;
+        let apex = Name::from_utf8("example.com.").unwrap();
+        let mut apex_ns: Vec<String> = records
+            .values()
+            .filter(|set| set.record_type() == RecordType::NS && set.name() == &apex)
+            .flat_map(|set| {
+                set.records_without_rrsigs()
+                    .map(|r| r.data.to_string())
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        apex_ns.sort();
+        assert_eq!(
+            apex_ns,
+            vec![
+                "ns1.hackflare.net.".to_string(),
+                "ns2.hackflare.net.".to_string()
+            ]
+        );
+    }
+
+    #[tokio::test]
+    async fn apex_ns_records_resolve_on_lookup() {
+        let config = DnsConfig::default_config();
+        let store = AuthorityStore::new(config);
+        store.create_zone("example.com").await;
+
+        let handler = store.zones.read().await.get("example.com").unwrap().clone();
+        let apex = LowerName::new(&Name::from_utf8("example.com.").unwrap());
+        let lookup = handler
+            .lookup(&apex, RecordType::NS, None, LookupOptions::default())
+            .await
+            .map_result()
+            .unwrap()
+            .unwrap();
+        let mut served: Vec<String> = lookup.iter().map(|r| r.data.to_string()).collect();
+        served.sort();
+        assert_eq!(
+            served,
+            vec![
+                "ns1.hackflare.net.".to_string(),
+                "ns2.hackflare.net.".to_string()
+            ]
+        );
+    }
+
+    #[tokio::test]
+    async fn apex_ns_records_are_protected_from_removal() {
+        let config = DnsConfig::default_config();
+        let store = AuthorityStore::new(config);
+        store.create_zone("example.com").await;
+
+        assert!(!store.remove_record("example.com", "@", "NS").await);
+        assert!(
+            !store
+                .remove_record_value("example.com", "@", "NS", "ns1.hackflare.net.")
+                .await
+        );
+
+        // Non-apex NS records (subdomain delegations) remain removable.
+        assert!(
+            store
+                .add_record("example.com", "sub", "NS", 3600, "ns1.example.com")
+                .await
+        );
+        assert!(store.remove_record("example.com", "sub", "NS").await);
+    }
+
+    #[tokio::test]
+    async fn load_zones_from_storage_readds_apex_ns() {
+        let persistence = Arc::new(crate::ns::persistence::MemoryPersistence::new());
+        let zone = crate::ns::persistence::PersistedZone {
+            name: "example.com".to_string(),
+            serial: 42,
+            records: Vec::new(),
+        };
+        persistence.save_zone(&zone).await.unwrap();
+
+        let store = AuthorityStore::with_persistence(DnsConfig::default_config(), persistence);
+        store.load_zones_from_storage().await.unwrap();
+
+        let handler = store.zones.read().await.get("example.com").unwrap().clone();
+        let apex = Name::from_utf8("example.com.").unwrap();
+        let records = handler.records().await;
+        let apex_ns: Vec<String> = records
+            .values()
+            .filter(|set| set.record_type() == RecordType::NS && set.name() == &apex)
+            .flat_map(|set| {
+                set.records_without_rrsigs()
+                    .map(|r| r.data.to_string())
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        assert_eq!(apex_ns.len(), 2);
     }
 
     #[tokio::test]

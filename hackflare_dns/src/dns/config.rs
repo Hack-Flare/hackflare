@@ -25,6 +25,10 @@ pub struct DnsConfig {
     /// SOA record TTL (seconds) — default: 3600
     pub soa_ttl: u32,
 
+    /// Authoritative nameservers advertised at the apex of every hosted zone
+    /// (default: `["ns1.hackflare.net.", "ns2.hackflare.net."]`)
+    pub nameservers: Vec<String>,
+
     /// UDP/Recursive resolver settings
     /// UDP attempts per upstream server — default: 4
     pub udp_attempts: usize,
@@ -58,6 +62,7 @@ impl DnsConfig {
             soa_expire: env_u32("HACKFLARE_DNS_SOA_EXPIRE", 604_800),
             soa_minimum: env_u32("HACKFLARE_DNS_SOA_MINIMUM", 3_600),
             soa_ttl: env_u32("HACKFLARE_DNS_SOA_TTL", 3600),
+            nameservers: env_list("HACKFLARE_DNS_NAMESERVERS", default_nameservers()),
             udp_attempts: env_usize("HACKFLARE_DNS_UDP_ATTEMPTS", 4).max(1),
             udp_timeout: Duration::from_millis(env_u64("HACKFLARE_DNS_UDP_TIMEOUT_MS", 2500)),
             recursion_rounds: env_usize("HACKFLARE_DNS_RECURSION_ROUNDS", 8).max(1),
@@ -82,6 +87,7 @@ impl DnsConfig {
             soa_expire: 604_800,
             soa_minimum: 3_600,
             soa_ttl: 3600,
+            nameservers: default_nameservers(),
             udp_attempts: 4,
             udp_timeout: Duration::from_millis(2500),
             recursion_rounds: 8,
@@ -94,6 +100,10 @@ impl DnsConfig {
 }
 
 // Helper functions for environment variable parsing
+fn default_nameservers() -> Vec<String> {
+    vec!["ns1.hackflare.net.".to_string(), "ns2.hackflare.net.".to_string()]
+}
+
 fn env_bool(name: &str, default: bool) -> bool {
     env::var(name).ok().map_or(default, |v| {
         let v = v.trim().to_ascii_lowercase();
@@ -110,6 +120,29 @@ fn env_u32(name: &str, default: u32) -> u32 {
 
 fn env_string(name: &str, default: &str) -> String {
     env::var(name).unwrap_or_else(|_| default.to_string())
+}
+
+fn env_list(name: &str, default: Vec<String>) -> Vec<String> {
+    match env::var(name) {
+        Ok(v) => {
+            let items = parse_list(&v);
+            if items.is_empty() {
+                default
+            } else {
+                items
+            }
+        }
+        Err(_) => default,
+    }
+}
+
+fn parse_list(value: &str) -> Vec<String> {
+    value
+        .split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(ToOwned::to_owned)
+        .collect()
 }
 
 fn env_u16(name: &str, default: u16) -> u16 {
@@ -150,6 +183,10 @@ mod tests {
         assert_eq!(cfg.soa_expire, 604_800);
         assert_eq!(cfg.soa_minimum, 3_600);
         assert_eq!(cfg.soa_ttl, 3600);
+        assert_eq!(
+            cfg.nameservers,
+            vec!["ns1.hackflare.net.".to_string(), "ns2.hackflare.net.".to_string()]
+        );
         assert_eq!(cfg.max_edns_payload_size, 1232);
         assert_eq!(cfg.udp_attempts, 4);
         assert_eq!(cfg.recursion_rounds, 8);
@@ -161,5 +198,20 @@ mod tests {
     fn env_bool_parses_correctly() {
         assert!(env_bool("NONEXISTENT_VAR_12345", true));
         assert!(!env_bool("NONEXISTENT_VAR_12345", false));
+    }
+
+    #[test]
+    fn env_list_splits_and_trims() {
+        let default = default_nameservers();
+        assert_eq!(
+            env_list("NONEXISTENT_VAR_12345", default.clone()),
+            default
+        );
+        // comma-separated, entries trimmed, empty entries dropped
+        assert_eq!(
+            parse_list("ns1.x.net., ns2.x.net."),
+            vec!["ns1.x.net.".to_string(), "ns2.x.net.".to_string()]
+        );
+        assert!(parse_list(",  ,").is_empty());
     }
 }
