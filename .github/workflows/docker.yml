@@ -152,5 +152,5 @@ jobs:
         with:
           coolify_url: 'https://coolify.kirze.de'
           coolify_token: ${{ secrets.COOLIFY_TOKEN }}
-          coolify_uuid: 'ketzzgfh95vu7ve7pyityojl'
-          force_deploy: false
+          coolify_app_uuid: 'ketzzgfh95vu7ve7pyityojl'
+          coolify_force_deploy: false
