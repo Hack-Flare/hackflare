@@ -10,24 +10,22 @@ pub struct DnsConfig {
     pub recursion_enabled: bool,
 
     /// SOA record fields (defaults suitable for a secondary nameserver)
-    /// SOA MNAME (primary nameserver) — default: `"ns.example.com."`
+    /// SOA MNAME (primary nameserver) — default: `"ns1.hackflare.net."`
     pub soa_mname: String,
-    /// SOA RNAME (responsible person) — default: `"admin.example.com."`
+    /// SOA RNAME (responsible person) — default: `"dns.hackflare.net."`
     pub soa_rname: String,
     /// SOA refresh interval (seconds) — default: 3600
     pub soa_refresh: u32,
-    /// SOA retry interval (seconds) — default: 1800
+    /// SOA retry interval (seconds) — default: 600
     pub soa_retry: u32,
-    /// SOA expire interval (seconds) — default: 604800
+    /// SOA expire interval (seconds) — default: 604800 (7 days)
     pub soa_expire: u32,
-    /// SOA minimum TTL (seconds) — default: 86400
+    /// SOA minimum TTL / negative-caching TTL (RFC 2308) — default: 3600
     pub soa_minimum: u32,
     /// SOA record TTL (seconds) — default: 3600
     pub soa_ttl: u32,
 
     /// UDP/Recursive resolver settings
-    /// UDP payload size (EDNS) — default: 512
-    pub udp_size: u16,
     /// UDP attempts per upstream server — default: 4
     pub udp_attempts: usize,
     /// UDP timeout per attempt — default: 2500 ms
@@ -52,15 +50,14 @@ impl DnsConfig {
     /// Load configuration from environment variables with sensible defaults.
     pub fn from_env() -> Self {
         Self {
-            recursion_enabled: env_bool("HACKFLARE_DNS_RECURSION_ENABLED", false),
-            soa_mname: env_string("HACKFLARE_DNS_SOA_MNAME", "ns.example.com."),
-            soa_rname: env_string("HACKFLARE_DNS_SOA_RNAME", "admin.example.com."),
+            recursion_enabled: env_bool("HACKFLARE_DNS_RECURSION_ENABLED", true),
+            soa_mname: env_string("HACKFLARE_DNS_SOA_MNAME", "ns1.hackflare.net."),
+            soa_rname: env_string("HACKFLARE_DNS_SOA_RNAME", "dns.hackflare.net."),
             soa_refresh: env_u32("HACKFLARE_DNS_SOA_REFRESH", 3600),
-            soa_retry: env_u32("HACKFLARE_DNS_SOA_RETRY", 1800),
+            soa_retry: env_u32("HACKFLARE_DNS_SOA_RETRY", 600),
             soa_expire: env_u32("HACKFLARE_DNS_SOA_EXPIRE", 604_800),
-            soa_minimum: env_u32("HACKFLARE_DNS_SOA_MINIMUM", 86_400),
+            soa_minimum: env_u32("HACKFLARE_DNS_SOA_MINIMUM", 3_600),
             soa_ttl: env_u32("HACKFLARE_DNS_SOA_TTL", 3600),
-            udp_size: env_u16("HACKFLARE_DNS_UDP_SIZE", 512),
             udp_attempts: env_usize("HACKFLARE_DNS_UDP_ATTEMPTS", 4).max(1),
             udp_timeout: Duration::from_millis(env_u64("HACKFLARE_DNS_UDP_TIMEOUT_MS", 2500)),
             recursion_rounds: env_usize("HACKFLARE_DNS_RECURSION_ROUNDS", 8).max(1),
@@ -78,14 +75,13 @@ impl DnsConfig {
     pub fn default_config() -> Self {
         Self {
             recursion_enabled: false,
-            soa_mname: "ns.example.com.".to_string(),
-            soa_rname: "admin.example.com.".to_string(),
+            soa_mname: "ns1.hackflare.net.".to_string(),
+            soa_rname: "dns.hackflare.net.".to_string(),
             soa_refresh: 3600,
-            soa_retry: 1800,
+            soa_retry: 600,
             soa_expire: 604_800,
-            soa_minimum: 86_400,
+            soa_minimum: 3_600,
             soa_ttl: 3600,
-            udp_size: 512,
             udp_attempts: 4,
             udp_timeout: Duration::from_millis(2500),
             recursion_rounds: 8,
@@ -147,10 +143,14 @@ mod tests {
     fn default_config_has_sensible_defaults() {
         let cfg = DnsConfig::default_config();
         assert!(!cfg.recursion_enabled);
-        assert_eq!(cfg.soa_mname, "ns.example.com.");
+        assert_eq!(cfg.soa_mname, "ns1.hackflare.net.");
+        assert_eq!(cfg.soa_rname, "dns.hackflare.net.");
         assert_eq!(cfg.soa_refresh, 3600);
+        assert_eq!(cfg.soa_retry, 600);
+        assert_eq!(cfg.soa_expire, 604_800);
+        assert_eq!(cfg.soa_minimum, 3_600);
         assert_eq!(cfg.soa_ttl, 3600);
-        assert_eq!(cfg.udp_size, 512);
+        assert_eq!(cfg.max_edns_payload_size, 1232);
         assert_eq!(cfg.udp_attempts, 4);
         assert_eq!(cfg.recursion_rounds, 8);
         assert!(!cfg.recursion_debug);
