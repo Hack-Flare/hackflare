@@ -149,12 +149,8 @@ async fn set_password(
         }
     }
 
-    use argon2::{
-        Argon2, PasswordHasher,
-        password_hash::{SaltString, rand_core::OsRng},
-    };
-    let salt = SaltString::generate(&mut OsRng);
-    let password_hash = match Argon2::default().hash_password(req.new_password.as_bytes(), &salt) {
+    use argon2::{Argon2, PasswordHasher};
+    let password_hash = match Argon2::default().hash_password(req.new_password.as_bytes()) {
         Ok(h) => h.to_string(),
         Err(_) => {
             return (

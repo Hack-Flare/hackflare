@@ -54,7 +54,7 @@ async fn migrate_or_verify(db: &PgPool, config: &Config) -> Result<()> {
     } else {
         let mut conn = db.acquire().await?;
 
-        if let Some(version) = conn.dirty_version().await? {
+        if let Some(version) = conn.dirty_version(migrator.table_name.as_ref()).await? {
             anyhow::bail!(
                 "database in dirty state at version {}, manual intervention required",
                 version
@@ -62,7 +62,7 @@ async fn migrate_or_verify(db: &PgPool, config: &Config) -> Result<()> {
         }
 
         let applied_map: std::collections::HashMap<_, _> = conn
-            .list_applied_migrations()
+            .list_applied_migrations(migrator.table_name.as_ref())
             .await?
             .into_iter()
             .map(|m| (m.version, m.checksum))

@@ -554,13 +554,9 @@ async fn register_handler(
         return Err((StatusCode::CONFLICT, "email_already_registered"));
     }
 
-    use argon2::{
-        Argon2, PasswordHasher,
-        password_hash::{SaltString, rand_core::OsRng},
-    };
-    let salt = SaltString::generate(&mut OsRng);
+    use argon2::{Argon2, PasswordHasher};
     let password_hash = Argon2::default()
-        .hash_password(req.password.as_bytes(), &salt)
+        .hash_password(req.password.as_bytes())
         .map_err(|error| {
             error!(%error, "failed to hash password");
             (StatusCode::INTERNAL_SERVER_ERROR, "password_hash_error")
@@ -818,13 +814,9 @@ async fn reset_password_handler(
         })?
         .ok_or((StatusCode::BAD_REQUEST, "invalid_or_expired_token"))?;
 
-    use argon2::{
-        Argon2, PasswordHasher,
-        password_hash::{SaltString, rand_core::OsRng},
-    };
-    let salt = SaltString::generate(&mut OsRng);
+    use argon2::{Argon2, PasswordHasher};
     let password_hash = Argon2::default()
-        .hash_password(req.password.as_bytes(), &salt)
+        .hash_password(req.password.as_bytes())
         .map_err(|error| {
             error!(%error, "failed to hash password");
             (StatusCode::INTERNAL_SERVER_ERROR, "password_hash_error")
