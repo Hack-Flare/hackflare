@@ -489,9 +489,12 @@ async fn build_auth_response(
     _handler: &InMemoryZoneHandler<TokioRuntimeProvider>,
     request_meta: &Metadata,
     query: &hickory_server::proto::op::LowerQuery,
+    recursion_available: bool,
 ) -> Message {
     let mut response_meta = Metadata::response_from_request(request_meta);
     response_meta.authoritative = true;
+    // Advertise recursion when the server can resolve non-hosted queries
+    response_meta.recursion_available = recursion_available;
 
     let mut message = Message::new(
         response_meta.id,
@@ -590,8 +593,14 @@ impl RequestHandler for AuthorityStore {
         let (cf, _) = handler.search(request, lookup_options).await;
         let result = cf.map_result();
 
-        let mut message =
-            build_auth_response(result, &handler, &request.metadata, request_info.query).await;
+        let mut message = build_auth_response(
+            result,
+            &handler,
+            &request.metadata,
+            request_info.query,
+            self.config.recursion_enabled,
+        )
+        .await;
 
         // Clamp UDP response size to prevent amplification attacks
         if request.protocol() == Protocol::Udp {
@@ -633,6 +642,36 @@ mod tests {
     #![allow(clippy::unwrap_used)]
 
     use super::*;
+    use hickory_server::proto::op::{LowerQuery, MessageType, OpCode, Query, ResponseCode};
+
+    #[tokio::test]
+    async fn build_auth_response_marks_recursion_when_enabled() {
+        let handler = InMemoryZoneHandler::<TokioRuntimeProvider>::empty(
+            Name::from_utf8("example.com.").unwrap(),
+            ZoneType::Primary,
+            AxfrPolicy::Deny,
+        );
+        let meta = Metadata::new(7, MessageType::Query, OpCode::Query);
+        let query: LowerQuery = Query::new().into();
+        let message = build_auth_response(None, &handler, &meta, &query, true).await;
+        assert!(message.metadata.authoritative);
+        assert!(message.metadata.recursion_available);
+        assert_eq!(message.metadata.response_code, ResponseCode::ServFail);
+    }
+
+    #[tokio::test]
+    async fn build_auth_response_omits_recursion_when_disabled() {
+        let handler = InMemoryZoneHandler::<TokioRuntimeProvider>::empty(
+            Name::from_utf8("example.com.").unwrap(),
+            ZoneType::Primary,
+            AxfrPolicy::Deny,
+        );
+        let meta = Metadata::new(7, MessageType::Query, OpCode::Query);
+        let query: LowerQuery = Query::new().into();
+        let message = build_auth_response(None, &handler, &meta, &query, false).await;
+        assert!(message.metadata.authoritative);
+        assert!(!message.metadata.recursion_available);
+    }
 
     #[tokio::test]
     async fn create_zone_succeeds() {
