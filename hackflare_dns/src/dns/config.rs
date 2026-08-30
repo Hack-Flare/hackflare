@@ -14,8 +14,6 @@ pub struct DnsConfig {
     pub soa_mname: String,
     /// SOA RNAME (responsible person) — default: `"admin.example.com."`
     pub soa_rname: String,
-    /// SOA serial number — default: 2024010101
-    pub soa_serial: u32,
     /// SOA refresh interval (seconds) — default: 3600
     pub soa_refresh: u32,
     /// SOA retry interval (seconds) — default: 1800
@@ -57,7 +55,6 @@ impl DnsConfig {
             recursion_enabled: env_bool("HACKFLARE_DNS_RECURSION_ENABLED", false),
             soa_mname: env_string("HACKFLARE_DNS_SOA_MNAME", "ns.example.com."),
             soa_rname: env_string("HACKFLARE_DNS_SOA_RNAME", "admin.example.com."),
-            soa_serial: env_u32("HACKFLARE_DNS_SOA_SERIAL", 2_024_010_101),
             soa_refresh: env_u32("HACKFLARE_DNS_SOA_REFRESH", 3600),
             soa_retry: env_u32("HACKFLARE_DNS_SOA_RETRY", 1800),
             soa_expire: env_u32("HACKFLARE_DNS_SOA_EXPIRE", 604_800),
@@ -83,7 +80,6 @@ impl DnsConfig {
             recursion_enabled: false,
             soa_mname: "ns.example.com.".to_string(),
             soa_rname: "admin.example.com.".to_string(),
-            soa_serial: 2_024_010_101,
             soa_refresh: 3600,
             soa_retry: 1800,
             soa_expire: 604_800,
@@ -152,7 +148,6 @@ mod tests {
         let cfg = DnsConfig::default_config();
         assert!(!cfg.recursion_enabled);
         assert_eq!(cfg.soa_mname, "ns.example.com.");
-        assert_eq!(cfg.soa_serial, 2_024_010_101);
         assert_eq!(cfg.soa_refresh, 3600);
         assert_eq!(cfg.soa_ttl, 3600);
         assert_eq!(cfg.udp_size, 512);

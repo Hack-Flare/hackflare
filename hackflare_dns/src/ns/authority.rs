@@ -16,6 +16,18 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+/// SOA serial floor for today in UTC, formatted as `YYYYMMDD00`.
+///
+/// The serial grows monotonically within a day; the two trailing digits are a
+/// zero-padded per-day revision counter, matching the conventional
+/// date-stamped SOA serial scheme.
+#[must_use]
+fn today_serial_base() -> u32 {
+    use chrono::Datelike;
+    let now = chrono::Utc::now();
+    (now.year() as u32) * 1_000_000 + now.month() * 10_000 + now.day() * 100
+}
+
 /// Provides authoritative DNS zone management using hickory-server's in-memory zones.
 pub struct AuthorityStore {
     config: DnsConfig,
@@ -43,12 +55,18 @@ impl AuthorityStore {
 
     /// Create a new DNS zone with default SOA record.
     pub async fn create_zone(&self, name: impl Into<String>) -> bool {
+        let serial = today_serial_base();
+        self.create_zone_with_serial(name, serial).await
+    }
+
+    /// Create a new DNS zone, seeding its SOA record with the given serial.
+    async fn create_zone_with_serial(&self, name: impl Into<String>, serial: u32) -> bool {
         let zone_name = Self::normalize_zone_name(&name.into());
         let Ok(origin) = Name::from_utf8(&zone_name) else {
             return false;
         };
 
-        let Some(soa_record) = self.build_soa_record(&origin) else {
+        let Some(soa_record) = self.build_soa_record(&origin, serial) else {
             return false;
         };
 
@@ -58,7 +76,7 @@ impl AuthorityStore {
             AxfrPolicy::Deny,
         ));
 
-        if !handler.upsert(soa_record, self.config.soa_serial).await {
+        if !handler.upsert(soa_record, serial).await {
             return false;
         }
 
@@ -68,6 +86,7 @@ impl AuthorityStore {
         if let Some(persistence) = &self.persistence {
             let persisted = PersistedZone {
                 name: zone_key.clone(),
+                serial,
                 records: Vec::new(),
             };
             if let Err(e) = persistence.save_zone(&persisted).await {
@@ -102,6 +121,20 @@ impl AuthorityStore {
         ttl: u32,
         data: &str,
     ) -> bool {
+        self.add_record_inner(zone_name, name, rtype, ttl, data, true)
+            .await
+    }
+
+    /// Add a DNS record to a zone, optionally bumping the SOA serial on success.
+    async fn add_record_inner(
+        &self,
+        zone_name: &str,
+        name: &str,
+        rtype: &str,
+        ttl: u32,
+        data: &str,
+        bump: bool,
+    ) -> bool {
         let normalized_zone = Self::normalize_zone_name(zone_name);
         let zone_key = normalized_zone.trim_end_matches('.').to_string();
 
@@ -121,12 +154,14 @@ impl AuthorityStore {
             return false;
         };
 
+        let serial = handler.serial().await;
         let ok = handler
-            .upsert(
-                Record::from_rdata(record_name, ttl, rdata),
-                self.config.soa_serial,
-            )
+            .upsert(Record::from_rdata(record_name, ttl, rdata), serial)
             .await;
+
+        if ok && bump {
+            self.bump_soa_serial(&zone_key).await;
+        }
 
         if ok && let Some(persistence) = &self.persistence {
             let record = PersistedRecord {
@@ -155,28 +190,32 @@ impl AuthorityStore {
         };
 
         let fqdn = Self::build_fqdn(&normalized_zone, name);
-        let Ok(record_name) = Name::from_utf8(&fqdn) else {
-            return false;
+        let record_name = match Name::from_utf8(&fqdn) {
+            Ok(n) => n,
+            Err(_) => return false,
         };
 
         let Ok(record_type) = RecordType::from_str(rtype.trim()) else {
             return false;
         };
 
-        let mut records = handler.records_mut().await;
-        let before_count = records.len();
-        let target_name = LowerName::new(&record_name);
-        records.retain(|key, _| !(key.name() == &target_name && key.record_type == record_type));
+        let removed = {
+            let mut records = handler.records_mut().await;
+            let before_count = records.len();
+            let target_name = LowerName::new(&record_name);
+            records.retain(|key, _| !(key.name() == &target_name && key.record_type == record_type));
+            before_count != records.len()
+        };
 
-        let removed = before_count != records.len();
-
-        if removed
-            && let Some(persistence) = &self.persistence
-            && let Err(e) = persistence
-                .delete_record(zone_name, name, rtype.trim())
-                .await
-        {
-            eprintln!("[hackflare:dns] failed to remove record {name} ({rtype}) from storage: {e}");
+        if removed {
+            self.bump_soa_serial(&zone_key).await;
+            if let Some(persistence) = &self.persistence
+                && let Err(e) = persistence
+                    .delete_record(zone_name, name, rtype.trim())
+                    .await
+            {
+                eprintln!("[hackflare:dns] failed to remove record {name} ({rtype}) from storage: {e}");
+            }
         }
 
         removed
@@ -211,43 +250,48 @@ impl AuthorityStore {
 
         let target = Record::from_rdata(record_name.clone(), 0, rdata);
         let target_name = LowerName::new(&record_name);
+        let serial = handler.serial().await;
 
-        let mut records = handler.records_mut().await;
-        let key = records
-            .keys()
-            .find(|k| k.name() == &target_name && k.record_type == record_type)
-            .cloned();
+        let removed = {
+            let mut records = handler.records_mut().await;
+            let key = records
+                .keys()
+                .find(|k| k.name() == &target_name && k.record_type == record_type)
+                .cloned();
 
-        let Some(key) = key else {
-            return false;
+            let Some(key) = key else {
+                return false;
+            };
+
+            let Some(current) = records.get(&key).cloned() else {
+                return false;
+            };
+
+            // Clone the RecordSet out of the Arc so we can drop a single value.
+            let mut new_set = Arc::try_unwrap(current).unwrap_or_else(|arc| (*arc).clone());
+            if !new_set.remove(&target, serial) {
+                return false;
+            }
+
+            if new_set.is_empty() {
+                records.remove(&key).is_some()
+            } else {
+                records.insert(key, Arc::new(new_set));
+                true
+            }
         };
 
-        let Some(current) = records.get(&key).cloned() else {
-            return false;
-        };
-
-        // Clone the RecordSet out of the Arc so we can drop a single value.
-        let mut new_set = Arc::try_unwrap(current).unwrap_or_else(|arc| (*arc).clone());
-        if !new_set.remove(&target, self.config.soa_serial) {
-            return false;
-        }
-
-        let removed = if new_set.is_empty() {
-            records.remove(&key).is_some()
-        } else {
-            records.insert(key, Arc::new(new_set));
-            true
-        };
-
-        if removed
-            && let Some(persistence) = &self.persistence
-            && let Err(e) = persistence
-                .delete_record_value(zone_name, name, rtype.trim(), data)
-                .await
-        {
-            eprintln!(
-                "[hackflare:dns] failed to remove record {name} ({rtype}) value from storage: {e}"
-            );
+        if removed {
+            self.bump_soa_serial(&zone_key).await;
+            if let Some(persistence) = &self.persistence
+                && let Err(e) = persistence
+                    .delete_record_value(zone_name, name, rtype.trim(), data)
+                    .await
+            {
+                eprintln!(
+                    "[hackflare:dns] failed to remove record {name} ({rtype}) value from storage: {e}"
+                );
+            }
         }
 
         removed
@@ -292,15 +336,16 @@ impl AuthorityStore {
             .map_err(|e| DnsError::PersistenceOperation(format!("{e}")))?;
 
         for zone in zones {
-            self.create_zone(&zone.name).await;
+            self.create_zone_with_serial(&zone.name, zone.serial).await;
             for record in zone.records {
                 let _ = self
-                    .add_record(
+                    .add_record_inner(
                         &zone.name,
                         &record.name,
                         &record.rtype,
                         record.ttl,
                         &record.data,
+                        false,
                     )
                     .await;
             }
@@ -310,6 +355,35 @@ impl AuthorityStore {
     }
 
     // === Helper Methods ===
+
+    /// Increment a zone's SOA serial and persist the new value.
+    ///
+    /// The new serial is stamped with the current UTC date and is always
+    /// greater than the previous serial: `max(current + 1, today_serial_base())`.
+    /// This keeps secondaries in sync while avoiding serial collapse on a new day.
+    async fn bump_soa_serial(&self, zone_key: &str) -> Option<u32> {
+        let handler = self.zones.read().await.get(zone_key)?.clone();
+        let current = handler.serial().await;
+        let new_serial = current.saturating_add(1).max(today_serial_base());
+
+        let origin: Name = handler.origin().clone().into();
+        // Replace the SOA record; hickory accepts the update because the new
+        // serial is strictly greater than the existing one.
+        let soa_record = self.build_soa_record(&origin, new_serial)?;
+        if !handler.upsert(soa_record, new_serial).await {
+            return None;
+        }
+
+        if let Some(persistence) = &self.persistence
+            && let Err(e) = persistence.update_zone_serial(zone_key, new_serial).await
+        {
+            eprintln!(
+                "[hackflare:dns] failed to persist SOA serial {new_serial} for zone {zone_key}: {e}"
+            );
+        }
+
+        Some(new_serial)
+    }
 
     /// Normalize zone name (lowercase, trailing dot).
     fn normalize_zone_name(name: &str) -> String {
@@ -334,16 +408,16 @@ impl AuthorityStore {
         }
     }
 
-    // Build a default SOA record for a zone.
+    // Build a default SOA record for a zone with the given serial.
     #[allow(clippy::cast_possible_wrap)]
-    fn build_soa_record(&self, origin: &Name) -> Option<Record> {
+    fn build_soa_record(&self, origin: &Name, serial: u32) -> Option<Record> {
         let mname = Name::from_utf8(&self.config.soa_mname).ok()?;
         let rname = Name::from_utf8(&self.config.soa_rname).ok()?;
 
         let soa = SOA::new(
             mname,
             rname,
-            self.config.soa_serial,
+            serial,
             self.config.soa_refresh as i32,
             self.config.soa_retry as i32,
             self.config.soa_expire as i32,
@@ -818,5 +892,115 @@ mod tests {
 
         let name = LowerName::new(&Name::from_utf8("nonexistent.com.").unwrap());
         assert!(!store.contains_zone_for(&name).await);
+    }
+
+    #[tokio::test]
+    async fn serial_starts_at_todays_base_on_zone_creation() {
+        let config = DnsConfig::default_config();
+        let store = AuthorityStore::new(config);
+        store.create_zone("example.com").await;
+
+        let handler = store.zones.read().await.get("example.com").unwrap().clone();
+        assert_eq!(handler.serial().await, today_serial_base());
+    }
+
+    #[tokio::test]
+    async fn serial_increments_on_add_and_remove() {
+        let config = DnsConfig::default_config();
+        let store = AuthorityStore::new(config);
+        store.create_zone("example.com").await;
+
+        let serial = || async {
+            let handler = store.zones.read().await.get("example.com").unwrap().clone();
+            handler.serial().await
+        };
+
+        assert!(
+            store
+                .add_record("example.com", "www", "A", 300, "192.168.1.1")
+                .await
+        );
+        assert_eq!(serial().await, today_serial_base().saturating_add(1));
+
+        assert!(store.remove_record("example.com", "www", "A").await);
+        assert_eq!(serial().await, today_serial_base().saturating_add(2));
+    }
+
+    #[tokio::test]
+    async fn serial_increments_on_single_value_removal() {
+        let config = DnsConfig::default_config();
+        let store = AuthorityStore::new(config);
+        store.create_zone("example.com").await;
+
+        store
+            .add_record("example.com", "www", "A", 300, "192.168.1.1")
+            .await;
+        store
+            .add_record("example.com", "www", "A", 300, "192.168.1.2")
+            .await;
+
+        let serial = || async {
+            let handler = store.zones.read().await.get("example.com").unwrap().clone();
+            handler.serial().await
+        };
+
+        let before = serial().await;
+        assert!(
+            store
+                .remove_record_value("example.com", "www", "A", "192.168.1.1")
+                .await
+        );
+        assert_eq!(serial().await, before.saturating_add(1));
+    }
+
+    #[tokio::test]
+    async fn load_zones_from_storage_restores_serial_without_bumping() {
+        let persistence = Arc::new(crate::ns::persistence::MemoryPersistence::new());
+        let stored_serial = 2024010100;
+        let zone = crate::ns::persistence::PersistedZone {
+            name: "example.com".to_string(),
+            serial: stored_serial,
+            records: vec![
+                crate::ns::persistence::PersistedRecord {
+                    name: "www".to_string(),
+                    rtype: "A".to_string(),
+                    ttl: 300,
+                    data: "192.168.1.1".to_string(),
+                },
+                crate::ns::persistence::PersistedRecord {
+                    name: "mail".to_string(),
+                    rtype: "MX".to_string(),
+                    ttl: 600,
+                    data: "10 mail.example.com".to_string(),
+                },
+            ],
+        };
+        persistence.save_zone(&zone).await.unwrap();
+
+        let store = AuthorityStore::with_persistence(
+            DnsConfig::default_config(),
+            persistence.clone(),
+        );
+        store.load_zones_from_storage().await.unwrap();
+
+        let handler = store.zones.read().await.get("example.com").unwrap().clone();
+        assert_eq!(handler.serial().await, stored_serial);
+
+        // a subsequent mutation bumps from the restored value, never below today's date
+        assert!(
+            store
+                .add_record("example.com", "api", "A", 300, "192.168.1.2")
+                .await
+        );
+        assert_eq!(
+            handler.serial().await,
+            stored_serial.saturating_add(1).max(today_serial_base())
+        );
+
+        let persisted = persistence.load_zone("example.com").await.unwrap().unwrap();
+        assert_eq!(
+            persisted.serial,
+            stored_serial.saturating_add(1).max(today_serial_base())
+        );
     }
 }

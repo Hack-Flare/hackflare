@@ -12,6 +12,7 @@ path = "src/lib.rs"
 
 [dependencies]
 async-trait = "0.1"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
 hickory-server = "0.26.1"
 parking_lot = "0.12"
 rand = "0.10.2"

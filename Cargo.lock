@@ -1075,6 +1075,7 @@ name = "hackflare-dns"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "chrono",
  "hickory-server",
  "parking_lot",
  "rand 0.10.2",

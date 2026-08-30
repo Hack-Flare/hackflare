@@ -18,6 +18,7 @@ use std::error::Error;
 #[derive(Debug, Clone)]
 pub struct PersistedZone {
     pub name: String,
+    pub serial: u32,
     pub records: Vec<PersistedRecord>,
 }
 
@@ -89,6 +90,15 @@ pub trait ZonePersistence: Send + Sync {
         rtype: &str,
         data: &str,
     ) -> Result<(), Box<dyn Error>>;
+
+    /// Update the SOA serial for a zone
+    ///
+    /// This is idempotent - setting the same serial twice is safe.
+    async fn update_zone_serial(
+        &self,
+        zone_name: &str,
+        serial: u32,
+    ) -> Result<(), Box<dyn Error>>;
 }
 
 /// SQL schema for PostgreSQL persistence backend.
@@ -100,6 +110,7 @@ pub const POSTGRES_SCHEMA_SQL: &str = r#"
 CREATE TABLE IF NOT EXISTS dns_zones (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL UNIQUE,
+    soa_serial BIGINT NOT NULL DEFAULT 2024010101,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -131,6 +142,7 @@ CREATE TABLE IF NOT EXISTS dns_records (
 /// CREATE TABLE dns_zones (
 ///     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 ///     name TEXT NOT NULL UNIQUE,
+///     soa_serial BIGINT NOT NULL DEFAULT 2024010101,
 ///     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 ///     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 /// );
@@ -184,6 +196,7 @@ impl ZonePersistence for PostgresPersistence {
         #[derive(sqlx::FromRow)]
         struct ZoneRecordRow {
             zone_name: String,
+            soa_serial: i64,
             record_name: Option<String>,
             rtype: Option<String>,
             ttl: Option<i32>,
@@ -193,6 +206,7 @@ impl ZonePersistence for PostgresPersistence {
         let rows = sqlx::query_as::<_, ZoneRecordRow>(
             r#"
             SELECT z.name AS zone_name,
+                   z.soa_serial,
                    r.name AS record_name,
                    r.rtype,
                    r.ttl,
@@ -207,12 +221,13 @@ impl ZonePersistence for PostgresPersistence {
 
         let mut zone_map: HashMap<String, PersistedZone> = HashMap::new();
         for row in rows {
-            let entry = zone_map
-                .entry(row.zone_name.clone())
-                .or_insert_with(|| PersistedZone {
+            let entry = zone_map.entry(row.zone_name.clone()).or_insert_with(|| {
+                PersistedZone {
                     name: row.zone_name,
+                    serial: row.soa_serial as u32,
                     records: Vec::new(),
-                });
+                }
+            });
             if let (Some(name), Some(rtype), Some(ttl), Some(data)) =
                 (row.record_name, row.rtype, row.ttl, row.data)
             {
@@ -229,13 +244,13 @@ impl ZonePersistence for PostgresPersistence {
     }
 
     async fn load_zone(&self, zone_name: &str) -> Result<Option<PersistedZone>, Box<dyn Error>> {
-        let zone_row: Option<(String,)> =
-            sqlx::query_as("SELECT name FROM dns_zones WHERE name = $1")
+        let zone_row: Option<(String, i64)> =
+            sqlx::query_as("SELECT name, soa_serial FROM dns_zones WHERE name = $1")
                 .bind(zone_name)
                 .fetch_optional(&self.pool)
                 .await?;
 
-        let Some((name,)) = zone_row else {
+        let Some((name, serial)) = zone_row else {
             return Ok(None);
         };
 
@@ -254,6 +269,7 @@ impl ZonePersistence for PostgresPersistence {
 
         Ok(Some(PersistedZone {
             name,
+            serial: serial as u32,
             records: records
                 .into_iter()
                 .map(|(n, rt, ttl, d)| PersistedRecord {
@@ -271,11 +287,12 @@ impl ZonePersistence for PostgresPersistence {
 
         sqlx::query(
             r#"
-            INSERT INTO dns_zones (name) VALUES ($1)
-            ON CONFLICT (name) DO UPDATE SET updated_at = now()
+            INSERT INTO dns_zones (name, soa_serial) VALUES ($1, $2)
+            ON CONFLICT (name) DO UPDATE SET soa_serial = EXCLUDED.soa_serial, updated_at = now()
             "#,
         )
         .bind(&zone.name)
+        .bind(zone.serial as i64)
         .execute(&mut *tx)
         .await?;
 
@@ -393,6 +410,25 @@ impl ZonePersistence for PostgresPersistence {
         .await?;
         Ok(())
     }
+
+    async fn update_zone_serial(
+        &self,
+        zone_name: &str,
+        serial: u32,
+    ) -> Result<(), Box<dyn Error>> {
+        sqlx::query(
+            r#"
+            UPDATE dns_zones
+            SET soa_serial = $2, updated_at = now()
+            WHERE name = $1
+            "#,
+        )
+        .bind(zone_name)
+        .bind(serial as i64)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
 }
 
 /// In-memory implementation for testing or when no database is available
@@ -466,6 +502,7 @@ impl ZonePersistence for MemoryPersistence {
             .entry(zone_name.to_string())
             .or_insert_with(|| PersistedZone {
                 name: zone_name.to_string(),
+                serial: 0,
                 records: Vec::new(),
             });
         if let Some(existing) = zone
@@ -511,6 +548,19 @@ impl ZonePersistence for MemoryPersistence {
         drop(zones);
         Ok(())
     }
+
+    async fn update_zone_serial(
+        &self,
+        zone_name: &str,
+        serial: u32,
+    ) -> Result<(), Box<dyn Error>> {
+        let mut zones = self.zones.write();
+        if let Some(zone) = zones.get_mut(zone_name) {
+            zone.serial = serial;
+        }
+        drop(zones);
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -525,6 +575,7 @@ mod tests {
 
         let zone = PersistedZone {
             name: "example.com".to_string(),
+            serial: 2024010101,
             records: vec![PersistedRecord {
                 name: "www".to_string(),
                 rtype: "A".to_string(),
@@ -537,7 +588,28 @@ mod tests {
 
         let loaded = storage.load_zone("example.com").await.unwrap();
         assert!(loaded.is_some());
-        assert_eq!(loaded.unwrap().name, "example.com");
+        assert_eq!(loaded.clone().unwrap().name, "example.com");
+        assert_eq!(loaded.unwrap().serial, 2024010101);
+    }
+
+    #[tokio::test]
+    async fn memory_persistence_updates_zone_serial() {
+        let storage = MemoryPersistence::new();
+
+        let zone = PersistedZone {
+            name: "example.com".to_string(),
+            serial: 2024010101,
+            records: vec![],
+        };
+        storage.save_zone(&zone).await.unwrap();
+
+        storage
+            .update_zone_serial("example.com", 2024010102)
+            .await
+            .unwrap();
+
+        let loaded = storage.load_zone("example.com").await.unwrap().unwrap();
+        assert_eq!(loaded.serial, 2024010102);
     }
 
     #[tokio::test]
@@ -564,6 +636,7 @@ mod tests {
 
         let zone = PersistedZone {
             name: "example.com".to_string(),
+            serial: 2024010101,
             records: vec![],
         };
 
@@ -580,6 +653,7 @@ mod tests {
 
         let zone = PersistedZone {
             name: "example.com".to_string(),
+            serial: 2024010101,
             records: vec![],
         };
 
@@ -607,6 +681,7 @@ mod tests {
 
         let zone = PersistedZone {
             name: "example.com".to_string(),
+            serial: 2024010101,
             records: vec![],
         };
 
@@ -649,6 +724,7 @@ mod tests {
 
         let zone = PersistedZone {
             name: "example.com".to_string(),
+            serial: 2024010101,
             records: vec![PersistedRecord {
                 name: "www".to_string(),
                 rtype: "A".to_string(),
@@ -690,6 +766,7 @@ mod tests {
     fn test_zone(name: &str) -> PersistedZone {
         PersistedZone {
             name: name.to_string(),
+            serial: 2024010101,
             records: vec![
                 PersistedRecord {
                     name: "www".to_string(),
@@ -743,6 +820,26 @@ mod tests {
             .expect("zone should exist");
         assert_eq!(zone.name, "example.com");
         assert_eq!(zone.records.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn postgres_update_zone_serial() {
+        let Some(pool) = get_test_pool().await else {
+            eprintln!("skipping: DATABASE_URL not set or unreachable");
+            return;
+        };
+        let storage = PostgresPersistence::new(pool);
+
+        storage.save_zone(&test_zone("example.com")).await.unwrap();
+
+        storage
+            .update_zone_serial("example.com", 2024010199)
+            .await
+            .unwrap();
+
+        let loaded = storage.load_zone("example.com").await.unwrap().unwrap();
+        assert_eq!(loaded.serial, 2024010199);
+        assert_eq!(loaded.records.len(), 2);
     }
 
     #[tokio::test]
@@ -908,6 +1005,7 @@ mod tests {
         // replace all records atomically
         let replacement = PersistedZone {
             name: "example.com".to_string(),
+            serial: 2024010101,
             records: vec![PersistedRecord {
                 name: "blog".to_string(),
                 rtype: "CNAME".to_string(),

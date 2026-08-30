@@ -1,0 +1,1 @@
+ALTER TABLE dns_zones DROP COLUMN soa_serial;
