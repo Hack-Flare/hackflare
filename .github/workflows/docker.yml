@@ -143,10 +143,14 @@ jobs:
               "$IMAGE:${TAG_PART}-amd64"
           done <<< "$TAGS"
   
-  coolify-webhook:
+  coolify-deploy:
     needs: [publish, merge-manifest]
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to Coolify
-        run: |
-          curl --request GET 'https://coolify.kirze.de/api/v1/deploy?uuid=ketzzgfh95vu7ve7pyityojl&force=false' --header 'Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}'
+      - name: Coolify Deploy Action
+        uses: SeradedStripes/coolify-deploy@v1
+        with:
+          coolify_url: 'https://coolify.kirze.de'
+          coolify_token: ${{ secrets.COOLIFY_TOKEN }}
+          coolify_uuid: 'ketzzgfh95vu7ve7pyityojl'
+          force_deploy: false
