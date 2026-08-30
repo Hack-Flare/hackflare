@@ -94,11 +94,7 @@ pub trait ZonePersistence: Send + Sync {
     /// Update the SOA serial for a zone
     ///
     /// This is idempotent - setting the same serial twice is safe.
-    async fn update_zone_serial(
-        &self,
-        zone_name: &str,
-        serial: u32,
-    ) -> Result<(), Box<dyn Error>>;
+    async fn update_zone_serial(&self, zone_name: &str, serial: u32) -> Result<(), Box<dyn Error>>;
 }
 
 /// SQL schema for PostgreSQL persistence backend.
@@ -221,13 +217,13 @@ impl ZonePersistence for PostgresPersistence {
 
         let mut zone_map: HashMap<String, PersistedZone> = HashMap::new();
         for row in rows {
-            let entry = zone_map.entry(row.zone_name.clone()).or_insert_with(|| {
-                PersistedZone {
+            let entry = zone_map
+                .entry(row.zone_name.clone())
+                .or_insert_with(|| PersistedZone {
                     name: row.zone_name,
                     serial: row.soa_serial as u32,
                     records: Vec::new(),
-                }
-            });
+                });
             if let (Some(name), Some(rtype), Some(ttl), Some(data)) =
                 (row.record_name, row.rtype, row.ttl, row.data)
             {
@@ -411,11 +407,7 @@ impl ZonePersistence for PostgresPersistence {
         Ok(())
     }
 
-    async fn update_zone_serial(
-        &self,
-        zone_name: &str,
-        serial: u32,
-    ) -> Result<(), Box<dyn Error>> {
+    async fn update_zone_serial(&self, zone_name: &str, serial: u32) -> Result<(), Box<dyn Error>> {
         sqlx::query(
             r#"
             UPDATE dns_zones
@@ -549,11 +541,7 @@ impl ZonePersistence for MemoryPersistence {
         Ok(())
     }
 
-    async fn update_zone_serial(
-        &self,
-        zone_name: &str,
-        serial: u32,
-    ) -> Result<(), Box<dyn Error>> {
+    async fn update_zone_serial(&self, zone_name: &str, serial: u32) -> Result<(), Box<dyn Error>> {
         let mut zones = self.zones.write();
         if let Some(zone) = zones.get_mut(zone_name) {
             zone.serial = serial;

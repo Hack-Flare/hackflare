@@ -101,7 +101,10 @@ impl DnsConfig {
 
 // Helper functions for environment variable parsing
 fn default_nameservers() -> Vec<String> {
-    vec!["ns1.hackflare.net.".to_string(), "ns2.hackflare.net.".to_string()]
+    vec![
+        "ns1.hackflare.net.".to_string(),
+        "ns2.hackflare.net.".to_string(),
+    ]
 }
 
 fn env_bool(name: &str, default: bool) -> bool {
@@ -126,11 +129,7 @@ fn env_list(name: &str, default: Vec<String>) -> Vec<String> {
     match env::var(name) {
         Ok(v) => {
             let items = parse_list(&v);
-            if items.is_empty() {
-                default
-            } else {
-                items
-            }
+            if items.is_empty() { default } else { items }
         }
         Err(_) => default,
     }
@@ -185,7 +184,10 @@ mod tests {
         assert_eq!(cfg.soa_ttl, 3600);
         assert_eq!(
             cfg.nameservers,
-            vec!["ns1.hackflare.net.".to_string(), "ns2.hackflare.net.".to_string()]
+            vec![
+                "ns1.hackflare.net.".to_string(),
+                "ns2.hackflare.net.".to_string()
+            ]
         );
         assert_eq!(cfg.max_edns_payload_size, 1232);
         assert_eq!(cfg.udp_attempts, 4);
@@ -203,10 +205,7 @@ mod tests {
     #[test]
     fn env_list_splits_and_trims() {
         let default = default_nameservers();
-        assert_eq!(
-            env_list("NONEXISTENT_VAR_12345", default.clone()),
-            default
-        );
+        assert_eq!(env_list("NONEXISTENT_VAR_12345", default.clone()), default);
         // comma-separated, entries trimmed, empty entries dropped
         assert_eq!(
             parse_list("ns1.x.net., ns2.x.net."),

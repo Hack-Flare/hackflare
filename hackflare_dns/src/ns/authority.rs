@@ -5,7 +5,8 @@ use hickory_server::net::runtime::TokioRuntimeProvider;
 use hickory_server::net::xfer::Protocol;
 use hickory_server::proto::op::{Header, HeaderCounts, Message, Metadata, ResponseCode};
 use hickory_server::proto::rr::{
-    LowerName, Name, RData, Record, RecordType, rdata::{NS, SOA},
+    LowerName, Name, RData, Record, RecordType,
+    rdata::{NS, SOA},
 };
 use hickory_server::proto::serialize::binary::BinEncodable;
 use hickory_server::server::{Request, RequestHandler, ResponseHandler, ResponseInfo};
@@ -225,7 +226,8 @@ impl AuthorityStore {
             let mut records = handler.records_mut().await;
             let before_count = records.len();
             let target_name = LowerName::new(&record_name);
-            records.retain(|key, _| !(key.name() == &target_name && key.record_type == record_type));
+            records
+                .retain(|key, _| !(key.name() == &target_name && key.record_type == record_type));
             before_count != records.len()
         };
 
@@ -236,7 +238,9 @@ impl AuthorityStore {
                     .delete_record(zone_name, name, rtype.trim())
                     .await
             {
-                eprintln!("[hackflare:dns] failed to remove record {name} ({rtype}) from storage: {e}");
+                eprintln!(
+                    "[hackflare:dns] failed to remove record {name} ({rtype}) from storage: {e}"
+                );
             }
         }
 
@@ -1107,10 +1111,8 @@ mod tests {
         };
         persistence.save_zone(&zone).await.unwrap();
 
-        let store = AuthorityStore::with_persistence(
-            DnsConfig::default_config(),
-            persistence.clone(),
-        );
+        let store =
+            AuthorityStore::with_persistence(DnsConfig::default_config(), persistence.clone());
         store.load_zones_from_storage().await.unwrap();
 
         let handler = store.zones.read().await.get("example.com").unwrap().clone();
