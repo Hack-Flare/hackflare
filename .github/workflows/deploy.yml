@@ -1,0 +1,118 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "hackflare_api/**"
+      - "hackflare_frontend/**"
+      - "hackflare_dns/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "deployment/**"
+      - ".github/workflows/deploy.yml"
+      - ".dockerignore"
+
+env:
+ REGISTRY: ghcr.io
+ IMAGE_NAME: hackflare-app
+
+jobs:
+  build:
+    if: false
+    concurrency:
+      group: build-${{ github.ref }}-{{ matrix.platform }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runs-on: ubuntu-latest
+          - platform: linux/arm64
+            runs-on: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runs-on }}
+    steps:
+      - uses: actions/checkout@v7
+          
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch,suffix=${{ matrix.tag-suffix }}
+            type=sha,suffix=${{ matrix.tag-suffix }}
+            type=raw,value=latest${{ matrix.tag-suffix }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./deployment/Dockerfile
+          platforms: ${{ matrix.platform }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  merge-manifest:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Log in to the Container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha
+            type=raw,value=latest
+
+      - name: Create and push multi-arch manifest
+        shell: bash
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          set -euo pipefail
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          while IFS= read -r TAG; do
+            [ -z "$TAG" ] && continue
+            TAG_PART="${TAG##*:}"
+            docker buildx imagetools create \
+              -t "$TAG" \
+              "$IMAGE:${TAG_PART}-amd64"
+            done <<< "$TAGS"
+
+  coolify-deploy:
+    needs: [merge-manifest]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Coolify Deploy Action
+        uses: SeradedStripes/coolify-deploy@v1
+        with:
+          coolify_url: 'https://coolify.kirze.de'
+          coolify_token: ${{ secrets.COOLIFY_TOKEN }}
+          coolify_app_uuid: 'ketzzgfh95vu7ve7pyityojl'
+          coolify_force_deploy: false
