@@ -3,6 +3,7 @@ resolver = "3"
 members = [
     "hackflare_api",
     "hackflare_dns",
+    "hackflare_frontend",
 ]
 
 [workspace.lints.clippy]
