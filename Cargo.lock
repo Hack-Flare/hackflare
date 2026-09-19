@@ -1163,6 +1163,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "hackflare-app"
+version = "0.1.0"
+
+[[package]]
 name = "hackflare-dns"
 version = "0.1.0"
 dependencies = [
