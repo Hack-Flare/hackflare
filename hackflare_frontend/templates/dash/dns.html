@@ -1,0 +1,91 @@
+<div class="dash-page">
+  <h1>DNS Records</h1>
+  <p class="dash-sub">Managing records for <strong>{{ zone_name }}</strong></p>
+  {% if ns_verified %}
+  <form
+    method="post"
+    action="/dash/domains/{{ zone_name }}/dns"
+    class="flex flex-wrap gap-2"
+  >
+    <input type="hidden" name="action" value="create" /><input
+      class="input"
+      name="name"
+      placeholder="@ or subdomain"
+      required
+    /><select class="input" name="record_type">
+      <option>A</option>
+      <option>CNAME</option>
+      <option>MX</option>
+      <option>AAAA</option>
+      <option>TXT</option></select
+    ><input class="input" name="value" placeholder="Value" required /><input
+      class="input"
+      name="ttl"
+      type="number"
+      value="3600"
+    /><button class="btn btn-orange" type="submit">Add Record</button>
+  </form>
+  {% else %}
+  <div class="error-banner text-warning">
+    Zone is not verified. Record edits are blocked.
+  </div>
+  {% endif %}
+  <div class="stat-grid">
+    <div class="card">
+      <div class="card-content">
+        <div class="stat-label">A Records</div>
+        <div class="stat-value">{{ a_count }}</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-content">
+        <div class="stat-label">CNAME Records</div>
+        <div class="stat-value">{{ cname_count }}</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-content">
+        <div class="stat-label">Other Records</div>
+        <div class="stat-value">{{ other_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="card card-spaced">
+    <div class="card-content">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Value</th>
+            <th>TTL</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for record in records %}
+          <tr>
+            <td>{{ record.name }}</td>
+            <td>{{ record.record_type }}</td>
+            <td>{{ record.value }}</td>
+            <td>{{ record.ttl }}</td>
+            <td>
+              <form method="post" action="/dash/domains/{{ zone_name }}/dns">
+                <input type="hidden" name="action" value="delete" /><input
+                  type="hidden"
+                  name="id"
+                  value="{{ record.id }}"
+                /><button class="btn btn-ghost" type="submit">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="text-muted">No records yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
