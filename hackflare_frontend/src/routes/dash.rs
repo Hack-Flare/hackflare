@@ -18,20 +18,36 @@ use super::handlers::{not_found, require_user};
 /// (route key, page title, section description) for sidebar sections.
 const SECTION_META: &[(&str, &str, &str)] = &[
     ("domains", "Domains", "Manage and register your domains."),
-    ("firewall", "Firewall", "Protect your edge with firewall rules."),
+    (
+        "firewall",
+        "Firewall",
+        "Protect your edge with firewall rules.",
+    ),
     ("workers", "Workers", "Deploy scripts at the edge."),
     ("tunnel", "Tunnel", "Expose local services securely."),
     ("traffic", "Traffic", "DNS traffic analytics and insights."),
-    ("performance", "Performance", "Performance monitoring and insights."),
+    (
+        "performance",
+        "Performance",
+        "Performance monitoring and insights.",
+    ),
     ("logs", "Logs", "Query and request logs."),
-    ("notifications", "Notifications", "Alerts and account notifications."),
+    (
+        "notifications",
+        "Notifications",
+        "Alerts and account notifications.",
+    ),
     ("settings", "Settings", "Account and workspace settings."),
     ("profile", "Profile", "Your profile and preferences."),
     ("admin", "Admin Panel", "Platform administration."),
     ("help", "Help", "Support and documentation."),
 ];
 
-const DOMAIN_SUB_META: &[(&str, &str)] = &[("dns", "DNS Records"), ("ssl", "SSL/TLS"), ("redirects", "Redirects")];
+const DOMAIN_SUB_META: &[(&str, &str)] = &[
+    ("dns", "DNS Records"),
+    ("ssl", "SSL/TLS"),
+    ("redirects", "Redirects"),
+];
 
 async fn fetch_zones(state: &AppState, cookie: Option<&HeaderValue>) -> Vec<DnsZone> {
     let url = api::api_url(&state.config.api_proxy_target, "/dns/zones");
@@ -76,8 +92,13 @@ pub async fn index(State(state): State<AppState>, headers: HeaderMap) -> Respons
 }
 
 /// Generic placeholder page for each sidebar section.
-pub async fn section(State(state): State<AppState>, Path(section): Path<String>, headers: HeaderMap) -> Response {
-    let Some((key, title, description)) = SECTION_META.iter().find(|(key, _, _)| *key == section) else {
+pub async fn section(
+    State(state): State<AppState>,
+    Path(section): Path<String>,
+    headers: HeaderMap,
+) -> Response {
+    let Some((key, title, description)) = SECTION_META.iter().find(|(key, _, _)| *key == section)
+    else {
         return not_found().await;
     };
 

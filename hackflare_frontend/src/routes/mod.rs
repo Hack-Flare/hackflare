@@ -15,7 +15,10 @@ pub fn build_router(state: AppState) -> Router {
     Router::new()
         .route("/", get(handlers::home))
         .route("/auth", get(handlers::auth_redirect))
-        .route("/login", get(handlers::login_get).post(handlers::login_post))
+        .route(
+            "/login",
+            get(handlers::login_get).post(handlers::login_post),
+        )
         .route(
             "/register",
             get(handlers::register_get).post(handlers::register_post),
@@ -35,10 +38,7 @@ pub fn build_router(state: AppState) -> Router {
         .route("/dash/{section}", get(dash::section))
         .route("/dash/domains/{domain}/{sub}", get(dash::domain_sub))
         .route("/api/{*path}", any(proxy))
-        .nest_service(
-            "/static",
-            ServeDir::new(state.config.static_dir.clone()),
-        )
+        .nest_service("/static", ServeDir::new(state.config.static_dir.clone()))
         .fallback(handlers::not_found)
         .with_state(state)
 }

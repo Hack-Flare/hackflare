@@ -191,7 +191,13 @@ pub async fn register_post(
 ) -> Response {
     let register_url = api::api_url(&state.config.api_proxy_target, "/auth/register");
 
-    match state.http_client.post(register_url).json(&form).send().await {
+    match state
+        .http_client
+        .post(register_url)
+        .json(&form)
+        .send()
+        .await
+    {
         Ok(backend) if backend.status().is_success() => {
             let cookies = take_cookies(&backend);
             let mut response = Redirect::to("/dash").into_response();
@@ -241,10 +247,7 @@ pub async fn forgot_get() -> ForgotPasswordTemplate {
     }
 }
 
-pub async fn forgot_post(
-    State(state): State<AppState>,
-    Form(form): Form<ForgotForm>,
-) -> Response {
+pub async fn forgot_post(State(state): State<AppState>, Form(form): Form<ForgotForm>) -> Response {
     let url = api::api_url(&state.config.api_proxy_target, "/auth/forgot-password");
 
     match state.http_client.post(url).json(&form).send().await {
