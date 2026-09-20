@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthenticatedUser {
     pub id: String,
-    pub slack_id: Option<String>,
     pub first_name: String,
     pub last_name: String,
     pub email: String,

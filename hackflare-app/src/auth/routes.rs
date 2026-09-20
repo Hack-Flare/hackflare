@@ -31,7 +31,7 @@ use crate::{
 };
 
 fn login_redirect(hca: &HcaConfig, csrf_token: &str) -> String {
-    let scopes = "email name profile verification_status slack_id";
+    let scopes = "email name profile verification_status";
 
     let path = "https://auth.hackclub.com/oauth/authorize";
     let params = [
@@ -573,8 +573,8 @@ async fn register_handler(
 
     sqlx::query(
         r#"
-        INSERT INTO users (id, email, slack_id, first_name, last_name, verification_status, ysws_eligible, password_hash, email_verified, hca_access_token, hca_refresh_token, hca_token_expires_at)
-        VALUES ($1, $2, NULL, $3, $4, 'email', false, $5, false, '', '', NOW())
+        INSERT INTO users (id, email, first_name, last_name, verification_status, ysws_eligible, password_hash, email_verified, hca_access_token, hca_refresh_token, hca_token_expires_at)
+        VALUES ($1, $2, $3, $4, 'email', false, $5, false, '', '', NOW())
         "#,
     )
     .bind(&user_id)

@@ -236,14 +236,6 @@ fn build_env_map(config: &crate::config::Config) -> HashMap<&'static str, String
         format!("{:?}", config.client_ip_source),
     );
     m.insert("API_ADMIN_EMAILS", config.admin_emails.join(","));
-    m.insert(
-        "SLACK_WEBHOOK_URL",
-        config
-            .slack_webhook_url
-            .as_ref()
-            .map(|u| u.to_string())
-            .unwrap_or_default(),
-    );
     m.insert("DATABASE_URL", "postgres://****@****/****".to_string());
     m.insert("API_JWT_SECRET", "********".to_string());
 

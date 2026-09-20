@@ -163,7 +163,6 @@ fn dashboard_page(user: &AuthenticatedUser, active: &str, title: &str) -> Dashbo
         created_key: None,
         user: user.clone(),
         sessions: Vec::new(),
-        slack_id: user.slack_id.clone(),
         config: Vec::new(),
         users: Vec::new(),
         stats: None,

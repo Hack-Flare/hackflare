@@ -32,19 +32,17 @@ impl UsersService {
             query(
                 r#"
                 UPDATE users SET
-                    slack_id = $1,
-                    first_name = $2,
-                    last_name = $3,
-                    verification_status = $4,
-                    ysws_eligible = $5,
+                    first_name = $1,
+                    last_name = $2,
+                    verification_status = $3,
+                    ysws_eligible = $4,
                     updated_at = NOW(),
-                    hca_access_token = $6,
-                    hca_refresh_token = $7,
-                    hca_token_expires_at = $8
-                WHERE id = $9
+                    hca_access_token = $5,
+                    hca_refresh_token = $6,
+                    hca_token_expires_at = $7
+                WHERE id = $8
                 "#,
             )
-            .bind(&user.slack_id)
             .bind(&user.first_name)
             .bind(&user.last_name)
             .bind(&user.verification_status)
@@ -60,13 +58,12 @@ impl UsersService {
             let new_id = format!("hf!{}", Uuid::new_v4());
             query(
                 r#"
-                INSERT INTO users (id, email, slack_id, first_name, last_name, verification_status, ysws_eligible, hca_access_token, hca_refresh_token, hca_token_expires_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                INSERT INTO users (id, email, first_name, last_name, verification_status, ysws_eligible, hca_access_token, hca_refresh_token, hca_token_expires_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                 "#,
             )
             .bind(&new_id)
             .bind(&user.primary_email)
-            .bind(&user.slack_id)
             .bind(&user.first_name)
             .bind(&user.last_name)
             .bind(&user.verification_status)

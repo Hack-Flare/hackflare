@@ -9,7 +9,6 @@ use crate::{middlewares::auth_middleware, models::CurrentUser, state::AppState};
 #[derive(Serialize)]
 struct Me {
     id: String,
-    slack_id: Option<String>,
     first_name: String,
     last_name: String,
     email: String,
@@ -37,7 +36,6 @@ async fn me_handler(
     };
     Json(Me {
         id: user.id,
-        slack_id: user.slack_id,
         first_name: user.first_name,
         last_name: user.last_name,
         email: user.email,

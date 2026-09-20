@@ -166,7 +166,6 @@ pub struct DashboardTemplate {
     pub created_key: Option<CreatedApiKey>,
     pub user: AuthenticatedUser,
     pub sessions: Vec<UserSession>,
-    pub slack_id: Option<String>,
     pub config: Vec<ConfigEntry>,
     pub users: Vec<AdminUser>,
     pub stats: Option<AdminStats>,

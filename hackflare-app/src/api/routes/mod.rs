@@ -10,7 +10,6 @@ pub(crate) mod logs;
 pub(crate) mod notifications;
 pub(crate) mod sessions;
 pub(crate) mod settings;
-pub mod slack;
 pub(crate) mod traffic;
 pub(crate) mod users;
 
@@ -38,7 +37,6 @@ fn v1_routes(state: AppState, config: &Config) -> Router<AppState> {
                 crate::auth::middleware::auth_middleware,
             )),
         )
-        .route("/slack/contact", axum::routing::post(slack::slack_contact))
 }
 
 pub fn build_router(state: AppState) -> Router {

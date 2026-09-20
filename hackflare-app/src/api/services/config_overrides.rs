@@ -168,16 +168,6 @@ static CONFIG_METADATA: &[ConfigMeta] = &[
         requires_restart: false,
     },
     ConfigMeta {
-        key: "SLACK_WEBHOOK_URL",
-        label: "Slack Webhook URL",
-        description: "Incoming webhook for contact form",
-        category: "Admin",
-        default_value: None,
-        default_override: true,
-        editable: true,
-        requires_restart: false,
-    },
-    ConfigMeta {
         key: "DATABASE_URL",
         label: "Database URL",
         description: "PostgreSQL connection string",

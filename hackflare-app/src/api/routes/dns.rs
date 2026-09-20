@@ -586,7 +586,6 @@ mod tests {
                     client_secret: "test".into(),
                     redirect_uri: Url::parse("http://localhost:3000/callback").ok()?,
                 },
-                slack_webhook_url: None,
                 session_inactivity_minutes: 15,
                 access_token_minutes: 15,
                 refresh_token_days: 30,
@@ -608,14 +607,13 @@ mod tests {
 
             sqlx::query(
                 r#"
-                INSERT INTO users (id, email, slack_id, first_name, last_name, verification_status,
+                INSERT INTO users (id, email, first_name, last_name, verification_status,
                                    ysws_eligible, hca_access_token, hca_refresh_token, hca_token_expires_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                 "#,
             )
             .bind(&user_id)
             .bind(format!("{}@test.com", user_id))
-            .bind(format!("slack_{}", user_id))
             .bind("Test")
             .bind("User")
             .bind("verified")
