@@ -537,12 +537,21 @@ pub(super) fn routes(state: AppState) -> Router<AppState> {
 mod tests {
     #![allow(clippy::unwrap_used)]
 
-    use std::{net::SocketAddr, str::FromStr};
+    use std::{
+        net::SocketAddr,
+        str::FromStr,
+        sync::atomic::{AtomicU16, Ordering},
+    };
 
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
     use chrono::{Duration, Utc};
     use jsonwebtoken::{DecodingKey, EncodingKey, Header, encode};
+    use pg_embed::{
+        pg_enums::PgAuthMethod,
+        pg_fetch::{PG_V17, PgFetchSettings},
+        postgres::{PgEmbed, PgSettings},
+    };
     use reqwest::Url;
     use tower::ServiceExt;
     use uuid::Uuid;
@@ -556,9 +565,11 @@ mod tests {
     use axum_client_ip::ClientIpSource;
 
     const TEST_JWT_SECRET: &str = "dGhpcyBpcyBhIHRlc3Qgc2VjcmV0IGZvciB0ZXN0aW5nIHB1cnBvc2Vz";
+    static NEXT_POSTGRES_PORT: AtomicU16 = AtomicU16::new(55432);
 
     struct TestCtx {
         state: AppState,
+        _embedded_postgres: Option<PgEmbed>,
         jwt: String,
         user_id: String,
         session_id: Uuid,
@@ -566,7 +577,33 @@ mod tests {
 
     impl TestCtx {
         async fn setup() -> Option<Self> {
-            let database_url = std::env::var("DATABASE_URL").ok()?;
+            let (database_url, embedded_postgres) = match std::env::var("DATABASE_URL") {
+                Ok(database_url) => (database_url, None),
+                Err(_) => {
+                    let port = NEXT_POSTGRES_PORT.fetch_add(1, Ordering::Relaxed);
+                    let pg_settings = PgSettings {
+                        database_dir: std::env::temp_dir()
+                            .join(format!("hackflare-test-postgres-{port}")),
+                        port,
+                        user: "postgres".to_string(),
+                        password: "postgres".to_string(),
+                        auth_method: PgAuthMethod::Plain,
+                        persistent: false,
+                        timeout: Some(std::time::Duration::from_secs(30)),
+                        migration_dir: None,
+                    };
+                    let fetch_settings = PgFetchSettings {
+                        version: PG_V17,
+                        ..Default::default()
+                    };
+                    let mut pg = PgEmbed::new(pg_settings, fetch_settings).await.ok()?;
+                    pg.setup().await.ok()?;
+                    pg.start_db().await.ok()?;
+                    pg.create_database("hackflare_test").await.ok()?;
+                    let database_url = pg.full_db_uri("hackflare_test");
+                    (database_url, Some(pg))
+                }
+            };
             let url = Url::parse(&database_url).ok()?;
 
             let config = Config {
@@ -650,6 +687,7 @@ mod tests {
 
             Some(Self {
                 state,
+                _embedded_postgres: embedded_postgres,
                 jwt,
                 user_id,
                 session_id,
@@ -697,7 +735,7 @@ mod tests {
     #[tokio::test]
     async fn test_unauthenticated() {
         let Some(ctx) = TestCtx::setup().await else {
-            eprintln!("skipping: DATABASE_URL not set or unreachable");
+            eprintln!("skipping: database unavailable");
             return;
         };
 
@@ -718,7 +756,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_and_list_zones() {
         let Some(ctx) = TestCtx::setup().await else {
-            eprintln!("skipping: DATABASE_URL not set or unreachable");
+            eprintln!("skipping: database unavailable");
             return;
         };
 
@@ -769,7 +807,7 @@ mod tests {
     #[tokio::test]
     async fn test_delete_zone() {
         let Some(ctx) = TestCtx::setup().await else {
-            eprintln!("skipping: DATABASE_URL not set or unreachable");
+            eprintln!("skipping: database unavailable");
             return;
         };
 
@@ -806,7 +844,7 @@ mod tests {
     #[tokio::test]
     async fn test_records_crud() {
         let Some(ctx) = TestCtx::setup().await else {
-            eprintln!("skipping: DATABASE_URL not set or unreachable");
+            eprintln!("skipping: database unavailable");
             return;
         };
 
@@ -892,7 +930,7 @@ mod tests {
     #[tokio::test]
     async fn test_delete_duplicate_record_keeps_others() {
         let Some(ctx) = TestCtx::setup().await else {
-            eprintln!("skipping: DATABASE_URL not set or unreachable");
+            eprintln!("skipping: database unavailable");
             return;
         };
 
@@ -973,7 +1011,7 @@ mod tests {
     #[tokio::test]
     async fn test_records_nonexistent_zone() {
         let Some(ctx) = TestCtx::setup().await else {
-            eprintln!("skipping: DATABASE_URL not set or unreachable");
+            eprintln!("skipping: database unavailable");
             return;
         };
 
@@ -999,7 +1037,7 @@ mod tests {
     #[tokio::test]
     async fn test_records_blocked_on_unverified_zone() {
         let Some(ctx) = TestCtx::setup().await else {
-            eprintln!("skipping: DATABASE_URL not set or unreachable");
+            eprintln!("skipping: database unavailable");
             return;
         };
 
@@ -1062,7 +1100,7 @@ mod tests {
     #[tokio::test]
     async fn test_verify_zone() {
         let Some(ctx) = TestCtx::setup().await else {
-            eprintln!("skipping: DATABASE_URL not set or unreachable");
+            eprintln!("skipping: database unavailable");
             return;
         };
 

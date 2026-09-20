@@ -41,4 +41,5 @@ uuid = { version = "1.26.0", features = ["serde", "v4"] }
 
 [dev-dependencies]
 http-body-util = "0.1"
+pg-embed = "1.0"
 tower = "0.5"
