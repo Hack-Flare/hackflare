@@ -147,6 +147,7 @@ fn initials_from(first_name: &str, last_name: &str, email: &str) -> String {
 
 #[derive(Template, WebTemplate)]
 #[template(path = "dash/base.html")]
+#[allow(dead_code)]
 pub struct DashboardTemplate {
     pub page_title: String,
     pub active: String,

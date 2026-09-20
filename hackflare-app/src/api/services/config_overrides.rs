@@ -279,16 +279,6 @@ impl ConfigOverridesService {
         Ok(overrides)
     }
 
-    pub(crate) async fn get_override(&self, key: &str) -> Result<Option<ConfigOverride>> {
-        let ov = query_as::<_, ConfigOverride>(
-            "SELECT key, value, updated_at, updated_by FROM config_overrides WHERE key = $1",
-        )
-        .bind(key)
-        .fetch_optional(&self.db)
-        .await?;
-        Ok(ov)
-    }
-
     pub(crate) async fn upsert(&self, key: &str, value: &str, updated_by: &str) -> Result<()> {
         query(
             r#"

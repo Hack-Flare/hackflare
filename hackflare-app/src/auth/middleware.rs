@@ -1,7 +1,4 @@
-use std::{
-    net::{IpAddr, Ipv4Addr},
-    sync::Arc,
-};
+use std::net::{IpAddr, Ipv4Addr};
 
 use axum::{
     extract::{Request, State},
@@ -11,13 +8,11 @@ use axum::{
 use axum_extra::extract::CookieJar;
 use chrono::Utc;
 use jsonwebtoken::Validation;
-use reqwest::StatusCode;
 use axum::http::{HeaderMap, header};
+use reqwest::StatusCode;
 
 use crate::{
-    config::Config,
     api::models::{CurrentUser, JwtClaims, db::UserSession},
-    api::services::{api_keys::ApiKeysService, user_sessions::UserSessionsService, users::UsersService},
     state::AppState,
 };
 
@@ -33,15 +28,16 @@ fn virtual_session_for_api_key(api_key: &crate::api::services::api_keys::ApiKey)
 }
 
 pub(crate) async fn auth_middleware(
-    State(_app_state): State<AppState>,
-    State(config): State<Arc<Config>>,
-    State(users): State<UsersService>,
-    State(user_sessions): State<UserSessionsService>,
-    State(api_keys): State<ApiKeysService>,
+    State(app_state): State<AppState>,
     jar: CookieJar,
     mut req: Request,
     next: Next,
 ) -> Result<Response, (StatusCode, &'static str)> {
+    let config = &app_state.config;
+    let users = &app_state.users;
+    let user_sessions = &app_state.user_sessions;
+    let api_keys = &app_state.api_keys;
+
     // Try Bearer token (API key) first
     if let Some(auth_header) = req
         .headers()
