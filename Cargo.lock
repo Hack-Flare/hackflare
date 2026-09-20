@@ -1320,42 +1320,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hackflare-api"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "argon2",
- "axum",
- "axum-client-ip",
- "axum-extra",
- "chrono",
- "derive_more",
- "dotenvy",
- "hackflare-dns",
- "hex",
- "hickory-proto",
- "http-body-util",
- "hyper-rustls",
- "jsonwebtoken",
- "lettre",
- "rand 0.10.2",
- "reqwest",
- "rustls",
- "serde",
- "serde_json",
- "serde_with",
- "sha2 0.11.0",
- "sqlx 0.9.0",
- "tokio",
- "tower",
- "tower-http 0.7.0",
- "tower-sessions",
- "tracing",
- "tracing-subscriber",
- "uuid",
-]
-
-[[package]]
 name = "hackflare-app"
 version = "0.1.0"
 dependencies = [
@@ -1408,25 +1372,6 @@ dependencies = [
  "serde_json",
  "sqlx 0.9.0",
  "tokio",
-]
-
-[[package]]
-name = "hackflare_frontend"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "askama",
- "askama_web",
- "axum",
- "dotenvy",
- "percent-encoding",
- "reqwest",
- "serde",
- "serde_json",
- "tokio",
- "tower-http 0.7.0",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]

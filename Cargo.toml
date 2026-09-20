@@ -1,9 +1,8 @@
 [workspace]
 resolver = "3"
-members = ["hackflare-app",
-    "hackflare_api",
+members = [
+    "hackflare-app",
     "hackflare_dns",
-    "hackflare_frontend",
 ]
 
 [workspace.lints.clippy]
