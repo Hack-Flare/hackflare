@@ -2,44 +2,27 @@
 <!-- Logo goes here in future -->
 </div>
 
-# HackFlare
+# Hackflare
 
 Cloudflare alternative, for free and open-source.  
-Made by HackClubbers from [Hack Club](https://hackclub.com/) as an alternative to Cloudflare. Hence the name HackFlare.
+Made by HackClubbers from [Hack Club](https://hackclub.com/) as an alternative to Cloudflare. Hence the name Hackflare.
 
 > [!IMPORTANT]  
-> Hackflare is still in development, if production goes down, please let us know!
-> Although Hackflare is production ready, we do not have the best server for it yet.
+> Hackflare is still in development, and is not yet the most reliable for production use.
+
+## About Hackflare
+
+Hackflare is a project that originated in Hack Club, but it is not a Hack Club project or affiliated with Hack Club in any way.
+
+Hackflare hopes to become fiscally sponsored in the future, but is not currently fiscally sponsored by any organization.  
+
+If you are interested in sponsoring or supporting Hackflare, please contact me (Nayte) at my email: [here](mailto:seradedstripes@gmail.com).
 
 ## Introduction
 
-HackFlare is a project that aims to provide a free, open-source and open-infra alternative to Cloudflare.
+Hackflare is a project that aims to provide a free, open-source and open-infra alternative to Cloudflare.  
 It is designed to be easy to use, easy to deploy and realtively easy to maintain.  
-
-### Features
-
-Note: These are the active features. For planned features please see the [roadmap](docs/ROADMAP.md).
-
-**Frontend:**
-
-- Dashboard
-- Domain management
-- Admin panel
-- Logging
-- Analytics
-- Settings
-
-**Backend:**
-
-- DNS management
-- Account Registration and Authentication
-  - [HackClub Auth](https://auth.hackclub.com/docs/welcome)
-  - Email and Password Auth
-- Account management
-- Authoritative DNS server
-- Recursive DNS server
-- PostgreSQL persistence
-- Working internal API
+We may even do additional software other than DNS in future but that will have its own Repositories.
 
 ## Roadmap
 
@@ -49,9 +32,7 @@ See [ROADMAP.md](docs/ROADMAP.md) for the roadmap.
 
 ### Production
 
-```
-docker compose -f deployment/compose.prod.yml up
-```
+We deploy Hackflare using the docker images off ghcr.io
 
 ### Development
 
