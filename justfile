@@ -30,11 +30,11 @@ test: test-app test-dns
 
 # Lint the merged application and its test targets.
 lint-app:
-	cargo clippy -p hackflare-app --all-targets
+	cargo clippy -p hackflare-app --all-targets --all-features -- -D warnings
 
 # Lint every workspace crate and its test targets.
 lint:
-	cargo clippy --workspace --all-targets
+	cargo clippy --workspace --all-targets --all-features -- -D warnings
 
 # Run formatting, linting, and tests.
 check: fmt-check lint test
