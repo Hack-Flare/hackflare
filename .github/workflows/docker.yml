@@ -8,13 +8,11 @@ on:
       - main
     types: [opened, synchronize, closed]
     paths:
-      - 'frontend/**'
-      - 'hackflare_api/**'
+      - 'hackflare-app/**'
       - 'hackflare_dns/**'
       - 'database/migrations/**'
       - 'Cargo.toml'
-      - 'deployment/Dockerfile.combined'
-      - 'deployment/hackflare_supervisord.conf'
+      - 'deployment/**'
       - '.github/workflows/docker.yml'
       - '.dockerignore'
 
@@ -34,6 +32,8 @@ jobs:
         include:
           - platform: linux/amd64
             runs-on: ubuntu-latest
+          - platform: linux/arm64
+            runs-on: ubuntu-24.04-arm
     runs-on: ${{ matrix.runs-on }}
     steps:
       - name: Checkout repository
@@ -46,7 +46,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: ./deployment/Dockerfile.combined
+          file: ./hackflare-app/Dockerfile
           network: host
           platforms: ${{ matrix.platform }}
           push: false
@@ -63,6 +63,9 @@ jobs:
           - platform: linux/amd64
             runs-on: ubuntu-latest
             tag-suffix: -amd64
+          - platform: linux/arm64
+            runs-on: ubuntu-24.04-arm
+            tag-suffix: -arm64
     runs-on: ${{ matrix.runs-on }}
     permissions:
       contents: read
@@ -96,7 +99,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: ./deployment/Dockerfile.combined
+          file: ./hackflare-app/Dockerfile
           network: host
           platforms: ${{ matrix.platform }}
           push: true
@@ -144,6 +147,7 @@ jobs:
           done <<< "$TAGS"
   
   coolify-deploy:
+    if: false
     needs: [publish, merge-manifest]
     runs-on: ubuntu-latest
     steps:

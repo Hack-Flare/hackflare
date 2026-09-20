@@ -3,27 +3,23 @@ name: Backend CI
 on:
   push:
     paths:
-      - "hackflare_api/**"
+      - "hackflare-app/**"
       - "hackflare_dns/**"
-      - "database/migrations/**"
+      - "database/**"
       - "Cargo.toml"
       - "Cargo.lock"
-      - ".github/workflows/ci-backend.yml"
       - ".github/workflows/ci.yml"
-      - ".github/actions/setup-rust/**"
       - "!**/*.md"
   pull_request:
     branches:
       - main
     paths:
-      - "hackflare_api/**"
+      - "hackflare-app/**"
       - "hackflare_dns/**"
-      - "database/migrations/**"
+      - "database/**"
       - "Cargo.toml"
       - "Cargo.lock"
-      - ".github/workflows/ci-backend.yml"
       - ".github/workflows/ci.yml"
-      - ".github/actions/setup-rust/**"
       - "!**/*.md"
   workflow_call:
   workflow_dispatch:
