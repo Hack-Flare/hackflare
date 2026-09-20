@@ -101,17 +101,15 @@ fn make_cookie(
     value: String,
     path: String,
     max_age_seconds: i64,
-    is_secure: bool,
+    _is_secure: bool,
 ) -> cookie::Cookie<'static> {
-    let mut c = Cookie::build((name, value))
+    Cookie::build((name, value))
         .path(path)
         .http_only(true)
         .same_site(SameSite::Lax)
-        .max_age(cookie::time::Duration::seconds(max_age_seconds));
-    if is_secure {
-        c = c.secure(true);
-    }
-    c.build()
+        .secure(true)
+        .max_age(cookie::time::Duration::seconds(max_age_seconds))
+        .build()
 }
 
 fn make_tokens(
@@ -844,17 +842,15 @@ pub(crate) async fn reset_password_handler(
 }
 
 pub(crate) fn routes(config: &Config) -> Router<AppState> {
-    let is_secure = config.hca.is_secure();
-
     let session_store = MemoryStore::default();
     let session_layer = SessionManagerLayer::new(session_store)
         .with_expiry(Expiry::OnInactivity(cookie::time::Duration::minutes(
             config.session_inactivity_minutes,
         )))
-        .with_secure(is_secure)
+        .with_secure(true)
         .with_same_site(SameSite::Lax);
 
-    debug!(is_secure, "setting up auth routes");
+    debug!("setting up auth routes with secure cookies");
 
     Router::new()
         .route("/login", get(login_handler).post(email_login_handler))
