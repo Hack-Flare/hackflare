@@ -414,7 +414,7 @@ async fn callback_handler(
     Ok(response)
 }
 
-async fn logout_handler(
+pub(crate) async fn logout_handler(
     State(state): State<AppState>,
     State(sessions): State<UserSessionsService>,
     jar: CookieJar,
@@ -513,20 +513,20 @@ async fn refresh_handler(
 }
 
 #[derive(Debug, Deserialize)]
-struct RegisterRequest {
-    email: String,
-    password: String,
-    first_name: String,
-    last_name: String,
+pub(crate) struct RegisterRequest {
+    pub(crate) email: String,
+    pub(crate) password: String,
+    pub(crate) first_name: String,
+    pub(crate) last_name: String,
 }
 
 #[derive(Debug, Deserialize)]
-struct LoginRequest {
-    email: String,
-    password: String,
+pub(crate) struct LoginRequest {
+    pub(crate) email: String,
+    pub(crate) password: String,
 }
 
-async fn register_handler(
+pub(crate) async fn register_handler(
     State(state): State<AppState>,
     ClientIp(ip_addr): ClientIp,
     Json(req): Json<RegisterRequest>,
@@ -627,7 +627,7 @@ async fn register_handler(
     Ok(response)
 }
 
-async fn email_login_handler(
+pub(crate) async fn email_login_handler(
     State(state): State<AppState>,
     ClientIp(ip_addr): ClientIp,
     Json(req): Json<LoginRequest>,
@@ -696,17 +696,17 @@ async fn email_login_handler(
 }
 
 #[derive(Debug, Deserialize)]
-struct ForgotPasswordRequest {
-    email: String,
+pub(crate) struct ForgotPasswordRequest {
+    pub(crate) email: String,
 }
 
 #[derive(Debug, Deserialize)]
-struct ResetPasswordRequest {
-    token: String,
-    password: String,
+pub(crate) struct ResetPasswordRequest {
+    pub(crate) token: String,
+    pub(crate) password: String,
 }
 
-async fn forgot_password_handler(
+pub(crate) async fn forgot_password_handler(
     State(state): State<AppState>,
     Json(req): Json<ForgotPasswordRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, &'static str)> {
@@ -793,7 +793,7 @@ async fn forgot_password_handler(
     ))
 }
 
-async fn reset_password_handler(
+pub(crate) async fn reset_password_handler(
     State(state): State<AppState>,
     Json(req): Json<ResetPasswordRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, &'static str)> {

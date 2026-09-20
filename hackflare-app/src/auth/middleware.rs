@@ -12,6 +12,7 @@ use axum_extra::extract::CookieJar;
 use chrono::Utc;
 use jsonwebtoken::Validation;
 use reqwest::StatusCode;
+use axum::http::{HeaderMap, header};
 
 use crate::{
     config::Config,
@@ -124,4 +125,30 @@ pub(crate) async fn auth_middleware(
     req.extensions_mut().insert(user);
 
     Ok(next.run(req).await)
+}
+
+pub(crate) async fn user_from_headers(
+    state: &AppState,
+    headers: &HeaderMap,
+) -> Option<crate::api::models::db::User> {
+    let jwt = headers
+        .get(header::COOKIE)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|cookies| {
+            cookies.split(';').find_map(|cookie| {
+                let (name, value) = cookie.trim().split_once('=')?;
+                (name == "jwt").then_some(value)
+            })
+        })?;
+    let claims = jsonwebtoken::decode::<JwtClaims>(
+        jwt,
+        &state.config.jwt_decoding_key,
+        &Validation::default(),
+    )
+    .ok()?
+    .claims;
+    if claims.typ.as_deref() == Some("refresh") {
+        return None;
+    }
+    state.users.get_by_id(&claims.sub).await.ok().flatten()
 }

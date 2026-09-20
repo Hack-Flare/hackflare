@@ -1,14 +1,27 @@
 use askama::Template;
 use askama_web::WebTemplate;
 
-use crate::{
-    frontend::api::friendly_error,
-    frontend::models::{
-        AdminStats, AdminUser, ApiKey, AuthenticatedUser, ConfigEntry, CreatedApiKey, DnsRecord,
-        DnsZone, Notification, QueryLogEntry, QueryLogsSummary, TimeseriesPoint, TopQuery,
-        TrafficSummary, UserSession, ZoneTraffic,
-    },
+use crate::frontend::models::{
+    AdminStats, AdminUser, ApiKey, AuthenticatedUser, ConfigEntry, CreatedApiKey, DnsRecord,
+    DnsZone, Notification, QueryLogEntry, QueryLogsSummary, TimeseriesPoint, TopQuery,
+    TrafficSummary, UserSession, ZoneTraffic,
 };
+
+fn friendly_error(error: &str) -> String {
+    match error {
+        "invalid_email_or_password" => "Invalid email or password.",
+        "email_already_registered" => "An account with this email already exists.",
+        "password_too_short" => "Password must be at least 8 characters.",
+        "invalid_email" => "Please enter a valid email address.",
+        "email_and_password_required" => "Email and password are required.",
+        "invalid_or_expired_token" => "This reset link is invalid or has expired.",
+        "email_required" => "Please enter your email address.",
+        "token_required" => "Reset token is required.",
+        "current_password_incorrect" => "Your current password is incorrect.",
+        other => other,
+    }
+    .to_string()
+}
 
 // --- Public pages ---
 

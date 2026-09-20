@@ -2,12 +2,11 @@
 
 use axum::{
     extract::{Path, State},
-    http::{HeaderMap, HeaderValue, header},
+    http::HeaderMap,
     response::{IntoResponse, Response},
 };
 
 use crate::{
-    frontend::api,
     frontend::models::{AuthenticatedUser, DnsZone, QueryLogsSummary},
     frontend::pages::{DashContext, DashboardTemplate},
     state::AppState,
@@ -49,20 +48,17 @@ const DOMAIN_SUB_META: &[(&str, &str)] = &[
     ("redirects", "Redirects"),
 ];
 
-async fn fetch_zones(state: &AppState, cookie: Option<&HeaderValue>) -> Vec<DnsZone> {
-    let url = api::api_url(&state.config.api_proxy_target, "/dns/zones");
-    let mut request = state.http_client.get(url);
-    if let Some(cookie) = cookie {
-        request = request.header(header::COOKIE, cookie);
-    }
-
-    let Ok(response) = request.send().await else {
-        return Vec::new();
-    };
-    if !response.status().is_success() {
-        return Vec::new();
-    }
-    response.json::<Vec<DnsZone>>().await.unwrap_or_default()
+async fn fetch_zones(state: &AppState, user_id: &str) -> Vec<DnsZone> {
+    sqlx::query_as::<_, (String, bool)>(
+        "SELECT name, ns_verified FROM dns_zones WHERE user_id = $1 ORDER BY name",
+    )
+    .bind(user_id)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default()
+    .into_iter()
+    .map(|(name, ns_verified)| DnsZone { name, ns_verified })
+    .collect()
 }
 
 /// Dashboard home, the representative SSR page.
@@ -72,8 +68,7 @@ pub async fn index(State(state): State<AppState>, headers: HeaderMap) -> Respons
         Err(redirect) => return redirect.into_response(),
     };
 
-    let cookie = headers.get(header::COOKIE).cloned();
-    let zones = fetch_zones(&state, cookie.as_ref()).await;
+    let zones = fetch_zones(&state, &user.id).await;
     let verified_count = zones.iter().filter(|zone| zone.ns_verified).count();
 
     let mut page = dashboard_page(&user, "dashboard", "Dashboard");

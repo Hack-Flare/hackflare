@@ -572,8 +572,6 @@ mod tests {
             let config = Config {
                 bind_addr: SocketAddr::from_str("0.0.0.0:0").ok()?,
                 dns_bind_addr: SocketAddr::from_str("0.0.0.0:0").ok()?,
-                dev: true,
-                api_proxy_target: "http://localhost:8080".into(),
                 static_dir: std::path::PathBuf::from("static"),
                 client_ip_source: ClientIpSource::ConnectInfo,
                 environment: Environment::Development,

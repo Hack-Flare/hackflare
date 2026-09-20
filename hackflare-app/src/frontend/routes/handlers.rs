@@ -4,14 +4,17 @@
 
 use askama::Template;
 use axum::{
-    extract::{Form, Query, State},
-    http::{HeaderMap, HeaderName, HeaderValue, StatusCode, header},
+    extract::{ConnectInfo, Form, Json, Query, State},
+    http::{HeaderMap, StatusCode, header},
     response::{Html, IntoResponse, Redirect, Response},
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use std::net::SocketAddr;
+use axum_client_ip::ClientIp;
+use axum_extra::extract::CookieJar;
 
 use crate::{
-    frontend::api,
+    auth::{middleware, routes as auth_routes},
     frontend::pages::{
         ErrorTemplate, ForgotPasswordTemplate, HomeTemplate, LoginTemplate, RegisterTemplate,
         ResetPasswordTemplate,
@@ -21,19 +24,9 @@ use crate::{
 
 // --- Helpers ---
 
-/// `Set-Cookie` values from a backend response, ready to relay
-fn take_cookies(response: &reqwest::Response) -> Vec<(HeaderName, HeaderValue)> {
-    response
-        .headers()
-        .get_all(header::SET_COOKIE)
-        .iter()
-        .map(|value| (header::SET_COOKIE.clone(), value.clone()))
-        .collect()
-}
-
-fn attach_cookies(response: &mut Response, cookies: Vec<(HeaderName, HeaderValue)>) {
-    for (name, value) in cookies {
-        response.headers_mut().append(name, value);
+fn attach_cookies(response: &mut Response, source: &Response) {
+    for value in source.headers().get_all(header::SET_COOKIE).iter() {
+        response.headers_mut().append(header::SET_COOKIE, value.clone());
     }
 }
 
@@ -80,11 +73,20 @@ pub async fn require_user(
     state: &AppState,
     headers: &HeaderMap,
 ) -> Result<crate::frontend::models::AuthenticatedUser, Redirect> {
-    let cookie = headers.get(header::COOKIE);
-    match api::current_user(&state.http_client, &state.config.api_proxy_target, cookie).await {
-        Ok(Some(user)) => Ok(user),
-        _ => Err(Redirect::to("/login")),
-    }
+    let Some(user) = middleware::user_from_headers(state, headers).await else {
+        return Err(Redirect::to("/login"));
+    };
+    let email = user.email.clone();
+    Ok(crate::frontend::models::AuthenticatedUser {
+        id: user.id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email,
+        eligible: user.ysws_eligible,
+        has_password: user.password_hash.is_some(),
+        is_admin: state.config.admin_emails.iter().any(|email| email == &user.email),
+        created_at: user.created_at.to_rfc3339(),
+    })
 }
 
 pub fn render_error(status: u16, message: &str, details: &str) -> Response {
@@ -118,15 +120,14 @@ pub async fn auth_redirect() -> Redirect {
 
 // --- Login ---
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 pub struct LoginForm {
     email: String,
     password: String,
 }
 
 pub async fn login_get(State(state): State<AppState>, headers: HeaderMap) -> Response {
-    let cookie = headers.get(header::COOKIE);
-    if api::is_authenticated(&state.http_client, &state.config.api_proxy_target, cookie).await {
+    if middleware::user_from_headers(&state, &headers).await.is_some() {
         return Redirect::to("/dash").into_response();
     }
     LoginTemplate::new(String::new(), hackclub_login_url(&headers, "/dash")).into_response()
@@ -135,40 +136,32 @@ pub async fn login_get(State(state): State<AppState>, headers: HeaderMap) -> Res
 pub async fn login_post(
     State(state): State<AppState>,
     headers: HeaderMap,
+    ConnectInfo(address): ConnectInfo<SocketAddr>,
     Form(form): Form<LoginForm>,
 ) -> Response {
-    let login_url = api::api_url(&state.config.api_proxy_target, "/auth/login");
     let template = LoginTemplate::new(form.email.clone(), hackclub_login_url(&headers, "/dash"));
-
-    match state.http_client.post(login_url).json(&form).send().await {
-        Ok(backend) if backend.status().is_success() => {
-            let cookies = take_cookies(&backend);
+    match auth_routes::email_login_handler(
+        State(state),
+        ClientIp(address.ip()),
+        Json(auth_routes::LoginRequest { email: form.email, password: form.password }),
+    )
+    .await
+    {
+        Ok(auth_response) if auth_response.status().is_success() => {
             let mut response = Redirect::to("/dash").into_response();
-            attach_cookies(&mut response, cookies);
+            attach_cookies(&mut response, &auth_response);
             response
         }
-        Ok(backend) => {
-            let code = backend.text().await.unwrap_or_default();
-            if code.trim().is_empty() {
-                template
-                    .with_error("Something went wrong. Please try again.")
-                    .into_response()
-            } else {
-                template.with_error(code.trim()).into_response()
-            }
-        }
-        Err(e) => {
-            tracing::error!(error = %e, "login upstream error");
-            template
-                .with_error("Something went wrong. Please try again.")
-                .into_response()
-        }
+        Err((_, code)) => template.with_error(code).into_response(),
+        Ok(_) => template
+            .with_error("Something went wrong. Please try again.")
+            .into_response(),
     }
 }
 
 // --- Register ---
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 pub struct RegisterForm {
     first_name: String,
     last_name: String,
@@ -187,54 +180,48 @@ pub async fn register_get() -> RegisterTemplate {
 
 pub async fn register_post(
     State(state): State<AppState>,
+    ConnectInfo(address): ConnectInfo<SocketAddr>,
     Form(form): Form<RegisterForm>,
 ) -> Response {
-    let register_url = api::api_url(&state.config.api_proxy_target, "/auth/register");
-
-    match state
-        .http_client
-        .post(register_url)
-        .json(&form)
-        .send()
-        .await
+    match auth_routes::register_handler(
+        State(state),
+        ClientIp(address.ip()),
+        Json(auth_routes::RegisterRequest {
+            email: form.email.clone(),
+            password: form.password,
+            first_name: form.first_name.clone(),
+            last_name: form.last_name.clone(),
+        }),
+    )
+    .await
     {
-        Ok(backend) if backend.status().is_success() => {
-            let cookies = take_cookies(&backend);
+        Ok(auth_response) if auth_response.status().is_success() => {
             let mut response = Redirect::to("/dash").into_response();
-            attach_cookies(&mut response, cookies);
+            attach_cookies(&mut response, &auth_response);
             response
         }
-        Ok(backend) => {
-            let code = backend.text().await.unwrap_or_default();
-            let error = if code.trim().is_empty() {
-                "Something went wrong. Please try again.".to_string()
-            } else {
-                api::friendly_error(code.trim())
-            };
+        Err((_, code)) => {
             RegisterTemplate {
-                error: Some(error),
+                error: Some(code.to_string()),
                 first_name: form.first_name,
                 last_name: form.last_name,
                 email: form.email,
             }
             .into_response()
         }
-        Err(e) => {
-            tracing::error!(error = %e, "register upstream error");
-            RegisterTemplate {
-                error: Some("Something went wrong. Please try again.".to_string()),
-                first_name: form.first_name,
-                last_name: form.last_name,
-                email: form.email,
-            }
-            .into_response()
+        Ok(_) => RegisterTemplate {
+            error: Some("Something went wrong. Please try again.".to_string()),
+            first_name: form.first_name,
+            last_name: form.last_name,
+            email: form.email,
         }
+        .into_response(),
     }
 }
 
 // --- Forgot password ---
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 pub struct ForgotForm {
     email: String,
 }
@@ -248,10 +235,13 @@ pub async fn forgot_get() -> ForgotPasswordTemplate {
 }
 
 pub async fn forgot_post(State(state): State<AppState>, Form(form): Form<ForgotForm>) -> Response {
-    let url = api::api_url(&state.config.api_proxy_target, "/auth/forgot-password");
-
-    match state.http_client.post(url).json(&form).send().await {
-        Ok(backend) if backend.status().is_success() => ForgotPasswordTemplate {
+    match auth_routes::forgot_password_handler(
+        State(state),
+        Json(auth_routes::ForgotPasswordRequest { email: form.email.clone() }),
+    )
+    .await
+    {
+        Ok(_) => ForgotPasswordTemplate {
             error: None,
             message: Some(
                 "If an account exists for that email, a reset link has been sent.".to_string(),
@@ -259,24 +249,9 @@ pub async fn forgot_post(State(state): State<AppState>, Form(form): Form<ForgotF
             email: String::new(),
         }
         .into_response(),
-        Ok(backend) => {
-            let code = backend.text().await.unwrap_or_default();
-            let error = if code.trim().is_empty() {
-                "Something went wrong. Please try again.".to_string()
-            } else {
-                api::friendly_error(code.trim())
-            };
+        Err((_, code)) => {
             ForgotPasswordTemplate {
-                error: Some(error),
-                message: None,
-                email: form.email,
-            }
-            .into_response()
-        }
-        Err(e) => {
-            tracing::error!(error = %e, "forgot password upstream error");
-            ForgotPasswordTemplate {
-                error: Some("Something went wrong. Please try again.".to_string()),
+                error: Some(code.to_string()),
                 message: None,
                 email: form.email,
             }
@@ -287,7 +262,7 @@ pub async fn forgot_post(State(state): State<AppState>, Form(form): Form<ForgotF
 
 // --- Reset password ---
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 pub struct ResetForm {
     password: String,
     password_confirm: String,
@@ -323,28 +298,19 @@ pub async fn reset_post(
         .into_response();
     }
 
-    let url = api::api_url(&state.config.api_proxy_target, "/auth/reset-password");
-    let payload = serde_json::json!({ "token": query.token, "password": form.password });
-
-    match state.http_client.post(url).json(&payload).send().await {
-        Ok(backend) if backend.status().is_success() => Redirect::to("/login").into_response(),
-        Ok(backend) => {
-            let code = backend.text().await.unwrap_or_default();
-            let error = if code.trim().is_empty() {
-                "Something went wrong. Please try again.".to_string()
-            } else {
-                api::friendly_error(code.trim())
-            };
+    match auth_routes::reset_password_handler(
+        State(state),
+        Json(auth_routes::ResetPasswordRequest {
+            token: query.token,
+            password: form.password,
+        }),
+    )
+    .await
+    {
+        Ok(_) => Redirect::to("/login").into_response(),
+        Err((_, code)) => {
             ResetPasswordTemplate {
-                error: Some(error),
-                ..template
-            }
-            .into_response()
-        }
-        Err(e) => {
-            tracing::error!(error = %e, "reset password upstream error");
-            ResetPasswordTemplate {
-                error: Some("Something went wrong. Please try again.".to_string()),
+                error: Some(code.to_string()),
                 ..template
             }
             .into_response()
@@ -364,9 +330,8 @@ pub async fn hackclub(
     headers: HeaderMap,
     Query(params): Query<HackClubParams>,
 ) -> Response {
-    let cookie = headers.get(header::COOKIE);
     let return_to = safe_return_to(params.return_to);
-    if api::is_authenticated(&state.http_client, &state.config.api_proxy_target, cookie).await {
+    if middleware::user_from_headers(&state, &headers).await.is_some() {
         return Redirect::to(&return_to).into_response();
     }
     Redirect::to("/login").into_response()
@@ -375,20 +340,15 @@ pub async fn hackclub(
 // --- Logout ---
 
 pub async fn logout(State(state): State<AppState>, headers: HeaderMap) -> Response {
-    let cookie = headers.get(header::COOKIE).cloned();
+    let jar = CookieJar::from_headers(&headers);
+    let auth_response = auth_routes::logout_handler(
+        State(state.clone()),
+        State(state.user_sessions.clone()),
+        jar,
+    )
+    .await;
     let mut response = Redirect::to("/").into_response();
-
-    let url = api::api_url(&state.config.api_proxy_target, "/auth/logout");
-    let mut request = state.http_client.post(url);
-    if let Some(cookie) = &cookie {
-        request = request.header(header::COOKIE, cookie);
-    }
-
-    match request.send().await {
-        Ok(backend) => attach_cookies(&mut response, take_cookies(&backend)),
-        Err(e) => tracing::error!(error = %e, "logout upstream error"),
-    }
-
+    attach_cookies(&mut response, &auth_response);
     response
 }
 

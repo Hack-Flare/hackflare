@@ -102,8 +102,6 @@ pub(crate) struct SmtpConfig {
 pub struct Config {
     pub bind_addr: SocketAddr,
     pub dns_bind_addr: SocketAddr,
-    pub dev: bool,
-    pub api_proxy_target: String,
     pub static_dir: PathBuf,
     pub(crate) client_ip_source: ClientIpSource,
     pub(crate) environment: Environment,
@@ -164,9 +162,6 @@ pub fn from_env() -> Result<Config> {
                 .parse()
                 .expect("invalid default DNS bind address"),
         )?,
-        dev: env::args().any(|arg| arg == "--dev"),
-        api_proxy_target: env::var("API_PROXY_TARGET")
-            .unwrap_or_else(|_| "http://localhost:8080".to_string()),
         static_dir: env_or(
             "FRONTEND_STATIC_DIR",
             PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/static")),
