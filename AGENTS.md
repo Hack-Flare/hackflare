@@ -16,9 +16,9 @@ Use this file as the default guide for AI agents working in the repository.
 - Do not rely on stale documentation when the source disagrees.
 - Do not divert from the active task without being asked.
 - Do not use em dashes in code, comments, or documentation.
-  - Use double hyphens instead.
+  - Use singular hyphens instead.
   - In the case of double em dashes, use triple hyphens instead.
-  - If you are editing documentation that already has em dashes, replace them with double hyphens.
+  - If you are editing documentation that already has em dashes, replace them with hyphens.
 
 ## Commands
 
