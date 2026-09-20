@@ -1,0 +1,33 @@
+<div class="dash-page">
+  <h1>Traffic</h1>
+  <p class="dash-sub">DNS query analytics for your domains</p>
+  {% if let Some(stats) = summary %}
+  <div class="stat-grid">
+    <div class="card">
+      <div class="card-content">
+        <div class="stat-label">Total Queries</div>
+        <div class="stat-value">{{ stats.total_requests }}</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-content">
+        <div class="stat-label">Avg Processing</div>
+        <div class="stat-value">{{ stats.avg_processing_ms }}ms</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-content">
+        <div class="stat-label">Success Rate</div>
+        <div class="stat-value">{{ stats.success_rate }}%</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="card card-spaced">
+    <div class="card-content">
+      <p class="text-muted">
+        Coming Soon
+      </p>
+    </div>
+  </div>
+</div>

@@ -1165,6 +1165,41 @@ dependencies = [
 [[package]]
 name = "hackflare-app"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "argon2",
+ "askama",
+ "askama_web",
+ "axum",
+ "axum-client-ip",
+ "axum-extra",
+ "chrono",
+ "derive_more",
+ "dotenvy",
+ "hackflare-dns",
+ "hex",
+ "hickory-proto",
+ "http-body-util",
+ "hyper-rustls",
+ "jsonwebtoken",
+ "lettre",
+ "percent-encoding",
+ "rand 0.10.2",
+ "reqwest",
+ "rustls",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "sha2 0.11.0",
+ "sqlx",
+ "tokio",
+ "tower",
+ "tower-http 0.7.0",
+ "tower-sessions",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
 
 [[package]]
 name = "hackflare-dns"

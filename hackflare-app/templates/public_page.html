@@ -1,0 +1,28 @@
+{% extends "base.html" %} {% block title %}{{ title }} — HackFlare{% endblock %}
+{% block content %} {% include "header.html" %}
+<div class="container section">
+  <a class="auth-link" href="/">← Back to home</a>
+  <h1 class="public-heading">{{ heading }}</h1>
+  <p class="public-message text-muted">{{ message }}</p>
+  {% if status == 0 %}
+  <div class="feature-grid feature-grid-spaced">
+    <a class="feature-card" href="/docs?doc=getting-started"
+      ><h3>Getting Started</h3>
+      <p>Set up your first HackFlare domain.</p></a
+    >
+    <a class="feature-card" href="/docs?doc=managing-domains"
+      ><h3>Managing Domains</h3>
+      <p>Add, verify, and manage zones.</p></a
+    >
+    <a class="feature-card" href="/docs?doc=dns-records"
+      ><h3>DNS Records</h3>
+      <p>Work with A, CNAME, MX, TXT, and more.</p></a
+    >
+    <a class="feature-card" href="/docs?doc=api-reference"
+      ><h3>API Reference</h3>
+      <p>Automate HackFlare from your projects.</p></a
+    >
+  </div>
+  {% endif %}
+</div>
+{% include "footer.html" %} {% endblock %}
