@@ -24,11 +24,16 @@ Use this file as the default guide for AI agents working in the repository.
 
 Run from the repository root:
 
-- `cargo fmt --all` - format Rust code
-- `cargo build -p hackflare_frontend` - build the frontend
-- `cargo clippy -p hackflare_frontend --all-targets` - lint the frontend
-- `cargo test -p hackflare-api` - test the API
-- `cargo test -p hackflare-dns` - test the DNS library
+- `just fmt` - format Rust code
+- `just fmt-check` - verify Rust formatting
+- `just build-app` - build the merged application
+- `just test-app` - test the merged application using embedded PostgreSQL when needed
+- `just test-dns` - test the DNS library
+- `just lint-app` - lint the merged application
+- `just check` - run formatting, linting, and tests
+- `just db-up` - start PostgreSQL for local application development
+- `just db-down` - stop the development PostgreSQL service
+- `just docker-build-app` - build the merged application image
 
 ## Repository Layout
 
