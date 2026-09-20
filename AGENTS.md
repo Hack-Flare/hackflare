@@ -37,9 +37,8 @@ Run from the repository root:
 
 ## Repository Layout
 
-- `hackflare_api/` - backend HTTP API
+- `hackflare-app/` - merged HTTP API and Rust SSR frontend
 - `hackflare_dns/` - DNS server library
-- `hackflare_frontend/` - Rust SSR frontend
 - `docs/` - project documentation
 
 Read the relevant crate's source before relying on documentation for implementation details.

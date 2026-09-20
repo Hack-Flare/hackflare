@@ -101,13 +101,13 @@ fn make_cookie(
     value: String,
     path: String,
     max_age_seconds: i64,
-    _is_secure: bool,
+    is_secure: bool,
 ) -> cookie::Cookie<'static> {
     Cookie::build((name, value))
         .path(path)
         .http_only(true)
         .same_site(SameSite::Lax)
-        .secure(true)
+        .secure(is_secure)
         .max_age(cookie::time::Duration::seconds(max_age_seconds))
         .build()
 }
@@ -842,15 +842,16 @@ pub(crate) async fn reset_password_handler(
 }
 
 pub(crate) fn routes(config: &Config) -> Router<AppState> {
+    let is_secure = config.hca.is_secure();
     let session_store = MemoryStore::default();
     let session_layer = SessionManagerLayer::new(session_store)
         .with_expiry(Expiry::OnInactivity(cookie::time::Duration::minutes(
             config.session_inactivity_minutes,
         )))
-        .with_secure(true)
+        .with_secure(is_secure)
         .with_same_site(SameSite::Lax);
 
-    debug!("setting up auth routes with secure cookies");
+    debug!(is_secure, "setting up auth routes with configured cookie security");
 
     Router::new()
         .route("/login", get(login_handler).post(email_login_handler))
@@ -861,4 +862,18 @@ pub(crate) fn routes(config: &Config) -> Router<AppState> {
         .route("/refresh", post(refresh_handler))
         .route("/logout", post(logout_handler))
         .layer(session_layer)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::make_cookie;
+
+    #[test]
+    fn cookies_are_secure_only_for_https_deployments() {
+        let secure = make_cookie("jwt".into(), "token".into(), "/".into(), 60, true);
+        let local = make_cookie("jwt".into(), "token".into(), "/".into(), 60, false);
+
+        assert!(secure.to_string().contains("; Secure"));
+        assert!(!local.to_string().contains("; Secure"));
+    }
 }

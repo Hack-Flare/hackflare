@@ -17,9 +17,8 @@ Please do **not** open a public GitHub issue for security vulnerabilities.
 
 This policy covers:
 
-- The Hackflare Backend (`hackflare_api/`)
+- The merged Hackflare application (`hackflare-app/`)
 - The Hackflare DNS server library (`hackflare_dns/`)
-- The frontend application (`frontend/`)
 - Build and deployment configurations
 
 ## Supported versions
