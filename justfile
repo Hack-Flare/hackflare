@@ -41,6 +41,8 @@ lint:
 # Run formatting, linting, and tests.
 check: fmt-check lint test
 
+alias run := run-app
+
 # Run the merged application using the repository .env file.
 run-app:
 	cargo run -p hackflare-app
