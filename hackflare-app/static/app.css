@@ -304,6 +304,75 @@ p {
 .card-content {
   padding: 20px 24px;
 }
+.dns-page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.modal {
+  width: min(100% - 32px, 520px);
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 1.25);
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow: 0 24px 80px oklch(0 0 0 / 0.3);
+}
+.modal::backdrop {
+  background: oklch(0 0 0 / 0.55);
+  backdrop-filter: blur(3px);
+}
+.modal[open] {
+  display: block;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  margin: 0;
+  transform: translate(-50%, -50%);
+}
+.modal-card {
+  padding: 24px;
+}
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.modal-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.modal-description {
+  margin: 16px 0 20px;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 1.5rem;
+  line-height: 1;
+}
+.modal-close:hover {
+  background: var(--accent);
+  color: var(--foreground);
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
 
 /* Forms */
 
@@ -335,6 +404,18 @@ p {
   outline: none;
   box-shadow: 0 0 0 2px var(--ring);
   border-color: var(--ring);
+}
+select.input {
+  background-color: var(--card);
+  color: var(--foreground);
+  color-scheme: light;
+}
+.dark select.input {
+  color-scheme: dark;
+}
+select.input option {
+  background-color: var(--card);
+  color: var(--foreground);
 }
 .error-banner {
   background: color-mix(in oklab, var(--destructive) 10%, transparent);
@@ -1019,6 +1100,10 @@ p {
 .banner-success { color: var(--success); background: color-mix(in oklab, var(--success) 12%, transparent); }
 .card-spaced { margin-top: 24px; }
 @media (max-width: 860px) {
+  .dns-page-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
   .domain-setup-grid {
     grid-template-columns: 1fr;
   }

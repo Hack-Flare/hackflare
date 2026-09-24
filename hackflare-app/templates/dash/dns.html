@@ -1,30 +1,70 @@
 <div class="dash-page">
-  <h1>DNS Records</h1>
-  <p class="dash-sub">Managing records for <strong>{{ zone_name }}</strong></p>
+  <div class="dns-page-heading">
+    <div>
+      <h1>DNS Records</h1>
+      <p class="dash-sub">Managing records for <strong>{{ zone_name }}</strong></p>
+    </div>
+    {% if ns_verified %}
+    <button class="btn btn-orange" type="button" data-modal-open="add-record-dialog">
+      Add record
+    </button>
+    {% endif %}
+  </div>
   {% if ns_verified %}
-  <form
-    method="post"
-    action="/dash/domains/{{ zone_name }}/dns"
-    class="flex flex-wrap gap-2"
+  <dialog
+    class="modal"
+    id="add-record-dialog"
+    data-modal
+    aria-labelledby="add-record-title"
   >
-    <input type="hidden" name="action" value="create" /><input
-      class="input"
-      name="name"
-      placeholder="@ or subdomain"
-      required
-    /><select class="input" name="record_type">
-      <option>A</option>
-      <option>CNAME</option>
-      <option>MX</option>
-      <option>AAAA</option>
-      <option>TXT</option></select
-    ><input class="input" name="value" placeholder="Value" required /><input
-      class="input"
-      name="ttl"
-      type="number"
-      value="3600"
-    /><button class="btn btn-orange" type="submit">Add Record</button>
-  </form>
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">{{ zone_name }}</p>
+          <h2 class="modal-title" id="add-record-title">Add DNS record</h2>
+        </div>
+        <button class="modal-close" type="button" data-modal-close aria-label="Close dialog">
+          &times;
+        </button>
+      </div>
+      <p class="modal-description">
+        Add a record to this zone. Changes are applied after you submit the form.
+      </p>
+      <form
+        method="post"
+        action="/dash/domains/{{ zone_name }}/dns"
+        class="form-stack"
+      >
+        <input type="hidden" name="action" value="create" />
+        <label class="form-field">
+          <span class="label">Name</span>
+          <input class="input" name="name" placeholder="@ or subdomain" required />
+        </label>
+        <label class="form-field">
+          <span class="label">Record type</span>
+          <select class="input" name="record_type">
+            <option>A</option>
+            <option>CNAME</option>
+            <option>MX</option>
+            <option>AAAA</option>
+            <option>TXT</option>
+          </select>
+        </label>
+        <label class="form-field">
+          <span class="label">Value</span>
+          <input class="input" name="value" placeholder="Record value" required />
+        </label>
+        <label class="form-field">
+          <span class="label">TTL</span>
+          <input class="input" name="ttl" type="number" value="3600" min="1" />
+        </label>
+        <div class="modal-actions">
+          <button class="btn btn-outline" type="button" data-modal-close>Cancel</button>
+          <button class="btn btn-orange" type="submit">Add record</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
   {% else %}
   <div class="error-banner text-warning">
     Zone is not verified. Record edits are blocked.

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}HackFlare{% endblock %}</title>
     <link rel="icon" href="/static/logo.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/static/app.css" />
+    <link rel="stylesheet" href="/static/app.css?v=2" />
     <script>
       try {
         var theme = localStorage.getItem("theme") || "dark";
@@ -15,6 +15,6 @@
   </head>
   <body>
     {% block content %}{% endblock %}
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=2"></script>
   </body>
 </html>

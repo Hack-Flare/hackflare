@@ -33,4 +33,50 @@
       applyTheme(next);
     });
   });
+
+  function openModal(dialog) {
+    if (!dialog) return;
+    try {
+      if (typeof dialog.showModal === "function") {
+        dialog.showModal();
+      } else {
+        dialog.setAttribute("open", "");
+      }
+    } catch (_) {
+      dialog.setAttribute("open", "");
+    }
+  }
+
+  function closeModal(dialog) {
+    if (!dialog) return;
+    try {
+      if (typeof dialog.close === "function") {
+        dialog.close();
+      } else {
+        dialog.removeAttribute("open");
+      }
+    } catch (_) {
+      dialog.removeAttribute("open");
+    }
+  }
+
+  document.querySelectorAll("[data-modal-open]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      openModal(document.getElementById(button.dataset.modalOpen));
+    });
+  });
+
+  document.querySelectorAll("dialog[data-modal], dialog.modal").forEach(function (dialog) {
+    dialog.addEventListener("click", function (event) {
+      if (event.target === dialog) {
+        closeModal(dialog);
+      }
+    });
+
+    dialog.querySelectorAll("[data-modal-close]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        closeModal(dialog);
+      });
+    });
+  });
 })();
