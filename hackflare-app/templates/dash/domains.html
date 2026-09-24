@@ -107,6 +107,17 @@
                 href="/dash/domains/{{ zone.name }}/dns"
                 >Manage</a
               >
+              {% if !zone.ns_verified %}
+              <form method="post" action="/dash/domains" class="inline-form">
+                <input type="hidden" name="action" value="check" /><input
+                  type="hidden"
+                  name="name"
+                  value="{{ zone.name }}"
+                /><button class="btn btn-orange" type="submit">
+                  Check propagation
+                </button>
+              </form>
+              {% endif %}
               <form method="post" action="/dash/domains" class="inline-form">
                 <input type="hidden" name="action" value="delete" /><input
                   type="hidden"

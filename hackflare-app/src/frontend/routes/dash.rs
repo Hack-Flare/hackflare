@@ -110,6 +110,7 @@ fn notice_text(code: &str) -> Option<&'static str> {
     Some(match code {
         "domain_added" => "Domain added. Point its nameservers at HackFlare to verify it.",
         "domain_deleted" => "Domain deleted.",
+        "propagation_verified" => "Nameserver propagation confirmed. DNS records are now available.",
         "record_added" => "Record added.",
         "record_deleted" => "Record deleted.",
         "password_updated" => "Password updated.",
@@ -124,6 +125,9 @@ fn error_text(code: &str) -> Option<&'static str> {
         "zone_exists" => "That domain has already been added.",
         "invalid_zone" => "That isn't a valid domain name.",
         "zone_not_found" => "Domain not found.",
+        "propagation_pending" => {
+            "Nameservers are not fully propagated yet. Check your registrar settings and try again."
+        }
         "zone_not_verified" => {
             "This domain isn't verified yet, so its records can't be changed."
         }
@@ -408,13 +412,33 @@ pub async fn domains_post(
     let result = match form.action.as_str() {
         "add" => dns_api::add_zone(&state, &user.id, &form.name)
             .await
-            .map(|_| "domain_added"),
+            .map(|_| "domain_added")
+            .map_err(dns_error_code),
         "delete" => dns_api::remove_zone(&state, &user.id, &form.name)
             .await
-            .map(|()| "domain_deleted"),
+            .map(|()| "domain_deleted")
+            .map_err(dns_error_code),
+        "check" => {
+            if dns_api::ensure_zone_ownership(&state.db, &form.name, &user.id)
+                .await
+                .is_err()
+            {
+                return redirect_with("/dash/domains", Err("zone_not_found"));
+            }
+            let result = dns_api::check_zone_propagation(&state, &form.name).await.0;
+            if result
+                .get("verified")
+                .and_then(serde_json::Value::as_bool)
+                == Some(true)
+            {
+                Ok("propagation_verified")
+            } else {
+                Err("propagation_pending")
+            }
+        }
         _ => return redirect_with("/dash/domains", Err("invalid_request")),
     };
-    redirect_with("/dash/domains", result.map_err(dns_error_code))
+    redirect_with("/dash/domains", result)
 }
 
 #[derive(Debug, Deserialize)]

@@ -1,6 +1,6 @@
 use axum::{
     Json, Router,
-    extract::{Extension, State},
+    extract::{Extension, Path, State},
     http::StatusCode,
     middleware,
     response::IntoResponse,
@@ -105,7 +105,7 @@ fn internal_error(msg: &str) -> (StatusCode, Json<serde_json::Value>) {
 
 // --- Ownership helper ---
 
-async fn ensure_zone_ownership(
+pub(crate) async fn ensure_zone_ownership(
     db: &PgPool,
     zone_name: &str,
     user_id: &str,
@@ -184,9 +184,9 @@ async fn delete_zone(
     }
 }
 
-async fn verify_zone(
-    State(state): State<AppState>,
-    axum::extract::Path(zone_name): axum::extract::Path<String>,
+pub(crate) async fn check_zone_propagation(
+    state: &AppState,
+    zone_name: &str,
 ) -> Json<serde_json::Value> {
     let ns_targets: Vec<String> = {
         let overrides = state.live_overrides.read().await;
@@ -205,7 +205,7 @@ async fn verify_zone(
     let qname = if zone_name.ends_with('.') {
         zone_name.trim_end_matches('.').to_string()
     } else {
-        zone_name.clone()
+        zone_name.to_string()
     };
 
     let dns_config = hackflare_dns::DnsConfig::from_env();
@@ -238,13 +238,13 @@ async fn verify_zone(
 
     if !matched.is_empty() {
         // Persist verification status so record edits are unblocked
-        let _ = set_zone_verified(&state.db, &zone_name).await;
+        let _ = set_zone_verified(&state.db, zone_name).await;
 
         // Notify the zone owner
         if let Ok(Some((owner_id,))) = sqlx::query_as::<_, (String,)>(
             "SELECT user_id FROM dns_zones WHERE name = $1 AND user_id IS NOT NULL",
         )
-        .bind(&zone_name)
+        .bind(zone_name)
         .fetch_optional(&state.db)
         .await
         {
@@ -276,6 +276,15 @@ async fn verify_zone(
             )
         }))
     }
+}
+
+async fn verify_zone(
+    State(state): State<AppState>,
+    Extension(current_user): Extension<CurrentUser>,
+    Path(zone_name): Path<String>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    ensure_zone_ownership(&state.db, &zone_name, &current_user.user.id).await?;
+    Ok(check_zone_propagation(&state, &zone_name).await)
 }
 
 // --- Record handlers ---
