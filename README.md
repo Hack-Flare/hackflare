@@ -32,13 +32,8 @@ See [ROADMAP.md](docs/ROADMAP.md) for the roadmap.
 
 ### Production
 
-We deploy Hackflare using the docker images off ghcr.io
-
-### Development
-
-```
-docker compose -f deployment/compose.dev.yml --profile frontend --profile backend up
-```
+We deploy Hackflare using the docker images off ghcr.io.  
+For development use you can do `just run-dev` as it uses an embedded PostgreSQL in development mode.
 
 ## License
 
