@@ -16,7 +16,7 @@ Hackflare is a project that originated in Hack Club, but it is not a Hack Club p
 
 Hackflare hopes to become fiscally sponsored in the future, but is not currently fiscally sponsored by any organization.  
 
-If you are interested in sponsoring or supporting Hackflare, please contact me (Nayte) at my email: [here](mailto:seradedstripes@gmail.com).
+If you are interested in sponsoring or supporting Hackflare, please contact me (Nayte) at my email: [here](mailto:seradedstripes@hackflare.net).
 
 ## Introduction
 
