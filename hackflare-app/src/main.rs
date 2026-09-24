@@ -16,7 +16,9 @@ async fn main() {
         tracing::warn!(%error, "failed to load .env files");
     }
 
-    if let Err(error) = run().await {
+    let dev_mode = std::env::args().skip(1).any(|arg| arg == "--dev");
+
+    if let Err(error) = run(dev_mode).await {
         tracing::error!(?error, "application failed");
         std::process::exit(1);
     }

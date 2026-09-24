@@ -122,8 +122,15 @@ pub struct Config {
 impl Config {}
 
 pub fn from_env() -> Result<Config> {
+    from_env_with_database_url(None)
+}
+
+pub(crate) fn from_env_with_database_url(database_url_override: Option<Url>) -> Result<Config> {
     let redirect_uri: Url = env_req("API_HCA_REDIRECT_URI")?;
-    let database_url: Url = env_req("DATABASE_URL")?;
+    let database_url = match database_url_override {
+        Some(url) => url,
+        None => env_req("DATABASE_URL")?,
+    };
 
     match database_url.scheme() {
         "postgres" => { /* valid */ }

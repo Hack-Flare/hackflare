@@ -47,6 +47,10 @@ alias run := run-app
 run-app:
 	cargo run -p hackflare-app
 
+# Run with an embedded PostgreSQL database.
+run-dev:
+  cargo run -p hackflare-app -- --dev
+
 # Start PostgreSQL for local application development.
 db-up:
 	docker compose -f deployment/postgresql.compose.dev.yml up -d

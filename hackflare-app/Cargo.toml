@@ -32,15 +32,15 @@ serde_json = "1.0.151"
 serde_with = { version = "3.22.0", features = ["chrono_0_4"] }
 sha2 = "0.11.0"
 sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "postgres", "chrono", "ipnet", "uuid", "migrate", "derive"] }
-tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "net", "io-util", "time"] }
+tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "net", "io-util", "time", "signal"] }
 tower-http = { version = "0.7.0", features = ["fs", "trace"] }
 tower-sessions = "0.15.0"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt", "json"] }
 uuid = { version = "1.26.0", features = ["serde", "v4"] }
 pulldown-cmark = { version = "0.13.4", default-features = false, features = ["html"] }
+pg-embed = "1.0"
 
 [dev-dependencies]
 http-body-util = "0.1"
-pg-embed = "1.0"
 tower = "0.5"
