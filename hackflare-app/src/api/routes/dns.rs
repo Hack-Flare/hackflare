@@ -21,13 +21,13 @@ struct ZoneResponse {
 }
 
 #[derive(Serialize)]
-struct RecordResponse {
-    id: String,
-    name: String,
-    r#type: String,
-    value: String,
-    ttl: u32,
-    status: String,
+pub(crate) struct RecordResponse {
+    pub(crate) id: String,
+    pub(crate) name: String,
+    pub(crate) r#type: String,
+    pub(crate) value: String,
+    pub(crate) ttl: u32,
+    pub(crate) status: String,
 }
 
 // --- Request types ---
@@ -153,53 +153,23 @@ async fn create_zone(
     Extension(current_user): Extension<CurrentUser>,
     Json(req): Json<CreateZoneRequest>,
 ) -> impl IntoResponse {
-    let name = req.name.trim().to_string();
-    if name.is_empty() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({"error": "zone name is required"})),
-        )
-            .into_response();
-    }
-
-    // Check zone doesn't already exist globally
-    let zones = state.dns_authority.list_zones().await;
-    if zones.iter().any(|z| z == &name) {
-        return (
+    match add_zone(&state, &current_user.user.id, &req.name).await {
+        Ok(name) => (StatusCode::CREATED, Json(serde_json::json!({"name": name}))).into_response(),
+        Err(DnsActionError::ZoneExists) => (
             StatusCode::CONFLICT,
             Json(serde_json::json!({"error": "zone already exists"})),
         )
-            .into_response();
-    }
-
-    if state.dns_authority.create_zone(&name).await {
-        // Associate zone with the authenticated user
-        let _ = sqlx::query("UPDATE dns_zones SET user_id = $1 WHERE name = $2")
-            .bind(&current_user.user.id)
-            .bind(&name)
-            .execute(&state.db)
-            .await;
-
-        let _ = crate::api::services::notifications::create_notification(
-            &state.db,
-            &current_user.user.id,
-            "Domain Added",
-            &format!(
-                "{} has been added and is pending NS delegation verification.",
-                name
-            ),
-            "domain_added",
-            Some("/dash/domains"),
+            .into_response(),
+        Err(DnsActionError::NameRequired) => (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"error": "zone name is required"})),
         )
-        .await;
-
-        (StatusCode::CREATED, Json(serde_json::json!({"name": name}))).into_response()
-    } else {
-        (
+            .into_response(),
+        Err(_) => (
             StatusCode::BAD_REQUEST,
             Json(serde_json::json!({"error": "invalid zone name"})),
         )
-            .into_response()
+            .into_response(),
     }
 }
 
@@ -208,16 +178,9 @@ async fn delete_zone(
     Extension(current_user): Extension<CurrentUser>,
     axum::extract::Path(zone_name): axum::extract::Path<String>,
 ) -> StatusCode {
-    if ensure_zone_ownership(&state.db, &zone_name, &current_user.user.id)
-        .await
-        .is_err()
-    {
-        return StatusCode::NOT_FOUND;
-    }
-    if state.dns_authority.delete_zone(&zone_name).await {
-        StatusCode::NO_CONTENT
-    } else {
-        StatusCode::NOT_FOUND
+    match remove_zone(&state, &current_user.user.id, &zone_name).await {
+        Ok(()) => StatusCode::NO_CONTENT,
+        Err(_) => StatusCode::NOT_FOUND,
     }
 }
 
@@ -336,23 +299,21 @@ async fn create_record(
     axum::extract::Path(zone_name): axum::extract::Path<String>,
     Json(req): Json<CreateRecordRequest>,
 ) -> impl IntoResponse {
-    if ensure_zone_ownership(&state.db, &zone_name, &current_user.user.id)
-        .await
-        .is_err()
+    match add_record(
+        &state,
+        &current_user.user.id,
+        &zone_name,
+        &req.name,
+        &req.rtype,
+        req.ttl,
+        &req.value,
+    )
+    .await
     {
-        return zone_not_found().into_response();
-    }
-
-    if ensure_zone_verified(&state.db, &zone_name).await.is_err() {
-        return zone_not_verified().into_response();
-    }
-
-    if state
-        .dns_authority
-        .add_record(&zone_name, &req.name, &req.rtype, req.ttl, &req.value)
-        .await
-    {
-        (
+        Err(DnsActionError::ZoneNotFound) => zone_not_found().into_response(),
+        Err(DnsActionError::ZoneNotVerified) => zone_not_verified().into_response(),
+        Err(_) => internal_error("failed to create record").into_response(),
+        Ok(()) => (
             StatusCode::CREATED,
             Json(serde_json::json!({
                 "name": req.name,
@@ -362,9 +323,7 @@ async fn create_record(
                 "status": "active"
             })),
         )
-            .into_response()
-    } else {
-        internal_error("failed to create record").into_response()
+            .into_response(),
     }
 }
 
@@ -425,29 +384,156 @@ async fn delete_record(
     Extension(current_user): Extension<CurrentUser>,
     axum::extract::Path((zone_name, record_id)): axum::extract::Path<(String, uuid::Uuid)>,
 ) -> impl IntoResponse {
-    if ensure_zone_ownership(&state.db, &zone_name, &current_user.user.id)
+    match remove_record(&state, &current_user.user.id, &zone_name, record_id).await {
+        Ok(()) => StatusCode::NO_CONTENT.into_response(),
+        Err(DnsActionError::ZoneNotFound) => zone_not_found().into_response(),
+        Err(DnsActionError::ZoneNotVerified) => zone_not_verified().into_response(),
+        Err(_) => record_not_found().into_response(),
+    }
+}
+
+// --- Shared operations ---
+//
+// Used by both the JSON API above and the server-rendered dashboard forms, so
+// ownership and verification checks live in exactly one place.
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum DnsActionError {
+    NameRequired,
+    ZoneExists,
+    InvalidZone,
+    ZoneNotFound,
+    ZoneNotVerified,
+    RecordNotFound,
+    Internal,
+}
+
+/// Create a zone owned by `user_id`, returning its normalized name.
+pub(crate) async fn add_zone(
+    state: &AppState,
+    user_id: &str,
+    name: &str,
+) -> Result<String, DnsActionError> {
+    let name = name.trim().to_string();
+    if name.is_empty() {
+        return Err(DnsActionError::NameRequired);
+    }
+
+    // Check zone doesn't already exist globally
+    let zones = state.dns_authority.list_zones().await;
+    if zones.iter().any(|z| z == &name) {
+        return Err(DnsActionError::ZoneExists);
+    }
+
+    if !state.dns_authority.create_zone(&name).await {
+        return Err(DnsActionError::InvalidZone);
+    }
+
+    // Associate zone with the authenticated user
+    let _ = sqlx::query("UPDATE dns_zones SET user_id = $1 WHERE name = $2")
+        .bind(user_id)
+        .bind(&name)
+        .execute(&state.db)
+        .await;
+
+    let _ = crate::api::services::notifications::create_notification(
+        &state.db,
+        user_id,
+        "Domain Added",
+        &format!(
+            "{} has been added and is pending NS delegation verification.",
+            name
+        ),
+        "domain_added",
+        Some("/dash/domains"),
+    )
+    .await;
+
+    Ok(name)
+}
+
+pub(crate) async fn remove_zone(
+    state: &AppState,
+    user_id: &str,
+    zone_name: &str,
+) -> Result<(), DnsActionError> {
+    ensure_zone_ownership(&state.db, zone_name, user_id)
         .await
-        .is_err()
-    {
-        return zone_not_found().into_response();
+        .map_err(|_| DnsActionError::ZoneNotFound)?;
+    if state.dns_authority.delete_zone(zone_name).await {
+        Ok(())
+    } else {
+        Err(DnsActionError::ZoneNotFound)
     }
+}
 
-    if ensure_zone_verified(&state.db, &zone_name).await.is_err() {
-        return zone_not_verified().into_response();
-    }
+/// Records for a zone owned by `user_id`, plus whether the zone is verified.
+pub(crate) async fn zone_records(
+    state: &AppState,
+    user_id: &str,
+    zone_name: &str,
+) -> Result<(bool, Vec<RecordResponse>), DnsActionError> {
+    ensure_zone_ownership(&state.db, zone_name, user_id)
+        .await
+        .map_err(|_| DnsActionError::ZoneNotFound)?;
+    let verified = is_zone_verified(&state.db, zone_name)
+        .await
+        .map_err(|_| DnsActionError::Internal)?;
+    let records = get_records_from_db(&state.db, zone_name)
+        .await
+        .map_err(|_| DnsActionError::Internal)?;
+    Ok((verified, records))
+}
 
-    let Some((name, rtype, data)) = get_record_by_id(&state.db, &zone_name, record_id).await else {
-        return record_not_found().into_response();
-    };
-
+pub(crate) async fn add_record(
+    state: &AppState,
+    user_id: &str,
+    zone_name: &str,
+    name: &str,
+    rtype: &str,
+    ttl: u32,
+    value: &str,
+) -> Result<(), DnsActionError> {
+    ensure_zone_ownership(&state.db, zone_name, user_id)
+        .await
+        .map_err(|_| DnsActionError::ZoneNotFound)?;
+    ensure_zone_verified(&state.db, zone_name)
+        .await
+        .map_err(|_| DnsActionError::ZoneNotVerified)?;
     if state
         .dns_authority
-        .remove_record_value(&zone_name, &name, &rtype, &data)
+        .add_record(zone_name, name, rtype, ttl, value)
         .await
     {
-        StatusCode::NO_CONTENT.into_response()
+        Ok(())
     } else {
-        record_not_found().into_response()
+        Err(DnsActionError::Internal)
+    }
+}
+
+pub(crate) async fn remove_record(
+    state: &AppState,
+    user_id: &str,
+    zone_name: &str,
+    record_id: uuid::Uuid,
+) -> Result<(), DnsActionError> {
+    ensure_zone_ownership(&state.db, zone_name, user_id)
+        .await
+        .map_err(|_| DnsActionError::ZoneNotFound)?;
+    ensure_zone_verified(&state.db, zone_name)
+        .await
+        .map_err(|_| DnsActionError::ZoneNotVerified)?;
+    let (name, rtype, data) = get_record_by_id(&state.db, zone_name, record_id)
+        .await
+        .ok_or(DnsActionError::RecordNotFound)?;
+    if state
+        .dns_authority
+        .remove_record_value(zone_name, &name, &rtype, &data)
+        .await
+    {
+        Ok(())
+    } else {
+        Err(DnsActionError::RecordNotFound)
     }
 }
 

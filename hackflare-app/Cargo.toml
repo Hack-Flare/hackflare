@@ -38,6 +38,7 @@ tower-sessions = "0.15.0"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt", "json"] }
 uuid = { version = "1.26.0", features = ["serde", "v4"] }
+pulldown-cmark = { version = "0.13.4", default-features = false, features = ["html"] }
 
 [dev-dependencies]
 http-body-util = "0.1"

@@ -115,69 +115,70 @@ async fn set_password(
     Extension(current_user): Extension<CurrentUser>,
     Json(req): Json<SetPasswordRequest>,
 ) -> impl IntoResponse {
-    if req.new_password.len() < 8 {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({"error": "password_too_short"})),
-        )
-            .into_response();
-    }
-
-    // If user already has a password, verify current_password
-    if let Some(ref existing_hash) = current_user.user.password_hash {
-        let current = req.current_password.as_deref().unwrap_or("");
-        use argon2::{Argon2, PasswordHash, PasswordVerifier};
-        let parsed = match PasswordHash::new(existing_hash) {
-            Ok(p) => p,
-            Err(_) => {
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(serde_json::json!({"error": "internal_error"})),
-                )
-                    .into_response();
-            }
-        };
-        if Argon2::default()
-            .verify_password(current.as_bytes(), &parsed)
-            .is_err()
-        {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": "current_password_incorrect"})),
-            )
-                .into_response();
-        }
-    }
-
-    use argon2::{Argon2, PasswordHasher};
-    let password_hash = match Argon2::default().hash_password(req.new_password.as_bytes()) {
-        Ok(h) => h.to_string(),
-        Err(_) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "hash_error"})),
-            )
-                .into_response();
-        }
-    };
-
-    match sqlx::query("UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2")
-        .bind(&password_hash)
-        .bind(&current_user.user.id)
-        .execute(&state.db)
-        .await
+    match change_password(
+        &state,
+        &current_user.user,
+        req.current_password.as_deref(),
+        &req.new_password,
+    )
+    .await
     {
-        Ok(_) => (
+        Ok(()) => (
             StatusCode::OK,
             Json(serde_json::json!({"message": "password_updated"})),
         )
             .into_response(),
-        Err(_) => (
+        Err(code @ ("password_too_short" | "current_password_incorrect")) => (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"error": code})),
+        )
+            .into_response(),
+        Err(code) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "db_error"})),
+            Json(serde_json::json!({"error": code})),
         )
             .into_response(),
     }
+}
+
+/// Set a user's password, verifying `current_password` when one is already set.
+/// Shared with the dashboard settings form. Errors are stable error codes.
+pub(crate) async fn change_password(
+    state: &AppState,
+    user: &crate::api::models::db::User,
+    current_password: Option<&str>,
+    new_password: &str,
+) -> Result<(), &'static str> {
+    if new_password.len() < 8 {
+        return Err("password_too_short");
+    }
+
+    // If user already has a password, verify current_password
+    if let Some(ref existing_hash) = user.password_hash {
+        let current = current_password.unwrap_or("");
+        use argon2::{Argon2, PasswordHash, PasswordVerifier};
+        let parsed = PasswordHash::new(existing_hash).map_err(|_| "internal_error")?;
+        if Argon2::default()
+            .verify_password(current.as_bytes(), &parsed)
+            .is_err()
+        {
+            return Err("current_password_incorrect");
+        }
+    }
+
+    use argon2::{Argon2, PasswordHasher};
+    let password_hash = Argon2::default()
+        .hash_password(new_password.as_bytes())
+        .map_err(|_| "hash_error")?
+        .to_string();
+
+    sqlx::query("UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2")
+        .bind(&password_hash)
+        .bind(&user.id)
+        .execute(&state.db)
+        .await
+        .map_err(|_| "db_error")?;
+    Ok(())
 }
 
 pub(super) fn routes(state: AppState) -> Router<AppState> {

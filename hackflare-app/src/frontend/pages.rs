@@ -94,6 +94,25 @@ pub struct PublicPageTemplate {
     pub status: u16,
 }
 
+pub struct DocLink {
+    pub slug: String,
+    pub title: String,
+    pub active: bool,
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "docs.html")]
+pub struct DocsTemplate {
+    pub title: String,
+    /// Pre-rendered HTML; raw HTML in the markdown source is escaped.
+    pub content: String,
+    pub links: Vec<DocLink>,
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "team.html")]
+pub struct TeamTemplate;
+
 // --- Dashboard ---
 
 /// Context shared by every dashboard template

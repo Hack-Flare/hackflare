@@ -1,0 +1,20 @@
+{% extends "base.html" %} {% block title %}{{ title }} — HackFlare Docs{%
+endblock %} {% block content %}
+<div class="flex flex-col min-h-screen">
+  {% include "header.html" %}
+  <main class="flex-1 container section docs-layout">
+    <nav class="docs-nav" aria-label="Documentation">
+      <div class="sidebar-group-label">Documentation</div>
+      {% for link in links %}
+      <a
+        href="/docs?doc={{ link.slug }}"
+        {% if link.active %}class="active" aria-current="page"{% endif %}
+        >{{ link.title }}</a
+      >
+      {% endfor %}
+    </nav>
+    <article class="prose">{{ content|safe }}</article>
+  </main>
+  {% include "footer.html" %}
+</div>
+{% endblock %}
