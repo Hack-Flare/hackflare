@@ -1,19 +1,22 @@
 # Hackflare Backend API
 
-This document describes the backend that is currently implemented in [hackflare_api](../hackflare_api). If this file ever disagrees with the Rust source, trust the source.
+This document describes the API served by the merged application in [hackflare-app](../hackflare-app). If this file ever disagrees with the Rust source, trust the source.
 
 ## Current Surface Area
 
-The backend entrypoint is [hackflare_api/src/main.rs](../hackflare_api/src/main.rs). HTTP routing is assembled in [hackflare_api/src/routes/mod.rs](../hackflare_api/src/routes/mod.rs), with auth in [hackflare_api/src/routes/auth.rs](../hackflare_api/src/routes/auth.rs), user routes in [hackflare_api/src/routes/users.rs](../hackflare_api/src/routes/users.rs), and JWT cookie validation in [hackflare_api/src/middlewares/auth.rs](../hackflare_api/src/middlewares/auth.rs).
+The application entrypoint is [hackflare-app/src/main.rs](../hackflare-app/src/main.rs). HTTP API routing is assembled in [hackflare-app/src/api/routes/mod.rs](../hackflare-app/src/api/routes/mod.rs), with auth in [hackflare-app/src/auth/routes.rs](../hackflare-app/src/auth/routes.rs), user routes in [hackflare-app/src/api/routes/users.rs](../hackflare-app/src/api/routes/users.rs), and JWT cookie validation in [hackflare-app/src/auth/middleware.rs](../hackflare-app/src/auth/middleware.rs).
 
-At the moment, the backend exposes only these HTTP routes:
+The API is grouped into these route families:
 
-- `GET /api/v1/auth/login`
-- `GET /api/v1/auth/callback`
-- `POST /api/v1/auth/logout`
-- `GET /api/v1/users/me`
-
-There are no health, DNS, or database-backed CRUD endpoints implemented in the current Rust source tree.
+- `/api/v1/auth` - authentication and password management
+- `/api/v1/users` - current user information
+- `/api/v1/sessions` - session management
+- `/api/v1/dns` - DNS zones and records
+- `/api/v1/admin` - administrative configuration, users, and statistics
+- `/api/v1/settings` - API keys and account settings
+- `/api/v1/logs` - query logs
+- `/api/v1/notifications` - user notifications
+- `/api/v1/traffic` - user and administrative traffic data
 
 ## Authentication Flow
 
@@ -86,7 +89,7 @@ Returns the authenticated user id.
 Authentication:
 
 - Requires the `jwt` cookie.
-- The cookie is validated by [hackflare_api/src/middlewares/auth.rs](../hackflare_api/src/middlewares/auth.rs).
+- The cookie is validated by [hackflare-app/src/auth/middleware.rs](../hackflare-app/src/auth/middleware.rs).
 
 Response:
 
@@ -113,12 +116,12 @@ This endpoint is used by the frontend sign-out action so the browser session is 
 
 - The OAuth session state is stored in an in-memory `tower_sessions::MemoryStore`.
 - Session entries expire after 15 minutes of inactivity.
-- The issued `jwt` cookie is `HttpOnly`, uses `SameSite=Lax`, and is marked `Secure` when `API_HCA_REDIRECT_URI` uses `https`.
-- The JWT itself is valid for 24 hours.
+- The issued access and refresh cookies are `HttpOnly`, use `SameSite=Lax`, and are marked `Secure` when `API_HCA_REDIRECT_URI` uses `https`.
+- The access and refresh JWT lifetimes default to 15 minutes and 30 days respectively.
 
 ## Configuration
 
-The backend reads configuration from environment variables in [hackflare_api/src/config.rs](../hackflare_api/src/config.rs).
+The application reads configuration from environment variables in [hackflare-app/src/config.rs](../hackflare-app/src/config.rs).
 
 Required variables:
 
@@ -130,25 +133,23 @@ Required variables:
 Optional variable:
 
 - `API_BIND_ADDR` defaults to `0.0.0.0:8080`
-- `API_FRONTEND_ORIGIN` defaults to `http://localhost:5173`
+- `API_DNS_BIND_ADDR` defaults to `0.0.0.0:5353`
+- `API_AUTO_MIGRATE` controls whether startup applies pending migrations.
 
 Notes:
 
 - `API_HCA_REDIRECT_URI` must use `http` or `https`.
 - The JWT secret is parsed as a base64 secret.
-- The sample `.env` file also lists `DATABASE_URL` and `API_DNS_BIND_ADDR`, but the current Rust backend does not use them yet.
+- `DATABASE_URL` is required by the application.
 
 ## Running Locally
 
-- Backend binary: `cargo run -p hackflare-api`
-- Backend build: `cargo build -p hackflare-api`
-- Backend tests: `cargo test -p hackflare-api`
-- Docker dev backend: `docker compose -f compose.dev.yml --profile backend up -d`
+- Application binary: `cargo run -p hackflare-app`
+- Application build: `cargo build -p hackflare-app`
+- Application tests: `cargo test -p hackflare-app`
+- Docker dev application: `docker compose -f deployment/compose.dev.yml up -d`
 
-## What Is Not Implemented Yet
+## Notes
 
-- Persistent user storage
-- Database-backed auth data
-- DNS management endpoints
-- Health and ping endpoints
-- Any `Authorization: Bearer ...` API surface for the current routes
+- The retired Slack webhook integration is no longer part of the application.
+- The API is served by the same process as the SSR frontend.

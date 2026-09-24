@@ -1,7 +1,7 @@
 [workspace]
 resolver = "3"
 members = [
-    "hackflare_api",
+    "hackflare-app",
     "hackflare_dns",
 ]
 

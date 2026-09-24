@@ -1,0 +1,79 @@
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <a class="brand" href="/dash">
+      <img src="/static/logo.svg" width="32" alt="HackFlare" />
+      <span>Hackflare</span>
+    </a>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="sidebar-group-label">Overview</div>
+    <a class="sidebar-link {% if active == "dashboard" %}active{% endif %}" href="/dash">
+      <span class="lucide-icon icon-dashboard"></span>
+      Dashboard
+    </a>
+
+    <div class="sidebar-group-label">Manage</div>
+    <a class="sidebar-link {% if active == "domains" %}active{% endif %}" href="/dash/domains">
+      <span class="lucide-icon icon-globe"></span>
+      Domains
+      <span class="lucide-icon sidebar-chevron icon-chevron"></span>
+    </a>
+
+    {% if let Some(zone) = domain %}
+    <div class="domain-subnav">
+      <a class="sidebar-link {% if active == "dns" %}active{% endif %}" href="/dash/domains/{{ zone }}/dns">DNS Records</a>
+      <a class="sidebar-link {% if active == "ssl" %}active{% endif %}" href="/dash/domains/{{ zone }}/ssl">SSL/TLS</a>
+      <a class="sidebar-link {% if active == "redirects" %}active{% endif %}" href="/dash/domains/{{ zone }}/redirects">Redirects</a>
+    </div>
+    {% endif %}
+
+    <div class="sidebar-group-label">Edge</div>
+    <a class="sidebar-link {% if active == "firewall" %}active{% endif %}" href="/dash/firewall">
+      <span class="lucide-icon icon-firewall"></span>
+      Firewall
+    </a>
+    <a class="sidebar-link {% if active == "workers" %}active{% endif %}" href="/dash/workers">
+      <span class="lucide-icon icon-workers"></span>
+      Workers
+    </a>
+    <a class="sidebar-link {% if active == "tunnel" %}active{% endif %}" href="/dash/tunnel">
+      <span class="lucide-icon icon-tunnel"></span>
+      Tunnel
+    </a>
+
+    <div class="sidebar-group-label">Analytics</div>
+    <a class="sidebar-link {% if active == "traffic" %}active{% endif %}" href="/dash/traffic">
+      <span class="lucide-icon icon-traffic"></span>
+      Traffic
+    </a>
+    <a class="sidebar-link {% if active == "performance" %}active{% endif %}" href="/dash/performance">
+      <span class="lucide-icon icon-performance"></span>
+      Performance
+    </a>
+    <a class="sidebar-link {% if active == "logs" %}active{% endif %}" href="/dash/logs">
+      <span class="lucide-icon icon-logs"></span>
+      Logs
+    </a>
+    <a class="sidebar-link {% if active == "notifications" %}active{% endif %}" href="/dash/notifications">
+      <span class="lucide-icon icon-notifications"></span>
+      Notifications
+    </a>
+
+    {% if is_admin %}
+    <div class="sidebar-group-label">Admin</div>
+    <a class="sidebar-link {% if active == "admin" %}active{% endif %}" href="/dash/admin">
+      <span class="lucide-icon icon-admin"></span>
+      Admin Panel
+    </a>
+    {% endif %}
+
+    <div class="sidebar-group-label">Support</div>
+    <a class="sidebar-link {% if active == "help" %}active{% endif %}" href="/dash/help">
+      <span class="lucide-icon icon-help"></span>
+      Help
+    </a>
+  </nav>
+
+  {% include "dash/footer.html" %}
+</aside>

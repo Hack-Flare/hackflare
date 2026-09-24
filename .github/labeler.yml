@@ -1,10 +1,10 @@
-frontend:
+app:
   - changed-files:
-      - any-glob-to-any-file: frontend/**/*
+      - any-glob-to-any-file: hackflare-app/**/*
 
 backend:
   - changed-files:
-      - any-glob-to-any-file: hackflare_api/**/*
+      - any-glob-to-any-file: hackflare-app/**/*
 
 dns:
   - changed-files:
@@ -17,17 +17,12 @@ ci:
 docker:
   - changed-files:
       - any-glob-to-any-file:
-          - hackflare_api/Dockerfile
-          - frontend/Dockerfile
+          - hackflare-app/Dockerfile
           - deployment/compose.dev.yml
           - deployment/compose.prod.yml
-          - .github/workflows/docker-backend.yml
-          - .github/workflows/docker-frontend.yml
 
 dependencies:
   - changed-files:
       - any-glob-to-any-file:
           - Cargo.lock
           - Cargo.toml
-          - frontend/package-lock.json
-          - frontend/package.json

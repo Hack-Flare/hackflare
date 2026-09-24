@@ -11,7 +11,7 @@ updates:
           - "*"
 
   - package-ecosystem: cargo
-    directory: "/hackflare_api"
+    directory: "/hackflare-app"
     schedule:
       interval: daily
     open-pull-requests-limit: 20
@@ -27,15 +27,5 @@ updates:
     open-pull-requests-limit: 20
     groups:
       hackflare_dns:
-        patterns:
-          - "*"
-
-  - package-ecosystem: npm
-    directory: "/frontend"
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 20
-    groups:
-      hackflare_frontend:
         patterns:
           - "*"

@@ -1,0 +1,221 @@
+use std::{
+    env::{self, VarError},
+    net::SocketAddr,
+    path::PathBuf,
+    str::FromStr,
+};
+
+use anyhow::{Context, Result};
+use axum_client_ip::ClientIpSource;
+use derive_more::{Display, Error};
+use jsonwebtoken::{DecodingKey, EncodingKey};
+use reqwest::Url;
+
+fn env_req<T>(name: &str) -> Result<T>
+where
+    T: FromStr,
+    T::Err: std::error::Error + Send + Sync + 'static,
+{
+    let type_name = std::any::type_name::<T>();
+    env::var(name)
+        .with_context(|| format!("{name} is required"))?
+        .trim()
+        .parse::<T>()
+        .with_context(|| format!("{name} has an invalid value for type {type_name}"))
+}
+
+fn env_or<T>(name: &str, default: T) -> Result<T>
+where
+    T: FromStr,
+    T::Err: std::error::Error + Send + Sync + 'static,
+{
+    let type_name = std::any::type_name::<T>();
+    match env::var(name) {
+        // if we have a value, try parsing it
+        Ok(s) => s
+            .trim()
+            .parse::<T>()
+            .with_context(|| format!("{name} has an invalid value for type {type_name}")),
+        // if we do not have a value, fall back to `default`
+        Err(VarError::NotPresent) => Ok(default),
+        Err(VarError::NotUnicode(s)) => {
+            anyhow::bail!("{name} contains invalid unicode: {}", s.display())
+        }
+    }
+}
+
+#[derive(Debug, Display, Error)]
+#[display(
+    "invalid environment: `{}`, expected `development` or `production`",
+    _0
+)]
+pub struct EnvironmentParseError(#[error(not(source))] String);
+
+#[derive(Debug, PartialEq, Eq, Display)]
+pub(crate) enum Environment {
+    Production,
+    Development,
+}
+
+impl Environment {
+    pub(crate) const fn is_prod(&self) -> bool {
+        matches!(self, Environment::Production)
+    }
+}
+
+impl FromStr for Environment {
+    type Err = EnvironmentParseError;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s {
+            "production" => Ok(Self::Production),
+            "development" => Ok(Self::Development),
+            _ => Err(EnvironmentParseError(s.to_string())),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct HcaConfig {
+    pub(crate) client_id: String,
+    pub(crate) client_secret: String,
+    /// May be "http://" or "https://".
+    pub(crate) redirect_uri: Url,
+}
+
+impl HcaConfig {
+    pub(crate) fn is_secure(&self) -> bool {
+        self.redirect_uri.scheme() == "https"
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct SmtpConfig {
+    pub(crate) host: String,
+    pub(crate) port: u16,
+    pub(crate) username: String,
+    pub(crate) password: String,
+    pub(crate) from: String,
+}
+
+#[derive(Debug)]
+pub struct Config {
+    pub bind_addr: SocketAddr,
+    pub dns_bind_addr: SocketAddr,
+    pub static_dir: PathBuf,
+    pub(crate) client_ip_source: ClientIpSource,
+    pub(crate) environment: Environment,
+    pub(crate) database_url: Url,
+    pub(crate) auto_migrate: bool,
+    pub(crate) jwt_encoding_key: EncodingKey,
+    pub(crate) jwt_decoding_key: DecodingKey,
+    pub(crate) hca: HcaConfig,
+    pub(crate) session_inactivity_minutes: i64,
+    pub(crate) access_token_minutes: i64,
+    pub(crate) refresh_token_days: i64,
+    pub(crate) dns_nameservers: Vec<String>,
+    pub(crate) admin_emails: Vec<String>,
+    pub(crate) smtp: Option<SmtpConfig>,
+    pub(crate) frontend_url: Option<Url>,
+}
+
+impl Config {}
+
+pub fn from_env() -> Result<Config> {
+    from_env_with_database_url(None)
+}
+
+pub(crate) fn from_env_with_database_url(database_url_override: Option<Url>) -> Result<Config> {
+    let redirect_uri: Url = env_req("API_HCA_REDIRECT_URI")?;
+    let database_url = match database_url_override {
+        Some(url) => url,
+        None => env_req("DATABASE_URL")?,
+    };
+
+    match database_url.scheme() {
+        "postgres" => { /* valid */ }
+        other => anyhow::bail!("DATABASE_URL must use postgres (found {})", other),
+    }
+
+    // Validate the scheme
+    match redirect_uri.scheme() {
+        "http" | "https" => { /* valid */ }
+        other => anyhow::bail!(
+            "API_HCA_REDIRECT_URI must use http or https (found {})",
+            other
+        ),
+    }
+
+    let environment = env_or("API_ENVIRONMENT", Environment::Production)?;
+
+    if environment == Environment::Production && redirect_uri.scheme() != "https" {
+        warn!("running in production but redirect URI is not HTTPS");
+    }
+
+    let auto_migrate = env_or("API_AUTO_MIGRATE", environment.is_prod())?;
+
+    let jwt_secret = env_req::<String>("API_JWT_SECRET")?;
+
+    Ok(Config {
+        bind_addr: env_or(
+            "API_BIND_ADDR",
+            "0.0.0.0:8080"
+                .parse()
+                .expect("invalid default API bind address"),
+        )?,
+        dns_bind_addr: env_or(
+            "API_DNS_BIND_ADDR",
+            "0.0.0.0:5353"
+                .parse()
+                .expect("invalid default DNS bind address"),
+        )?,
+        static_dir: env_or(
+            "FRONTEND_STATIC_DIR",
+            PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/static")),
+        )?,
+        client_ip_source: env_or("API_CLIENT_IP_SOURCE", ClientIpSource::ConnectInfo)?,
+        database_url,
+        auto_migrate,
+        environment,
+        jwt_encoding_key: EncodingKey::from_base64_secret(&jwt_secret)?,
+        jwt_decoding_key: DecodingKey::from_base64_secret(&jwt_secret)?,
+        hca: HcaConfig {
+            client_id: env_req("API_HCA_CLIENT_ID")?,
+            client_secret: env_req("API_HCA_CLIENT_SECRET")?,
+            redirect_uri,
+        },
+        session_inactivity_minutes: env_or("API_SESSION_INACTIVITY_MINUTES", 15i64)?,
+        access_token_minutes: env_or("API_ACCESS_TOKEN_MINUTES", 15i64)?,
+        refresh_token_days: env_or("API_REFRESH_TOKEN_DAYS", 30i64)?,
+        dns_nameservers: env::var("API_DNS_NAMESERVERS")
+            .unwrap_or_else(|_| "ns1.hackflare.dev,ns2.hackflare.dev".to_string())
+            .split(',')
+            .map(|s| s.trim().to_string().trim_end_matches('.').to_string())
+            .filter(|s| !s.is_empty())
+            .collect(),
+        admin_emails: env::var("API_ADMIN_EMAILS")
+            .unwrap_or_default()
+            .split(',')
+            .map(|s| s.trim().to_lowercase())
+            .filter(|s| !s.is_empty())
+            .collect(),
+        frontend_url: env::var("FRONTEND_URL").ok().and_then(|u| {
+            Url::parse(&u)
+                .inspect_err(|&e| {
+                    warn!("invalid FRONTEND_URL: {e}");
+                })
+                .ok()
+        }),
+        smtp: if let Ok(host) = env::var("SMTP_HOST") {
+            Some(SmtpConfig {
+                host,
+                port: env_or("SMTP_PORT", 587u16)?,
+                username: env_req("SMTP_USERNAME")?,
+                password: env_req("SMTP_PASSWORD")?,
+                from: env_req("SMTP_FROM")?,
+            })
+        } else {
+            None
+        },
+    })
+}

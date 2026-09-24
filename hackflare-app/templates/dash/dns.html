@@ -1,0 +1,131 @@
+<div class="dash-page">
+  <div class="dns-page-heading">
+    <div>
+      <h1>DNS Records</h1>
+      <p class="dash-sub">Managing records for <strong>{{ zone_name }}</strong></p>
+    </div>
+    {% if ns_verified %}
+    <button class="btn btn-orange" type="button" data-modal-open="add-record-dialog">
+      Add record
+    </button>
+    {% endif %}
+  </div>
+  {% if ns_verified %}
+  <dialog
+    class="modal"
+    id="add-record-dialog"
+    data-modal
+    aria-labelledby="add-record-title"
+  >
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">{{ zone_name }}</p>
+          <h2 class="modal-title" id="add-record-title">Add DNS record</h2>
+        </div>
+        <button class="modal-close" type="button" data-modal-close aria-label="Close dialog">
+          &times;
+        </button>
+      </div>
+      <p class="modal-description">
+        Add a record to this zone. Changes are applied after you submit the form.
+      </p>
+      <form
+        method="post"
+        action="/dash/domains/{{ zone_name }}/dns"
+        class="form-stack"
+      >
+        <input type="hidden" name="action" value="create" />
+        <label class="form-field">
+          <span class="label">Name</span>
+          <input class="input" name="name" placeholder="@ or subdomain" required />
+        </label>
+        <label class="form-field">
+          <span class="label">Record type</span>
+          <select class="input" name="record_type">
+            <option>A</option>
+            <option>CNAME</option>
+            <option>MX</option>
+            <option>AAAA</option>
+            <option>TXT</option>
+          </select>
+        </label>
+        <label class="form-field">
+          <span class="label">Value</span>
+          <input class="input" name="value" placeholder="Record value" required />
+        </label>
+        <label class="form-field">
+          <span class="label">TTL</span>
+          <input class="input" name="ttl" type="number" value="3600" min="1" />
+        </label>
+        <div class="modal-actions">
+          <button class="btn btn-outline" type="button" data-modal-close>Cancel</button>
+          <button class="btn btn-orange" type="submit">Add record</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+  {% else %}
+  <div class="error-banner text-warning">
+    Zone is not verified. Record edits are blocked.
+  </div>
+  {% endif %}
+  <div class="stat-grid">
+    <div class="card">
+      <div class="card-content">
+        <div class="stat-label">A Records</div>
+        <div class="stat-value">{{ a_count }}</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-content">
+        <div class="stat-label">CNAME Records</div>
+        <div class="stat-value">{{ cname_count }}</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-content">
+        <div class="stat-label">Other Records</div>
+        <div class="stat-value">{{ other_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="card card-spaced">
+    <div class="card-content">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Value</th>
+            <th>TTL</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for record in records %}
+          <tr>
+            <td>{{ record.name }}</td>
+            <td>{{ record.record_type }}</td>
+            <td>{{ record.value }}</td>
+            <td>{{ record.ttl }}</td>
+            <td>
+              <form method="post" action="/dash/domains/{{ zone_name }}/dns">
+                <input type="hidden" name="action" value="delete" /><input
+                  type="hidden"
+                  name="id"
+                  value="{{ record.id }}"
+                /><button class="btn btn-ghost" type="submit">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="text-muted">No records yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

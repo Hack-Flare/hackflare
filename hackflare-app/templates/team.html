@@ -1,0 +1,92 @@
+{% extends "base.html" %} {% block title %}Our Team - HackFlare{% endblock %}
+{% block content %}
+<div class="flex flex-col min-h-screen">
+  {% include "header.html" %}
+  <main class="flex-1">
+    <section class="section team-intro">
+      <div class="container">
+        <h1 class="public-heading">Meet the team.</h1>
+        <p class="public-message text-muted">
+          Built by passionate Hack Club members dedicated to making DNS
+          management simple and fast.
+        </p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+      <h2>Core Team</h2>
+      <div class="feature-grid">
+        <article class="feature-card team-card">
+          <div class="team-card-head">
+            <div>
+              <h3>Vejas</h3>
+              <p>Co-Founder &amp; Frontend dev</p>
+            </div>
+            <span class="team-avatar team-avatar-orange" aria-hidden="true">V</span>
+          </div>
+          <p>
+            Full-stack engineer passionate about developer tools and
+            infrastructure. Leads HackFlare vision and architecture.
+          </p>
+          <div class="team-links">
+            <a class="link-accent" href="https://vejas.zip" target="_blank" rel="noreferrer">Website</a>
+            <a class="link-accent" href="https://github.com/las-vejas" target="_blank" rel="noreferrer">GitHub</a>
+          </div>
+        </article>
+
+        <article class="feature-card team-card">
+          <div class="team-card-head">
+            <div>
+              <h3>Nayte <span class="text-xs text-muted">(SeradedStripes)</span></h3>
+              <p>Co-founder &amp; Backend dev</p>
+            </div>
+            <span class="team-avatar team-avatar-purple" aria-hidden="true">N</span>
+          </div>
+          <p>
+            Backend specialist focused on API design and system reliability.
+            Ensures HackFlare runs smoothly at scale.
+          </p>
+          <div class="team-links">
+            <a class="link-accent" href="https://kirze.de" target="_blank" rel="noreferrer">Website</a>
+            <a class="link-accent" href="https://github.com/seradedstripes" target="_blank" rel="noreferrer">GitHub</a>
+          </div>
+        </article>
+
+        <article class="feature-card team-card">
+          <div class="team-card-head">
+            <div>
+              <h3>Johann <span class="text-xs text-muted">(Vimthusiast)</span></h3>
+              <p>Backend Developer</p>
+            </div>
+            <span class="team-avatar team-avatar-blue" aria-hidden="true">J</span>
+          </div>
+          <p>
+            Frontend engineer obsessed with UX and performance. Crafts
+            HackFlare's beautiful, responsive interface.
+          </p>
+          <div class="team-links">
+            <a class="link-accent" href="https://github.com/Vimthusiast" target="_blank" rel="noreferrer">GitHub</a>
+          </div>
+        </article>
+      </div>
+      </div>
+    </section>
+
+    <section class="cta">
+      <div class="container">
+        <h2>Join us in building the future of DNS.</h2>
+        <p>
+          Interested in contributing or partnering with HackFlare? Reach out to
+          the team on GitHub or join the Hack Club community.
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <a class="btn btn-white" href="https://github.com/Hack-Flare/hackflare" target="_blank" rel="noreferrer">Contribute on GitHub</a>
+          <a class="btn btn-outline" href="https://hackclub.slack.com" target="_blank" rel="noreferrer">Join Slack Community</a>
+        </div>
+      </div>
+    </section>
+  </main>
+  {% include "footer.html" %}
+</div>
+{% endblock %}
