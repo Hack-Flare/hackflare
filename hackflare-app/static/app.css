@@ -815,6 +815,89 @@ p {
   font-size: 0.75rem;
   color: var(--muted-foreground);
 }
+.domain-setup-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+  gap: 16px;
+  margin-top: 24px;
+}
+.domain-add-card,
+.nameserver-card {
+  min-width: 0;
+}
+.eyebrow {
+  margin-bottom: 6px;
+  color: var(--hackclub-500);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.domain-add-form {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+}
+.domain-add-form .form-field {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+.domain-add-form .btn {
+  flex-shrink: 0;
+  height: 40px;
+}
+.form-hint {
+  margin-top: 12px;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+.nameserver-list {
+  display: grid;
+  gap: 8px;
+}
+.nameserver-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 0.8);
+  background: var(--muted);
+}
+.nameserver-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--hackclub-500);
+  color: white;
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+.nameserver-item code {
+  color: var(--foreground);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8125rem;
+}
+.setup-steps {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding-left: 20px;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+.setup-steps li::marker {
+  color: var(--hackclub-500);
+  font-weight: 700;
+}
 .dash-grid {
   margin-top: 0;
 }
@@ -935,6 +1018,20 @@ p {
 .textarea-large { height: 140px; padding: 12px; }
 .banner-success { color: var(--success); background: color-mix(in oklab, var(--success) 12%, transparent); }
 .card-spaced { margin-top: 24px; }
+@media (max-width: 860px) {
+  .domain-setup-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 560px) {
+  .domain-add-form {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .domain-add-form .btn {
+    width: 100%;
+  }
+}
 .icon-dashboard { --icon: url('/static/icons/layout-dashboard.svg'); }
 .icon-globe { --icon: url('/static/icons/globe.svg'); }
 .icon-firewall { --icon: url('/static/icons/shield-alert.svg'); }

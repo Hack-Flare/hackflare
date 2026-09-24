@@ -80,7 +80,12 @@ pub async fn index(State(state): State<AppState>, headers: HeaderMap) -> Respons
     let zones = fetch_zones(&state, &user.id).await;
     let verified_count = zones.iter().filter(|zone| zone.ns_verified).count();
 
-    let mut page = dashboard_page(&user, "dashboard", "Dashboard");
+    let mut page = dashboard_page(
+        &user,
+        "dashboard",
+        "Dashboard",
+        &state.config.dns_nameservers,
+    );
     page.zones = zones;
     page.verified_count = verified_count;
     page.into_response()
@@ -189,7 +194,7 @@ pub async fn section(
         return not_found().await;
     }
 
-    let mut page = dashboard_page(&user, key, title);
+    let mut page = dashboard_page(&user, key, title, &state.config.dns_nameservers);
     page.description = description.to_string();
     flash.apply(&mut page);
 
@@ -257,7 +262,7 @@ pub async fn domain_sub(
     };
 
     let description = format!("Manage {title} for {domain}.");
-    let mut page = dashboard_page(&user, &sub, title);
+    let mut page = dashboard_page(&user, &sub, title, &state.config.dns_nameservers);
     page.zone_name = domain.clone();
     page.description = description;
     flash.apply(&mut page);
@@ -289,7 +294,12 @@ pub async fn domain_sub(
     page.into_response()
 }
 
-fn dashboard_page(user: &AuthenticatedUser, active: &str, title: &str) -> DashboardTemplate {
+fn dashboard_page(
+    user: &AuthenticatedUser,
+    active: &str,
+    title: &str,
+    nameservers: &[String],
+) -> DashboardTemplate {
     let ctx = DashContext::from_user(user, active, title);
     DashboardTemplate {
         page_title: ctx.page_title,
@@ -299,6 +309,7 @@ fn dashboard_page(user: &AuthenticatedUser, active: &str, title: &str) -> Dashbo
         initials: ctx.initials,
         is_admin: ctx.is_admin,
         domain: None,
+        nameservers: nameservers.to_vec(),
         title: title.to_string(),
         description: String::new(),
         zones: Vec::new(),

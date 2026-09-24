@@ -1,17 +1,7 @@
 <div class="dash-page">
-  <div class="flex justify-between items-center">
-    <div>
-      <h1>Domains</h1>
-      <p class="dash-sub">Manage and monitor your domains</p>
-    </div>
-    <form method="post" action="/dash/domains" class="flex gap-2">
-      <input type="hidden" name="action" value="add" /><input
-        class="input"
-        name="name"
-        placeholder="example.com"
-        required
-      /><button class="btn btn-orange" type="submit">Add Domain</button>
-    </form>
+  <div>
+    <h1>Domains</h1>
+    <p class="dash-sub">Manage and monitor your domains</p>
   </div>
   <div class="stat-grid">
     <div class="card">
@@ -30,6 +20,65 @@
       <div class="card-content">
         <div class="stat-label">Pending</div>
         <div class="stat-value">{{ pending_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="domain-setup-grid">
+    <div class="card domain-add-card">
+      <div class="card-header">
+        <p class="eyebrow">Get started</p>
+        <h2 class="card-title">Add a domain</h2>
+        <p class="card-desc">
+          Register a domain here, then update its nameservers at your registrar.
+        </p>
+      </div>
+      <div class="card-content">
+        <form method="post" action="/dash/domains" class="domain-add-form">
+          <input type="hidden" name="action" value="add" />
+          <label class="form-field">
+            <span class="label">Domain name</span>
+            <input
+              class="input"
+              name="name"
+              placeholder="example.com"
+              autocomplete="off"
+              required
+            />
+          </label>
+          <button class="btn btn-orange" type="submit">Add Domain</button>
+        </form>
+        <p class="form-hint">
+          Already added it? Use the nameserver checklist on the right before
+          checking verification.
+        </p>
+      </div>
+    </div>
+    <div class="card nameserver-card">
+      <div class="card-header">
+        <p class="eyebrow">Required setup</p>
+        <h2 class="card-title">Point nameservers to HackFlare</h2>
+        <p class="card-desc">
+          At your domain registrar, replace the current nameservers with these:
+        </p>
+      </div>
+      <div class="card-content">
+        <div class="nameserver-list">
+          {% for nameserver in nameservers %}
+          <div class="nameserver-item">
+            <span class="nameserver-index">{{ loop.index }}</span>
+            <code>{{ nameserver }}</code>
+          </div>
+          {% endfor %}
+        </div>
+        <ol class="setup-steps">
+          <li>Open your registrar's nameserver settings.</li>
+          <li>Replace the existing entries with the values above.</li>
+          <li>Return here and wait for verification to complete.</li>
+        </ol>
+        <p class="form-hint">
+          Nameserver changes can take a few minutes to propagate. DNS record
+          management unlocks after verification.
+        </p>
       </div>
     </div>
   </div>

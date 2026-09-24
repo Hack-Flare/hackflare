@@ -175,6 +175,7 @@ pub struct DashboardTemplate {
     pub initials: String,
     pub is_admin: bool,
     pub domain: Option<String>,
+    pub nameservers: Vec<String>,
     pub title: String,
     pub description: String,
     pub zones: Vec<DnsZone>,
