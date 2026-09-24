@@ -30,7 +30,7 @@ www.example.com.  CNAME  example.com.
 
 ## MX Records
 
-**MX (Mail Exchange) records** specify mail servers for a domain. Each MX record has a priority value — lower values are preferred.
+**MX (Mail Exchange) records** specify mail servers for a domain. Each MX record has a priority value - lower values are preferred.
 
 ```
 example.com.  MX  10  mail.example.com.
