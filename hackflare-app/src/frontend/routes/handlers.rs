@@ -63,7 +63,14 @@ fn hackclub_login_url(headers: &HeaderMap, return_to: &str) -> String {
 /// Sanitize a user-supplied `returnTo` so it can never be an open redirect.
 fn safe_return_to(return_to: Option<String>) -> String {
     match return_to {
-        Some(value) if value.starts_with('/') && !value.contains(':') => value,
+        Some(value)
+            if value.starts_with('/')
+                && !value.starts_with("//")
+                && !value.contains('\\')
+                && !value.contains(':') =>
+        {
+            value
+        }
         _ => "/dash".to_string(),
     }
 }
@@ -364,4 +371,27 @@ pub async fn not_found() -> Response {
         "Page not found",
         "The page you are looking for doesn't exist or has moved.",
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::safe_return_to;
+
+    #[test]
+    fn safe_return_to_keeps_local_paths() {
+        assert_eq!(safe_return_to(Some("/dash/domains".into())), "/dash/domains");
+    }
+
+    #[test]
+    fn safe_return_to_rejects_external_targets() {
+        for value in [
+            "//attacker.example",
+            "/\\attacker.example",
+            "https://attacker.example",
+            "dash",
+        ] {
+            assert_eq!(safe_return_to(Some(value.into())), "/dash", "{value}");
+        }
+        assert_eq!(safe_return_to(None), "/dash");
+    }
 }

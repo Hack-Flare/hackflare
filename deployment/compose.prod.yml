@@ -5,11 +5,11 @@ services:
     env_file:
       - ../.env
     ports:
-      - "3000:3000"
+      - "3000:8080"
       - "53:5353/udp"
       - "53:5353/tcp"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3

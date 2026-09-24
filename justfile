@@ -12,6 +12,8 @@ fmt-check:
 build:
 	cargo build -p hackflare-app
 
+alias build-app := build
+
 # Build every workspace crate.
 build-workspace:
 	cargo build --workspace

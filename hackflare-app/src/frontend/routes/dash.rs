@@ -93,6 +93,11 @@ pub async fn section(
         Err(redirect) => return redirect.into_response(),
     };
 
+    // The admin panel is only for admins; hide its existence from everyone else.
+    if *key == "admin" && !user.is_admin {
+        return not_found().await;
+    }
+
     let mut page = dashboard_page(&user, key, title);
     page.description = description.to_string();
     page.into_response()
