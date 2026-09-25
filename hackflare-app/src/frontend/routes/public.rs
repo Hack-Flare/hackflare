@@ -14,7 +14,6 @@ const DOCS: &[(&str, &str)] = &[
     ("getting-started", include_str!("../../../docs/getting-started.md")),
     ("managing-domains", include_str!("../../../docs/managing-domains.md")),
     ("dns-records", include_str!("../../../docs/dns-records.md")),
-    ("api-reference", include_str!("../../../docs/api-reference.md")),
     ("faq", include_str!("../../../docs/faq.md")),
 ];
 
