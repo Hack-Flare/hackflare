@@ -148,7 +148,7 @@ jobs:
           done <<< "$TAGS"
   
   coolify-deploy:
-    if: false
+    if: true
     needs: [publish, merge-manifest]
     runs-on: ubuntu-latest
     steps:
