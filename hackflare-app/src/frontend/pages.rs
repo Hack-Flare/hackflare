@@ -34,15 +34,15 @@ pub struct HomeTemplate;
 pub struct LoginTemplate {
     pub error: Option<String>,
     pub email: String,
-    pub hackclub_login_url: String,
+    pub hackclub_target_url: String,
 }
 
 impl LoginTemplate {
-    pub fn new(email: String, hackclub_login_url: String) -> Self {
+    pub fn new(email: String, hackclub_target_url: String) -> Self {
         Self {
             error: None,
             email,
-            hackclub_login_url,
+            hackclub_target_url,
         }
     }
 

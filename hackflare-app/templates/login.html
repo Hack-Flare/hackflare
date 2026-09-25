@@ -52,19 +52,19 @@ block content %}
 
         <div class="divider">or continue with</div>
 
-        <button class="oauth-btn" disabled>Sign in with Google</button>
+        <button class="oauth-btn" disabled>
+          Sign in with Google
+        </button>
         <button class="oauth-btn oauth-spaced" disabled>
           Sign in with GitHub
         </button>
 
-        <div class="divider">preferred method</div>
-
-        <a
-          class="btn btn-orange btn-block btn-gap"
-          href="{{ hackclub_login_url }}"
-        >
-          Sign in with Hack Club
-        </a>
+        <form method="get" action="/api/v1/auth/login">
+          <input type="hidden" name="target" value="{{ hackclub_target_url }}" />
+          <button class="btn oauth-spaced btn-orange btn-block btn-gap" type="submit">
+            Sign in with Hack Club
+          </button>
+        </form>
 
         <p class="auth-footer">
           <a class="auth-link" href="/">← Back to home</a>
