@@ -54,24 +54,22 @@ impl DnsConfig {
     /// Load configuration from environment variables with sensible defaults.
     pub fn from_env() -> Self {
         Self {
-            recursion_enabled: env_bool("HACKFLARE_DNS_RECURSION_ENABLED", true),
-            soa_mname: env_string("HACKFLARE_DNS_SOA_MNAME", "ns1.hackflare.net."),
-            soa_rname: env_string("HACKFLARE_DNS_SOA_RNAME", "dns.hackflare.net."),
-            soa_refresh: env_u32("HACKFLARE_DNS_SOA_REFRESH", 3600),
-            soa_retry: env_u32("HACKFLARE_DNS_SOA_RETRY", 600),
-            soa_expire: env_u32("HACKFLARE_DNS_SOA_EXPIRE", 604_800),
-            soa_minimum: env_u32("HACKFLARE_DNS_SOA_MINIMUM", 3_600),
-            soa_ttl: env_u32("HACKFLARE_DNS_SOA_TTL", 3600),
-            nameservers: env_list("HACKFLARE_DNS_NAMESERVERS", default_nameservers()),
-            udp_attempts: env_usize("HACKFLARE_DNS_UDP_ATTEMPTS", 4).max(1),
-            udp_timeout: Duration::from_millis(env_u64("HACKFLARE_DNS_UDP_TIMEOUT_MS", 2500)),
-            recursion_rounds: env_usize("HACKFLARE_DNS_RECURSION_ROUNDS", 8).max(1),
-            recursion_debug: env_bool("HACKFLARE_DNS_RECURSION_DEBUG", false),
-            root_hints_file: env::var("HACKFLARE_ROOT_HINTS_FILE")
-                .ok()
-                .map(PathBuf::from),
+            recursion_enabled: env_bool("DNS_RECURSION_ENABLED", true),
+            soa_mname: env_string("DNS_SOA_MNAME", "ns1.hackflare.net."),
+            soa_rname: env_string("DNS_SOA_RNAME", "dns.hackflare.net."),
+            soa_refresh: env_u32("DNS_SOA_REFRESH", 3600),
+            soa_retry: env_u32("DNS_SOA_RETRY", 600),
+            soa_expire: env_u32("DNS_SOA_EXPIRE", 604_800),
+            soa_minimum: env_u32("DNS_SOA_MINIMUM", 3_600),
+            soa_ttl: env_u32("DNS_SOA_TTL", 3600),
+            nameservers: env_list("DNS_NAMESERVERS", default_nameservers()),
+            udp_attempts: env_usize("DNS_UDP_ATTEMPTS", 4).max(1),
+            udp_timeout: Duration::from_millis(env_u64("DNS_UDP_TIMEOUT_MS", 2500)),
+            recursion_rounds: env_usize("DNS_RECURSION_ROUNDS", 8).max(1),
+            recursion_debug: env_bool("DNS_RECURSION_DEBUG", false),
+            root_hints_file: env::var("ROOT_HINTS_FILE").ok().map(PathBuf::from),
             database_url: env::var("DATABASE_URL").ok(),
-            max_edns_payload_size: env_u16("HACKFLARE_DNS_MAX_EDNS_PAYLOAD_SIZE", 1232),
+            max_edns_payload_size: env_u16("DNS_MAX_EDNS_PAYLOAD_SIZE", 1232),
         }
     }
 

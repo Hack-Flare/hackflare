@@ -14,12 +14,12 @@ impl NsConfig {
     #[must_use]
     pub fn from_env() -> Self {
         Self {
-            bind_addr: env::var("HACKFLARE_NS_BIND_ADDR").unwrap_or_else(|_| "0.0.0.0".to_string()),
-            port: env::var("HACKFLARE_NS_PORT")
+            bind_addr: env::var("NS_BIND_ADDR").unwrap_or_else(|_| "0.0.0.0".to_string()),
+            port: env::var("NS_PORT")
                 .ok()
                 .and_then(|v| v.parse::<u16>().ok())
                 .unwrap_or(53),
-            zone_file: env::var("HACKFLARE_ZONE_FILE").ok(),
+            zone_file: env::var("ZONE_FILE").ok(),
             database_url: env::var("DATABASE_URL").ok(),
         }
     }

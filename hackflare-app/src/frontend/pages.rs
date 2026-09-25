@@ -2,7 +2,7 @@ use askama::Template;
 use askama_web::WebTemplate;
 
 use crate::frontend::models::{
-    AdminStats, AdminUser, ApiKey, AuthenticatedUser, ConfigEntry, CreatedApiKey, DnsRecord,
+    AdminStats, AdminUser, ApiKey, AuthenticatedUser, CreatedApiKey, DnsRecord,
     DnsZone, Notification, QueryLogEntry, QueryLogsSummary, TimeseriesPoint, TopQuery,
     TrafficSummary, UserSession, ZoneTraffic,
 };
@@ -200,7 +200,6 @@ pub struct DashboardTemplate {
     pub created_key: Option<CreatedApiKey>,
     pub user: AuthenticatedUser,
     pub sessions: Vec<UserSession>,
-    pub config: Vec<ConfigEntry>,
     pub users: Vec<AdminUser>,
     pub stats: Option<AdminStats>,
     pub traffic_summary: Option<TrafficSummary>,

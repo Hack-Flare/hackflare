@@ -48,7 +48,7 @@ fn root_hints_content() -> String {
 
 fn root_hint_candidate_paths() -> Vec<String> {
     let mut paths: Vec<String> = Vec::new();
-    if let Ok(path) = env::var("HACKFLARE_ROOT_HINTS_FILE")
+    if let Ok(path) = env::var("ROOT_HINTS_FILE")
         && !path.trim().is_empty()
     {
         paths.push(path);

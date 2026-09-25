@@ -73,23 +73,6 @@ pub struct QueryLogsSummary {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ConfigEntry {
-    pub key: String,
-    pub label: String,
-    pub description: String,
-    pub category: String,
-    pub env_value: Option<String>,
-    pub override_value: Option<String>,
-    pub effective_value: String,
-    pub default_value: Option<String>,
-    pub default_override: bool,
-    pub editable: bool,
-    pub requires_restart: bool,
-    pub updated_at: Option<String>,
-    pub updated_by: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AdminUser {
     pub id: String,
     pub email: String,
