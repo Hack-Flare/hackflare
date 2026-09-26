@@ -87,7 +87,7 @@ impl AuthorityStore {
         // authoritative NS queries resolve to Hackflare's own servers.
         for ns_name in &self.config.nameservers {
             let Ok(ns_name) = Name::from_utf8(ns_name.trim()) else {
-                eprintln!("[hackflare:dns] skipping invalid nameserver {ns_name:?} in config");
+                eprintln!("[hackflare:dns] skipping invalid nameserver in config");
                 continue;
             };
             handler

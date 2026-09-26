@@ -20,6 +20,10 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: hack-flare/hackflare-app
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build-check:
     if: github.event_name == 'pull_request' && github.event.action != 'closed'
@@ -148,7 +152,7 @@ jobs:
           done <<< "$TAGS"
   
   coolify-deploy:
-    if: false
+    if: true
     needs: [publish, merge-manifest]
     runs-on: ubuntu-latest
     steps:

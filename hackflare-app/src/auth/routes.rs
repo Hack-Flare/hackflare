@@ -185,18 +185,9 @@ fn make_auth_cookies(
     (access, refresh)
 }
 
-/// Resolve token TTLs from live overrides, falling back to static config.
-async fn effective_ttls(state: &AppState) -> (i64, i64) {
-    let overrides = state.live_overrides.read().await;
-    let access = overrides
-        .get("API_ACCESS_TOKEN_MINUTES")
-        .and_then(|v| v.trim().parse::<i64>().ok())
-        .unwrap_or(state.config.access_token_minutes);
-    let refresh = overrides
-        .get("API_REFRESH_TOKEN_DAYS")
-        .and_then(|v| v.trim().parse::<i64>().ok())
-        .unwrap_or(state.config.refresh_token_days);
-    (access, refresh)
+/// Resolve token TTLs from the application environment configuration.
+fn effective_ttls(state: &AppState) -> (i64, i64) {
+    (state.config.access_token_minutes, state.config.refresh_token_days)
 }
 
 async fn login_handler(
@@ -222,8 +213,8 @@ async fn login_handler(
             .expect("failed to set target url in session");
     }
     trace!(target_url, "persisted login state");
-    let hca = state.live_hca.read().await;
-    let redirect = login_redirect(&hca, &csrf_token);
+    let hca = &state.config.hca;
+    let redirect = login_redirect(hca, &csrf_token);
 
     Redirect::to(&redirect)
 }
@@ -262,7 +253,7 @@ async fn callback_handler(
         "got auth callback"
     );
 
-    let hca = state.live_hca.read().await;
+    let hca = &state.config.hca;
 
     let payload = json!({
         "client_id": &hca.client_id,
@@ -345,7 +336,7 @@ async fn callback_handler(
     })?;
 
     let now = Utc::now();
-    let (access_minutes, refresh_days) = effective_ttls(&state).await;
+    let (access_minutes, refresh_days) = effective_ttls(&state);
     let refresh_exp = now + chrono::Duration::days(refresh_days);
 
     let jit = UserSessionsService::create_with(&mut *tx, &user_id, ip_addr, refresh_exp)
@@ -417,7 +408,7 @@ pub(crate) async fn logout_handler(
     State(sessions): State<UserSessionsService>,
     jar: CookieJar,
 ) -> Response {
-    let is_secure = state.live_hca.read().await.is_secure();
+    let is_secure = state.config.hca.is_secure();
 
     if let Some(jwt) = jar.get("jwt")
         && let Ok(data) = jsonwebtoken::decode::<JwtClaims>(
@@ -485,7 +476,7 @@ async fn refresh_handler(
     };
 
     let now = Utc::now();
-    let (access_minutes, refresh_days) = effective_ttls(&state).await;
+    let (access_minutes, refresh_days) = effective_ttls(&state);
     let (access_token, refresh_token) = make_tokens(
         &config.jwt_encoding_key,
         access_minutes,
@@ -495,7 +486,7 @@ async fn refresh_handler(
         now,
     )?;
 
-    let is_secure = state.live_hca.read().await.is_secure();
+    let is_secure = state.config.hca.is_secure();
     let (access_cookie, refresh_cookie) = make_auth_cookies(
         access_minutes,
         refresh_days,
@@ -587,7 +578,7 @@ pub(crate) async fn register_handler(
         (StatusCode::INTERNAL_SERVER_ERROR, "db_error")
     })?;
 
-    let (access_minutes, refresh_days) = effective_ttls(&state).await;
+    let (access_minutes, refresh_days) = effective_ttls(&state);
     let refresh_exp = now + chrono::Duration::days(refresh_days);
     let jit = UserSessionsService::create_with(&mut *tx, &user_id, ip_addr, refresh_exp)
         .await
@@ -610,7 +601,7 @@ pub(crate) async fn register_handler(
         now,
     )?;
 
-    let is_secure = state.live_hca.read().await.is_secure();
+    let is_secure = state.config.hca.is_secure();
     let (access_cookie, refresh_cookie) = make_auth_cookies(
         access_minutes,
         refresh_days,
@@ -659,7 +650,7 @@ pub(crate) async fn email_login_handler(
         .map_err(|_| (StatusCode::UNAUTHORIZED, "invalid_email_or_password"))?;
 
     let now = Utc::now();
-    let (access_minutes, refresh_days) = effective_ttls(&state).await;
+    let (access_minutes, refresh_days) = effective_ttls(&state);
     let refresh_exp = now + chrono::Duration::days(refresh_days);
 
     let jit = UserSessionsService::create_with(&state.db, &user.id, ip_addr, refresh_exp)
@@ -678,7 +669,7 @@ pub(crate) async fn email_login_handler(
         now,
     )?;
 
-    let is_secure = state.live_hca.read().await.is_secure();
+    let is_secure = state.config.hca.is_secure();
     let (access_cookie, refresh_cookie) = make_auth_cookies(
         access_minutes,
         refresh_days,
@@ -743,14 +734,7 @@ pub(crate) async fn forgot_password_handler(
 
     // Send email (best-effort)
     if let Some(ref email_svc) = *state.email.read().await {
-        let frontend_url = {
-            let overrides = state.live_overrides.read().await;
-            overrides
-                .get("FRONTEND_URL")
-                .filter(|v| !v.is_empty())
-                .and_then(|v| Url::parse(v).ok())
-                .or_else(|| state.config.frontend_url.clone())
-        };
+        let frontend_url = state.config.frontend_url.clone();
         let reset_link = match frontend_url {
             Some(base) => format!(
                 "{}/reset-password?token={}",
@@ -759,11 +743,7 @@ pub(crate) async fn forgot_password_handler(
             ),
             None => format!(
                 "{}/api/v1/auth/reset-password?token={}",
-                state
-                    .live_hca
-                    .read()
-                    .await
-                    .redirect_uri
+                state.config.hca.redirect_uri
                     .as_str()
                     .trim_end_matches('/'),
                 token

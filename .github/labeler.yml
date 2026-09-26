@@ -1,8 +1,4 @@
-app:
-  - changed-files:
-      - any-glob-to-any-file: hackflare-app/**/*
-
-backend:
+main-app:
   - changed-files:
       - any-glob-to-any-file: hackflare-app/**/*
 
@@ -20,6 +16,7 @@ docker:
           - hackflare-app/Dockerfile
           - deployment/compose.dev.yml
           - deployment/compose.prod.yml
+          - deployment/postgreqsl.compose.dev.yml
 
 dependencies:
   - changed-files:

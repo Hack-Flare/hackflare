@@ -51,13 +51,12 @@ fn encode_component(value: &str) -> String {
 }
 
 /// Hack Club auth entry point
-fn hackclub_login_url(headers: &HeaderMap, return_to: &str) -> String {
-    let target = format!(
+fn hackclub_target_url(headers: &HeaderMap, return_to: &str) -> String {
+    format!(
         "{}/auth/hackclub?returnTo={}",
         origin_for(headers),
         encode_component(return_to)
-    );
-    format!("/api/v1/auth/login?target={}", encode_component(&target))
+    )
 }
 
 /// Sanitize a user-supplied `returnTo` so it can never be an open redirect.
@@ -154,7 +153,7 @@ pub async fn login_get(State(state): State<AppState>, headers: HeaderMap) -> Res
     if middleware::user_from_headers(&state, &headers).await.is_some() {
         return Redirect::to("/dash").into_response();
     }
-    LoginTemplate::new(String::new(), hackclub_login_url(&headers, "/dash")).into_response()
+    LoginTemplate::new(String::new(), hackclub_target_url(&headers, "/dash")).into_response()
 }
 
 pub async fn login_post(
@@ -163,7 +162,7 @@ pub async fn login_post(
     ConnectInfo(address): ConnectInfo<SocketAddr>,
     Form(form): Form<LoginForm>,
 ) -> Response {
-    let template = LoginTemplate::new(form.email.clone(), hackclub_login_url(&headers, "/dash"));
+    let template = LoginTemplate::new(form.email.clone(), hackclub_target_url(&headers, "/dash"));
     match auth_routes::email_login_handler(
         State(state),
         ClientIp(address.ip()),

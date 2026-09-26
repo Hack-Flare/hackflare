@@ -116,7 +116,7 @@ This endpoint is used by the frontend sign-out action so the browser session is 
 
 - The OAuth session state is stored in an in-memory `tower_sessions::MemoryStore`.
 - Session entries expire after 15 minutes of inactivity.
-- The issued access and refresh cookies are `HttpOnly`, use `SameSite=Lax`, and are marked `Secure` when `API_HCA_REDIRECT_URI` uses `https`.
+- The issued access and refresh cookies are `HttpOnly`, use `SameSite=Lax`, and are marked `Secure` when `HCA_REDIRECT_URI` uses `https`.
 - The access and refresh JWT lifetimes default to 15 minutes and 30 days respectively.
 
 ## Configuration
@@ -125,20 +125,20 @@ The application reads configuration from environment variables in [hackflare-app
 
 Required variables:
 
-- `API_HCA_REDIRECT_URI`
-- `API_JWT_SECRET`
-- `API_HCA_CLIENT_ID`
-- `API_HCA_CLIENT_SECRET`
+- `HCA_REDIRECT_URI`
+- `JWT_SECRET`
+- `HCA_CLIENT_ID`
+- `HCA_CLIENT_SECRET`
 
 Optional variable:
 
-- `API_BIND_ADDR` defaults to `0.0.0.0:8080`
-- `API_DNS_BIND_ADDR` defaults to `0.0.0.0:5353`
-- `API_AUTO_MIGRATE` controls whether startup applies pending migrations.
+- `BIND_ADDR` defaults to `0.0.0.0:8080`
+- `DNS_BIND_ADDR` defaults to `0.0.0.0:5353`
+- `AUTO_MIGRATE` controls whether startup applies pending migrations.
 
 Notes:
 
-- `API_HCA_REDIRECT_URI` must use `http` or `https`.
+- `HCA_REDIRECT_URI` must use `http` or `https`.
 - The JWT secret is parsed as a base64 secret.
 - `DATABASE_URL` is required by the application.
 

@@ -38,7 +38,7 @@ RUN case "$TARGETARCH" in \
 
 FROM alpine:3.20
 
-RUN apk add --no-cache ca-certificates \
+RUN apk add --no-cache ca-certificates wget \
     && adduser -D -H -s /sbin/nologin hackflare
 
 COPY --from=builder /hackflare-app /hackflare-app

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::Path, sync::Arc, time::Duration};
+use std::{path::Path, sync::Arc, time::Duration};
 
 use tokio::sync::RwLock;
 
@@ -16,11 +16,11 @@ use sqlx::{
 
 use crate::{
     api::services::{
-        api_keys::ApiKeysService, config_overrides::ConfigOverridesService, email::EmailService,
-        user_sessions::UserSessionsService, users::UsersService,
+        api_keys::ApiKeysService, email::EmailService, user_sessions::UserSessionsService,
+        users::UsersService,
     },
     auth::password_reset::PasswordResetService,
-    config::{Config, HcaConfig},
+    config::Config,
 };
 
 #[derive(Clone, FromRef)]
@@ -36,10 +36,7 @@ pub struct AppState {
     pub(crate) api_keys: ApiKeysService,
     pub(crate) users: UsersService,
     pub(crate) user_sessions: UserSessionsService,
-    pub(crate) config_overrides: ConfigOverridesService,
     pub(crate) email: Arc<RwLock<Option<EmailService>>>,
-    pub(crate) live_overrides: Arc<RwLock<HashMap<String, String>>>,
-    pub(crate) live_hca: Arc<RwLock<HcaConfig>>,
     pub(crate) password_reset: PasswordResetService,
 }
 
@@ -137,7 +134,6 @@ impl AppState {
 
         let users = UsersService::new(db.clone());
         let user_sessions = UserSessionsService::new(db.clone());
-        let config_overrides = ConfigOverridesService::new(db.clone());
         let api_keys = ApiKeysService::new(db.clone());
 
         let persistence: Arc<dyn ZonePersistence> = Arc::new(PostgresPersistence::new(db.clone()));
@@ -149,17 +145,7 @@ impl AppState {
         info!("dns zones loaded from storage");
 
         let email = Arc::new(RwLock::new(config.smtp.as_ref().map(EmailService::new)));
-        let live_overrides = Arc::new(RwLock::new(
-            config_overrides
-                .list_overrides()
-                .await
-                .unwrap_or_default()
-                .into_iter()
-                .map(|o| (o.key, o.value))
-                .collect::<HashMap<_, _>>(),
-        ));
         let password_reset = PasswordResetService::new(db.clone());
-        let live_hca = Arc::new(RwLock::new(config.hca.clone()));
 
         Ok(Self {
             config: Arc::new(config),
@@ -169,10 +155,7 @@ impl AppState {
             api_keys,
             users,
             user_sessions,
-            config_overrides,
             email,
-            live_overrides,
-            live_hca,
             password_reset,
         })
     }

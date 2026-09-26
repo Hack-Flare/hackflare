@@ -126,7 +126,7 @@ pub fn from_env() -> Result<Config> {
 }
 
 pub(crate) fn from_env_with_database_url(database_url_override: Option<Url>) -> Result<Config> {
-    let redirect_uri: Url = env_req("API_HCA_REDIRECT_URI")?;
+    let redirect_uri: Url = env_req("HCA_REDIRECT_URI")?;
     let database_url = match database_url_override {
         Some(url) => url,
         None => env_req("DATABASE_URL")?,
@@ -141,30 +141,30 @@ pub(crate) fn from_env_with_database_url(database_url_override: Option<Url>) -> 
     match redirect_uri.scheme() {
         "http" | "https" => { /* valid */ }
         other => anyhow::bail!(
-            "API_HCA_REDIRECT_URI must use http or https (found {})",
+            "HCA_REDIRECT_URI must use http or https (found {})",
             other
         ),
     }
 
-    let environment = env_or("API_ENVIRONMENT", Environment::Production)?;
+    let environment = env_or("ENVIRONMENT", Environment::Production)?;
 
     if environment == Environment::Production && redirect_uri.scheme() != "https" {
         warn!("running in production but redirect URI is not HTTPS");
     }
 
-    let auto_migrate = env_or("API_AUTO_MIGRATE", environment.is_prod())?;
+    let auto_migrate = env_or("AUTO_MIGRATE", environment.is_prod())?;
 
-    let jwt_secret = env_req::<String>("API_JWT_SECRET")?;
+    let jwt_secret = env_req::<String>("JWT_SECRET")?;
 
     Ok(Config {
         bind_addr: env_or(
-            "API_BIND_ADDR",
+            "BIND_ADDR",
             "0.0.0.0:8080"
                 .parse()
                 .expect("invalid default API bind address"),
         )?,
         dns_bind_addr: env_or(
-            "API_DNS_BIND_ADDR",
+            "DNS_BIND_ADDR",
             "0.0.0.0:5353"
                 .parse()
                 .expect("invalid default DNS bind address"),
@@ -173,27 +173,27 @@ pub(crate) fn from_env_with_database_url(database_url_override: Option<Url>) -> 
             "FRONTEND_STATIC_DIR",
             PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/static")),
         )?,
-        client_ip_source: env_or("API_CLIENT_IP_SOURCE", ClientIpSource::ConnectInfo)?,
+        client_ip_source: env_or("CLIENT_IP_SOURCE", ClientIpSource::ConnectInfo)?,
         database_url,
         auto_migrate,
         environment,
         jwt_encoding_key: EncodingKey::from_base64_secret(&jwt_secret)?,
         jwt_decoding_key: DecodingKey::from_base64_secret(&jwt_secret)?,
         hca: HcaConfig {
-            client_id: env_req("API_HCA_CLIENT_ID")?,
-            client_secret: env_req("API_HCA_CLIENT_SECRET")?,
+            client_id: env_req("HCA_CLIENT_ID")?,
+            client_secret: env_req("HCA_CLIENT_SECRET")?,
             redirect_uri,
         },
-        session_inactivity_minutes: env_or("API_SESSION_INACTIVITY_MINUTES", 15i64)?,
-        access_token_minutes: env_or("API_ACCESS_TOKEN_MINUTES", 15i64)?,
-        refresh_token_days: env_or("API_REFRESH_TOKEN_DAYS", 30i64)?,
-        dns_nameservers: env::var("API_DNS_NAMESERVERS")
+        session_inactivity_minutes: env_or("SESSION_INACTIVITY_MINUTES", 15i64)?,
+        access_token_minutes: env_or("ACCESS_TOKEN_MINUTES", 15i64)?,
+        refresh_token_days: env_or("REFRESH_TOKEN_DAYS", 30i64)?,
+        dns_nameservers: env::var("DNS_NAMESERVERS")
             .unwrap_or_else(|_| "ns1.hackflare.dev,ns2.hackflare.dev".to_string())
             .split(',')
             .map(|s| s.trim().to_string().trim_end_matches('.').to_string())
             .filter(|s| !s.is_empty())
             .collect(),
-        admin_emails: env::var("API_ADMIN_EMAILS")
+        admin_emails: env::var("ADMIN_EMAILS")
             .unwrap_or_default()
             .split(',')
             .map(|s| s.trim().to_lowercase())

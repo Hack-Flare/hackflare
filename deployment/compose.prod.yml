@@ -5,11 +5,10 @@ services:
     env_file:
       - ../.env
     ports:
-      - "3000:8080"
       - "53:5353/udp"
       - "53:5353/tcp"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -17,6 +16,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    expose:
+      - "8080"
     networks:
       - backend
 

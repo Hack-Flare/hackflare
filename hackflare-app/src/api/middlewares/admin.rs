@@ -15,14 +15,7 @@ pub(crate) async fn require_admin(
 ) -> Result<Response, (StatusCode, &'static str)> {
     let user_email = current_user.user.email.to_lowercase();
 
-    // Check live overrides first (runtime config), fall back to static config.
-    let admin_emails: Vec<String> = {
-        let overrides = state.live_overrides.read().await;
-        overrides
-            .get("API_ADMIN_EMAILS")
-            .map(|v| v.split(',').map(|s| s.trim().to_lowercase()).collect())
-            .unwrap_or_else(|| state.config.admin_emails.clone())
-    };
+    let admin_emails = &state.config.admin_emails;
 
     if admin_emails.is_empty() {
         warn!("no admin emails configured, denying all");

@@ -2,7 +2,7 @@ use askama::Template;
 use askama_web::WebTemplate;
 
 use crate::frontend::models::{
-    AdminStats, AdminUser, ApiKey, AuthenticatedUser, ConfigEntry, CreatedApiKey, DnsRecord,
+    AdminStats, AdminUser, ApiKey, AuthenticatedUser, CreatedApiKey, DnsRecord,
     DnsZone, Notification, QueryLogEntry, QueryLogsSummary, TimeseriesPoint, TopQuery,
     TrafficSummary, UserSession, ZoneTraffic,
 };
@@ -39,15 +39,15 @@ pub struct HomeTemplate {
 pub struct LoginTemplate {
     pub error: Option<String>,
     pub email: String,
-    pub hackclub_login_url: String,
+    pub hackclub_target_url: String,
 }
 
 impl LoginTemplate {
-    pub fn new(email: String, hackclub_login_url: String) -> Self {
+    pub fn new(email: String, hackclub_target_url: String) -> Self {
         Self {
             error: None,
             email,
-            hackclub_login_url,
+            hackclub_target_url,
         }
     }
 
@@ -205,7 +205,6 @@ pub struct DashboardTemplate {
     pub created_key: Option<CreatedApiKey>,
     pub user: AuthenticatedUser,
     pub sessions: Vec<UserSession>,
-    pub config: Vec<ConfigEntry>,
     pub users: Vec<AdminUser>,
     pub stats: Option<AdminStats>,
     pub traffic_summary: Option<TrafficSummary>,

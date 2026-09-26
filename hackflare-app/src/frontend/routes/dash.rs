@@ -586,7 +586,6 @@ fn dashboard_page(
         created_key: None,
         user: user.clone(),
         sessions: Vec::new(),
-        config: Vec::new(),
         users: Vec::new(),
         stats: None,
         traffic_summary: None,
