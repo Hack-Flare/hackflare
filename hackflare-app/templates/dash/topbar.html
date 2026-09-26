@@ -10,19 +10,12 @@
 
   {% if !zone_name.is_empty() %}
   <span class="zone-topbar-sep" aria-hidden="true">/</span>
-  <div class="zone-switcher">
-    <button
-      class="zone-switcher-button"
-      type="button"
-      aria-haspopup="true"
-      aria-expanded="false"
-      aria-controls="zone-switcher-menu"
-      data-zone-switcher
-    >
+  <details class="zone-switcher">
+    <summary class="zone-switcher-button">
       {{ zone_name }}
       <span class="lucide-icon icon-chevron-down" aria-hidden="true"></span>
-    </button>
-    <ul class="zone-switcher-menu" id="zone-switcher-menu" hidden>
+    </summary>
+    <ul class="zone-switcher-menu" id="zone-switcher-menu">
       {% for zone in zones %}
       <li>
         <a
@@ -35,7 +28,7 @@
       <li><a href="/dash/domains">Add a domain</a></li>
       {% endfor %}
     </ul>
-  </div>
+  </details>
   {% endif %}
 
   <nav class="zone-topnav" aria-label="Main">
@@ -55,25 +48,11 @@
 
   <span class="zone-topbar-spacer"></span>
 
-  <button class="zone-search" type="button" data-zone-search>
-    <span class="lucide-icon icon-search" aria-hidden="true"></span>
-    <span>Search or jump to…</span>
-    <span class="kbd kbd-on-ink">⌘K</span>
-  </button>
-
-  <div class="account-menu">
-    <button
-      class="zone-avatar"
-      type="button"
-      aria-haspopup="true"
-      aria-expanded="false"
-      aria-controls="account-menu"
-      aria-label="Account menu"
-      data-account-menu
-    >
+  <details class="account-menu">
+    <summary class="zone-avatar" aria-label="Account menu">
       {{ initials }}
-    </button>
-    <div class="account-menu-panel" id="account-menu" hidden>
+    </summary>
+    <div class="account-menu-panel" id="account-menu">
       <div class="account-menu-id">
         <span class="account-menu-name">{{ display_name }}</span>
         <span class="account-menu-email">{{ email }}</span>
@@ -111,5 +90,5 @@
         out</a
       >
     </div>
-  </div>
+  </details>
 </header>

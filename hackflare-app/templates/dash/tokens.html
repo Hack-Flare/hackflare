@@ -9,27 +9,12 @@
 </div>
 
 {% if let Some(created) = created_key %}
-<div class="token-reveal" data-token-reveal>
+<div class="token-reveal">
   <p class="token-reveal-head">
     Token "{{ created.key.name }}" created. Copy it now, you won't see it again.
   </p>
   <div class="token-reveal-row">
-    <code class="token-reveal-value" data-token-value>{{ created.raw_key }}</code>
-    <button
-      class="btn btn-orange btn-compact"
-      type="button"
-      data-copy="{{ created.raw_key }}"
-    >
-      <span class="lucide-icon icon-copy" aria-hidden="true"></span> Copy
-    </button>
-    <button
-      class="icon-button token-reveal-close"
-      type="button"
-      aria-label="Dismiss"
-      data-token-dismiss
-    >
-      <span aria-hidden="true">&times;</span>
-    </button>
+    <code class="token-reveal-value">{{ created.raw_key }}</code>
   </div>
 </div>
 {% endif %}
@@ -65,7 +50,6 @@
           <form
             method="post"
             action="/dash/tokens"
-            data-confirm="Revoke &quot;{{ key.name }}&quot;? Anything using this token stops working immediately."
           >
             <input type="hidden" name="action" value="revoke" />
             <input type="hidden" name="id" value="{{ key.id }}" />

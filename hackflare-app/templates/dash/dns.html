@@ -1,4 +1,4 @@
-<main class="zone-main" data-records-view>
+<main class="zone-main">
   {% if let Some(message) = message %}
   <div class="error-banner banner-success">{{ message }}</div>
   {% endif %} {% if let Some(error) = error %}
@@ -16,15 +16,9 @@
     <span class="zone-head-divider" aria-hidden="true"></span>
     <span class="zone-ns-label">NS</span>
     {% for nameserver in nameservers %}
-    <button
-      class="ns-chip"
-      type="button"
-      data-copy="{{ nameserver }}"
-      aria-label="Copy nameserver {{ loop.index }}"
-    >
-      {{ nameserver }}
-      <span class="lucide-icon icon-copy" aria-hidden="true"></span>
-    </button>
+      <span class="ns-chip">
+        {{ nameserver }}
+      </span>
     {% endfor %}
 
     <div class="zone-head-actions">
@@ -35,13 +29,7 @@
         <button class="btn btn-outline btn-compact" type="submit">Verify</button>
       </form>
       {% endif %} {% if ns_verified %}
-      <button
-        class="btn btn-orange btn-compact"
-        type="button"
-        data-add-record-toggle
-      >
-        Add record <span class="kbd kbd-on-flame">N</span>
-      </button>
+        <span class="page-head-hint">Add a record below.</span>
       {% endif %}
     </div>
   </div>
@@ -55,24 +43,7 @@
 
   {% if ns_verified %}
   <div class="zone-toolbar">
-    <div class="type-filter" role="group" aria-label="Filter by type">
-      <button type="button" aria-pressed="true" data-type-filter="all">All</button>
-      <button type="button" aria-pressed="false" data-type-filter="A">A</button>
-      <button type="button" aria-pressed="false" data-type-filter="AAAA">AAAA</button>
-      <button type="button" aria-pressed="false" data-type-filter="CNAME">CNAME</button>
-      <button type="button" aria-pressed="false" data-type-filter="MX">MX</button>
-      <button type="button" aria-pressed="false" data-type-filter="TXT">TXT</button>
-    </div>
-    <label class="filter-field">
-      <span class="lucide-icon icon-search" aria-hidden="true"></span>
-      <input
-        type="search"
-        placeholder="Filter records"
-        aria-label="Filter records"
-        data-record-filter
-      />
-      <span class="kbd">/</span>
-    </label>
+    <span class="page-head-hint">{{ records.len() }} records</span>
   </div>
   {% else %}
   <div class="error-banner text-warning">
@@ -92,8 +63,6 @@
       class="records-row record-add"
       method="post"
       action="/dash/domains/{{ zone_name }}/dns"
-      data-add-record-row
-      hidden
     >
       <input type="hidden" name="action" value="create" />
       <select class="input-cell" name="record_type" aria-label="Record type">
@@ -109,7 +78,6 @@
         placeholder="@ or subdomain"
         aria-label="Record name"
         required
-        data-add-record-first
       />
       <input
         class="input-cell"
@@ -136,9 +104,6 @@
       {% for record in records %}
       <div
         class="records-row record-item"
-        data-record
-        data-type="{{ record.record_type }}"
-        data-search="{{ record.name|lower }} {{ record.record_type|lower }} {{ record.value|lower }}"
       >
         <span class="record-badge">{{ record.record_type }}</span>
         <span class="record-name record-cell-truncate">{{ record.name }}</span>
@@ -163,17 +128,8 @@
       <span class="kbd">N</span> to add your first one.{% endif %}
     </p>
     {% endif %}
-    <p class="records-empty" data-no-matches hidden>
-      No records match this filter.
-    </p>
-
     <div class="records-statusbar">
-      <span data-record-count>{{ records.len() }} records</span>
-      <span class="records-shortcuts">
-        <span><span class="kbd">N</span> new</span>
-        <span><span class="kbd">/</span> filter</span>
-        <span><span class="kbd">Esc</span> cancel</span>
-      </span>
+      <span>{{ records.len() }} records</span>
     </div>
   </div>
 </main>

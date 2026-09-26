@@ -1,4 +1,4 @@
-<main class="overview" data-overview>
+<main class="overview">
   {% if let Some(message) = message %}
   <div class="error-banner banner-success">{{ message }}</div>
   {% endif %} {% if let Some(error) = error %}
@@ -14,17 +14,13 @@
         %}s{% endif %} your attention{% endif %}
       </p>
     </div>
-    <button class="btn btn-orange btn-compact" type="button" data-add-domain-toggle>
-      Add domain <span class="kbd kbd-on-flame">D</span>
-    </button>
+    <a class="btn btn-orange btn-compact" href="/dash/domains">Add domain</a>
   </div>
 
   <form
     class="add-domain-row"
     method="post"
     action="/dash/domains"
-    data-add-domain-row
-    hidden
   >
     <input type="hidden" name="action" value="add" />
     <input
@@ -34,16 +30,8 @@
       aria-label="Domain name"
       autocomplete="off"
       required
-      data-add-domain-first
     />
     <button class="btn btn-orange btn-compact" type="submit">Add domain</button>
-    <button
-      class="btn btn-outline btn-compact"
-      type="button"
-      data-add-domain-cancel
-    >
-      Cancel
-    </button>
   </form>
 
   <div class="tools-row">
@@ -108,15 +96,6 @@
       <div class="domains-panel-head">
         <h2 id="domains-heading">Domains</h2>
         <span class="domains-count">{{ zones.len() }}</span>
-        <label class="filter-field">
-          <span class="lucide-icon icon-search" aria-hidden="true"></span>
-          <input
-            type="search"
-            placeholder="Filter domains"
-            aria-label="Filter domains"
-            data-domain-filter
-          />
-        </label>
       </div>
       <div class="domains-row domains-head">
         <span>DOMAIN</span><span>STATUS</span><span>RECORDS</span><span></span>
@@ -125,8 +104,6 @@
       <a
         class="domains-row domain-item {% if !zone.ns_verified %}needs-action{% endif %}"
         href="/dash/domains/{{ zone.name }}/dns"
-        data-domain
-        data-search="{{ zone.name|lower }}"
       >
         <span class="domain-name">{{ zone.name }}</span>
         <span class="domain-status">
@@ -140,12 +117,7 @@
         <span class="lucide-icon icon-chevron" aria-hidden="true"></span>
       </a>
       {% endfor %}
-      <p class="domains-empty" data-no-domain-matches hidden>
-        No domains match this filter.
-      </p>
-      <button class="add-another" type="button" data-add-domain-toggle>
-        + Add another domain
-      </button>
+      <a class="add-another" href="/dash/domains">+ Add another domain</a>
     </section>
     {% endif %}
 
@@ -164,8 +136,6 @@
           <button
             class="ns-chip ns-chip-dark"
             type="button"
-            data-copy="{{ nameserver }}"
-            aria-label="Copy nameserver {{ loop.index }}"
           >
             {{ nameserver }}
             <span class="lucide-icon icon-copy" aria-hidden="true"></span>

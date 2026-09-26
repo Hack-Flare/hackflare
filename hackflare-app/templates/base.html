@@ -14,15 +14,8 @@
       href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     />
     <link rel="stylesheet" href="/static/app.css?v=3" />
-    <script>
-      try {
-        var theme = localStorage.getItem("theme") || "light";
-        document.documentElement.classList.toggle("dark", theme === "dark");
-      } catch (e) {}
-    </script>
   </head>
   <body>
     {% block content %}{% endblock %}
-    <script src="/static/app.js?v=3"></script>
   </body>
 </html>

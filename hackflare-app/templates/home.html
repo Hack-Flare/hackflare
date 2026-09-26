@@ -218,39 +218,23 @@ builders{% endblock %} {% block content %}
           <a class="btn btn-orange" href="/docs">API reference</a>
         </div>
         <div class="code-window">
-          <div class="code-window-tabs" role="tablist" aria-label="API examples">
-            <button
-              class="code-tab"
-              type="button"
-              role="tab"
-              aria-selected="true"
-              data-code-tab="rest"
-            >
-              REST
-            </button>
-            <button
-              class="code-tab"
-              type="button"
-              role="tab"
-              aria-selected="false"
-              data-code-tab="grpc"
-            >
-              gRPC
-            </button>
+          <div class="code-window-tabs" aria-label="API examples">
+            <span class="code-tab is-active">REST</span>
+            <span class="code-tab">gRPC</span>
             <span class="code-window-label">Example request</span>
           </div>
-          <pre data-code-panel="rest"><span class="code-comment"># add an A record to your zone</span>
+          <pre><span class="code-comment"># add an A record to your zone</span>
 <span class="code-cmd">curl</span> -X POST {{ api_base_url }}/api/v1/dns/zones/yourproject.dev/records \
   -H <span class="code-str">"Authorization: Bearer $HACKFLARE_TOKEN"</span> \
   -d <span class="code-str">'{ "type": "A", "name": "api", "value": "192.0.2.24" }'</span>
 
 <span class="code-comment"># → 201 Created</span></pre>
-          <pre data-code-panel="grpc" hidden><span class="code-comment"># the same call over gRPC</span>
+          <div class="code-example-secondary"><span class="code-tab-label">gRPC example</span><pre><span class="code-comment"># the same call over gRPC</span>
 <span class="code-cmd">grpcurl</span> -H <span class="code-str">"authorization: Bearer $HACKFLARE_TOKEN"</span> \
   -d <span class="code-str">'{ "zone": "yourproject.dev", "type": "A", "name": "api", "value": "192.0.2.24" }'</span> \
   {{ api_host }}:443 hackflare.dns.v1.Dns/CreateRecord
 
-<span class="code-comment"># → record created</span></pre>
+<span class="code-comment"># → record created</span></pre></div>
         </div>
       </div>
     </section>

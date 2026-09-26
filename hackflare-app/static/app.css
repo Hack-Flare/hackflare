@@ -1295,28 +1295,11 @@ select.input option {
     height: 72px;
   }
   .site-nav {
-    display: none;
-  }
-  .site-nav.is-open {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-    padding: 16px 24px 24px;
-    background: var(--background);
-    border-bottom: 1px solid var(--line);
+    gap: 8px;
   }
-  .site-nav.is-open a {
-    width: 100%;
-    padding: 12px 0;
-  }
-  .nav-toggle {
-    display: inline-flex;
-    order: 3;
+  .site-nav a {
+    padding: 6px 0;
   }
   .site-link-secondary {
     display: none;
