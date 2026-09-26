@@ -1,12 +1,27 @@
-{% extends "base.html" %} {% block title %}Create an account — HackFlare{%
+{% extends "base.html" %} {% block title %}Create an account — Hackflare{%
 endblock %} {% block content %}
 <div class="auth-page">
   <div class="auth-grid-bg"></div>
   <div class="auth-card">
+    <a class="auth-brand" href="/"
+      ><img
+        class="brand-logo brand-logo-light"
+        src="/static/brand/logos/logo-primary.svg"
+        width="126"
+        height="32"
+        alt="Hackflare"
+      /><img
+        class="brand-logo brand-logo-dark"
+        src="/static/brand/logos/logo-primary-reversed.svg"
+        width="126"
+        height="32"
+        alt="Hackflare"
+      /></a
+    >
     <div class="card">
       <div class="card-header">
         <h2 class="card-title">Create an account</h2>
-        <p class="card-desc">Sign up for a HackFlare account</p>
+        <p class="card-desc">Sign up for a Hackflare account</p>
       </div>
       <div class="card-content">
         {% if let Some(error) = error %}

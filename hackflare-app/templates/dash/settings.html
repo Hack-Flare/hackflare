@@ -1,41 +1,44 @@
-<div class="dash-page">
-  <h1>Settings</h1>
-  <p class="dash-sub">Account, API keys, and password</p>
-  <div class="card card-spaced">
-    <div class="card-header"><h3 class="card-title">Password</h3></div>
-    <div class="card-content">
-      <form method="post" action="/dash/settings" class="flex flex-wrap gap-2">
-        <input type="hidden" name="action" value="password" /><input
-          class="input"
-          name="current_password"
-          type="password"
-          placeholder="Current password"
-        /><input
-          class="input"
-          name="new_password"
-          type="password"
-          placeholder="New password"
-          required
-        /><input
-          class="input"
-          name="confirm_password"
-          type="password"
-          placeholder="Confirm password"
-          required
-        /><button class="btn btn-orange" type="submit">Update Password</button>
-      </form>
-    </div>
+<div class="page-head">
+  <div>
+    <h1>Account settings</h1>
+    <p class="page-sub">Your password and API tokens.</p>
   </div>
-  <div class="card card-spaced">
-    <div class="card-header"><h3 class="card-title">API Keys</h3></div>
-    <div class="card-content">
-      {% for key in keys %}
-      <div class="quicklink">
-        <strong>{{ key.name }}</strong><span>{{ key.prefix }}...</span>
-      </div>
-      {% else %}
-      <p class="text-muted">No API keys yet.</p>
-      {% endfor %}
-    </div>
-  </div>
+</div>
+
+<div class="page-columns">
+  <section class="side-card">
+    <h2>Password</h2>
+    <p class="side-card-copy">
+      Use a long, unique password you don't reuse elsewhere.
+    </p>
+    <form method="post" action="/dash/settings" class="form-stack">
+      <input type="hidden" name="action" value="password" />
+      <label class="form-field">
+        <span class="label">Current password</span>
+        <input class="input" name="current_password" type="password" placeholder="••••••••" />
+      </label>
+      <label class="form-field">
+        <span class="label">New password</span>
+        <input class="input" name="new_password" type="password" placeholder="••••••••" required />
+      </label>
+      <label class="form-field">
+        <span class="label">Confirm new password</span>
+        <input class="input" name="confirm_password" type="password" placeholder="••••••••" required />
+      </label>
+      <p class="form-hint">Must be at least 8 characters.</p>
+      <button class="btn btn-orange btn-compact" type="submit">Update password</button>
+    </form>
+  </section>
+
+  <aside class="page-side">
+    <section class="side-card">
+      <h2>API tokens</h2>
+      <p class="side-card-copy">
+        Tokens for scripts and CI now live on their own page.
+      </p>
+      <p class="side-card-note">
+        <a class="link-accent" href="/dash/tokens">Manage API tokens</a>
+      </p>
+    </section>
+  </aside>
 </div>

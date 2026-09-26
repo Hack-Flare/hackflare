@@ -1,0 +1,115 @@
+{# Shared dashboard top bar. The zone switcher only appears on zone pages. #}
+<header class="zone-topbar">
+  <a href="/dash" aria-label="Hackflare home"
+    ><img
+      src="/static/brand/logos/mark-small-reversed.svg"
+      width="13"
+      height="24"
+      alt=""
+  /></a>
+
+  {% if !zone_name.is_empty() %}
+  <span class="zone-topbar-sep" aria-hidden="true">/</span>
+  <div class="zone-switcher">
+    <button
+      class="zone-switcher-button"
+      type="button"
+      aria-haspopup="true"
+      aria-expanded="false"
+      aria-controls="zone-switcher-menu"
+      data-zone-switcher
+    >
+      {{ zone_name }}
+      <span class="lucide-icon icon-chevron-down" aria-hidden="true"></span>
+    </button>
+    <ul class="zone-switcher-menu" id="zone-switcher-menu" hidden>
+      {% for zone in zones %}
+      <li>
+        <a
+          class="{% if zone.name == zone_name %}is-current{% endif %}"
+          href="/dash/domains/{{ zone.name }}/dns"
+          >{{ zone.name }}</a
+        >
+      </li>
+      {% else %}
+      <li><a href="/dash/domains">Add a domain</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <nav class="zone-topnav" aria-label="Main">
+    <a class="{% if active == "dashboard" %}is-active{% endif %}" href="/dash"
+      >Overview</a
+    >
+    <a
+      class="{% if active == "domains" || active == "dns" %}is-active{% endif %}"
+      href="/dash/domains"
+      >Domains</a
+    >
+    <a class="{% if active == "tokens" %}is-active{% endif %}" href="/dash/tokens"
+      >API tokens</a
+    >
+    <a href="/docs">Docs</a>
+  </nav>
+
+  <span class="zone-topbar-spacer"></span>
+
+  <button class="zone-search" type="button" data-zone-search>
+    <span class="lucide-icon icon-search" aria-hidden="true"></span>
+    <span>Search or jump to…</span>
+    <span class="kbd kbd-on-ink">⌘K</span>
+  </button>
+
+  <div class="account-menu">
+    <button
+      class="zone-avatar"
+      type="button"
+      aria-haspopup="true"
+      aria-expanded="false"
+      aria-controls="account-menu"
+      aria-label="Account menu"
+      data-account-menu
+    >
+      {{ initials }}
+    </button>
+    <div class="account-menu-panel" id="account-menu" hidden>
+      <div class="account-menu-id">
+        <span class="account-menu-name">{{ display_name }}</span>
+        <span class="account-menu-email">{{ email }}</span>
+      </div>
+      <a href="/dash/profile"
+        ><span class="lucide-icon icon-user" aria-hidden="true"></span>Profile</a
+      >
+      <a href="/dash/settings"
+        ><span class="lucide-icon icon-settings" aria-hidden="true"></span>Account
+        settings</a
+      >
+      <a href="/dash/notifications"
+        ><span class="lucide-icon icon-notifications" aria-hidden="true"></span
+        >Notifications</a
+      >
+      <div class="account-menu-sep" role="separator"></div>
+      <a href="/dash/traffic"
+        ><span class="lucide-icon icon-traffic" aria-hidden="true"></span>Traffic</a
+      >
+      <a href="/dash/logs"
+        ><span class="lucide-icon icon-logs" aria-hidden="true"></span>Logs</a
+      >
+      <a href="/dash/help"
+        ><span class="lucide-icon icon-help" aria-hidden="true"></span>Help</a
+      >
+      {% if is_admin %}
+      <a href="/dash/admin"
+        ><span class="lucide-icon icon-admin" aria-hidden="true"></span>Admin
+        panel</a
+      >
+      {% endif %}
+      <div class="account-menu-sep" role="separator"></div>
+      <a href="/logout"
+        ><span class="lucide-icon icon-logout" aria-hidden="true"></span>Sign
+        out</a
+      >
+    </div>
+  </div>
+</header>

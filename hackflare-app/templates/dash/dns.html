@@ -1,131 +1,179 @@
-<div class="dash-page">
-  <div class="dns-page-heading">
-    <div>
-      <h1>DNS Records</h1>
-      <p class="dash-sub">Managing records for <strong>{{ zone_name }}</strong></p>
-    </div>
+<main class="zone-main" data-records-view>
+  {% if let Some(message) = message %}
+  <div class="error-banner banner-success">{{ message }}</div>
+  {% endif %} {% if let Some(error) = error %}
+  <div class="error-banner">{{ error }}</div>
+  {% endif %}
+
+  <div class="zone-head">
+    <h1>{{ zone_name }}</h1>
     {% if ns_verified %}
-    <button class="btn btn-orange" type="button" data-modal-open="add-record-dialog">
-      Add record
-    </button>
+    <span class="zone-status">Verified</span>
+    {% else %}
+    <span class="zone-status zone-status-pending">Pending</span>
     {% endif %}
-  </div>
-  {% if ns_verified %}
-  <dialog
-    class="modal"
-    id="add-record-dialog"
-    data-modal
-    aria-labelledby="add-record-title"
-  >
-    <div class="modal-card">
-      <div class="modal-header">
-        <div>
-          <p class="eyebrow">{{ zone_name }}</p>
-          <h2 class="modal-title" id="add-record-title">Add DNS record</h2>
-        </div>
-        <button class="modal-close" type="button" data-modal-close aria-label="Close dialog">
-          &times;
-        </button>
-      </div>
-      <p class="modal-description">
-        Add a record to this zone. Changes are applied after you submit the form.
-      </p>
-      <form
-        method="post"
-        action="/dash/domains/{{ zone_name }}/dns"
-        class="form-stack"
-      >
-        <input type="hidden" name="action" value="create" />
-        <label class="form-field">
-          <span class="label">Name</span>
-          <input class="input" name="name" placeholder="@ or subdomain" required />
-        </label>
-        <label class="form-field">
-          <span class="label">Record type</span>
-          <select class="input" name="record_type">
-            <option>A</option>
-            <option>CNAME</option>
-            <option>MX</option>
-            <option>AAAA</option>
-            <option>TXT</option>
-          </select>
-        </label>
-        <label class="form-field">
-          <span class="label">Value</span>
-          <input class="input" name="value" placeholder="Record value" required />
-        </label>
-        <label class="form-field">
-          <span class="label">TTL</span>
-          <input class="input" name="ttl" type="number" value="3600" min="1" />
-        </label>
-        <div class="modal-actions">
-          <button class="btn btn-outline" type="button" data-modal-close>Cancel</button>
-          <button class="btn btn-orange" type="submit">Add record</button>
-        </div>
+
+    <span class="zone-head-divider" aria-hidden="true"></span>
+    <span class="zone-ns-label">NS</span>
+    {% for nameserver in nameservers %}
+    <button
+      class="ns-chip"
+      type="button"
+      data-copy="{{ nameserver }}"
+      aria-label="Copy nameserver {{ loop.index }}"
+    >
+      {{ nameserver }}
+      <span class="lucide-icon icon-copy" aria-hidden="true"></span>
+    </button>
+    {% endfor %}
+
+    <div class="zone-head-actions">
+      {% if !ns_verified %}
+      <form method="post" action="/dash/domains">
+        <input type="hidden" name="action" value="check" />
+        <input type="hidden" name="name" value="{{ zone_name }}" />
+        <button class="btn btn-outline btn-compact" type="submit">Verify</button>
       </form>
+      {% endif %} {% if ns_verified %}
+      <button
+        class="btn btn-orange btn-compact"
+        type="button"
+        data-add-record-toggle
+      >
+        Add record <span class="kbd kbd-on-flame">N</span>
+      </button>
+      {% endif %}
     </div>
-  </dialog>
+  </div>
+
+  <nav class="zone-tabs" aria-label="Zone sections">
+    <a class="is-active" href="/dash/domains/{{ zone_name }}/dns"
+      >Records <span class="zone-tab-count">{{ records.len() }}</span></a
+    >
+    <a href="/dash/domains">Nameservers</a>
+  </nav>
+
+  {% if ns_verified %}
+  <div class="zone-toolbar">
+    <div class="type-filter" role="group" aria-label="Filter by type">
+      <button type="button" aria-pressed="true" data-type-filter="all">All</button>
+      <button type="button" aria-pressed="false" data-type-filter="A">A</button>
+      <button type="button" aria-pressed="false" data-type-filter="AAAA">AAAA</button>
+      <button type="button" aria-pressed="false" data-type-filter="CNAME">CNAME</button>
+      <button type="button" aria-pressed="false" data-type-filter="MX">MX</button>
+      <button type="button" aria-pressed="false" data-type-filter="TXT">TXT</button>
+    </div>
+    <label class="filter-field">
+      <span class="lucide-icon icon-search" aria-hidden="true"></span>
+      <input
+        type="search"
+        placeholder="Filter records"
+        aria-label="Filter records"
+        data-record-filter
+      />
+      <span class="kbd">/</span>
+    </label>
+  </div>
   {% else %}
   <div class="error-banner text-warning">
-    Zone is not verified. Record edits are blocked.
+    This zone is not verified yet. Point your nameservers at Hackflare, then hit
+    Verify to unlock record management.
   </div>
   {% endif %}
-  <div class="stat-grid">
-    <div class="card">
-      <div class="card-content">
-        <div class="stat-label">A Records</div>
-        <div class="stat-value">{{ a_count }}</div>
-      </div>
+
+  <div class="records">
+    <div class="records-row records-head">
+      <span>TYPE</span><span>NAME</span><span>CONTENT</span><span>TTL</span
+      ><span></span>
     </div>
-    <div class="card">
-      <div class="card-content">
-        <div class="stat-label">CNAME Records</div>
-        <div class="stat-value">{{ cname_count }}</div>
+
+    {% if ns_verified %}
+    <form
+      class="records-row record-add"
+      method="post"
+      action="/dash/domains/{{ zone_name }}/dns"
+      data-add-record-row
+      hidden
+    >
+      <input type="hidden" name="action" value="create" />
+      <select class="input-cell" name="record_type" aria-label="Record type">
+        <option>A</option>
+        <option>AAAA</option>
+        <option>CNAME</option>
+        <option>MX</option>
+        <option>TXT</option>
+      </select>
+      <input
+        class="input-cell"
+        name="name"
+        placeholder="@ or subdomain"
+        aria-label="Record name"
+        required
+        data-add-record-first
+      />
+      <input
+        class="input-cell"
+        name="value"
+        placeholder="Value"
+        aria-label="Record content"
+        required
+      />
+      <input
+        class="input-cell"
+        name="ttl"
+        type="number"
+        min="1"
+        value="3600"
+        aria-label="TTL in seconds"
+      />
+      <span class="record-actions">
+        <button class="btn btn-orange" type="submit">Save</button>
+      </span>
+    </form>
+    {% endif %}
+
+    <div class="records-body">
+      {% for record in records %}
+      <div
+        class="records-row record-item"
+        data-record
+        data-type="{{ record.record_type }}"
+        data-search="{{ record.name|lower }} {{ record.record_type|lower }} {{ record.value|lower }}"
+      >
+        <span class="record-badge">{{ record.record_type }}</span>
+        <span class="record-name record-cell-truncate">{{ record.name }}</span>
+        <span class="record-content record-cell-truncate">{{ record.value }}</span>
+        <span class="record-ttl">{{ record.ttl_human() }}</span>
+        <span class="record-actions">
+          <form method="post" action="/dash/domains/{{ zone_name }}/dns">
+            <input type="hidden" name="action" value="delete" />
+            <input type="hidden" name="id" value="{{ record.id }}" />
+            <button class="icon-button" type="submit" aria-label="Delete record">
+              <span class="lucide-icon icon-delete" aria-hidden="true"></span>
+            </button>
+          </form>
+        </span>
       </div>
+      {% endfor %}
     </div>
-    <div class="card">
-      <div class="card-content">
-        <div class="stat-label">Other Records</div>
-        <div class="stat-value">{{ other_count }}</div>
-      </div>
+
+    {% if records.is_empty() %}
+    <p class="records-empty">
+      No records yet.{% if ns_verified %} Press
+      <span class="kbd">N</span> to add your first one.{% endif %}
+    </p>
+    {% endif %}
+    <p class="records-empty" data-no-matches hidden>
+      No records match this filter.
+    </p>
+
+    <div class="records-statusbar">
+      <span data-record-count>{{ records.len() }} records</span>
+      <span class="records-shortcuts">
+        <span><span class="kbd">N</span> new</span>
+        <span><span class="kbd">/</span> filter</span>
+        <span><span class="kbd">Esc</span> cancel</span>
+      </span>
     </div>
   </div>
-  <div class="card card-spaced">
-    <div class="card-content">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Value</th>
-            <th>TTL</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for record in records %}
-          <tr>
-            <td>{{ record.name }}</td>
-            <td>{{ record.record_type }}</td>
-            <td>{{ record.value }}</td>
-            <td>{{ record.ttl }}</td>
-            <td>
-              <form method="post" action="/dash/domains/{{ zone_name }}/dns">
-                <input type="hidden" name="action" value="delete" /><input
-                  type="hidden"
-                  name="id"
-                  value="{{ record.id }}"
-                /><button class="btn btn-ghost" type="submit">Delete</button>
-              </form>
-            </td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="5" class="text-muted">No records yet.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
+</main>

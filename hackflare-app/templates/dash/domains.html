@@ -1,139 +1,128 @@
-<div class="dash-page">
+<div class="page-head">
   <div>
     <h1>Domains</h1>
-    <p class="dash-sub">Manage and monitor your domains</p>
+    <p class="page-sub">Add a domain, then point its nameservers at Hackflare.</p>
   </div>
-  <div class="stat-grid">
-    <div class="card">
-      <div class="card-content">
-        <div class="stat-label">Total Domains</div>
-        <div class="stat-value">{{ zones.len() }}</div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-content">
-        <div class="stat-label">Verified Zones</div>
-        <div class="stat-value">{{ verified_count }}</div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-content">
-        <div class="stat-label">Pending</div>
-        <div class="stat-value">{{ pending_count }}</div>
-      </div>
-    </div>
+  <div class="page-head-actions">
+    <button class="btn btn-orange btn-compact" type="button" data-add-domain-toggle>
+      Add domain <span class="kbd kbd-on-flame">D</span>
+    </button>
   </div>
-  <div class="domain-setup-grid">
-    <div class="card domain-add-card">
-      <div class="card-header">
-        <p class="eyebrow">Get started</p>
-        <h2 class="card-title">Add a domain</h2>
-        <p class="card-desc">
-          Register a domain here, then update its nameservers at your registrar.
-        </p>
+</div>
+
+<div data-overview>
+  <form
+    class="add-domain-row"
+    method="post"
+    action="/dash/domains"
+    data-add-domain-row
+    hidden
+  >
+    <input type="hidden" name="action" value="add" />
+    <input
+      class="input-cell"
+      name="name"
+      placeholder="example.com"
+      aria-label="Domain name"
+      autocomplete="off"
+      required
+      data-add-domain-first
+    />
+    <button class="btn btn-orange btn-compact" type="submit">Add domain</button>
+    <button class="btn btn-outline btn-compact" type="button" data-add-domain-cancel>
+      Cancel
+    </button>
+  </form>
+
+  <div class="page-columns">
+    <section class="domains-panel" aria-labelledby="domains-heading">
+      <div class="domains-panel-head">
+        <h2 id="domains-heading">All domains</h2>
+        <span class="domains-count">{{ zones.len() }}</span>
+        <label class="filter-field">
+          <span class="lucide-icon icon-search" aria-hidden="true"></span>
+          <input
+            type="search"
+            placeholder="Filter domains"
+            aria-label="Filter domains"
+            data-domain-filter
+          />
+        </label>
       </div>
-      <div class="card-content">
-        <form method="post" action="/dash/domains" class="domain-add-form">
-          <input type="hidden" name="action" value="add" />
-          <label class="form-field">
-            <span class="label">Domain name</span>
-            <input
-              class="input"
-              name="name"
-              placeholder="example.com"
-              autocomplete="off"
-              required
-            />
-          </label>
-          <button class="btn btn-orange" type="submit">Add Domain</button>
-        </form>
-        <p class="form-hint">
-          Already added it? Use the nameserver checklist on the right before
-          checking verification.
-        </p>
+      <div class="domains-row domains-head">
+        <span>DOMAIN</span><span>STATUS</span><span>RECORDS</span><span></span>
       </div>
-    </div>
-    <div class="card nameserver-card">
-      <div class="card-header">
-        <p class="eyebrow">Required setup</p>
-        <h2 class="card-title">Point nameservers to HackFlare</h2>
-        <p class="card-desc">
-          At your domain registrar, replace the current nameservers with these:
+      {% for zone in zones %}
+      <a
+        class="domains-row domain-item {% if !zone.ns_verified %}needs-action{% endif %}"
+        href="/dash/domains/{{ zone.name }}/dns"
+        data-domain
+        data-search="{{ zone.name|lower }}"
+      >
+        <span class="domain-name">{{ zone.name }}</span>
+        <span class="domain-status">
+          {% if zone.ns_verified %}Verified{% else %}Waiting for nameservers{%
+          endif %}
+        </span>
+        <span class="domain-records"
+          >{{ zone.record_count }} record{% if zone.record_count != 1 %}s{% endif
+          %}</span
+        >
+        <span class="lucide-icon icon-chevron" aria-hidden="true"></span>
+      </a>
+      {% else %}
+      <p class="domains-empty">
+        No domains yet. Add your first one to get started.
+      </p>
+      {% endfor %}
+      <p class="domains-empty" data-no-domain-matches hidden>
+        No domains match this filter.
+      </p>
+    </section>
+
+    <aside class="page-side">
+      <section class="side-card">
+        <h2>Nameservers</h2>
+        <p class="side-card-copy">
+          At your registrar, replace the existing nameservers with these two.
         </p>
-      </div>
-      <div class="card-content">
-        <div class="nameserver-list">
+        <div class="attention-nameservers">
           {% for nameserver in nameservers %}
-          <div class="nameserver-item">
-            <span class="nameserver-index">{{ loop.index }}</span>
-            <code>{{ nameserver }}</code>
-          </div>
+          <button
+            class="ns-chip"
+            type="button"
+            data-copy="{{ nameserver }}"
+            aria-label="Copy nameserver {{ loop.index }}"
+          >
+            {{ nameserver }}
+            <span class="lucide-icon icon-copy" aria-hidden="true"></span>
+          </button>
           {% endfor %}
         </div>
-        <ol class="setup-steps">
+        <ol class="side-card-steps">
           <li>Open your registrar's nameserver settings.</li>
           <li>Replace the existing entries with the values above.</li>
-          <li>Return here and wait for verification to complete.</li>
+          <li>Come back and hit Verify on the domain.</li>
         </ol>
-        <p class="form-hint">
-          Nameserver changes can take a few minutes to propagate. DNS record
-          management unlocks after verification.
+      </section>
+
+      {% if pending_count > 0 %}
+      <section class="side-card">
+        <h2>Waiting to verify</h2>
+        <p class="side-card-copy">
+          {{ pending_count }} domain{% if pending_count != 1 %}s{% endif %} still
+          need{% if pending_count == 1 %}s{% endif %} nameserver changes.
         </p>
-      </div>
-    </div>
-  </div>
-  <div class="card card-spaced">
-    <div class="card-content">
-      <table class="table">
-        <thead>
-          <tr>
-            <th class="table-heading">Domain</th>
-            <th class="table-heading">DNS</th>
-            <th class="table-heading">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for zone in zones %}
-          <tr>
-            <td>
-              <a href="/dash/domains/{{ zone.name }}/dns">{{ zone.name }}</a>
-            </td>
-            <td>
-              {% if zone.ns_verified %}Verified{% else %}Pending{% endif %}
-            </td>
-            <td>
-              <a
-                class="btn btn-outline"
-                href="/dash/domains/{{ zone.name }}/dns"
-                >Manage</a
-              >
-              {% if !zone.ns_verified %}
-              <form method="post" action="/dash/domains" class="inline-form">
-                <input type="hidden" name="action" value="check" /><input
-                  type="hidden"
-                  name="name"
-                  value="{{ zone.name }}"
-                /><button class="btn btn-orange" type="submit">
-                  Check propagation
-                </button>
-              </form>
-              {% endif %}
-              <form method="post" action="/dash/domains" class="inline-form">
-                <input type="hidden" name="action" value="delete" /><input
-                  type="hidden"
-                  name="name"
-                  value="{{ zone.name }}"
-                /><button class="btn btn-ghost" type="submit">Delete</button>
-              </form>
-            </td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="3" class="text-muted">No domains yet.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+        {% for zone in zones %}{% if !zone.ns_verified %}
+        <form method="post" action="/dash/domains" class="verify-row">
+          <input type="hidden" name="action" value="check" />
+          <input type="hidden" name="name" value="{{ zone.name }}" />
+          <span class="verify-row-name">{{ zone.name }}</span>
+          <button class="btn btn-outline btn-compact" type="submit">Verify</button>
+        </form>
+        {% endif %}{% endfor %}
+      </section>
+      {% endif %}
+    </aside>
   </div>
 </div>

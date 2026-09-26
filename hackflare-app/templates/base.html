@@ -1,14 +1,22 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{% block title %}HackFlare{% endblock %}</title>
-    <link rel="icon" href="/static/logo.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/static/app.css?v=2" />
+    <title>{% block title %}Hackflare{% endblock %}</title>
+    <link rel="icon" href="/static/brand/logos/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/static/brand/logos/png/favicon-32.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/static/brand/logos/png/app-icon-180.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+    <link rel="stylesheet" href="/static/app.css?v=3" />
     <script>
       try {
-        var theme = localStorage.getItem("theme") || "dark";
+        var theme = localStorage.getItem("theme") || "light";
         document.documentElement.classList.toggle("dark", theme === "dark");
       } catch (e) {}
     </script>

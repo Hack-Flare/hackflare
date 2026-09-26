@@ -1,94 +1,210 @@
-<div class="dash-page">
-  <h1>Dashboard</h1>
-  <p class="dash-sub">Quick snapshot of your domains</p>
+<main class="overview" data-overview>
+  {% if let Some(message) = message %}
+  <div class="error-banner banner-success">{{ message }}</div>
+  {% endif %} {% if let Some(error) = error %}
+  <div class="error-banner">{{ error }}</div>
+  {% endif %}
 
-  <div class="stat-grid">
-    <div class="card">
-      <div class="card-content">
-        <div class="stat-label">Active Domains</div>
-        <div class="stat-value">{{ zones.len() }}</div>
-        <div class="stat-caption">
-          {% if zones.is_empty() %}No domains yet{% else %}Total zones
-          registered{% endif %}
-        </div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-content">
-        <div class="stat-label">Verified Domains</div>
-        <div class="stat-value">{{ verified_count }}</div>
-        <div class="stat-caption">Nameserver delegation confirmed</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="dash-grid card card-spaced">
-    <div class="card-header">
-      <h3 class="card-title">Zones</h3>
-      <p class="card-desc">Domains registered on this account</p>
-    </div>
-    <div class="card-content">
-      {% if zones.is_empty() %}
-      <p class="text-muted text-sm">
-        No zones yet. Add your first domain to get started.
+  <div class="overview-greeting">
+    <div>
+      <h1>Hey {{ user.first_name }}</h1>
+      <p class="overview-summary">
+        {{ zones.len() }} domain{% if zones.len() != 1 %}s{% endif %}{% if
+        pending_count > 0 %} · {{ pending_count }} need{% if pending_count == 1
+        %}s{% endif %} your attention{% endif %}
       </p>
-      {% else %}
-      <table class="table table-compact">
-        <thead>
-          <tr class="table-head">
-            <th class="table-heading">Domain</th>
-            <th class="table-heading">Status</th>
-            <th class="table-heading">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for zone in zones %}
-          <tr class="table-row">
-            <td class="table-cell font-semibold">{{ zone.name }}</td>
-            <td class="table-cell">
-              {% if zone.ns_verified %}
-              <span class="text-success">Verified</span>
-              {% else %}
-              <span class="text-muted">Pending verification</span>
-              {% endif %}
-            </td>
-            <td class="table-cell">
-              <a class="link-accent" href="/dash/domains/{{ zone.name }}/dns">
-                Manage →
-              </a>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% endif %}
     </div>
+    <button class="btn btn-orange btn-compact" type="button" data-add-domain-toggle>
+      Add domain <span class="kbd kbd-on-flame">D</span>
+    </button>
   </div>
 
-  <div class="dash-grid grid grid-cols-2 gap-6 card-spaced">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">Quick Links</h3>
-        <p class="card-desc">Navigate fast</p>
-      </div>
-      <div class="card-content">
-        <div class="quicklinks">
-          <a class="quicklink" href="/dash/traffic">
-            <div>
-              <p>Traffic Analytics</p>
-              <p>View traffic stats</p>
-            </div>
-            <span>→</span>
-          </a>
-          <a class="quicklink" href="/dash/firewall">
-            <div>
-              <p>Security</p>
-              <p>Firewall rules</p>
-            </div>
-            <span>→</span>
-          </a>
-        </div>
-      </div>
-    </div>
+  <form
+    class="add-domain-row"
+    method="post"
+    action="/dash/domains"
+    data-add-domain-row
+    hidden
+  >
+    <input type="hidden" name="action" value="add" />
+    <input
+      class="input-cell"
+      name="name"
+      placeholder="example.com"
+      aria-label="Domain name"
+      autocomplete="off"
+      required
+      data-add-domain-first
+    />
+    <button class="btn btn-orange btn-compact" type="submit">Add domain</button>
+    <button
+      class="btn btn-outline btn-compact"
+      type="button"
+      data-add-domain-cancel
+    >
+      Cancel
+    </button>
+  </form>
+
+  <div class="tools-row">
+    <a class="tool-tile tool-tile-dark" href="/dash/domains">
+      <span class="tool-icon"
+        ><span class="lucide-icon icon-globe" aria-hidden="true"></span
+      ></span>
+      <span class="tool-body">
+        <span class="tool-name">DNS</span>
+        <span class="tool-meta"
+          >{{ zones.len() }} domain{% if zones.len() != 1 %}s{% endif %} · {{
+          record_count }} record{% if record_count != 1 %}s{% endif %}</span
+        >
+      </span>
+    </a>
+    <a class="tool-tile" href="/dash/settings">
+      <span class="tool-icon"
+        ><span class="lucide-icon icon-key" aria-hidden="true"></span
+      ></span>
+      <span class="tool-body">
+        <span class="tool-name">API tokens</span>
+        <span class="tool-meta">{{ active_tokens }} active</span>
+      </span>
+    </a>
+    <a class="tool-tile" href="/docs">
+      <span class="tool-icon"
+        ><span class="lucide-icon icon-docs" aria-hidden="true"></span
+      ></span>
+      <span class="tool-body">
+        <span class="tool-name">Docs</span>
+        <span class="tool-meta">Guides and API</span>
+      </span>
+    </a>
+    <a class="tool-tile" href="/dash/profile">
+      <span class="tool-icon"
+        ><span class="lucide-icon icon-person" aria-hidden="true"></span
+      ></span>
+      <span class="tool-body">
+        <span class="tool-name">Account</span>
+        <span class="tool-meta">Hack Club sign in</span>
+      </span>
+    </a>
   </div>
-</div>
+
+  <div class="overview-columns">
+    {% if zones.is_empty() %}
+    <section class="first-domain">
+      <h2>Add your first domain</h2>
+      <p>Point a domain you already own at Hackflare. It takes three steps.</p>
+      <ol class="first-domain-steps">
+        <li><strong>Add your domain</strong> with the button above.</li>
+        <li>
+          <strong>Switch nameservers</strong> at your registrar to
+          {% for nameserver in nameservers %}<code>{{ nameserver }}</code
+          >{% if !loop.last %} and {% endif %}{% endfor %}.
+        </li>
+        <li><strong>Verify</strong> and start adding records.</li>
+      </ol>
+    </section>
+    {% else %}
+    <section class="domains-panel" aria-labelledby="domains-heading">
+      <div class="domains-panel-head">
+        <h2 id="domains-heading">Domains</h2>
+        <span class="domains-count">{{ zones.len() }}</span>
+        <label class="filter-field">
+          <span class="lucide-icon icon-search" aria-hidden="true"></span>
+          <input
+            type="search"
+            placeholder="Filter domains"
+            aria-label="Filter domains"
+            data-domain-filter
+          />
+        </label>
+      </div>
+      <div class="domains-row domains-head">
+        <span>DOMAIN</span><span>STATUS</span><span>RECORDS</span><span></span>
+      </div>
+      {% for zone in zones %}
+      <a
+        class="domains-row domain-item {% if !zone.ns_verified %}needs-action{% endif %}"
+        href="/dash/domains/{{ zone.name }}/dns"
+        data-domain
+        data-search="{{ zone.name|lower }}"
+      >
+        <span class="domain-name">{{ zone.name }}</span>
+        <span class="domain-status">
+          {% if zone.ns_verified %}Verified{% else %}Waiting for nameservers{%
+          endif %}
+        </span>
+        <span class="domain-records"
+          >{{ zone.record_count }} record{% if zone.record_count != 1 %}s{% endif
+          %}</span
+        >
+        <span class="lucide-icon icon-chevron" aria-hidden="true"></span>
+      </a>
+      {% endfor %}
+      <p class="domains-empty" data-no-domain-matches hidden>
+        No domains match this filter.
+      </p>
+      <button class="add-another" type="button" data-add-domain-toggle>
+        + Add another domain
+      </button>
+    </section>
+    {% endif %}
+
+    <aside class="overview-side">
+      {% if pending_count > 0 %} {% for zone in zones %} {% if !zone.ns_verified
+      %} {% if loop.first || pending_count == 1 %}
+      <section class="attention-card">
+        <p class="attention-label">Needs attention</p>
+        <h2>{{ zone.name }} is waiting for nameservers</h2>
+        <p class="attention-copy">
+          Paste these at your registrar, then hit Verify. It can take a little
+          while to update.
+        </p>
+        <div class="attention-nameservers">
+          {% for nameserver in nameservers %}
+          <button
+            class="ns-chip ns-chip-dark"
+            type="button"
+            data-copy="{{ nameserver }}"
+            aria-label="Copy nameserver {{ loop.index }}"
+          >
+            {{ nameserver }}
+            <span class="lucide-icon icon-copy" aria-hidden="true"></span>
+          </button>
+          {% endfor %}
+        </div>
+        <form method="post" action="/dash/domains">
+          <input type="hidden" name="action" value="check" />
+          <input type="hidden" name="name" value="{{ zone.name }}" />
+          <button class="btn btn-orange btn-compact" type="submit">
+            Verify now
+          </button>
+        </form>
+        {% if pending_count > 1 %}
+        <a class="attention-more" href="/dash/domains"
+          >+{{ pending_count - 1 }} more waiting</a
+        >
+        {% endif %}
+      </section>
+      {% endif %} {% endif %} {% endfor %} {% endif %}
+
+      <section class="api-card">
+        <div class="api-card-head">
+          <h2>Use the API</h2>
+          <a class="link-accent" href="/docs">API reference</a>
+        </div>
+        <p class="api-card-copy">
+          You have {{ active_tokens }} token{% if active_tokens != 1 %}s{% endif
+          %}. Everything you do here also works from a script.
+        </p>
+        <pre class="api-card-code"><span class="code-cmd">curl</span> {{ api_base_url }}/api/v1/dns/zones \
+  -H <span class="code-str">"Authorization: Bearer $TOKEN"</span></pre>
+        <div class="api-card-actions">
+          <a class="btn btn-outline btn-compact" href="/dash/settings"
+            >Manage tokens</a
+          >
+          <a class="link-accent" href="/docs">Read the docs</a>
+        </div>
+      </section>
+    </aside>
+  </div>
+</main>

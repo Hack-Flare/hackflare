@@ -1,23 +1,33 @@
-<div class="dash-page">
-  <h1>Notifications</h1>
-  <p class="dash-sub">Stay updated on your domains and account</p>
-  <form method="post" action="/dash/notifications">
-    <input type="hidden" name="action" value="all" /><button
-      class="btn btn-outline"
-      type="submit"
-    >
-      Mark all read
-    </button>
-  </form>
-  <div class="card-spaced flex flex-col gap-3">
-    {% for notification in notifications %}
-    <div class="card p-4">
-      <h3 class="font-semibold">{{ notification.title }}</h3>
-      <p class="text-sm text-muted">{{ notification.message }}</p>
-      <p class="text-xs text-muted">{{ notification.created_at }}</p>
-    </div>
-    {% else %}
-    <div class="card p-12 text-center text-muted">No notifications yet.</div>
-    {% endfor %}
+<div class="page-head">
+  <div>
+    <h1>Notifications</h1>
+    <p class="page-sub">Alerts about your domains and account.</p>
   </div>
+  <div class="page-head-actions">
+    <form method="post" action="/dash/notifications">
+      <input type="hidden" name="action" value="all" />
+      <button class="btn btn-outline btn-compact" type="submit">Mark all read</button>
+    </form>
+  </div>
+</div>
+
+<div class="notif-list">
+  {% for notification in notifications %}
+  <article class="notif-card {% if !notification.read %}notif-unread{% endif %}">
+    <span class="notif-dot" aria-hidden="true"></span>
+    <div class="notif-body">
+      <h2>{{ notification.title }}</h2>
+      <p>{{ notification.message }}</p>
+      <p class="notif-time">{{ notification.created_at }}</p>
+    </div>
+  </article>
+  {% else %}
+  <section class="panel-empty">
+    <div class="empty-state-icon">
+      <span class="lucide-icon icon-notifications" aria-hidden="true"></span>
+    </div>
+    <h2>You're all caught up</h2>
+    <p>New domain and account notifications will show up here.</p>
+  </section>
+  {% endfor %}
 </div>

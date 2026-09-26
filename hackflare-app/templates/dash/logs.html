@@ -1,66 +1,45 @@
-<div class="dash-page">
-  <div class="flex justify-between items-center">
-    <div>
-      <h1>Logs</h1>
-      <p class="dash-sub">DNS query logs</p>
-    </div>
-    <form method="get" action="/dash/logs" class="flex gap-2">
-      <input
-        class="input"
-        name="zone"
-        value="{{ log_zone }}"
-        placeholder="Filter by zone"
-      /><button class="btn btn-outline" type="submit">Filter</button>
+<div class="page-head">
+  <div>
+    <h1>Logs</h1>
+    <p class="page-sub">DNS query and request logs.</p>
+  </div>
+  <div class="page-head-actions">
+    <form method="get" action="/dash/logs" class="log-filter">
+      <label class="filter-field">
+        <span class="lucide-icon icon-search" aria-hidden="true"></span>
+        <input name="zone" value="{{ log_zone }}" placeholder="Filter by zone" aria-label="Filter by zone" />
+      </label>
+      <button class="btn btn-outline btn-compact" type="submit">Filter</button>
     </form>
   </div>
-  <div class="stat-grid">
-    <div class="card">
-      <div class="card-content">
-        <div class="stat-label">Errors Today</div>
-        <div class="stat-value">{{ log_summary.errors_today }}</div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-content">
-        <div class="stat-label">Warnings Today</div>
-        <div class="stat-value">{{ log_summary.warnings_today }}</div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-content">
-        <div class="stat-label">Info Today</div>
-        <div class="stat-value">{{ log_summary.info_today }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="card card-spaced">
-    <div class="card-content">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Timestamp</th>
-            <th>Level</th>
-            <th>Path</th>
-            <th>Status</th>
-            <th>Duration</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for log in logs %}
-          <tr>
-            <td>{{ log.timestamp }}</td>
-            <td>{{ log.level }}</td>
-            <td>{{ log.path }}</td>
-            <td>{{ log.status }}</td>
-            <td>{{ log.ms }}ms</td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="5" class="text-muted">No logs found.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
 </div>
+
+{% if logs.is_empty() %}
+<section class="panel-empty">
+  <div class="empty-state-icon">
+    <span class="lucide-icon icon-logs" aria-hidden="true"></span>
+  </div>
+  <h2>No logs to show yet</h2>
+  <p>
+    The query-logs API collects this data already. Once this page is wired to
+    it, recent lookups appear here.
+  </p>
+  <span class="badge-soon">Coming Soon</span>
+</section>
+{% else %}
+<section class="domains-panel">
+  <div class="logs-row logs-head">
+    <span>TIMESTAMP</span><span>LEVEL</span><span>PATH</span><span>STATUS</span
+    ><span>DURATION</span>
+  </div>
+  {% for log in logs %}
+  <div class="logs-row log-item">
+    <code>{{ log.timestamp }}</code>
+    <span>{{ log.level }}</span>
+    <code>{{ log.path }}</code>
+    <code>{{ log.status }}</code>
+    <code>{{ log.ms }}ms</code>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}

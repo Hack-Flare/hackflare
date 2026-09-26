@@ -1,47 +1,296 @@
-{% extends "base.html" %} {% block title %}HackFlare — The DNS platform for
-builders.{% endblock %} {% block content %}
+{% extends "base.html" %} {% block title %}Hackflare, the DNS platform for
+builders{% endblock %} {% block content %}
 <div class="flex flex-col min-h-screen">
   {% include "header.html" %}
 
   <main class="flex-1">
     <section class="container hero">
-      <h1>The DNS platform for builders.</h1>
-      <p>
-        HackFlare helps you point your domain, manage DNS records, and ship
-        faster. Built by Hack Clubbers.
-      </p>
-      <div class="hero-actions">
-        <a class="btn btn-orange" href="/dash">Launch Dashboard</a>
-        <a class="btn btn-outline" href="/docs">Read Docs</a>
-      </div>
-    </section>
-
-    <section class="container section" id="features">
-      <h2>Everything you need to manage DNS.</h2>
-      <div class="feature-grid">
-        <article class="feature-card">
-          <h3>Edge Performance</h3>
-          <p>Built to feel super fast and direct.</p>
-        </article>
-        <article class="feature-card">
-          <h3>Good Security</h3>
-          <p>Great defaults, clear states and better UX.</p>
-        </article>
-        <article class="feature-card">
-          <h3>Automation Friendly</h3>
-          <p>REST and gRPC APIs for full automation.</p>
-        </article>
-      </div>
-    </section>
-
-    <section class="cta">
-      <div class="container">
-        <h2>Ready to take control of your DNS?</h2>
-        <p>Join Hackflare simplifying DNS infrastructure.</p>
-        <div class="flex flex-wrap gap-3">
-          <a class="btn btn-white" href="/dash">Get Started Free</a>
-          <a class="btn btn-outline" href="/docs"> Read Documentation </a>
+      <div class="hero-copy">
+        <p class="hero-pill">
+          <img
+            src="/static/brand/logos/mark-small.svg"
+            width="9"
+            height="16"
+            alt=""
+          />
+          <span>Open source · Built by Hack Clubbers</span>
+        </p>
+        <h1>
+          Point your domain.<br /><span class="accent">Ship tonight.</span>
+        </h1>
+        <p>
+          Hackflare is the DNS platform for builders. Add a domain, manage your
+          records and automate the rest with the API.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-orange" href="/dash">Get started free</a>
+          <a class="btn btn-outline" href="/docs">Read the docs</a>
         </div>
+        <p class="hero-note">Sign in with email or your Hack Club account.</p>
+      </div>
+
+      <div class="hero-visual">
+        <div class="record-panel">
+          <div class="record-panel-head">
+            <div class="record-panel-zone">
+              <span>yourproject.dev</span>
+              <span class="pill-verified">Verified</span>
+            </div>
+            <span class="record-panel-action" aria-hidden="true"
+              >+ Add record</span
+            >
+          </div>
+          <div class="record-rows">
+            <div class="record-row record-row-head">
+              <span>TYPE</span><span>NAME</span><span>VALUE</span
+              ><span class="record-ttl">TTL</span>
+            </div>
+            <div class="record-row">
+              <span class="record-type">A</span><span>@</span
+              ><span class="record-value">192.0.2.10</span
+              ><span class="record-ttl">3600</span>
+            </div>
+            <div class="record-row">
+              <span class="record-type">AAAA</span><span>@</span
+              ><span class="record-value">2001:db8::10</span
+              ><span class="record-ttl">3600</span>
+            </div>
+            <div class="record-row">
+              <span class="record-type">CNAME</span><span>www</span
+              ><span class="record-value">yourproject.dev</span
+              ><span class="record-ttl">auto</span>
+            </div>
+            <div class="record-row">
+              <span class="record-type">MX</span><span>@</span
+              ><span class="record-value">10 mail.yourproject.dev</span
+              ><span class="record-ttl">3600</span>
+            </div>
+            <div class="record-row">
+              <span class="record-type">TXT</span><span>@</span
+              ><span class="record-value">"v=spf1 -all"</span
+              ><span class="record-ttl">3600</span>
+            </div>
+          </div>
+        </div>
+        <div class="code-callout">
+          <span class="prompt">$</span> curl -X POST {{ api_base_url
+          }}/api/v1/dns/zones/yourproject.dev/records \<br />&nbsp;&nbsp;-d
+          '{"type":"A","name":"@","value":"192.0.2.10"}'
+        </div>
+      </div>
+    </section>
+
+    <section class="steps-section" id="how-it-works">
+      <div class="container">
+        <div class="steps-head">
+          <div class="section-head">
+            <p class="section-eyebrow">How it works</p>
+            <h2 class="section-title">Live in three steps</h2>
+          </div>
+          <a class="link-accent" href="/docs">Full getting started guide</a>
+        </div>
+        <div class="steps-grid">
+          <article class="step-card">
+            <p class="step-card-num">01</p>
+            <h3>Add your domain</h3>
+            <p>
+              Type in a domain you already own. Hackflare sets it up in your
+              dashboard.
+            </p>
+          </article>
+          <article class="step-card">
+            <p class="step-card-num">02</p>
+            <h3>Switch nameservers</h3>
+            <p>
+              Copy the nameservers we give you and paste them at your registrar.
+            </p>
+          </article>
+          <article class="step-card">
+            <p class="step-card-num">03</p>
+            <h3>Verify and ship</h3>
+            <p>
+              Hit Verify to check right away, then add your records. That's it.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="container features-section" id="features">
+      <div class="section-head">
+        <p class="section-eyebrow">Features</p>
+        <h2 class="section-title">Everything DNS. Nothing extra.</h2>
+      </div>
+      <div class="bento">
+        <article class="bento-card bento-ash bento-wide">
+          <div class="bento-wide-copy">
+            <h3>Records that make sense</h3>
+            <p>
+              Add, edit and remove records with clear states, so you always know
+              what's live.
+            </p>
+          </div>
+          <div class="editor-preview" aria-hidden="true">
+            <div class="type-chips">
+              <span class="type-chip is-active">A</span>
+              <span class="type-chip">AAAA</span>
+              <span class="type-chip">CNAME</span>
+              <span class="type-chip">MX</span>
+              <span class="type-chip">TXT</span>
+            </div>
+            <div class="editor-field">
+              <span>Name</span>
+              <span class="editor-value">api</span>
+            </div>
+            <div class="editor-field">
+              <span>Value</span>
+              <span class="editor-value is-focused">192.0.2.24</span>
+            </div>
+            <p class="editor-status">Saving… live in a moment</p>
+          </div>
+        </article>
+
+        <article class="bento-card bento-ink">
+          <span
+            class="lucide-icon bento-icon icon-workers"
+            aria-hidden="true"
+          ></span>
+          <div>
+            <h3>Fast at the edge</h3>
+            <p>
+              Built to feel quick and direct, from the dashboard to the answer.
+            </p>
+          </div>
+        </article>
+
+        <article class="bento-card bento-ash">
+          <span
+            class="lucide-icon bento-icon icon-shield-check"
+            aria-hidden="true"
+          ></span>
+          <div>
+            <h3>Safe by default</h3>
+            <p>
+              Good security defaults and clear states, so mistakes are hard to
+              make.
+            </p>
+          </div>
+        </article>
+
+        <article class="bento-card bento-ash">
+          <span
+            class="lucide-icon bento-icon icon-person"
+            aria-hidden="true"
+          ></span>
+          <div>
+            <h3>Hack Club sign in</h3>
+            <p>
+              Use your email or your Hack Club account. No new password to
+              remember.
+            </p>
+          </div>
+        </article>
+
+        <article class="bento-card bento-flame">
+          <span
+            class="lucide-icon bento-icon icon-code"
+            aria-hidden="true"
+          ></span>
+          <div>
+            <h3>Open source</h3>
+            <p>
+              Every line is on GitHub. Read it, fork it, send a pull request.
+            </p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="api-section">
+      <div class="container api-grid">
+        <div class="api-copy">
+          <p class="section-eyebrow">API</p>
+          <h2 class="section-title">Automate all of it</h2>
+          <p class="section-lead">
+            REST and gRPC APIs cover everything the dashboard does. Script your
+            records, hook DNS into CI, or build your own tools on top.
+          </p>
+          <a class="btn btn-orange" href="/docs">API reference</a>
+        </div>
+        <div class="code-window">
+          <div class="code-window-tabs" role="tablist" aria-label="API examples">
+            <button
+              class="code-tab"
+              type="button"
+              role="tab"
+              aria-selected="true"
+              data-code-tab="rest"
+            >
+              REST
+            </button>
+            <button
+              class="code-tab"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              data-code-tab="grpc"
+            >
+              gRPC
+            </button>
+            <span class="code-window-label">Example request</span>
+          </div>
+          <pre data-code-panel="rest"><span class="code-comment"># add an A record to your zone</span>
+<span class="code-cmd">curl</span> -X POST {{ api_base_url }}/api/v1/dns/zones/yourproject.dev/records \
+  -H <span class="code-str">"Authorization: Bearer $HACKFLARE_TOKEN"</span> \
+  -d <span class="code-str">'{ "type": "A", "name": "api", "value": "192.0.2.24" }'</span>
+
+<span class="code-comment"># → 201 Created</span></pre>
+          <pre data-code-panel="grpc" hidden><span class="code-comment"># the same call over gRPC</span>
+<span class="code-cmd">grpcurl</span> -H <span class="code-str">"authorization: Bearer $HACKFLARE_TOKEN"</span> \
+  -d <span class="code-str">'{ "zone": "yourproject.dev", "type": "A", "name": "api", "value": "192.0.2.24" }'</span> \
+  {{ api_host }}:443 hackflare.dns.v1.Dns/CreateRecord
+
+<span class="code-comment"># → record created</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="container story-section">
+      <div class="story-grid">
+        <div class="story-copy">
+          <p class="section-eyebrow">The team</p>
+          <h2 class="section-title">Built by Hack Clubbers, in the open</h2>
+          <p class="section-lead">
+            Hackflare is made by builders who wanted a DNS tool they'd actually
+            enjoy using. [One or two lines about how the project started.]
+          </p>
+        </div>
+        <div class="story-side">
+          <div class="story-faces">
+            <span class="story-face">[Photo]</span>
+            <span class="story-face">[Photo]</span>
+            <span class="story-face">[Photo]</span>
+            <span class="story-face">[Photo]</span>
+          </div>
+          <a class="repo-card" href="https://github.com/Hack-Flare/hackflare">
+            <span class="lucide-icon icon-github" aria-hidden="true"></span>
+            <span class="repo-card-body">
+              <span class="repo-card-name">Hack-Flare/hackflare</span>
+              <span class="repo-card-sub">Star it, fork it, open an issue</span>
+            </span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="container">
+      <div class="cta">
+        <div class="cta-copy">
+          <h2>Light up your domain.</h2>
+          <p>Free to get started. All you need is a domain.</p>
+        </div>
+        <a class="btn btn-on-flame" href="/dash">Get started free</a>
       </div>
     </section>
   </main>

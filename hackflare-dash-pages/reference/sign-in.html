@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HackFlare, Sign in (design reference)</title>
+<link rel="icon" href="../brand/logos/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;font-family:'Instrument Sans',system-ui,sans-serif;background:#faf9f5}
+a{color:#16140f}a:hover{color:#b8400c}
+</style>
+</head>
+<body>
+<!-- DESIGN REFERENCE ONLY: fixed 1440px desktop mockup with inline styles and example data.
+     Rebuild with shared components, brand/tokens/tokens.css and real account data. -->
+<div style="width: 1440px; min-height: 900px; display: flex; background: #faf9f5; color: #16140f; font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 14px">
+
+<div style="width: 620px; flex-shrink: 0; box-sizing: border-box; padding: 48px 56px; background: #16140f; color: #faf9f5; display: flex; flex-direction: column; justify-content: space-between">
+<a href="#" aria-label="HackFlare home" style="display: flex"><img src="../brand/logos/logo-primary-reversed.svg" alt="HackFlare" width="110" height="28" style="display: block"></a>
+<div style="display: flex; flex-direction: column; gap: 28px">
+<img src="../brand/logos/mark-reversed.svg" alt="" width="100" height="180" style="display: block">
+<div style="font-size: 44px; font-weight: 700; letter-spacing: -1.2px; line-height: 1.08">Point your domain.<br><span style="color: #f2611d">Ship tonight.</span></div>
+</div>
+<div style="font-size: 13px; color: #b5b0a6">Open source · Built by Hack Clubbers</div>
+</div>
+
+<main style="flex-grow: 1; display: flex; align-items: center; justify-content: center">
+<div style="width: 380px; display: flex; flex-direction: column; gap: 22px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.8px">Sign in to HackFlare</h1>
+<div style="font-size: 15px; color: #57534a">New here? Signing in creates your account.</div>
+</div>
+<button type="button" style="font-family: inherit; font-size: 15px; font-weight: 600; padding: 13px 16px; border-radius: 10px; border: none; background: #16140f; color: #faf9f5; display: flex; align-items: center; justify-content: center; gap: 10px">
+<span style="width: 22px; height: 22px; border-radius: 6px; background: #f2611d; color: #16140f; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700">HC</span>Continue with Hack Club</button>
+<div style="display: flex; align-items: center; gap: 12px; font-size: 12px; color: #57534a"><span style="flex-grow: 1; height: 1px; background: #e2e0d9"></span>or<span style="flex-grow: 1; height: 1px; background: #e2e0d9"></span></div>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Email
+<input type="email" placeholder="you@example.com" style="font-family: inherit; font-size: 15px; padding: 12px 12px; border-radius: 10px; border: 1.5px solid #d6d3cb; background: #faf9f5; color: #16140f">
+</label>
+<button type="button" style="font-family: inherit; font-size: 15px; font-weight: 600; padding: 13px 16px; border-radius: 10px; border: none; background: #f2611d; color: #16140f">Continue with email</button>
+<div style="font-size: 12px; line-height: 1.5; color: #57534a">By continuing you agree to the <a href="#" style="color: #57534a">Terms</a> and <a href="#" style="color: #57534a">Privacy Policy</a>.</div>
+</div>
+</main>
+</div>
+</body>
+</html>

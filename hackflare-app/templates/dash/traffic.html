@@ -1,33 +1,41 @@
-<div class="dash-page">
-  <h1>Traffic</h1>
-  <p class="dash-sub">DNS query analytics for your domains</p>
-  {% if let Some(stats) = summary %}
-  <div class="stat-grid">
-    <div class="card">
-      <div class="card-content">
-        <div class="stat-label">Total Queries</div>
-        <div class="stat-value">{{ stats.total_requests }}</div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-content">
-        <div class="stat-label">Avg Processing</div>
-        <div class="stat-value">{{ stats.avg_processing_ms }}ms</div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-content">
-        <div class="stat-label">Success Rate</div>
-        <div class="stat-value">{{ stats.success_rate }}%</div>
-      </div>
-    </div>
-  </div>
-  {% endif %}
-  <div class="card card-spaced">
-    <div class="card-content">
-      <p class="text-muted">
-        Coming Soon
-      </p>
-    </div>
+<div class="page-head">
+  <div>
+    <h1>Traffic</h1>
+    <p class="page-sub">DNS query analytics for your domains.</p>
   </div>
 </div>
+
+{% if let Some(stats) = summary %}
+<div class="tools-row">
+  <div class="tool-tile tool-tile-dark">
+    <span class="tool-body">
+      <span class="tool-meta">Total queries</span>
+      <span class="admin-stat">{{ stats.total_requests }}</span>
+    </span>
+  </div>
+  <div class="tool-tile">
+    <span class="tool-body">
+      <span class="tool-meta">Avg processing</span>
+      <span class="admin-stat">{{ stats.avg_processing_ms }}ms</span>
+    </span>
+  </div>
+  <div class="tool-tile">
+    <span class="tool-body">
+      <span class="tool-meta">Success rate</span>
+      <span class="admin-stat">{{ stats.success_rate }}%</span>
+    </span>
+  </div>
+</div>
+{% endif %}
+
+<section class="panel-empty">
+  <div class="empty-state-icon">
+    <span class="lucide-icon icon-traffic" aria-hidden="true"></span>
+  </div>
+  <h2>Query analytics aren't switched on yet</h2>
+  <p>
+    The traffic API collects this data already. Once this page is wired to it,
+    volume, latency and top queries show up here.
+  </p>
+  <span class="badge-soon">Coming Soon</span>
+</section>

@@ -1,0 +1,124 @@
+<div class="page-head">
+  <div>
+    <h1>API tokens</h1>
+    <p class="page-sub">
+      Tokens let scripts, CI and your own tools use the Hackflare API as you.
+      Treat them like passwords.
+    </p>
+  </div>
+</div>
+
+{% if let Some(created) = created_key %}
+<div class="token-reveal" data-token-reveal>
+  <p class="token-reveal-head">
+    Token "{{ created.key.name }}" created. Copy it now, you won't see it again.
+  </p>
+  <div class="token-reveal-row">
+    <code class="token-reveal-value" data-token-value>{{ created.raw_key }}</code>
+    <button
+      class="btn btn-orange btn-compact"
+      type="button"
+      data-copy="{{ created.raw_key }}"
+    >
+      <span class="lucide-icon icon-copy" aria-hidden="true"></span> Copy
+    </button>
+    <button
+      class="icon-button token-reveal-close"
+      type="button"
+      aria-label="Dismiss"
+      data-token-dismiss
+    >
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </div>
+</div>
+{% endif %}
+
+<div class="page-columns">
+  <div class="token-main">
+    <section class="domains-panel" aria-labelledby="tokens-heading">
+      <div class="domains-panel-head">
+        <h2 id="tokens-heading">Your tokens</h2>
+        <span class="domains-count">{{ keys.len() }}</span>
+      </div>
+      <div class="tokens-row tokens-head">
+        <span>NAME</span><span>DOMAINS</span><span>CREATED</span><span
+          >LAST USED</span
+        ><span></span>
+      </div>
+      {% for key in keys %}
+      <div class="tokens-row token-item {% if key.revoked %}is-revoked{% endif %}">
+        <span class="token-cell-name">
+          <span class="token-name">{{ key.name }}</span>
+          <code class="token-prefix">{{ key.prefix }}</code>
+        </span>
+        <span class="token-scope">All domains</span>
+        <span class="token-created">{{ key.created_label }}</span>
+        <span
+          class="token-last-used {% if key.last_used_stale %}is-stale{% endif %}"
+          >{{ key.last_used_label }}</span
+        >
+        <span class="token-actions">
+          {% if key.revoked %}
+          <span class="status-pill">Revoked</span>
+          {% else %}
+          <form
+            method="post"
+            action="/dash/tokens"
+            data-confirm="Revoke &quot;{{ key.name }}&quot;? Anything using this token stops working immediately."
+          >
+            <input type="hidden" name="action" value="revoke" />
+            <input type="hidden" name="id" value="{{ key.id }}" />
+            <button class="btn btn-outline btn-compact btn-danger" type="submit">
+              Revoke
+            </button>
+          </form>
+          {% endif %}
+        </span>
+      </div>
+      {% else %}
+      <p class="domains-empty">
+        No tokens yet. Create one to use the API from a script.
+      </p>
+      {% endfor %}
+    </section>
+
+    <section class="side-card try-it">
+      <div class="try-it-copy">
+        <h2>Try it</h2>
+        <p class="side-card-copy">
+          List your zones with your new token. Keep tokens in env vars or CI
+          secrets, never in your code.
+        </p>
+        <a class="link-accent" href="/docs">API reference</a>
+      </div>
+      <pre class="api-card-code"><span class="code-comment"># export HACKFLARE_TOKEN=… first</span>
+<span class="code-cmd">curl</span> {{ api_base_url }}/api/v1/dns/zones -H <span class="code-str">"Authorization: Bearer $HACKFLARE_TOKEN"</span></pre>
+    </section>
+  </div>
+
+  <aside class="page-side">
+    <section class="side-card">
+      <h2>New token</h2>
+      <form method="post" action="/dash/tokens" class="form-stack">
+        <input type="hidden" name="action" value="create" />
+        <label class="form-field">
+          <span class="label">Name</span>
+          <input
+            class="input"
+            name="name"
+            placeholder="deploy-bot"
+            autocomplete="off"
+            required
+          />
+        </label>
+        <p class="form-hint">So you remember where it's used.</p>
+        <button class="btn btn-orange" type="submit">Create token</button>
+      </form>
+      <p class="side-card-note">
+        Every token has read and write access to all of your domains. Scopes,
+        read-only access and expiry aren't supported yet.
+      </p>
+    </section>
+  </aside>
+</div>

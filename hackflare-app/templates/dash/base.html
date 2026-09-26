@@ -1,32 +1,26 @@
-{% extends "../base.html" %} {% block title %}{{ page_title }} — HackFlare{%
+{% extends "../base.html" %} {% block title %}{{ page_title }} — Hackflare{%
 endblock %} {% block content %}
-<div class="dash-layout">
-  {% include "dash/sidebar.html" %}
-  <div class="dash-main">
-    {% include "dash/header.html" %}
-    <main class="dash-content">
-      {% if let Some(message) = message %}
-      <div class="error-banner banner-success">{{ message }}</div>
-      {% endif %} {% if let Some(error) = error %}
-      <div class="error-banner">{{ error }}</div>
-      {% endif %} {% if active == "dashboard" %} {% include "dash/index.html" %}
-      {% elif active == "domains" %} {% include "dash/domains.html" %} {% elif
-      active == "dns" %} {% include "dash/dns.html" %} {% elif active ==
-      "traffic" %} {% include "dash/traffic.html" %} {% elif active == "logs" %}
-      {% include "dash/logs.html" %} {% elif active == "notifications" %} {%
-      include "dash/notifications.html" %} {% elif active == "settings" %} {%
-      include "dash/settings.html" %} {% elif active == "profile" %} {% include
-      "dash/profile.html" %} {% elif active == "help" %} {% include
-      "dash/help.html" %} {% elif active == "admin" %} {% include
-      "dash/admin-panel.html" %} {% elif active == "firewall" %} {% include
-      "dash/firewall.html" %} {% elif active == "workers" %} {% include
-      "dash/workers.html" %} {% elif active == "tunnel" %} {% include
-      "dash/tunnel.html" %} {% elif active == "performance" %} {% include
-      "dash/performance.html" %} {% elif active == "ssl" %} {% include
-      "dash/ssl.html" %} {% elif active == "redirects" %} {% include
-      "dash/redirects.html" %} {% else %} {% include "dash/placeholder.html" %}
-      {% endif %}
-    </main>
-  </div>
+<div class="zone-shell">
+  {% include "dash/topbar.html" %} {% if active == "dns" %} {% include
+  "dash/dns.html" %} {% elif active == "dashboard" %} {% include
+  "dash/index.html" %} {% else %}
+  <main class="dash-page-main">
+    {% if let Some(message) = message %}
+    <div class="error-banner banner-success">{{ message }}</div>
+    {% endif %} {% if let Some(error) = error %}
+    <div class="error-banner">{{ error }}</div>
+    {% endif %} {% if active == "soon" %} {% include "dash/soon.html" %} {% elif
+    active == "domains" %} {% include "dash/domains.html" %} {% elif
+    active == "tokens" %} {% include "dash/tokens.html" %} {%
+    elif active == "traffic" %} {% include "dash/traffic.html" %} {% elif active
+    == "logs" %} {% include "dash/logs.html" %} {% elif active == "notifications"
+    %} {% include "dash/notifications.html" %} {% elif active == "settings" %} {%
+    include "dash/settings.html" %} {% elif active == "profile" %} {% include
+    "dash/profile.html" %} {% elif active == "help" %} {% include
+    "dash/help.html" %} {% elif active == "admin" %} {% include
+    "dash/admin-panel.html" %} {% else %} {% include "dash/placeholder.html" %}
+    {% endif %}
+  </main>
+  {% endif %}
 </div>
 {% endblock %}

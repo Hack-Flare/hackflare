@@ -1,11 +1,15 @@
-<div class="dash-page">
-  <h1>{{ page_title }}</h1>
-  <p class="dash-sub">Coming Soon</p>
-  <div class="card card-spaced">
-    <div class="card-content">
-      <p class="text-muted">
-        Coming Soon
-      </p>
-    </div>
+<div class="page-head">
+  <div>
+    <h1>{{ page_title }}</h1>
+    <p class="page-sub">{{ description }}</p>
   </div>
 </div>
+
+<section class="panel-empty">
+  <div class="empty-state-icon">
+    <span class="lucide-icon icon-dashboard" aria-hidden="true"></span>
+  </div>
+  <h2>{{ page_title }} is on the way</h2>
+  <p>This part of the dashboard isn't built yet.</p>
+  <span class="badge-soon">Coming Soon</span>
+</section>
