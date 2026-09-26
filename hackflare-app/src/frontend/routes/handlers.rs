@@ -11,7 +11,7 @@ use axum::{
 use serde::Deserialize;
 use std::net::SocketAddr;
 use axum_client_ip::ClientIp;
-use axum_extra::extract::CookieJar;
+use axum_extra::extract::{CookieJar, cookie::{Cookie, SameSite}};
 
 use crate::{
     auth::{middleware, routes as auth_routes},
@@ -139,6 +139,40 @@ pub async fn home(State(state): State<AppState>) -> HomeTemplate {
         api_base_url,
         api_host,
     }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ThemeParams {
+    theme: Option<String>,
+}
+
+pub async fn theme(headers: HeaderMap, Query(params): Query<ThemeParams>) -> Response {
+    let value = if params.theme.as_deref() == Some("dark") {
+        "dark"
+    } else {
+        "light"
+    };
+    let return_to = headers
+        .get(header::REFERER)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| reqwest::Url::parse(value).ok())
+        .map(|url| {
+            let mut path = url.path().to_string();
+            if let Some(query) = url.query() {
+                path.push('?');
+                path.push_str(query);
+            }
+            path
+        })
+        .filter(|path| path.starts_with('/') && !path.starts_with("//"))
+        .unwrap_or_else(|| "/".to_string());
+    let cookie = Cookie::build(("theme", value))
+        .path("/")
+        .same_site(SameSite::Lax)
+        .permanent()
+        .build();
+    let jar = CookieJar::new().add(cookie);
+    (jar, Redirect::to(&return_to)).into_response()
 }
 
 pub async fn auth_redirect() -> Redirect {
