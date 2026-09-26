@@ -2,6 +2,14 @@
 
 Use this file as the default guide for AI agents working in the repository.
 
+## Brand
+
+- All brand assets and rules live in `brand/` and `.claude/skills/hackflare-brand/SKILL.md`. Read the skill before any UI, page, email or marketing work.
+- Always use the logo files in `brand/logos/`. Never retype "hackflare", redraw the fire h, or recreate the logo in CSS.
+- Served copies of the logos are vendored into `hackflare-app/static/brand/logos/`; reference those from templates as `/static/brand/logos/...`.
+- Only use the colors in `brand/tokens/`. Never put white text on Flame orange (#F2611D).
+- Font: Instrument Sans. JetBrains Mono only for code.
+
 ## Human In The Loop
 
 - Keep the user informed when making substantial changes.

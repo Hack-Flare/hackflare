@@ -116,8 +116,25 @@ pub fn render_error(status: u16, message: &str, details: &str) -> Response {
 
 // --- Home page ---
 
-pub async fn home() -> HomeTemplate {
-    HomeTemplate
+/// Fallback for the API examples when `FRONTEND_URL` is unset.
+const PUBLIC_ORIGIN_FALLBACK: &str = "https://hackflare.net";
+
+pub async fn home(State(state): State<AppState>) -> HomeTemplate {
+    let api_base_url = state
+        .config
+        .frontend_url
+        .as_ref()
+        .map(|url| url.as_str().trim_end_matches('/').to_string())
+        .unwrap_or_else(|| PUBLIC_ORIGIN_FALLBACK.to_string());
+    let api_host = api_base_url
+        .split_once("://")
+        .map_or(api_base_url.as_str(), |(_, host)| host)
+        .to_string();
+
+    HomeTemplate {
+        api_base_url,
+        api_host,
+    }
 }
 
 pub async fn auth_redirect() -> Redirect {

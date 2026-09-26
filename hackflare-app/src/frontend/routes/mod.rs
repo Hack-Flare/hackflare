@@ -40,6 +40,8 @@ pub fn build_router(state: AppState) -> Router {
         .route("/dash", get(dash::index))
         .route("/dash/domains", get(dash::domains_get).post(dash::domains_post))
         .route("/dash/settings", get(dash::settings_get).post(dash::settings_post))
+        .route("/dash/tokens", get(dash::tokens_get).post(dash::tokens_post))
+        .route("/dash/soon/{tool}", get(dash::soon))
         .route(
             "/dash/notifications",
             get(dash::notifications_get).post(dash::notifications_post),

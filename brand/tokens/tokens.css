@@ -1,0 +1,48 @@
+/* Hackflare design tokens. Import once, then use the variables. */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --hf-flame: #F2611D;
+  --hf-ember: #FFC24A;
+  --hf-ink: #16140F;
+  --hf-paper: #FAF9F5;
+  --hf-char: #B8400C;
+  --hf-smoke: #57534A;
+  --hf-ash: #ECEBE6;
+
+  --hf-font-sans: 'Instrument Sans', system-ui, sans-serif;
+  --hf-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --hf-radius-button: 10px;
+  --hf-radius-card: 16px;
+  --hf-radius-panel: 20px;
+}
+
+body {
+  background: var(--hf-paper);
+  color: var(--hf-ink);
+  font-family: var(--hf-font-sans);
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+a { color: var(--hf-char); }
+
+.hf-btn-primary {
+  background: var(--hf-flame);
+  color: var(--hf-ink); /* never white on Flame */
+  font-weight: 600;
+  border: 0;
+  border-radius: var(--hf-radius-button);
+  padding: 12px 22px;
+  min-height: 44px;
+}
+.hf-btn-secondary {
+  background: var(--hf-ink);
+  color: var(--hf-paper);
+  font-weight: 600;
+  border: 0;
+  border-radius: var(--hf-radius-button);
+  padding: 12px 22px;
+  min-height: 44px;
+}

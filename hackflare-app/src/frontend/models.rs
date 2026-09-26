@@ -18,6 +18,8 @@ pub struct AuthenticatedUser {
 pub struct DnsZone {
     pub name: String,
     pub ns_verified: bool,
+    /// Records in this zone, shown on the dashboard overview.
+    pub record_count: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,6 +31,19 @@ pub struct DnsRecord {
     pub value: String,
     pub ttl: i64,
     pub status: String,
+}
+
+impl DnsRecord {
+    /// TTL as the records table shows it: `auto`, `5m`, `1h`, `2d`.
+    pub fn ttl_human(&self) -> String {
+        match self.ttl {
+            ..=0 => "auto".to_string(),
+            ttl if ttl % 86_400 == 0 => format!("{}d", ttl / 86_400),
+            ttl if ttl % 3_600 == 0 => format!("{}h", ttl / 3_600),
+            ttl if ttl % 60 == 0 => format!("{}m", ttl / 60),
+            ttl => format!("{ttl}s"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -145,6 +160,12 @@ pub struct ApiKey {
     pub created_at: String,
     pub last_used_at: Option<String>,
     pub revoked: bool,
+    /// "Just now" for today, otherwise a short date like "Aug 30".
+    pub created_label: String,
+    /// "Never", "2 hours ago", "3 months ago".
+    pub last_used_label: String,
+    /// Unused for 60+ days, so the token list can call it out.
+    pub last_used_stale: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

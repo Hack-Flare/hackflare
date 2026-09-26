@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HackFlare, Add a domain (design reference)</title>
+<link rel="icon" href="../brand/logos/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;font-family:'Instrument Sans',system-ui,sans-serif;background:#faf9f5}
+a{color:#16140f}a:hover{color:#b8400c}
+</style>
+</head>
+<body>
+<!-- DESIGN REFERENCE ONLY: fixed 1440px desktop mockup with inline styles and example data.
+     Rebuild with shared components, brand/tokens/tokens.css and real account data. -->
+<div style="width: 1440px; min-height: 900px; display: flex; flex-direction: column; background: #faf9f5; color: #16140f; font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 14px">
+<header style="width: 1440px; height: 52px; box-sizing: border-box; padding: 0 20px; background: #16140f; color: #faf9f5; display: flex; align-items: center; gap: 14px; font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 14px">
+<a href="#" aria-label="HackFlare home" style="display: flex"><img src="../brand/logos/mark-small-reversed.svg" alt="" width="13" height="24" style="display: block"></a>
+<nav aria-label="Main" style="display: flex; gap: 4px; margin-left: 12px">
+
+<a href="#" style="text-decoration: none; color: #b5b0a6; font-weight: 500; padding: 6px 10px; border-radius: 8px; background: transparent">Overview</a>
+
+<a href="#" style="text-decoration: none; color: #faf9f5; font-weight: 600; padding: 6px 10px; border-radius: 8px; background: #2a2720">Domains</a>
+
+<a href="#" style="text-decoration: none; color: #b5b0a6; font-weight: 500; padding: 6px 10px; border-radius: 8px; background: transparent">API tokens</a>
+
+<a href="#" style="text-decoration: none; color: #b5b0a6; font-weight: 500; padding: 6px 10px; border-radius: 8px; background: transparent">Docs</a>
+
+</nav>
+<div style="flex-grow: 1"></div>
+<button type="button" style="font-family: inherit; font-size: 13px; color: #b5b0a6; background: #221f19; border: 1px solid #2f2b24; border-radius: 8px; padding: 6px 10px; width: 220px; display: flex; align-items: center; gap: 8px">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+<span style="flex-grow: 1; text-align: left">Search or jump to…</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 1px 5px; border-radius: 4px; border: 1px solid #3a352c">⌘K</span>
+</button>
+<button type="button" aria-label="Account" style="width: 30px; height: 30px; border-radius: 15px; border: none; background: #f2611d; color: #16140f; font-family: inherit; font-size: 13px; font-weight: 700; box-sizing: border-box">Y</button>
+</header>
+
+<main style="flex-grow: 1; box-sizing: border-box; padding: 36px 28px; display: flex; flex-direction: column; align-items: center; gap: 24px">
+<div style="width: 720px; display: flex; flex-direction: column; gap: 6px">
+<a href="#" style="font-size: 13px; color: #57534a; text-decoration: none">← Back to overview</a>
+<h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.7px">Add a domain</h1>
+</div>
+
+<ol aria-label="Steps" style="width: 720px; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<li style="display: flex; flex-direction: column; gap: 8px"><span style="height: 4px; border-radius: 2px; background: #16140f"></span><span style="font-size: 13px; color: #57534a"><b style="color: #16140f">1</b> · Your domain</span></li>
+<li style="display: flex; flex-direction: column; gap: 8px"><span style="height: 4px; border-radius: 2px; background: #f2611d"></span><span style="font-size: 13px; font-weight: 600"><b>2</b> · Switch nameservers</span></li>
+<li style="display: flex; flex-direction: column; gap: 8px"><span style="height: 4px; border-radius: 2px; background: #e2e0d9"></span><span style="font-size: 13px; color: #57534a"><b>3</b> · Verify</span></li>
+</ol>
+
+<section style="width: 720px; box-sizing: border-box; border: 1px solid #e2e0d9; border-radius: 14px; padding: 24px; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; align-items: center; gap: 10px">
+<span style="font-size: 20px; font-weight: 700">portfolio.me</span>
+<span style="font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: #fdf1ea; color: #b8400c">Waiting for nameservers</span>
+<div style="flex-grow: 1"></div>
+<a href="#" style="font-size: 13px; color: #57534a">Change</a>
+</div>
+<p style="margin: 0; font-size: 15px; line-height: 1.55">Log in where you bought <b>portfolio.me</b> (your registrar), find the <b>nameservers</b> setting, choose "custom nameservers" and paste these two:</p>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<button type="button" aria-label="Copy nameserver 1" style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #faf9f5; background: #16140f; border: none; border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between">[nameserver-1]<span style="font-family: 'Instrument Sans', sans-serif; font-size: 13px; font-weight: 600; color: #f2611d">Copy</span></button>
+<button type="button" aria-label="Copy nameserver 2" style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #faf9f5; background: #16140f; border: none; border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between">[nameserver-2]<span style="font-family: 'Instrument Sans', sans-serif; font-size: 13px; font-weight: 600; color: #f2611d">Copy</span></button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 13px; font-weight: 600">Step-by-step for your registrar</span>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<a href="#" style="text-decoration: none; font-size: 13px; font-weight: 500; padding: 6px 12px; border-radius: 8px; background: #ecebe6">Namecheap</a>
+<a href="#" style="text-decoration: none; font-size: 13px; font-weight: 500; padding: 6px 12px; border-radius: 8px; background: #ecebe6">Porkbun</a>
+<a href="#" style="text-decoration: none; font-size: 13px; font-weight: 500; padding: 6px 12px; border-radius: 8px; background: #ecebe6">GoDaddy</a>
+<a href="#" style="text-decoration: none; font-size: 13px; font-weight: 500; padding: 6px 12px; border-radius: 8px; background: #ecebe6">Squarespace</a>
+<a href="#" style="text-decoration: none; font-size: 13px; font-weight: 500; padding: 6px 12px; border-radius: 8px; background: #ecebe6">Something else</a>
+</div>
+</div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 10px; background: #ecebe6">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b8400c" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 4v5h-5"></path></svg>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600">Not switched yet</span><span style="font-size: 13px; color: #57534a">We'll keep checking. Changes can take a while to show up, so it's fine to leave this page.</span></div>
+<button type="button" style="font-family: inherit; font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: 8px; border: none; background: #f2611d; color: #16140f">Check now</button>
+</div>
+</section>
+
+<div style="width: 720px; font-size: 13px; color: #57534a">Stuck? <a href="#" style="color: #b8400c; font-weight: 600">Read the guide</a> or ask in the [support channel].</div>
+</main>
+</div>
+</body>
+</html>

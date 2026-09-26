@@ -1,53 +1,48 @@
-<div class="dash-page">
-  <h1>Admin Panel</h1>
-  <p class="dash-sub">System configuration, users, stats, and traffic</p>
-  {% if let Some(stats) = stats %}
-  <div class="stat-grid">
-    <div class="card">
-      <div class="card-content">
-        <div class="stat-label">Users</div>
-        <div class="stat-value">{{ stats.total_users }}</div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-content">
-        <div class="stat-label">Sessions</div>
-        <div class="stat-value">{{ stats.total_sessions }}</div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-content">
-        <div class="stat-label">Zones</div>
-        <div class="stat-value">{{ stats.total_zones }}</div>
-      </div>
-    </div>
-  </div>
-  {% endif %}
-  <div class="card card-spaced">
-    <div class="card-header"><h3 class="card-title">Users</h3></div>
-    <div class="card-content">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for user in users %}
-          <tr>
-            <td>{{ user.first_name }} {{ user.last_name }}</td>
-            <td>{{ user.email }}</td>
-            <td>{{ user.status }}</td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="3" class="text-muted">No users.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+<div class="page-head">
+  <div>
+    <h1>Admin panel</h1>
+    <p class="page-sub">Platform-wide users, zones and sessions.</p>
   </div>
 </div>
+
+{% if let Some(stats) = stats %}
+<div class="tools-row">
+  <div class="tool-tile tool-tile-dark">
+    <span class="tool-body">
+      <span class="tool-meta">Users</span>
+      <span class="admin-stat">{{ stats.total_users }}</span>
+    </span>
+  </div>
+  <div class="tool-tile">
+    <span class="tool-body">
+      <span class="tool-meta">Zones</span>
+      <span class="admin-stat">{{ stats.total_zones }}</span>
+    </span>
+  </div>
+  <div class="tool-tile">
+    <span class="tool-body">
+      <span class="tool-meta">Active sessions</span>
+      <span class="admin-stat">{{ stats.total_sessions }}</span>
+    </span>
+  </div>
+</div>
+{% endif %}
+
+<section class="domains-panel" aria-labelledby="users-heading">
+  <div class="domains-panel-head">
+    <h2 id="users-heading">Users</h2>
+    <span class="domains-count">{{ users.len() }}</span>
+  </div>
+  <div class="users-row users-head">
+    <span>NAME</span><span>EMAIL</span><span>STATUS</span>
+  </div>
+  {% for user in users %}
+  <div class="users-row user-item">
+    <span class="domain-name">{{ user.first_name }} {{ user.last_name }}</span>
+    <code>{{ user.email }}</code>
+    <span><span class="status-pill">{{ user.status }}</span></span>
+  </div>
+  {% else %}
+  <p class="domains-empty">No users found.</p>
+  {% endfor %}
+</section>

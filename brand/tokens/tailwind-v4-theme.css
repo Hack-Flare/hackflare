@@ -1,0 +1,17 @@
+/* Tailwind v4: add after @import "tailwindcss"; gives bg-flame, text-ink, font-sans, rounded-button ... */
+@theme {
+  --color-flame: #F2611D;
+  --color-ember: #FFC24A;
+  --color-ink: #16140F;
+  --color-paper: #FAF9F5;
+  --color-char: #B8400C;
+  --color-smoke: #57534A;
+  --color-ash: #ECEBE6;
+
+  --font-sans: 'Instrument Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --radius-button: 10px;
+  --radius-card: 16px;
+  --radius-panel: 20px;
+}

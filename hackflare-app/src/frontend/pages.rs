@@ -27,7 +27,12 @@ fn friendly_error(error: &str) -> String {
 
 #[derive(Template, WebTemplate)]
 #[template(path = "home.html")]
-pub struct HomeTemplate;
+pub struct HomeTemplate {
+    /// Public origin the API examples are written against, from `FRONTEND_URL`.
+    pub api_base_url: String,
+    /// Same origin without the scheme, for the gRPC `host:port` example.
+    pub api_host: String,
+}
 
 #[derive(Template, WebTemplate)]
 #[template(path = "login.html")]
@@ -206,4 +211,10 @@ pub struct DashboardTemplate {
     pub traffic_timeseries: Vec<TimeseriesPoint>,
     pub message: Option<String>,
     pub error: Option<String>,
+    /// Total records across every zone, for the DNS tool tile.
+    pub record_count: i64,
+    /// Non-revoked API keys, for the API tokens tile.
+    pub active_tokens: usize,
+    /// Public origin for the dashboard's example API request.
+    pub api_base_url: String,
 }

@@ -15,7 +15,8 @@ use crate::{
     api::services::notifications as notifications_service,
     auth::middleware,
     frontend::models::{
-        ApiKey, AuthenticatedUser, DnsRecord, DnsZone, Notification, QueryLogsSummary,
+        AdminStats, AdminUser, ApiKey, AuthenticatedUser, CreatedApiKey, DnsRecord, DnsZone,
+        Notification, QueryLogsSummary,
     },
     frontend::pages::{DashContext, DashboardTemplate},
     state::AppState,
@@ -26,19 +27,7 @@ use super::handlers::{not_found, require_user};
 /// (route key, page title, section description) for sidebar sections.
 const SECTION_META: &[(&str, &str, &str)] = &[
     ("domains", "Domains", "Manage and register your domains."),
-    (
-        "firewall",
-        "Firewall",
-        "Protect your edge with firewall rules.",
-    ),
-    ("workers", "Workers", "Deploy scripts at the edge."),
-    ("tunnel", "Tunnel", "Expose local services securely."),
     ("traffic", "Traffic", "DNS traffic analytics and insights."),
-    (
-        "performance",
-        "Performance",
-        "Performance monitoring and insights.",
-    ),
     ("logs", "Logs", "Query and request logs."),
     (
         "notifications",
@@ -51,27 +40,49 @@ const SECTION_META: &[(&str, &str, &str)] = &[
     ("help", "Help", "Support and documentation."),
 ];
 
-const DOMAIN_SUB_META: &[(&str, &str)] = &[
-    ("dns", "DNS Records"),
+const DOMAIN_SUB_META: &[(&str, &str)] = &[("dns", "DNS Records")];
+
+/// Tools with a "coming soon" page. The slug is taken from the URL, so this
+/// whitelist keeps arbitrary text from being reflected back onto the page.
+const SOON_TOOLS: &[(&str, &str)] = &[
+    ("firewall", "Firewall"),
+    ("workers", "Workers"),
+    ("tunnel", "Tunnel"),
+    ("performance", "Performance"),
     ("ssl", "SSL/TLS"),
     ("redirects", "Redirects"),
 ];
 
 async fn fetch_zones(state: &AppState, user_id: &str) -> Vec<DnsZone> {
-    sqlx::query_as::<_, (String, bool)>(
-        "SELECT name, ns_verified FROM dns_zones WHERE user_id = $1 ORDER BY name",
+    sqlx::query_as::<_, (String, bool, i64)>(
+        r#"
+        SELECT z.name, z.ns_verified, COUNT(r.id) AS record_count
+        FROM dns_zones z
+        LEFT JOIN dns_records r ON r.zone_id = z.id
+        WHERE z.user_id = $1
+        GROUP BY z.name, z.ns_verified
+        ORDER BY z.name
+        "#,
     )
     .bind(user_id)
     .fetch_all(&state.db)
     .await
     .unwrap_or_default()
     .into_iter()
-    .map(|(name, ns_verified)| DnsZone { name, ns_verified })
+    .map(|(name, ns_verified, record_count)| DnsZone {
+        name,
+        ns_verified,
+        record_count,
+    })
     .collect()
 }
 
 /// Dashboard home, the representative SSR page.
-pub async fn index(State(state): State<AppState>, headers: HeaderMap) -> Response {
+pub async fn index(
+    State(state): State<AppState>,
+    Query(flash): Query<Flash>,
+    headers: HeaderMap,
+) -> Response {
     let user = match require_user(&state, &headers).await {
         Ok(user) => user,
         Err(redirect) => return redirect.into_response(),
@@ -79,6 +90,15 @@ pub async fn index(State(state): State<AppState>, headers: HeaderMap) -> Respons
 
     let zones = fetch_zones(&state, &user.id).await;
     let verified_count = zones.iter().filter(|zone| zone.ns_verified).count();
+    let record_count: i64 = zones.iter().map(|zone| zone.record_count).sum();
+    let active_tokens = state
+        .api_keys
+        .list(&user.id)
+        .await
+        .unwrap_or_default()
+        .iter()
+        .filter(|key| key.revoked_at.is_none())
+        .count();
 
     let mut page = dashboard_page(
         &user,
@@ -88,7 +108,230 @@ pub async fn index(State(state): State<AppState>, headers: HeaderMap) -> Respons
     );
     page.zones = zones;
     page.verified_count = verified_count;
+    page.pending_count = page.zones.len() - verified_count;
+    page.record_count = record_count;
+    page.active_tokens = active_tokens;
+    page.api_base_url = public_base_url(&state);
+    flash.apply(&mut page);
     page.into_response()
+}
+
+/// A token is called stale once it has gone this long without being used.
+const TOKEN_STALE_DAYS: i64 = 60;
+
+/// "Just now" while it is fresh, then a short date like "Aug 30".
+fn created_label(at: chrono::DateTime<chrono::Utc>) -> String {
+    let age = chrono::Utc::now().signed_duration_since(at);
+    if age.num_hours() < 24 {
+        "Just now".to_string()
+    } else {
+        at.format("%b %-d").to_string()
+    }
+}
+
+/// "Never" when unused, otherwise a coarse "N hours/days/months ago".
+fn last_used_label(at: Option<chrono::DateTime<chrono::Utc>>) -> (String, bool) {
+    let Some(at) = at else {
+        return ("Never".to_string(), false);
+    };
+    let age = chrono::Utc::now().signed_duration_since(at);
+    let stale = age.num_days() >= TOKEN_STALE_DAYS;
+    let label = if age.num_minutes() < 1 {
+        "Just now".to_string()
+    } else if age.num_hours() < 1 {
+        format!("{} minutes ago", age.num_minutes())
+    } else if age.num_days() < 1 {
+        let hours = age.num_hours();
+        format!("{hours} hour{} ago", if hours == 1 { "" } else { "s" })
+    } else if age.num_days() < 30 {
+        let days = age.num_days();
+        format!("{days} day{} ago", if days == 1 { "" } else { "s" })
+    } else {
+        let months = age.num_days() / 30;
+        format!("{months} month{} ago", if months == 1 { "" } else { "s" })
+    };
+    (label, stale)
+}
+
+fn to_view_key(k: crate::api::services::api_keys::ApiKey) -> ApiKey {
+    let (last_used_label, last_used_stale) = last_used_label(k.last_used_at);
+    ApiKey {
+        id: k.id.to_string(),
+        name: k.name,
+        prefix: k.prefix,
+        created_at: k.created_at.to_rfc3339(),
+        last_used_at: k.last_used_at.map(|t| t.to_rfc3339()),
+        revoked: k.revoked_at.is_some(),
+        created_label: created_label(k.created_at),
+        last_used_label,
+        last_used_stale,
+    }
+}
+
+/// Platform-wide counts for the admin panel. Mirrors `/api/v1/admin/stats`.
+async fn fetch_admin_stats(state: &AppState) -> Option<AdminStats> {
+    let total_users: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM users")
+        .fetch_one(&state.db)
+        .await
+        .ok()?;
+    let total_zones: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM dns_zones")
+        .fetch_one(&state.db)
+        .await
+        .ok()?;
+    let total_sessions: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM user_sessions WHERE revoked_at IS NULL")
+            .fetch_one(&state.db)
+            .await
+            .ok()?;
+
+    Some(AdminStats {
+        total_users,
+        total_zones,
+        total_sessions,
+    })
+}
+
+/// Every registered account, newest first. Mirrors `/api/v1/admin/users`.
+async fn fetch_admin_users(state: &AppState) -> Vec<AdminUser> {
+    sqlx::query_as::<_, (String, String, String, String, String)>(
+        r#"
+        SELECT id, email, first_name, last_name, verification_status
+        FROM users
+        ORDER BY created_at DESC
+        "#,
+    )
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default()
+    .into_iter()
+    .map(|(id, email, first_name, last_name, status)| AdminUser {
+        id,
+        email,
+        first_name,
+        last_name,
+        status,
+        created_at: String::new(),
+    })
+    .collect()
+}
+
+/// `GET /dash/soon/{tool}`: shared placeholder for tools that aren't built.
+pub async fn soon(
+    State(state): State<AppState>,
+    Path(tool): Path<String>,
+    headers: HeaderMap,
+) -> Response {
+    let Some((_, label)) = SOON_TOOLS.iter().find(|(slug, _)| *slug == tool) else {
+        return not_found().await;
+    };
+    let user = match require_user(&state, &headers).await {
+        Ok(user) => user,
+        Err(redirect) => return redirect.into_response(),
+    };
+    let mut page = dashboard_page(&user, "soon", label, &state.config.dns_nameservers);
+    page.title = (*label).to_string();
+    page.into_response()
+}
+
+/// Build the API tokens page for a user, optionally with a just-created token.
+async fn tokens_page(
+    state: &AppState,
+    user: &AuthenticatedUser,
+    created: Option<CreatedApiKey>,
+) -> DashboardTemplate {
+    let mut page = dashboard_page(user, "tokens", "API tokens", &state.config.dns_nameservers);
+    page.description = "Tokens let scripts, CI and your own tools use the Hackflare API as you."
+        .to_string();
+    page.keys = state
+        .api_keys
+        .list(&user.id)
+        .await
+        .unwrap_or_default()
+        .into_iter()
+        .map(to_view_key)
+        .collect();
+    page.api_base_url = public_base_url(state);
+    page.created_key = created;
+    page
+}
+
+/// `GET /dash/tokens`
+pub async fn tokens_get(
+    State(state): State<AppState>,
+    Query(flash): Query<Flash>,
+    headers: HeaderMap,
+) -> Response {
+    let user = match require_user(&state, &headers).await {
+        Ok(user) => user,
+        Err(redirect) => return redirect.into_response(),
+    };
+    let mut page = tokens_page(&state, &user, None).await;
+    flash.apply(&mut page);
+    page.into_response()
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TokenForm {
+    action: String,
+    name: Option<String>,
+    id: Option<String>,
+}
+
+/// `POST /dash/tokens`: create or revoke a token.
+///
+/// Creating renders the page directly instead of redirecting: the raw token
+/// only exists in this response, so a reload can never show it again.
+pub async fn tokens_post(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Form(form): Form<TokenForm>,
+) -> Response {
+    let user = match require_user(&state, &headers).await {
+        Ok(user) => user,
+        Err(redirect) => return redirect.into_response(),
+    };
+
+    match form.action.as_str() {
+        "create" => {
+            let name = form.name.unwrap_or_default().trim().to_string();
+            if name.is_empty() {
+                return redirect_with("/dash/tokens", Err("name_required"));
+            }
+            match state.api_keys.create(&user.id, &name).await {
+                Ok((key, raw_key)) => {
+                    let created = CreatedApiKey {
+                        key: to_view_key(key),
+                        raw_key,
+                    };
+                    // No flash here: the reveal banner already says it worked.
+                    tokens_page(&state, &user, Some(created)).await.into_response()
+                }
+                Err(_) => redirect_with("/dash/tokens", Err("internal")),
+            }
+        }
+        "revoke" => {
+            let Some(id) = form.id.as_deref().and_then(|id| id.parse().ok()) else {
+                return redirect_with("/dash/tokens", Err("token_not_found"));
+            };
+            let result = match state.api_keys.revoke(id, &user.id).await {
+                Ok(true) => Ok("token_revoked"),
+                Ok(false) => Err("token_not_found"),
+                Err(_) => Err("internal"),
+            };
+            redirect_with("/dash/tokens", result)
+        }
+        _ => redirect_with("/dash/tokens", Err("invalid_request")),
+    }
+}
+
+/// Public origin used in the dashboard's API example, from `FRONTEND_URL`.
+fn public_base_url(state: &AppState) -> String {
+    state
+        .config
+        .frontend_url
+        .as_ref()
+        .map(|url| url.as_str().trim_end_matches('/').to_string())
+        .unwrap_or_else(|| "https://hackflare.net".to_string())
 }
 
 /// Result of a dashboard form submission, carried across the post/redirect/get
@@ -115,6 +358,7 @@ fn notice_text(code: &str) -> Option<&'static str> {
         "record_deleted" => "Record deleted.",
         "password_updated" => "Password updated.",
         "notifications_read" => "All notifications marked as read.",
+        "token_revoked" => "Token revoked.",
         _ => return None,
     })
 }
@@ -132,6 +376,7 @@ fn error_text(code: &str) -> Option<&'static str> {
             "This domain isn't verified yet, so its records can't be changed."
         }
         "record_not_found" => "Record not found.",
+        "token_not_found" => "Token not found.",
         "invalid_ttl" => "TTL must be a whole number of seconds.",
         "password_too_short" => "Password must be at least 8 characters.",
         "password_mismatch" => "The new passwords don't match.",
@@ -233,15 +478,12 @@ pub async fn section(
                 .await
                 .unwrap_or_default()
                 .into_iter()
-                .map(|k| ApiKey {
-                    id: k.id.to_string(),
-                    name: k.name,
-                    prefix: k.prefix,
-                    created_at: k.created_at.to_rfc3339(),
-                    last_used_at: k.last_used_at.map(|t| t.to_rfc3339()),
-                    revoked: k.revoked_at.is_some(),
-                })
+                .map(to_view_key)
                 .collect();
+        }
+        "admin" => {
+            page.stats = fetch_admin_stats(&state).await;
+            page.users = fetch_admin_users(&state).await;
         }
         _ => {}
     }
@@ -269,6 +511,8 @@ pub async fn domain_sub(
     let mut page = dashboard_page(&user, &sub, title, &state.config.dns_nameservers);
     page.zone_name = domain.clone();
     page.description = description;
+    // The top bar's domain switcher lists every zone the user owns.
+    page.zones = fetch_zones(&state, &user.id).await;
     flash.apply(&mut page);
 
     if sub == "dns" {
@@ -348,6 +592,9 @@ fn dashboard_page(
         traffic_timeseries: Vec::new(),
         message: None,
         error: None,
+        record_count: 0,
+        active_tokens: 0,
+        api_base_url: String::new(),
     }
 }
 

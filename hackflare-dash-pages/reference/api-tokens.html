@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HackFlare, API tokens (/dash/tokens) (design reference)</title>
+<link rel="icon" href="../brand/logos/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;font-family:'Instrument Sans',system-ui,sans-serif;background:#faf9f5}
+a{color:#16140f}a:hover{color:#b8400c}
+</style>
+</head>
+<body>
+<!-- DESIGN REFERENCE ONLY: fixed 1440px desktop mockup with inline styles and example data.
+     Rebuild with shared components, brand/tokens/tokens.css and real account data. -->
+<div style="width: 1440px; min-height: 900px; display: flex; flex-direction: column; background: #faf9f5; color: #16140f; font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 14px">
+<header style="width: 1440px; height: 52px; box-sizing: border-box; padding: 0 20px; background: #16140f; color: #faf9f5; display: flex; align-items: center; gap: 14px; font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 14px">
+<a href="#" aria-label="HackFlare home" style="display: flex"><img src="../brand/logos/mark-small-reversed.svg" alt="" width="13" height="24" style="display: block"></a>
+<nav aria-label="Main" style="display: flex; gap: 4px; margin-left: 12px">
+
+<a href="#" style="text-decoration: none; color: #b5b0a6; font-weight: 500; padding: 6px 10px; border-radius: 8px; background: transparent">Overview</a>
+
+<a href="#" style="text-decoration: none; color: #b5b0a6; font-weight: 500; padding: 6px 10px; border-radius: 8px; background: transparent">Domains</a>
+
+<a href="#" style="text-decoration: none; color: #faf9f5; font-weight: 600; padding: 6px 10px; border-radius: 8px; background: #2a2720">API tokens</a>
+
+<a href="#" style="text-decoration: none; color: #b5b0a6; font-weight: 500; padding: 6px 10px; border-radius: 8px; background: transparent">Docs</a>
+
+</nav>
+<div style="flex-grow: 1"></div>
+<button type="button" style="font-family: inherit; font-size: 13px; color: #b5b0a6; background: #221f19; border: 1px solid #2f2b24; border-radius: 8px; padding: 6px 10px; width: 220px; display: flex; align-items: center; gap: 8px">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+<span style="flex-grow: 1; text-align: left">Search or jump to…</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 1px 5px; border-radius: 4px; border: 1px solid #3a352c">⌘K</span>
+</button>
+<button type="button" aria-label="Account" style="width: 30px; height: 30px; border-radius: 15px; border: none; background: #f2611d; color: #16140f; font-family: inherit; font-size: 13px; font-weight: 700; box-sizing: border-box">Y</button>
+</header>
+
+<main style="flex-grow: 1; box-sizing: border-box; padding: 28px 28px 24px; display: flex; gap: 20px">
+
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 18px; min-width: 0">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.7px">API tokens</h1>
+<div style="font-size: 14px; color: #57534a">Tokens let scripts, CI and your own tools use the HackFlare API as you. Treat them like passwords.</div>
+</div>
+
+<section aria-label="New token created" style="background: #16140f; color: #faf9f5; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 8px; height: 8px; border-radius: 4px; background: #ffc24a"></span><span style="font-size: 14px; font-weight: 600">Token "github-actions" created. Copy it now, you won't see it again.</span></div>
+<div style="display: flex; gap: 8px">
+<code style="flex-grow: 1; font-family: 'JetBrains Mono', monospace; font-size: 13px; background: #2a2720; border-radius: 8px; padding: 10px 12px; color: #faf9f5">[new-token-value]</code>
+<button type="button" style="font-family: inherit; font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 8px; border: none; background: #f2611d; color: #16140f; display: flex; align-items: center; gap: 6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16140f" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"></path></svg>Copy</button>
+<button type="button" aria-label="Dismiss" style="width: 36px; border-radius: 8px; border: none; background: #2a2720; color: #b5b0a6; font-size: 18px">×</button>
+</div>
+</section>
+
+<section aria-labelledby="tok-h" style="border: 1px solid #e2e0d9; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column">
+<div style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid #e2e0d9">
+<h2 id="tok-h" style="margin: 0; font-size: 15px; font-weight: 600">Your tokens</h2>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #57534a">3</span>
+</div>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 170px 120px 110px 120px 80px; gap: 12px; padding: 8px 16px; background: #f3f2ed; font-size: 11px; font-weight: 600; letter-spacing: 1.2px; color: #57534a">
+<span>NAME</span><span>DOMAINS</span><span>ACCESS</span><span>CREATED</span><span>LAST USED</span><span></span>
+</div>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 170px 120px 110px 120px 80px; gap: 12px; padding: 0 16px; height: 52px; align-items: center; border-top: 1px solid #ecebe6; background: #fdf1ea">
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-weight: 600; font-size: 14px">github-actions</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #57534a">••••[last 4]</span></span>
+<span style="font-size: 13px">yourproject.dev</span>
+<span style="justify-self: start; font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 999px; background: #16140f; color: #faf9f5">Read & write</span>
+<span style="font-size: 13px; color: #57534a">Just now</span>
+<span style="font-size: 13px; color: #57534a">Never</span>
+<button type="button" style="justify-self: end; font-family: inherit; font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: 8px; border: 1.5px solid #d6d3cb; background: transparent; color: #b8400c">Revoke</button>
+</div>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 170px 120px 110px 120px 80px; gap: 12px; padding: 0 16px; height: 52px; align-items: center; border-top: 1px solid #ecebe6; background: transparent">
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-weight: 600; font-size: 14px">laptop-cli</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #57534a">••••[last 4]</span></span>
+<span style="font-size: 13px">All domains</span>
+<span style="justify-self: start; font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 999px; background: #16140f; color: #faf9f5">Read & write</span>
+<span style="font-size: 13px; color: #57534a">Aug 30</span>
+<span style="font-size: 13px; color: #16140f">2 hours ago</span>
+<button type="button" style="justify-self: end; font-family: inherit; font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: 8px; border: 1.5px solid #d6d3cb; background: transparent; color: #b8400c">Revoke</button>
+</div>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 170px 120px 110px 120px 80px; gap: 12px; padding: 0 16px; height: 52px; align-items: center; border-top: 1px solid #ecebe6; background: transparent">
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-weight: 600; font-size: 14px">status-widget</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #57534a">••••[last 4]</span></span>
+<span style="font-size: 13px">mc-server.net</span>
+<span style="justify-self: start; font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 999px; background: #ecebe6; color: #16140f">Read only</span>
+<span style="font-size: 13px; color: #57534a">Jun 12</span>
+<span style="font-size: 13px; color: #b8400c">3 months ago</span>
+<button type="button" style="justify-self: end; font-family: inherit; font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: 8px; border: 1.5px solid #d6d3cb; background: transparent; color: #b8400c">Revoke</button>
+</div>
+
+</section>
+
+<section aria-labelledby="use-h" style="border: 1px solid #e2e0d9; border-radius: 12px; padding: 16px 18px; display: flex; gap: 20px; align-items: center">
+<div style="width: 280px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px">
+<h2 id="use-h" style="margin: 0; font-size: 15px; font-weight: 600">Try it</h2>
+<div style="font-size: 13px; line-height: 1.5; color: #57534a">List your zones with your new token. Keep tokens in env vars or CI secrets, never in your code.</div>
+<a href="#" style="font-size: 13px; font-weight: 600; color: #b8400c">API reference</a>
+</div>
+<div style="flex-grow: 1; background: #16140f; color: #faf9f5; border-radius: 10px; padding: 12px 14px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.7; white-space: pre"><span style="color: #8f8a7f"># export HACKFLARE_TOKEN=... first</span>
+<span style="color: #f2611d">curl</span> [api-url]/zones -H <span style="color: #ffc24a">"Authorization: Bearer $HACKFLARE_TOKEN"</span></div>
+</section>
+</div>
+
+<aside aria-labelledby="new-h" style="width: 360px; flex-shrink: 0; border: 1px solid #e2e0d9; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 16px; align-self: flex-start">
+<h2 id="new-h" style="margin: 0; font-size: 16px; font-weight: 600">New token</h2>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Name
+<input type="text" value="deploy-bot" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; padding: 9px 10px; border-radius: 8px; border: 1.5px solid #f2611d; background: #faf9f5; color: #16140f; outline: none">
+<span style="font-size: 12px; font-weight: 400; color: #57534a">So you remember where it's used.</span>
+</label>
+<fieldset style="border: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px">
+<legend style="font-size: 13px; font-weight: 600; padding: 0 0 6px">Domains</legend>
+<label style="display: flex; align-items: center; gap: 8px; font-size: 13px"><input type="radio" name="scope" checked="" style="accent-color: #f2611d">All domains</label>
+<label style="display: flex; align-items: center; gap: 8px; font-size: 13px"><input type="radio" name="scope" style="accent-color: #f2611d">Only some domains</label>
+</fieldset>
+<fieldset style="border: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px">
+<legend style="font-size: 13px; font-weight: 600; padding: 0 0 6px">Access</legend>
+<div role="radiogroup" aria-label="Access" style="display: flex; background: #ecebe6; border-radius: 8px; padding: 3px; gap: 2px">
+<button type="button" role="radio" aria-checked="false" style="flex-grow: 1; font-family: inherit; font-size: 13px; border: none; border-radius: 6px; padding: 7px; background: transparent; color: #57534a">Read only</button>
+<button type="button" role="radio" aria-checked="true" style="flex-grow: 1; font-family: inherit; font-size: 13px; font-weight: 600; border: none; border-radius: 6px; padding: 7px; background: #faf9f5; color: #16140f">Read &amp; write</button>
+</div>
+</fieldset>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Expires
+<select style="font-family: inherit; font-size: 13px; padding: 9px 10px; border-radius: 8px; border: 1.5px solid #d6d3cb; background: #faf9f5; color: #16140f">
+<option>In 30 days</option><option selected="">In 90 days</option><option>In 1 year</option><option>Never</option>
+</select>
+</label>
+<button type="button" style="font-family: inherit; font-size: 14px; font-weight: 600; padding: 11px; border-radius: 10px; border: none; background: #f2611d; color: #16140f">Create token</button>
+</aside>
+</main>
+</div>
+</body>
+</html>
