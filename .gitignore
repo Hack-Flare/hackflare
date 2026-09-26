@@ -8,3 +8,6 @@ node_modules
 # ignore all env files, except example env files
 !**.env.example
 **.env
+
+.claude
+.interface-design
