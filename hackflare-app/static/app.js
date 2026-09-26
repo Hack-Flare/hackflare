@@ -323,6 +323,27 @@
     });
   });
 
+  // The dashboard search control focuses the filter available on the current page.
+  function focusDashboardSearch() {
+    var input = document.querySelector("[data-domain-filter], [data-record-filter]");
+    if (input) {
+      input.focus();
+      return;
+    }
+    window.location.href = "/dash/domains";
+  }
+
+  document.querySelectorAll("[data-zone-search]").forEach(function (button) {
+    button.addEventListener("click", focusDashboardSearch);
+  });
+
+  document.addEventListener("keydown", function (event) {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+      event.preventDefault();
+      focusDashboardSearch();
+    }
+  });
+
   // Domain switcher in the zone top bar.
   document.querySelectorAll("[data-zone-switcher]").forEach(function (button) {
     var menu = document.getElementById(button.getAttribute("aria-controls"));
