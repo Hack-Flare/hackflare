@@ -52,10 +52,14 @@ fn encode_component(value: &str) -> String {
 
 /// Hack Club auth entry point
 fn hackclub_target_url(headers: &HeaderMap, return_to: &str) -> String {
-    format!(
+    let target = format!(
         "{}/auth/hackclub?returnTo={}",
         origin_for(headers),
         encode_component(return_to)
+    );
+    format!(
+        "/api/v1/auth/login?target={}",
+        encode_component(&target)
     )
 }
 
@@ -391,7 +395,15 @@ pub async fn not_found() -> Response {
 
 #[cfg(test)]
 mod tests {
-    use super::safe_return_to;
+    use axum::http::HeaderMap;
+
+    use super::{hackclub_target_url, safe_return_to};
+
+    #[test]
+    fn hackclub_target_starts_oauth_flow() {
+        let target = hackclub_target_url(&HeaderMap::new(), "/dash");
+        assert!(target.starts_with("/api/v1/auth/login?target="));
+    }
 
     #[test]
     fn safe_return_to_keeps_local_paths() {

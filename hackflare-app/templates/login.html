@@ -27,18 +27,10 @@ block content %}
   <main class="signin-panel">
     <div class="signin-form">
       <h1>Sign in to Hackflare</h1>
-      <p class="signin-sub">Use your Hack Club account or your email.</p>
 
       {% if let Some(error) = error %}
       <div class="error-banner">{{ error }}</div>
       {% endif %}
-
-      <a class="btn btn-block signin-hc" href="{{ hackclub_target_url }}">
-        <span class="signin-hc-badge" aria-hidden="true">HC</span>
-        Continue with Hack Club
-      </a>
-
-      <div class="divider">or</div>
 
       <form method="post" action="/login" class="form-stack">
         <label class="form-field">
@@ -68,6 +60,13 @@ block content %}
           Continue with email
         </button>
       </form>
+
+      <div class="divider">or</div>
+
+      <a class="btn btn-block signin-hc" href="{{ hackclub_target_url }}">
+        <span class="signin-hc-badge" aria-hidden="true">HC</span>
+        Continue with Hack Club
+      </a>
 
       <p class="signin-foot">
         <a class="auth-link" href="/forgot-password">Forgot password?</a>
