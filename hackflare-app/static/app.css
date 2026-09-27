@@ -1534,35 +1534,6 @@ select.input option {
   cursor: pointer;
   list-style: none;
 }
-.theme-toggle::-webkit-details-marker {
-  display: none;
-}
-.theme-menu {
-  position: relative;
-}
-.theme-menu-panel {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: 40;
-  min-width: 100px;
-  padding: 6px;
-  border: 1px solid var(--ink-4);
-  border-radius: var(--hf-radius-button);
-  background: var(--ink-2);
-  box-shadow: 0 16px 40px oklch(0 0 0 / 0.45);
-}
-.theme-menu-panel a {
-  display: block;
-  padding: 8px 10px;
-  border-radius: 6px;
-  color: var(--on-ink-muted);
-  font-size: 13px;
-}
-.theme-menu-panel a:hover {
-  background: var(--ink-4);
-  color: var(--hf-paper);
-}
 .theme-toggle:hover {
   background: var(--accent);
 }
@@ -1570,14 +1541,14 @@ select.input option {
   width: 18px;
   height: 18px;
 }
-.theme-toggle .icon-sun {
+.theme-toggle-light {
   display: none;
 }
-.dark .theme-toggle .icon-sun {
-  display: inline-block;
-}
-.dark .theme-toggle .icon-moon {
+.dark .theme-toggle-dark {
   display: none;
+}
+.dark .theme-toggle-light {
+  display: inline-flex;
 }
 
 /* Dashboard Utils */

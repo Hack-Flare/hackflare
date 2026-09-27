@@ -48,13 +48,18 @@
 
   <span class="zone-topbar-spacer"></span>
 
-  <details class="theme-menu">
-    <summary class="theme-toggle" aria-label="Theme">Theme</summary>
-    <div class="theme-menu-panel">
-      <a href="/theme?theme=light">Light</a>
-      <a href="/theme?theme=dark">Dark</a>
-    </div>
-  </details>
+  <a
+    class="theme-toggle theme-toggle-dark"
+    href="/theme?theme=dark"
+    aria-label="Switch to dark mode"
+    title="Switch to dark mode"
+  ><span class="lucide-icon icon-moon" aria-hidden="true"></span></a>
+  <a
+    class="theme-toggle theme-toggle-light"
+    href="/theme?theme=light"
+    aria-label="Switch to light mode"
+    title="Switch to light mode"
+  ><span class="lucide-icon icon-sun" aria-hidden="true"></span></a>
 
   <details class="account-menu">
     <summary class="zone-avatar" aria-label="Account menu">
