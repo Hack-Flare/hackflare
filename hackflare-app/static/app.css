@@ -1537,6 +1537,13 @@ select.input option {
 .theme-toggle:hover {
   background: var(--accent);
 }
+.zone-shell .theme-toggle {
+  color: var(--on-ink-muted);
+}
+.zone-shell .theme-toggle:hover {
+  background: var(--ink-4);
+  color: var(--hf-paper);
+}
 .theme-toggle .lucide-icon {
   width: 18px;
   height: 18px;
