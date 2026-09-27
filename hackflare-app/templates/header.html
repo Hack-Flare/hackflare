@@ -36,8 +36,32 @@
         aria-label="Switch to light mode"
         title="Switch to light mode"
       ><span class="lucide-icon icon-sun" aria-hidden="true"></span></a>
+      {% if header.is_signed_in %}
+      <details class="account-menu site-account-menu">
+        <summary class="zone-avatar" aria-label="Account menu">{{ header.initials }}</summary>
+        <div class="account-menu-panel" id="account-menu">
+          <div class="account-menu-id">
+            <span class="account-menu-name">{{ header.display_name }}</span>
+            <span class="account-menu-email">{{ header.email }}</span>
+          </div>
+          <a href="/dash/profile"><span class="lucide-icon icon-user" aria-hidden="true"></span>Profile</a>
+          <a href="/dash/settings"><span class="lucide-icon icon-settings" aria-hidden="true"></span>Account settings</a>
+          <a href="/dash/notifications"><span class="lucide-icon icon-notifications" aria-hidden="true"></span>Notifications</a>
+          <div class="account-menu-sep" role="separator"></div>
+          <a href="/dash/traffic"><span class="lucide-icon icon-traffic" aria-hidden="true"></span>Traffic</a>
+          <a href="/dash/logs"><span class="lucide-icon icon-logs" aria-hidden="true"></span>Logs</a>
+          <a href="/dash/help"><span class="lucide-icon icon-help" aria-hidden="true"></span>Help</a>
+          {% if header.is_admin %}
+          <a href="/dash/admin"><span class="lucide-icon icon-admin" aria-hidden="true"></span>Admin panel</a>
+          {% endif %}
+          <div class="account-menu-sep" role="separator"></div>
+          <a href="/logout"><span class="lucide-icon icon-logout" aria-hidden="true"></span>Sign out</a>
+        </div>
+      </details>
+      {% else %}
       <a class="site-link-secondary" href="/login">Sign in</a>
       <a class="btn btn-orange" href="/dash">Get started</a>
+      {% endif %}
     </div>
   </div>
 </header>

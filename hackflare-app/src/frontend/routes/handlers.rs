@@ -16,8 +16,8 @@ use axum_extra::extract::{CookieJar, cookie::{Cookie, SameSite}};
 use crate::{
     auth::{middleware, routes as auth_routes},
     frontend::pages::{
-        ErrorTemplate, ForgotPasswordTemplate, HomeTemplate, LoginTemplate, RegisterTemplate,
-        ResetPasswordTemplate,
+        ErrorTemplate, ForgotPasswordTemplate, HomeTemplate, LoginTemplate, PublicHeader,
+        RegisterTemplate, ResetPasswordTemplate,
     },
     state::AppState,
 };
@@ -120,8 +120,55 @@ pub fn render_error(status: u16, message: &str, details: &str) -> Response {
 
 // --- Home page ---
 
-pub async fn home() -> HomeTemplate {
-    HomeTemplate
+pub async fn public_header(state: &AppState, headers: &HeaderMap) -> PublicHeader {
+    let Some(user) = middleware::user_from_headers(state, headers).await else {
+        return PublicHeader {
+            is_signed_in: false,
+            display_name: String::new(),
+            email: String::new(),
+            initials: String::new(),
+            is_admin: false,
+        };
+    };
+    let display_name = format!("{} {}", user.first_name, user.last_name)
+        .trim()
+        .to_string();
+    let display_name = if display_name.is_empty() {
+        user.email.clone()
+    } else {
+        display_name
+    };
+    let initials = user
+        .first_name
+        .chars()
+        .next()
+        .map(|first| first.to_ascii_uppercase().to_string())
+        .unwrap_or_else(|| {
+            user.last_name
+                .chars()
+                .next()
+                .map(|last| last.to_ascii_uppercase().to_string())
+                .unwrap_or_else(|| {
+                    user.email
+                        .chars()
+                        .next()
+                        .map(|email| email.to_ascii_uppercase().to_string())
+                        .unwrap_or_default()
+                })
+        });
+    PublicHeader {
+        is_signed_in: true,
+        display_name,
+        email: user.email.clone(),
+        initials,
+        is_admin: state.config.admin_emails.iter().any(|email| email == &user.email),
+    }
+}
+
+pub async fn home(State(state): State<AppState>, headers: HeaderMap) -> HomeTemplate {
+    HomeTemplate {
+        header: public_header(&state, &headers).await,
+    }
 }
 
 #[derive(Debug, Deserialize)]

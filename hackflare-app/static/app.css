@@ -626,6 +626,35 @@ select.input option {
 .site-link-secondary:hover {
   color: var(--link);
 }
+.site-account-menu summary {
+  cursor: pointer;
+  list-style: none;
+}
+.site-account-menu summary::-webkit-details-marker {
+  display: none;
+}
+.site-account-menu .account-menu-panel {
+  border-color: var(--border);
+  background: var(--card);
+  box-shadow: 0 16px 40px oklch(0 0 0 / 0.16);
+}
+.site-account-menu .account-menu-id {
+  border-color: var(--border);
+}
+.site-account-menu .account-menu-name {
+  color: var(--card-foreground);
+}
+.site-account-menu .account-menu-email,
+.site-account-menu .account-menu-panel a {
+  color: var(--muted-foreground);
+}
+.site-account-menu .account-menu-panel a:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.site-account-menu .account-menu-sep {
+  background: var(--border);
+}
 .nav-toggle {
   display: none;
   align-items: center;
