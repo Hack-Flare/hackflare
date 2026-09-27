@@ -27,12 +27,7 @@ fn friendly_error(error: &str) -> String {
 
 #[derive(Template, WebTemplate)]
 #[template(path = "home.html")]
-pub struct HomeTemplate {
-    /// Public origin the API examples are written against, from `FRONTEND_URL`.
-    pub api_base_url: String,
-    /// Same origin without the scheme, for the gRPC `host:port` example.
-    pub api_host: String,
-}
+pub struct HomeTemplate;
 
 #[derive(Template, WebTemplate)]
 #[template(path = "login.html")]
