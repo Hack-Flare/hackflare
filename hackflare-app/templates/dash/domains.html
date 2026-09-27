@@ -4,19 +4,15 @@
     <p class="page-sub">Add a domain, then point its nameservers at Hackflare.</p>
   </div>
   <div class="page-head-actions">
-    <button class="btn btn-orange btn-compact" type="button" data-add-domain-toggle>
-      Add domain <span class="kbd kbd-on-flame">D</span>
-    </button>
+    <span class="page-head-hint">Add a domain below.</span>
   </div>
 </div>
 
-<div data-overview>
+<div>
   <form
     class="add-domain-row"
     method="post"
     action="/dash/domains"
-    data-add-domain-row
-    hidden
   >
     <input type="hidden" name="action" value="add" />
     <input
@@ -26,12 +22,8 @@
       aria-label="Domain name"
       autocomplete="off"
       required
-      data-add-domain-first
     />
     <button class="btn btn-orange btn-compact" type="submit">Add domain</button>
-    <button class="btn btn-outline btn-compact" type="button" data-add-domain-cancel>
-      Cancel
-    </button>
   </form>
 
   <div class="page-columns">
@@ -39,15 +31,6 @@
       <div class="domains-panel-head">
         <h2 id="domains-heading">All domains</h2>
         <span class="domains-count">{{ zones.len() }}</span>
-        <label class="filter-field">
-          <span class="lucide-icon icon-search" aria-hidden="true"></span>
-          <input
-            type="search"
-            placeholder="Filter domains"
-            aria-label="Filter domains"
-            data-domain-filter
-          />
-        </label>
       </div>
       <div class="domains-row domains-head">
         <span>DOMAIN</span><span>STATUS</span><span>RECORDS</span><span></span>
@@ -56,8 +39,6 @@
       <a
         class="domains-row domain-item {% if !zone.ns_verified %}needs-action{% endif %}"
         href="/dash/domains/{{ zone.name }}/dns"
-        data-domain
-        data-search="{{ zone.name|lower }}"
       >
         <span class="domain-name">{{ zone.name }}</span>
         <span class="domain-status">
@@ -75,9 +56,6 @@
         No domains yet. Add your first one to get started.
       </p>
       {% endfor %}
-      <p class="domains-empty" data-no-domain-matches hidden>
-        No domains match this filter.
-      </p>
     </section>
 
     <aside class="page-side">
@@ -88,15 +66,9 @@
         </p>
         <div class="attention-nameservers">
           {% for nameserver in nameservers %}
-          <button
-            class="ns-chip"
-            type="button"
-            data-copy="{{ nameserver }}"
-            aria-label="Copy nameserver {{ loop.index }}"
-          >
+          <span class="ns-chip">
             {{ nameserver }}
-            <span class="lucide-icon icon-copy" aria-hidden="true"></span>
-          </button>
+          </span>
           {% endfor %}
         </div>
         <ol class="side-card-steps">

@@ -6,17 +6,8 @@ builders{% endblock %} {% block content %}
   <main class="flex-1">
     <section class="container hero">
       <div class="hero-copy">
-        <p class="hero-pill">
-          <img
-            src="/static/brand/logos/mark-small.svg"
-            width="9"
-            height="16"
-            alt=""
-          />
-          <span>Open source · Built by Hack Clubbers</span>
-        </p>
         <h1>
-          Point your domain.<br /><span class="accent">Ship tonight.</span>
+         Your domain.<br><span class="accent">Your rules.</span>
         </h1>
         <p>
           Hackflare is the DNS platform for builders. Add a domain, manage your
@@ -26,7 +17,6 @@ builders{% endblock %} {% block content %}
           <a class="btn btn-orange" href="/dash">Get started free</a>
           <a class="btn btn-outline" href="/docs">Read the docs</a>
         </div>
-        <p class="hero-note">Sign in with email or your Hack Club account.</p>
       </div>
 
       <div class="hero-visual">
@@ -71,11 +61,6 @@ builders{% endblock %} {% block content %}
               ><span class="record-ttl">3600</span>
             </div>
           </div>
-        </div>
-        <div class="code-callout">
-          <span class="prompt">$</span> curl -X POST {{ api_base_url
-          }}/api/v1/dns/zones/yourproject.dev/records \<br />&nbsp;&nbsp;-d
-          '{"type":"A","name":"@","value":"192.0.2.10"}'
         </div>
       </div>
     </section>
@@ -126,8 +111,7 @@ builders{% endblock %} {% block content %}
           <div class="bento-wide-copy">
             <h3>Records that make sense</h3>
             <p>
-              Add, edit and remove records with clear states, so you always know
-              what's live.
+              Add, edit and remove records with clear states, so you always know what's live.
             </p>
           </div>
           <div class="editor-preview" aria-hidden="true">
@@ -146,7 +130,6 @@ builders{% endblock %} {% block content %}
               <span>Value</span>
               <span class="editor-value is-focused">192.0.2.24</span>
             </div>
-            <p class="editor-status">Saving… live in a moment</p>
           </div>
         </article>
 
@@ -158,7 +141,7 @@ builders{% endblock %} {% block content %}
           <div>
             <h3>Fast at the edge</h3>
             <p>
-              Built to feel quick and direct, from the dashboard to the answer.
+              Infrastructure designed to respond quickly, whether you're managing a domain or serving DNS.
             </p>
           </div>
         </article>
@@ -183,10 +166,9 @@ builders{% endblock %} {% block content %}
             aria-hidden="true"
           ></span>
           <div>
-            <h3>Hack Club sign in</h3>
+            <h3>Countless ways to sign in</h3>
             <p>
-              Use your email or your Hack Club account. No new password to
-              remember.
+              Use your email, Github, your Hack Club account and many more!
             </p>
           </div>
         </article>
@@ -199,59 +181,10 @@ builders{% endblock %} {% block content %}
           <div>
             <h3>Open source</h3>
             <p>
-              Every line is on GitHub. Read it, fork it, send a pull request.
+              Every line is on GitHub. Read it, fork it, even send a pull request.
             </p>
           </div>
         </article>
-      </div>
-    </section>
-
-    <section class="api-section">
-      <div class="container api-grid">
-        <div class="api-copy">
-          <p class="section-eyebrow">API</p>
-          <h2 class="section-title">Automate all of it</h2>
-          <p class="section-lead">
-            REST and gRPC APIs cover everything the dashboard does. Script your
-            records, hook DNS into CI, or build your own tools on top.
-          </p>
-          <a class="btn btn-orange" href="/docs">API reference</a>
-        </div>
-        <div class="code-window">
-          <div class="code-window-tabs" role="tablist" aria-label="API examples">
-            <button
-              class="code-tab"
-              type="button"
-              role="tab"
-              aria-selected="true"
-              data-code-tab="rest"
-            >
-              REST
-            </button>
-            <button
-              class="code-tab"
-              type="button"
-              role="tab"
-              aria-selected="false"
-              data-code-tab="grpc"
-            >
-              gRPC
-            </button>
-            <span class="code-window-label">Example request</span>
-          </div>
-          <pre data-code-panel="rest"><span class="code-comment"># add an A record to your zone</span>
-<span class="code-cmd">curl</span> -X POST {{ api_base_url }}/api/v1/dns/zones/yourproject.dev/records \
-  -H <span class="code-str">"Authorization: Bearer $HACKFLARE_TOKEN"</span> \
-  -d <span class="code-str">'{ "type": "A", "name": "api", "value": "192.0.2.24" }'</span>
-
-<span class="code-comment"># → 201 Created</span></pre>
-          <pre data-code-panel="grpc" hidden><span class="code-comment"># the same call over gRPC</span>
-<span class="code-cmd">grpcurl</span> -H <span class="code-str">"authorization: Bearer $HACKFLARE_TOKEN"</span> \
-  -d <span class="code-str">'{ "zone": "yourproject.dev", "type": "A", "name": "api", "value": "192.0.2.24" }'</span> \
-  {{ api_host }}:443 hackflare.dns.v1.Dns/CreateRecord
-
-<span class="code-comment"># → record created</span></pre>
-        </div>
       </div>
     </section>
 
@@ -259,19 +192,14 @@ builders{% endblock %} {% block content %}
       <div class="story-grid">
         <div class="story-copy">
           <p class="section-eyebrow">The team</p>
-          <h2 class="section-title">Built by Hack Clubbers, in the open</h2>
+          <h2 class="section-title">Built by developers, for developers</h2>
           <p class="section-lead">
-            Hackflare is made by builders who wanted a DNS tool they'd actually
-            enjoy using. [One or two lines about how the project started.]
+            Hackflare is made by developers who wanted a DNS tool they'd actually enjoy using.  
+            Without the constraints of a big company, we can focus on the features that matter to you.  
+            And because it's open source, you can even contribute to the project yourself.
           </p>
         </div>
         <div class="story-side">
-          <div class="story-faces">
-            <span class="story-face">[Photo]</span>
-            <span class="story-face">[Photo]</span>
-            <span class="story-face">[Photo]</span>
-            <span class="story-face">[Photo]</span>
-          </div>
           <a class="repo-card" href="https://github.com/Hack-Flare/hackflare">
             <span class="lucide-icon icon-github" aria-hidden="true"></span>
             <span class="repo-card-body">

@@ -626,6 +626,35 @@ select.input option {
 .site-link-secondary:hover {
   color: var(--link);
 }
+.site-account-menu summary {
+  cursor: pointer;
+  list-style: none;
+}
+.site-account-menu summary::-webkit-details-marker {
+  display: none;
+}
+.site-account-menu .account-menu-panel {
+  border-color: var(--border);
+  background: var(--card);
+  box-shadow: 0 16px 40px oklch(0 0 0 / 0.16);
+}
+.site-account-menu .account-menu-id {
+  border-color: var(--border);
+}
+.site-account-menu .account-menu-name {
+  color: var(--card-foreground);
+}
+.site-account-menu .account-menu-email,
+.site-account-menu .account-menu-panel a {
+  color: var(--muted-foreground);
+}
+.site-account-menu .account-menu-panel a:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.site-account-menu .account-menu-sep {
+  background: var(--border);
+}
 .nav-toggle {
   display: none;
   align-items: center;
@@ -1295,28 +1324,11 @@ select.input option {
     height: 72px;
   }
   .site-nav {
-    display: none;
-  }
-  .site-nav.is-open {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-    padding: 16px 24px 24px;
-    background: var(--background);
-    border-bottom: 1px solid var(--line);
+    gap: 8px;
   }
-  .site-nav.is-open a {
-    width: 100%;
-    padding: 12px 0;
-  }
-  .nav-toggle {
-    display: inline-flex;
-    order: 3;
+  .site-nav a {
+    padding: 6px 0;
   }
   .site-link-secondary {
     display: none;
@@ -1548,22 +1560,31 @@ select.input option {
   height: 36px;
   border-radius: 8px;
   font-size: 1rem;
+  cursor: pointer;
+  list-style: none;
 }
 .theme-toggle:hover {
   background: var(--accent);
+}
+.zone-shell .theme-toggle {
+  color: var(--on-ink-muted);
+}
+.zone-shell .theme-toggle:hover {
+  background: var(--ink-4);
+  color: var(--hf-paper);
 }
 .theme-toggle .lucide-icon {
   width: 18px;
   height: 18px;
 }
-.theme-toggle .icon-sun {
+.theme-toggle-light {
   display: none;
 }
-.dark .theme-toggle .icon-sun {
-  display: inline-block;
-}
-.dark .theme-toggle .icon-moon {
+.dark .theme-toggle-dark {
   display: none;
+}
+.dark .theme-toggle-light {
+  display: inline-flex;
 }
 
 /* Dashboard Utils */
@@ -3453,7 +3474,7 @@ select.input option {
 }
 /* Ink button, so it reads as the primary identity option. */
 .signin-hc {
-  margin-top: 24px;
+  margin-top: 0;
   background: var(--hf-ink);
   color: var(--hf-paper);
 }

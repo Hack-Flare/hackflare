@@ -19,6 +19,8 @@ Use this file as the default guide for AI agents working in the repository.
 ## Quick Rules
 
 - Inspect the source before changing behavior.
+- No dead code is allowed. Remove it or comment it out. 
+  - For example, `#[allow(dead_code)]` is not allowed.
 - Keep changes minimal and localized.
 - Follow existing code style and conventions.
 - Do not rely on stale documentation when the source disagrees.

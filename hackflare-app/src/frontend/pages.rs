@@ -28,10 +28,16 @@ fn friendly_error(error: &str) -> String {
 #[derive(Template, WebTemplate)]
 #[template(path = "home.html")]
 pub struct HomeTemplate {
-    /// Public origin the API examples are written against, from `FRONTEND_URL`.
-    pub api_base_url: String,
-    /// Same origin without the scheme, for the gRPC `host:port` example.
-    pub api_host: String,
+    pub header: PublicHeader,
+}
+
+#[derive(Debug, Clone)]
+pub struct PublicHeader {
+    pub is_signed_in: bool,
+    pub display_name: String,
+    pub email: String,
+    pub initials: String,
+    pub is_admin: bool,
 }
 
 #[derive(Template, WebTemplate)]
@@ -93,6 +99,7 @@ pub struct ErrorTemplate {
 #[derive(Template, WebTemplate)]
 #[template(path = "public_page.html")]
 pub struct PublicPageTemplate {
+    pub header: PublicHeader,
     pub title: String,
     pub heading: String,
     pub message: String,
@@ -108,6 +115,7 @@ pub struct DocLink {
 #[derive(Template, WebTemplate)]
 #[template(path = "docs.html")]
 pub struct DocsTemplate {
+    pub header: PublicHeader,
     pub title: String,
     /// Pre-rendered HTML; raw HTML in the markdown source is escaped.
     pub content: String,
@@ -116,7 +124,9 @@ pub struct DocsTemplate {
 
 #[derive(Template, WebTemplate)]
 #[template(path = "team.html")]
-pub struct TeamTemplate;
+pub struct TeamTemplate {
+    pub header: PublicHeader,
+}
 
 // --- Dashboard ---
 

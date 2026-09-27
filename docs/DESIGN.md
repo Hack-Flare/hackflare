@@ -75,14 +75,6 @@ decoration.
   `.badge-soon` pill, with a real heading/description above it that names
   what the feature will actually do (2 sentences max, tied to the DNS/edge
   domain, not generic "this feature is in development" copy).
-- **Theme toggle** - two stacked `.lucide-icon` spans (`icon-sun` +
-  `icon-moon`) inside `.theme-toggle`, visibility swapped by the `.dark`
-  class (`.dark .theme-toggle .icon-sun` shown, `.icon-moon` hidden, and
-  vice versa in light mode). Matches the toggle logic in `app.js`
-  (`documentElement.classList` `dark`/`light`). Don't reintroduce an emoji -
-  every dashboard icon is a vendored lucide-static SVG mask
-  (`static/icons/*.svg` + `.icon-*` CSS var + `.lucide-icon`), the toggle
-  should match that system.
 
 ## Notes for future work
 

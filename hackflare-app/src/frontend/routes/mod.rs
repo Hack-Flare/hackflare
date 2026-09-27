@@ -1,9 +1,14 @@
 //! Route wiring for the frontend server
 
 use axum::{
+    body::{Body, to_bytes},
+    http::{Request, header},
+    middleware::{self, Next},
+    response::Response,
     Router,
     routing::get,
 };
+use axum_extra::extract::CookieJar;
 use tower_http::services::ServeDir;
 
 pub mod dash;
@@ -11,6 +16,39 @@ pub mod handlers;
 pub mod public;
 
 use crate::state::AppState;
+
+async fn apply_theme(request: Request<Body>, next: Next) -> Response {
+    let dark = CookieJar::from_headers(request.headers())
+        .get("theme")
+        .is_some_and(|cookie| cookie.value() == "dark");
+    let mut response = next.run(request).await;
+
+    let is_html = response
+        .headers()
+        .get(header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .is_some_and(|value| value.starts_with("text/html"));
+    if !is_html {
+        return response;
+    }
+
+    let (mut parts, body) = response.into_parts();
+    let bytes = match to_bytes(body, 4 * 1024 * 1024).await {
+        Ok(bytes) => bytes,
+        Err(error) => {
+            tracing::error!(%error, "failed to read rendered HTML response");
+            return Response::from_parts(parts, Body::empty());
+        }
+    };
+    let Ok(html) = String::from_utf8(bytes.to_vec()) else {
+        return Response::from_parts(parts, Body::from(bytes));
+    };
+    let class = if dark { " class=\"dark\"" } else { "" };
+    let html = html.replacen("<html lang=\"en\">", &format!("<html lang=\"en\"{class}>") , 1);
+    parts.headers.remove(header::CONTENT_LENGTH);
+    response = Response::from_parts(parts, Body::from(html));
+    response
+}
 
 pub fn build_router(state: AppState) -> Router {
     Router::new()
@@ -33,6 +71,7 @@ pub fn build_router(state: AppState) -> Router {
             get(handlers::reset_get).post(handlers::reset_post),
         )
         .route("/auth/hackclub", get(handlers::hackclub))
+        .route("/theme", get(handlers::theme))
         .route("/logout", get(handlers::logout))
         .route("/health", get(handlers::health))
         .route("/docs", get(public::docs))
@@ -54,5 +93,6 @@ pub fn build_router(state: AppState) -> Router {
         .route("/dash/domains/{domain}/{sub}", get(dash::domain_sub))
         .nest_service("/static", ServeDir::new(state.config.static_dir.clone()))
         .fallback(handlers::not_found)
+        .layer(middleware::from_fn(apply_theme))
         .with_state(state)
 }

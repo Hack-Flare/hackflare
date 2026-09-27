@@ -11,13 +11,13 @@ use axum::{
 use serde::Deserialize;
 use std::net::SocketAddr;
 use axum_client_ip::ClientIp;
-use axum_extra::extract::CookieJar;
+use axum_extra::extract::{CookieJar, cookie::{Cookie, SameSite}};
 
 use crate::{
     auth::{middleware, routes as auth_routes},
     frontend::pages::{
-        ErrorTemplate, ForgotPasswordTemplate, HomeTemplate, LoginTemplate, RegisterTemplate,
-        ResetPasswordTemplate,
+        ErrorTemplate, ForgotPasswordTemplate, HomeTemplate, LoginTemplate, PublicHeader,
+        RegisterTemplate, ResetPasswordTemplate,
     },
     state::AppState,
 };
@@ -52,10 +52,14 @@ fn encode_component(value: &str) -> String {
 
 /// Hack Club auth entry point
 fn hackclub_target_url(headers: &HeaderMap, return_to: &str) -> String {
-    format!(
+    let target = format!(
         "{}/auth/hackclub?returnTo={}",
         origin_for(headers),
         encode_component(return_to)
+    );
+    format!(
+        "/api/v1/auth/login?target={}",
+        encode_component(&target)
     )
 }
 
@@ -116,25 +120,89 @@ pub fn render_error(status: u16, message: &str, details: &str) -> Response {
 
 // --- Home page ---
 
-/// Fallback for the API examples when `FRONTEND_URL` is unset.
-const PUBLIC_ORIGIN_FALLBACK: &str = "https://hackflare.net";
-
-pub async fn home(State(state): State<AppState>) -> HomeTemplate {
-    let api_base_url = state
-        .config
-        .frontend_url
-        .as_ref()
-        .map(|url| url.as_str().trim_end_matches('/').to_string())
-        .unwrap_or_else(|| PUBLIC_ORIGIN_FALLBACK.to_string());
-    let api_host = api_base_url
-        .split_once("://")
-        .map_or(api_base_url.as_str(), |(_, host)| host)
+pub async fn public_header(state: &AppState, headers: &HeaderMap) -> PublicHeader {
+    let Some(user) = middleware::user_from_headers(state, headers).await else {
+        return PublicHeader {
+            is_signed_in: false,
+            display_name: String::new(),
+            email: String::new(),
+            initials: String::new(),
+            is_admin: false,
+        };
+    };
+    let display_name = format!("{} {}", user.first_name, user.last_name)
+        .trim()
         .to_string();
-
-    HomeTemplate {
-        api_base_url,
-        api_host,
+    let display_name = if display_name.is_empty() {
+        user.email.clone()
+    } else {
+        display_name
+    };
+    let initials = user
+        .first_name
+        .chars()
+        .next()
+        .map(|first| first.to_ascii_uppercase().to_string())
+        .unwrap_or_else(|| {
+            user.last_name
+                .chars()
+                .next()
+                .map(|last| last.to_ascii_uppercase().to_string())
+                .unwrap_or_else(|| {
+                    user.email
+                        .chars()
+                        .next()
+                        .map(|email| email.to_ascii_uppercase().to_string())
+                        .unwrap_or_default()
+                })
+        });
+    PublicHeader {
+        is_signed_in: true,
+        display_name,
+        email: user.email.clone(),
+        initials,
+        is_admin: state.config.admin_emails.iter().any(|email| email == &user.email),
     }
+}
+
+pub async fn home(State(state): State<AppState>, headers: HeaderMap) -> HomeTemplate {
+    HomeTemplate {
+        header: public_header(&state, &headers).await,
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ThemeParams {
+    theme: Option<String>,
+}
+
+pub async fn theme(headers: HeaderMap, Query(params): Query<ThemeParams>) -> Response {
+    let value = if params.theme.as_deref() == Some("dark") {
+        "dark"
+    } else {
+        "light"
+    };
+    let return_to = headers
+        .get(header::REFERER)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| reqwest::Url::parse(value).ok())
+        .map(|url| {
+            let mut path = url.path().to_string();
+            if let Some(query) = url.query() {
+                path.push('?');
+                path.push_str(query);
+            }
+            path
+        })
+        .filter(|path| path.starts_with('/') && !path.starts_with("//"))
+        .unwrap_or_else(|| "/".to_string());
+    let cookie = Cookie::build(("theme", value))
+        .path("/")
+        .same_site(SameSite::Lax)
+        .permanent()
+        .build();
+    let jar = CookieJar::new().add(cookie);
+    (jar, Redirect::to(&return_to)).into_response()
 }
 
 pub async fn auth_redirect() -> Redirect {
@@ -391,7 +459,15 @@ pub async fn not_found() -> Response {
 
 #[cfg(test)]
 mod tests {
-    use super::safe_return_to;
+    use axum::http::HeaderMap;
+
+    use super::{hackclub_target_url, safe_return_to};
+
+    #[test]
+    fn hackclub_target_starts_oauth_flow() {
+        let target = hackclub_target_url(&HeaderMap::new(), "/dash");
+        assert!(target.starts_with("/api/v1/auth/login?target="));
+    }
 
     #[test]
     fn safe_return_to_keeps_local_paths() {
