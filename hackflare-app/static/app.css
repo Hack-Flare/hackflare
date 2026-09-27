@@ -3467,7 +3467,7 @@ select.input option {
 }
 /* Ink button, so it reads as the primary identity option. */
 .signin-hc {
-  margin-top: 24px;
+  margin-top: 0;
   background: var(--hf-ink);
   color: var(--hf-paper);
 }

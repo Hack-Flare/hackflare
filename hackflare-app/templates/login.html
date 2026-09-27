@@ -1,80 +1,76 @@
-{% extends "base.html" %} {% block title %}Sign in — Hackflare{% endblock %} {%
-block content %}
-<div class="signin">
-  <aside class="signin-brand" aria-hidden="true">
-    <img
-      class="signin-brand-logo"
-      src="/static/brand/logos/logo-primary-reversed.svg"
-      width="110"
-      height="28"
-      alt=""
-    />
-    <div class="signin-brand-body">
-      <img
-        class="signin-brand-mark"
-        src="/static/brand/logos/mark-reversed.svg"
-        width="96"
-        height="173"
-        alt=""
-      />
-      <p class="signin-brand-line">
-        Point your domain.<br /><span class="accent">Ship tonight.</span>
-      </p>
+{% extends "base.html" %} {% block title %}Sign in — Hackflare{% endblock %} {% block content %}
+<div class="auth-page">
+  <div class="auth-grid-bg"></div>
+  <div class="auth-card">
+    <a class="auth-brand" href="/"
+      ><img
+        class="brand-logo brand-logo-light"
+        src="/static/brand/logos/logo-primary.svg"
+        width="126"
+        height="32"
+        alt="Hackflare"
+      /><img
+        class="brand-logo brand-logo-dark"
+        src="/static/brand/logos/logo-primary-reversed.svg"
+        width="126"
+        height="32"
+        alt="Hackflare"
+      /></a
+    >
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Sign in to Hackflare</h2>
+        <p class="card-desc">Use your Hackflare account to continue</p>
+      </div>
+      <div class="card-content">
+        {% if let Some(error) = error %}
+        <div class="error-banner">{{ error }}</div>
+        {% endif %}
+
+        <form method="post" action="/login" class="form-stack">
+          <label class="form-field">
+            <span class="label">Email</span>
+            <input
+              class="input"
+              name="email"
+              type="email"
+              value="{{ email }}"
+              placeholder="you@example.com"
+              autocomplete="email"
+              required
+            />
+          </label>
+          <label class="form-field">
+            <span class="label">Password</span>
+            <input
+              class="input"
+              name="password"
+              type="password"
+              placeholder="Your password"
+              autocomplete="current-password"
+              required
+            />
+          </label>
+          <button class="btn btn-orange btn-block" type="submit">
+            Sign In
+          </button>
+        </form>
+
+        <div class="divider">or</div>
+
+        <a class="btn btn-block signin-hc" href="{{ hackclub_target_url }}">
+          <span class="signin-hc-badge" aria-hidden="true">HC</span>
+          Continue with Hack Club
+        </a>
+
+        <p class="auth-note text-muted">
+          <a class="auth-link" href="/forgot-password">Forgot password?</a>
+        </p>
+        <p class="auth-note text-muted">
+          New here? <a class="auth-link" href="/register">Create an account</a>
+        </p>
+      </div>
     </div>
-    <p class="signin-brand-foot">Open source · Built by Hack Clubbers</p>
-  </aside>
-
-  <main class="signin-panel">
-    <div class="signin-form">
-      <h1>Sign in to Hackflare</h1>
-
-      {% if let Some(error) = error %}
-      <div class="error-banner">{{ error }}</div>
-      {% endif %}
-
-      <form method="post" action="/login" class="form-stack">
-        <label class="form-field">
-          <span class="label">Email</span>
-          <input
-            class="input"
-            name="email"
-            type="email"
-            value="{{ email }}"
-            placeholder="you@example.com"
-            autocomplete="email"
-            required
-          />
-        </label>
-        <label class="form-field">
-          <span class="label">Password</span>
-          <input
-            class="input"
-            name="password"
-            type="password"
-            placeholder="Your password"
-            autocomplete="current-password"
-            required
-          />
-        </label>
-        <button class="btn btn-orange btn-block" type="submit">
-          Continue with email
-        </button>
-      </form>
-
-      <div class="divider">or</div>
-
-      <a class="btn btn-block signin-hc" href="{{ hackclub_target_url }}">
-        <span class="signin-hc-badge" aria-hidden="true">HC</span>
-        Continue with Hack Club
-      </a>
-
-      <p class="signin-foot">
-        <a class="auth-link" href="/forgot-password">Forgot password?</a>
-      </p>
-      <p class="signin-foot">
-        New here? <a class="link-accent" href="/register">Create an account</a>
-      </p>
-    </div>
-  </main>
+  </div>
 </div>
 {% endblock %}
