@@ -1,5 +1,5 @@
 use axum::http::{HeaderValue, Method, header};
-use tower_http::cors::{AllowOrigin, Any, CorsLayer};
+use tower_http::cors::{AllowOrigin, CorsLayer};
 
 use crate::config::Config;
 
@@ -19,7 +19,7 @@ pub(crate) fn layer(config: &Config) -> CorsLayer {
     CorsLayer::new()
         .allow_origin(AllowOrigin::list(origins))
         .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
-        .allow_headers(Any)
+        .allow_headers([header::ACCEPT, header::AUTHORIZATION, header::CONTENT_TYPE])
         .expose_headers([header::CONTENT_TYPE])
         .allow_credentials(true)
 }
