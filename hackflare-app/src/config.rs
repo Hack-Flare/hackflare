@@ -117,6 +117,7 @@ pub struct Config {
     pub(crate) admin_emails: Vec<String>,
     pub(crate) smtp: Option<SmtpConfig>,
     pub(crate) domain: Option<Url>,
+    pub(crate) cdn_url: Option<Url>,
 }
 
 impl Config {}
@@ -202,6 +203,11 @@ pub(crate) fn from_env_with_database_url(database_url_override: Option<Url>) -> 
         domain: env::var("DOMAIN").ok().and_then(|value| {
             parse_domain(&value)
                 .inspect_err(|error| warn!(%error, "invalid DOMAIN"))
+                .ok()
+        }),
+        cdn_url: env::var("CDN_URL").ok().and_then(|value| {
+            parse_domain(&value)
+                .inspect_err(|error| warn!(%error, "invalid CDN_URL"))
                 .ok()
         }),
         smtp: if let Ok(host) = env::var("SMTP_HOST") {

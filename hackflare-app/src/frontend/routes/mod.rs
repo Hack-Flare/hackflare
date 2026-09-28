@@ -94,5 +94,9 @@ pub fn build_router(state: AppState) -> Router {
         .nest_service("/static", ServeDir::new(state.config.static_dir.clone()))
         .fallback(handlers::not_found)
         .layer(middleware::from_fn(apply_theme))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            super::cdn::rewrite_asset_urls,
+        ))
         .with_state(state)
 }

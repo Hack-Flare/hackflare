@@ -716,6 +716,7 @@ mod tests {
                 admin_emails: vec![],
                 smtp: None,
                 domain: None,
+                cdn_url: None,
             };
 
             let state = AppState::new(config).await.ok()?;

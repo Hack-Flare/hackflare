@@ -1716,33 +1716,33 @@ select.input option {
     width: 100%;
   }
 }
-.icon-dashboard { --icon: url('/static/icons/layout-dashboard.svg'); }
-.icon-globe { --icon: url('/static/icons/globe.svg'); }
-.icon-workers { --icon: url('/static/icons/zap.svg'); }
-.icon-traffic { --icon: url('/static/icons/bar-chart-2.svg'); }
-.icon-logs { --icon: url('/static/icons/scroll-text.svg'); }
-.icon-notifications { --icon: url('/static/icons/bell.svg'); }
-.icon-admin { --icon: url('/static/icons/shield.svg'); }
-.icon-help { --icon: url('/static/icons/message-circle-question-mark.svg'); }
-.icon-chevron { --icon: url('/static/icons/chevron-right.svg'); }
-.icon-user { --icon: url('/static/icons/user-circle.svg'); }
-.icon-settings { --icon: url('/static/icons/settings.svg'); }
-.icon-logout { --icon: url('/static/icons/log-out.svg'); }
-.icon-user-menu { --icon: url('/static/icons/chevrons-up-down.svg'); }
-.icon-github { --icon: url('/static/icons/github.svg'); }
-.icon-key { --icon: url('/static/icons/key.svg'); }
-.icon-docs { --icon: url('/static/icons/book.svg'); }
-.icon-chevron-down { --icon: url('/static/icons/chevron-down.svg'); }
-.icon-shield-check { --icon: url('/static/icons/shield-check.svg'); }
-.icon-person { --icon: url('/static/icons/user.svg'); }
-.icon-code { --icon: url('/static/icons/code-xml.svg'); }
-.icon-search { --icon: url('/static/icons/search.svg'); }
-.icon-copy { --icon: url('/static/icons/copy.svg'); }
-.icon-edit { --icon: url('/static/icons/pencil.svg'); }
-.icon-delete { --icon: url('/static/icons/trash.svg'); }
-.icon-menu { --icon: url('/static/icons/menu.svg'); }
-.icon-sun { --icon: url('/static/icons/sun.svg'); }
-.icon-moon { --icon: url('/static/icons/moon.svg'); }
+.icon-dashboard { --icon: url('icons/layout-dashboard.svg'); }
+.icon-globe { --icon: url('icons/globe.svg'); }
+.icon-workers { --icon: url('icons/zap.svg'); }
+.icon-traffic { --icon: url('icons/bar-chart-2.svg'); }
+.icon-logs { --icon: url('icons/scroll-text.svg'); }
+.icon-notifications { --icon: url('icons/bell.svg'); }
+.icon-admin { --icon: url('icons/shield.svg'); }
+.icon-help { --icon: url('icons/message-circle-question-mark.svg'); }
+.icon-chevron { --icon: url('icons/chevron-right.svg'); }
+.icon-user { --icon: url('icons/user-circle.svg'); }
+.icon-settings { --icon: url('icons/settings.svg'); }
+.icon-logout { --icon: url('icons/log-out.svg'); }
+.icon-user-menu { --icon: url('icons/chevrons-up-down.svg'); }
+.icon-github { --icon: url('icons/github.svg'); }
+.icon-key { --icon: url('icons/key.svg'); }
+.icon-docs { --icon: url('icons/book.svg'); }
+.icon-chevron-down { --icon: url('icons/chevron-down.svg'); }
+.icon-shield-check { --icon: url('icons/shield-check.svg'); }
+.icon-person { --icon: url('icons/user.svg'); }
+.icon-code { --icon: url('icons/code-xml.svg'); }
+.icon-search { --icon: url('icons/search.svg'); }
+.icon-copy { --icon: url('icons/copy.svg'); }
+.icon-edit { --icon: url('icons/pencil.svg'); }
+.icon-delete { --icon: url('icons/trash.svg'); }
+.icon-menu { --icon: url('icons/menu.svg'); }
+.icon-sun { --icon: url('icons/sun.svg'); }
+.icon-moon { --icon: url('icons/moon.svg'); }
 .auth-note { margin-top: 12px; text-align: center; font-size: 0.75rem; }
 .auth-note-tight { margin-top: 8px; text-align: center; font-size: 0.75rem; }
 .oauth-spaced { margin-top: 8px; }
