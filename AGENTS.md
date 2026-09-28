@@ -4,11 +4,17 @@ Use this file as the default guide for AI agents working in the repository.
 
 ## Brand
 
-- All brand assets and rules live in `brand/` and `.claude/skills/hackflare-brand/SKILL.md`. Read the skill before any UI, page, email or marketing work.
-- Always use the logo files in `brand/logos/`. Never retype "hackflare", redraw the fire h, or recreate the logo in CSS.
+- All brand assets and rules live in `docs/brand/`.
+- Always use the logo files in `docs/brand/logos/`. Never retype "hackflare", redraw the fire h, or recreate the logo in CSS.
 - Served copies of the logos are vendored into `hackflare-app/static/brand/logos/`; reference those from templates as `/static/brand/logos/...`.
-- Only use the colors in `brand/tokens/`. Never put white text on Flame orange (#F2611D).
-- Font: Instrument Sans. JetBrains Mono only for code.
+- Only use the colors in `docs/brand/tokens/`. Never put white text on Flame orange (#F2611D).
+- Font: Instrument Sans for UI text. Use the system monospace stack for code so
+  pages do not download an additional code font.
+- `DOMAIN` accepts a full `http` or `https` URL or a bare hostname. Bare
+  hostnames default to HTTPS and explicit ports are preserved.
+- `CDN_URL` is optional. When set, rendered `/static/` asset URLs are rewritten
+  to the CDN and the CDN origin is included in CORS. Configure the CDN to serve
+  `/static/*` with `Access-Control-Allow-Origin` for the application origin.
 
 ## Human In The Loop
 
@@ -65,6 +71,8 @@ Read the relevant crate's source before relying on documentation for implementat
 ## Code Conventions
 
 - Keep route behavior, configuration, middleware, and persistence logic near the module that owns it.
+- Keep CDN URL rewriting and CDN-specific behavior in `hackflare-app/src/frontend/cdn.rs`.
+- Keep CORS origin configuration in `hackflare-app/src/frontend/cors.rs`.
 - Avoid blocking I/O in async code.
 - Prefer explicit error handling over panics.
 - Add comments only when they clarify non-obvious behavior.

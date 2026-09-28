@@ -8,14 +8,6 @@
   src: url('../../fonts/instrument-sans-latin.woff2') format('woff2');
 }
 
-@font-face {
-  font-family: 'JetBrains Mono';
-  font-style: normal;
-  font-weight: 400 500;
-  font-display: swap;
-  src: url('../../fonts/jetbrains-mono-400-latin.woff2') format('woff2');
-}
-
 :root {
   --hf-flame: #F2611D;
   --hf-ember: #FFC24A;
@@ -26,7 +18,7 @@
   --hf-ash: #ECEBE6;
 
   --hf-font-sans: 'Instrument Sans', system-ui, sans-serif;
-  --hf-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --hf-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   --hf-radius-button: 10px;
   --hf-radius-card: 16px;
