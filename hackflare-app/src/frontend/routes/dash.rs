@@ -324,11 +324,11 @@ pub async fn tokens_post(
     }
 }
 
-/// Public origin used in the dashboard's API example, from `FRONTEND_URL`.
+/// Public origin used in the dashboard's API example, from `DOMAIN`.
 fn public_base_url(state: &AppState) -> String {
     state
         .config
-        .frontend_url
+        .domain
         .as_ref()
         .map(|url| url.as_str().trim_end_matches('/').to_string())
         .unwrap_or_else(|| "https://hackflare.net".to_string())

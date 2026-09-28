@@ -734,8 +734,8 @@ pub(crate) async fn forgot_password_handler(
 
     // Send email (best-effort)
     if let Some(ref email_svc) = *state.email.read().await {
-        let frontend_url = state.config.frontend_url.clone();
-        let reset_link = match frontend_url {
+        let domain = state.config.domain.clone();
+        let reset_link = match domain {
             Some(base) => format!(
                 "{}/reset-password?token={}",
                 base.as_str().trim_end_matches('/'),

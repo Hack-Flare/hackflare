@@ -116,7 +116,7 @@ pub struct Config {
     pub(crate) dns_nameservers: Vec<String>,
     pub(crate) admin_emails: Vec<String>,
     pub(crate) smtp: Option<SmtpConfig>,
-    pub(crate) frontend_url: Option<Url>,
+    pub(crate) domain: Option<Url>,
 }
 
 impl Config {}
@@ -199,11 +199,9 @@ pub(crate) fn from_env_with_database_url(database_url_override: Option<Url>) -> 
             .map(|s| s.trim().to_lowercase())
             .filter(|s| !s.is_empty())
             .collect(),
-        frontend_url: env::var("FRONTEND_URL").ok().and_then(|u| {
-            Url::parse(&u)
-                .inspect_err(|&e| {
-                    warn!("invalid FRONTEND_URL: {e}");
-                })
+        domain: env::var("DOMAIN").ok().and_then(|value| {
+            parse_domain(&value)
+                .inspect_err(|error| warn!(%error, "invalid DOMAIN"))
                 .ok()
         }),
         smtp: if let Ok(host) = env::var("SMTP_HOST") {
@@ -218,4 +216,25 @@ pub(crate) fn from_env_with_database_url(database_url_override: Option<Url>) -> 
             None
         },
     })
+}
+
+fn parse_domain(value: &str) -> Result<Url> {
+    let value = value.trim();
+    let url = if value.contains("://") {
+        Url::parse(value)?
+    } else {
+        Url::parse(&format!("https://{value}"))?
+    };
+
+    if !matches!(url.scheme(), "http" | "https") {
+        anyhow::bail!("DOMAIN must use http or https (found {})", url.scheme());
+    }
+    if url.host_str().is_none() {
+        anyhow::bail!("DOMAIN must include a host");
+    }
+    if url.path() != "/" || url.query().is_some() || url.fragment().is_some() {
+        anyhow::bail!("DOMAIN must not include a path, query, or fragment");
+    }
+
+    Ok(url)
 }
