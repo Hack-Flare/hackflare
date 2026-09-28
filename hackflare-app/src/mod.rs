@@ -99,7 +99,9 @@ pub async fn run(dev_mode: bool) -> Result<()> {
         }
     }
 
-    let app = frontend::routes::build_router(state.clone()).merge(api::routes::build_router(state));
+    let app = frontend::routes::build_router(state.clone())
+        .merge(api::routes::build_router(state.clone()))
+        .layer(frontend::cors::layer(&state.config));
     axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
