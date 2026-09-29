@@ -2,7 +2,7 @@
 
 ## Reporting a Vulnerability
 
-Hackflare is a community project. If you discover a security vulnerability, please report it privately by emailing us at [security@hackflare.com](mailto:security@hackflare.net).
+Hackflare is a community project. If you discover a security vulnerability, please report it privately by emailing us at [security@hackflare.net](mailto:security@hackflare.net).
 
 Please do **not** open a public GitHub issue for security vulnerabilities.
 
