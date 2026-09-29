@@ -7,18 +7,18 @@
 
 {% if let Some(stats) = stats %}
 <div class="tools-row">
-  <div class="tool-tile tool-tile-dark">
+  <a class="tool-tile tool-tile-dark" href="/dash/admin?view=users">
     <span class="tool-body">
       <span class="tool-meta">Users</span>
       <span class="admin-stat">{{ stats.total_users }}</span>
     </span>
-  </div>
-  <div class="tool-tile">
+  </a>
+  <a class="tool-tile" href="/dash/admin?view=zones">
     <span class="tool-body">
       <span class="tool-meta">Zones</span>
       <span class="admin-stat">{{ stats.total_zones }}</span>
     </span>
-  </div>
+  </a>
   <div class="tool-tile">
     <span class="tool-body">
       <span class="tool-meta">Active sessions</span>
@@ -28,6 +28,29 @@
 </div>
 {% endif %}
 
+{% if show_admin_zones %}
+<section class="domains-panel" aria-labelledby="zones-heading">
+  <div class="domains-panel-head">
+    <h2 id="zones-heading">Zones</h2>
+    <span class="domains-count">{{ admin_zones.len() }}</span>
+  </div>
+  <div class="users-row users-head">
+    <span>ZONE</span><span>OWNER</span><span>STATUS</span>
+  </div>
+  {% for zone in admin_zones %}
+  <div class="users-row user-item">
+    <span class="domain-name">{{ zone.name }}</span>
+    <code>{{ zone.owner_email }}</code>
+    <span>
+      <span class="status-pill">{% if zone.ns_verified %}Verified{% else %}Pending{% endif %}</span>
+      <small>{{ zone.record_count }} records</small>
+    </span>
+  </div>
+  {% else %}
+  <p class="domains-empty">No zones found.</p>
+  {% endfor %}
+</section>
+{% else %}
 <section class="domains-panel" aria-labelledby="users-heading">
   <div class="domains-panel-head">
     <h2 id="users-heading">Users</h2>
@@ -46,3 +69,4 @@
   <p class="domains-empty">No users found.</p>
   {% endfor %}
 </section>
+{% endif %}

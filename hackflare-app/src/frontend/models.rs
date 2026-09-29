@@ -98,6 +98,14 @@ pub struct AdminUser {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AdminZone {
+    pub name: String,
+    pub owner_email: String,
+    pub ns_verified: bool,
+    pub record_count: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AdminStats {
     pub total_users: i64,
     pub total_zones: i64,

@@ -15,8 +15,8 @@ use crate::{
     api::services::notifications as notifications_service,
     auth::middleware,
     frontend::models::{
-        AdminStats, AdminUser, ApiKey, AuthenticatedUser, CreatedApiKey, DnsRecord, DnsZone,
-        Notification, QueryLogsSummary,
+        AdminStats, AdminUser, AdminZone, ApiKey, AuthenticatedUser, CreatedApiKey, DnsRecord,
+        DnsZone, Notification, QueryLogsSummary,
     },
     frontend::pages::{DashContext, DashboardTemplate},
     state::AppState,
@@ -215,6 +215,30 @@ async fn fetch_admin_users(state: &AppState) -> Vec<AdminUser> {
     .collect()
 }
 
+async fn fetch_admin_zones(state: &AppState) -> Vec<AdminZone> {
+    sqlx::query_as::<_, (String, String, bool, i64)>(
+        r#"
+        SELECT z.name, u.email, z.ns_verified, COUNT(r.id)::BIGINT
+        FROM dns_zones z
+        JOIN users u ON u.id = z.user_id
+        LEFT JOIN dns_records r ON r.zone_id = z.id
+        GROUP BY z.id, z.name, u.email, z.ns_verified, z.created_at
+        ORDER BY z.created_at DESC
+        "#,
+    )
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default()
+    .into_iter()
+    .map(|(name, owner_email, ns_verified, record_count)| AdminZone {
+        name,
+        owner_email,
+        ns_verified,
+        record_count,
+    })
+    .collect()
+}
+
 /// `GET /dash/soon/{tool}`: shared placeholder for tools that aren't built.
 pub async fn soon(
     State(state): State<AppState>,
@@ -340,6 +364,7 @@ fn public_base_url(state: &AppState) -> String {
 pub struct Flash {
     notice: Option<String>,
     error: Option<String>,
+    view: Option<String>,
 }
 
 impl Flash {
@@ -445,6 +470,7 @@ pub async fn section(
 
     let mut page = dashboard_page(&user, key, title, &state.config.dns_nameservers);
     page.description = description.to_string();
+    page.show_admin_zones = flash.view.as_deref() == Some("zones");
     flash.apply(&mut page);
 
     match *key {
@@ -483,7 +509,11 @@ pub async fn section(
         }
         "admin" => {
             page.stats = fetch_admin_stats(&state).await;
-            page.users = fetch_admin_users(&state).await;
+            if page.show_admin_zones {
+                page.admin_zones = fetch_admin_zones(&state).await;
+            } else {
+                page.users = fetch_admin_users(&state).await;
+            }
         }
         _ => {}
     }
@@ -587,6 +617,8 @@ fn dashboard_page(
         user: user.clone(),
         sessions: Vec::new(),
         users: Vec::new(),
+        admin_zones: Vec::new(),
+        show_admin_zones: false,
         stats: None,
         traffic_summary: None,
         traffic_timeseries: Vec::new(),
