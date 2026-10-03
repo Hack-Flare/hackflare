@@ -1,0 +1,50 @@
+project:
+  name: "Hackflare"
+  environment: "production"
+  region: "global"
+  mode: "edge"
+
+firewall:
+  name: "hackflare-edge-fw"
+  interfaces:
+    wan: "eth0"
+    lan: "eth1"
+    loopback: "lo"
+  default_policy:
+    input: "drop"
+    forward: "drop"
+    output: "accept"
+  nat:
+    enabled: true
+    masquerade: true
+  logging:
+    enabled: true
+  allowlist:
+    - "10.0.0.0/8"
+    - "172.16.0.0/12"
+    - "192.168.0.0/16"
+  blacklist:
+    - "203.0.113.10"
+    - "198.51.100.42"
+  blocked_ports:
+    - 22
+    - 23
+    - 445
+    - 3389
+  rate_limit:
+    enabled: true
+    requests_per_second: 200
+
+dns:
+  enabled: true
+  resolver: "1.1.1.1"
+  sinkhole_ip: "127.0.0.1"
+  blocked_domains:
+    - "malware.example"
+    - "r57shell.io"
+    - "phishing.test"
+  allowed_tlds:
+    - ".example.com"
+    - ".hackflare.io"
+    - ".cloudflare.net"
+  log_queries: true
