@@ -49,5 +49,5 @@ ENV MIGRATIONS_PATH=/app/migrations
 ENV FRONTEND_STATIC_DIR=/app/static
 
 USER hackflare
-EXPOSE 8080/tcp 5353/udp
+EXPOSE 8080/tcp 5353/tcp 5353/udp
 ENTRYPOINT ["/hackflare-app"]
