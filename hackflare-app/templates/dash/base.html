@@ -1,7 +1,7 @@
 {% extends "../base.html" %} {% block title %}{{ page_title }} — Hackflare{%
 endblock %} {% block content %}
 <div class="zone-shell">
-  {% include "dash/topbar.html" %} {% if active == "dns" %} {% include
+  {% include "dash/topbar.html" %}<div class="zone-content">{% if active == "dns" %} {% include
   "dash/dns.html" %} {% elif active == "dashboard" %} {% include
   "dash/index.html" %} {% else %}
   <main class="dash-page-main">
@@ -21,6 +21,6 @@ endblock %} {% block content %}
     "dash/admin-panel.html" %} {% else %} {% include "dash/placeholder.html" %}
     {% endif %}
   </main>
-  {% endif %}
+  {% endif %}</div>
 </div>
 {% endblock %}
