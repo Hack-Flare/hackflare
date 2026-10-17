@@ -30,6 +30,7 @@ pub struct AppState {
     pub db: PgPool,
 
     // -- dns --
+    pub(crate) dns_config: DnsConfig,
     pub dns_authority: Arc<AuthorityStore>,
 
     // -- services --
@@ -136,9 +137,10 @@ impl AppState {
         let user_sessions = UserSessionsService::new(db.clone());
         let api_keys = ApiKeysService::new(db.clone());
 
+        let dns_config = DnsConfig::from_env();
         let persistence: Arc<dyn ZonePersistence> = Arc::new(PostgresPersistence::new(db.clone()));
         let dns_authority = Arc::new(AuthorityStore::with_persistence(
-            DnsConfig::from_env(),
+            dns_config.clone(),
             persistence,
         ));
         dns_authority.load_zones_from_storage().await?;
@@ -151,6 +153,7 @@ impl AppState {
             config: Arc::new(config),
             http_client,
             db,
+            dns_config,
             dns_authority,
             api_keys,
             users,

@@ -7,7 +7,7 @@ pub mod server;
 
 pub use authority::AuthorityStore;
 pub use config::NsConfig;
-pub use hickory::run_with_hickory;
+pub use hickory::run;
 pub use persistence::{
     MemoryPersistence, PersistedRecord, PersistedZone, PostgresPersistence, ZonePersistence,
 };

@@ -8,6 +8,32 @@ use crate::dns::recursive::hints::RootHints;
 use crate::dns::recursive::transport::UdpTransport;
 use crate::dns::wire::encode_name_labels_vec;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DomainValidationError {
+    InvalidName,
+    LookupFailed,
+}
+
+pub fn check_domain_registration(
+    name: &str,
+    dns_config: &DnsConfig,
+) -> Result<(), DomainValidationError> {
+    let name = name.trim().trim_end_matches('.');
+    if name.is_empty() || name.split('.').count() < 2 {
+        return Err(DomainValidationError::InvalidName);
+    }
+
+    resolve_ns_authoritative(name, dns_config)
+        .map(|nameservers| {
+            if nameservers.is_empty() {
+                Err(DomainValidationError::LookupFailed)
+            } else {
+                Ok(())
+            }
+        })
+        .unwrap_or(Err(DomainValidationError::LookupFailed))
+}
+
 /// Build a DNS query with RD=0
 fn build_auth_query(id: u16, qname: &str, qtype: u16) -> Vec<u8> {
     let mut out = Vec::new();

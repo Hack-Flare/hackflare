@@ -9,10 +9,7 @@ pub(crate) use api::{middlewares, models, services};
 use std::net::SocketAddr;
 
 use anyhow::{Context, Result};
-use hackflare_dns::{
-    DnsConfig,
-    ns::{NsConfig, run_with_hickory},
-};
+use hackflare_dns::ns::{NsConfig, run as run_dns};
 use pg_embed::{
     pg_enums::PgAuthMethod,
     pg_fetch::{PG_V17, PgFetchSettings},
@@ -67,7 +64,6 @@ pub async fn run(dev_mode: bool) -> Result<()> {
         config.dns_bind_addr = SocketAddr::from(([0, 0, 0, 0], 5454));
     }
     let dns_bind_addr = config.dns_bind_addr;
-    let dns_config = DnsConfig::from_env();
     let listener = tokio::net::TcpListener::bind(config.bind_addr)
         .await
         .context("failed to bind application listener")?;
@@ -76,6 +72,7 @@ pub async fn run(dev_mode: bool) -> Result<()> {
         .context("failed to initialize application state")?;
 
     let dns_authority = state.dns_authority.clone();
+    let dns_config = state.dns_config.clone();
     let db = state.db.clone();
     std::thread::Builder::new()
         .name("hackflare-dns".into())
@@ -87,7 +84,12 @@ pub async fn run(dev_mode: bool) -> Result<()> {
                 database_url: None,
             };
             info!("starting DNS server on {dns_bind_addr}");
-            if let Err(error) = run_with_hickory(ns_config, dns_authority, dns_config, Some(db)) {
+            if let Err(error) = run_dns(
+                ns_config,
+                dns_authority,
+                dns_config,
+                Some(db),
+            ) {
                 error!("DNS server failed: {error}");
             }
         })

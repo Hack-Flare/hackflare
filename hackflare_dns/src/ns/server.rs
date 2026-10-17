@@ -2,7 +2,7 @@ use crate::NsConfig;
 use crate::dns::DnsConfig;
 use crate::error::DnsError;
 use crate::ns::authority::AuthorityStore;
-use crate::ns::hickory::run_with_hickory;
+use crate::ns::hickory::run;
 use crate::ns::persistence::ZonePersistence;
 use sqlx::PgPool;
 use std::io;
@@ -181,7 +181,7 @@ impl Nameserver {
     ///
     /// Returns an I/O error if the server fails to start (e.g., port in use).
     pub fn run(&self) -> io::Result<()> {
-        run_with_hickory(
+        run(
             self.config.clone(),
             Arc::clone(&self.authority),
             self.dns_config.clone(),

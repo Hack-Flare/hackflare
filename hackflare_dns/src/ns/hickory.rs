@@ -343,7 +343,7 @@ impl RequestHandler for HickoryRequestHandler {
     }
 }
 
-pub fn run_with_hickory(
+pub fn run(
     config: NsConfig,
     authority: Arc<AuthorityStore>,
     dns_config: DnsConfig,

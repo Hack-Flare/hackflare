@@ -7,7 +7,6 @@ use axum::{
     routing::{delete, get, post, put},
 };
 use hackflare_dns::dns::authoritative::resolve_ns_authoritative;
-use hickory_resolver::{Resolver, proto::rr::RecordType};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
@@ -429,14 +428,21 @@ pub(crate) async fn add_zone(
         return Err(DnsActionError::ZoneExists);
     }
 
-    let resolver = Resolver::builder_tokio()
-        .map_err(|_| DnsActionError::ZoneLookupFailed)?
-        .build()
-        .map_err(|_| DnsActionError::ZoneLookupFailed)?;
-    match resolver.lookup(&name, RecordType::NS).await {
-        Ok(response) if response.answers().iter().next().is_some() => {}
-        Ok(_) => return Err(DnsActionError::InvalidZone),
-        Err(_) => return Err(DnsActionError::ZoneLookupFailed),
+    let check_name = name.clone();
+    let check_config = state.dns_config.clone();
+    let registration = tokio::task::spawn_blocking(move || {
+        hackflare_dns::check_domain_registration(&check_name, &check_config)
+    })
+    .await
+    .map_err(|_| DnsActionError::ZoneLookupFailed)?;
+    match registration {
+        Ok(()) => {}
+        Err(hackflare_dns::DomainValidationError::InvalidName) => {
+            return Err(DnsActionError::InvalidZone);
+        }
+        Err(hackflare_dns::DomainValidationError::LookupFailed) => {
+            return Err(DnsActionError::ZoneLookupFailed);
+        }
     }
 
     if !state.dns_authority.create_zone(&name).await {

@@ -64,6 +64,7 @@ pub mod dns;
 mod error;
 pub mod ns;
 
+pub use dns::authoritative::{DomainValidationError, check_domain_registration};
 pub use dns::config::DnsConfig;
 pub use error::DnsError;
 pub use ns::{Nameserver, NsConfig};
