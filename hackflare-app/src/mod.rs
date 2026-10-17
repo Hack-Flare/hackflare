@@ -1,10 +1,10 @@
-pub(crate) mod api;
-pub(crate) mod auth;
-pub(crate) mod config;
-pub(crate) mod frontend;
-pub(crate) mod state;
+pub mod api;
+pub mod auth;
+pub mod config;
+pub mod frontend;
+pub mod state;
 
-pub(crate) use api::{middlewares, models, services};
+pub use api::{middlewares, models, services};
 
 use std::net::SocketAddr;
 

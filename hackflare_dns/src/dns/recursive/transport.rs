@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 
 use super::message::response_matches_expected;
 
-fn socket_target(addr: &str) -> String {
+pub fn socket_target(addr: &str) -> String {
     if addr.contains(':') && !addr.starts_with('[') {
         format!("[{addr}]:53")
     } else {
@@ -97,17 +97,4 @@ pub(super) fn tcp_send_recv(addr: &str, msg: &[u8]) -> Option<Vec<u8>> {
         return None;
     }
     Some(buf)
-}
-
-#[cfg(test)]
-mod tests {
-    #![allow(clippy::unwrap_used)]
-
-    use super::*;
-
-    #[test]
-    fn socket_target_formats_ipv4_and_ipv6() {
-        assert_eq!(socket_target("192.0.2.1"), "192.0.2.1:53");
-        assert_eq!(socket_target("2001:db8::1"), "[2001:db8::1]:53");
-    }
 }

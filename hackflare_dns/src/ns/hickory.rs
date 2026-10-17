@@ -15,10 +15,12 @@ use std::time::Duration;
 use tokio::net::{TcpListener, UdpSocket};
 use tokio::runtime::Runtime;
 
-static UDP_COUNT: std::sync::LazyLock<AtomicU64> = std::sync::LazyLock::new(|| AtomicU64::new(0));
-static TCP_COUNT: std::sync::LazyLock<AtomicU64> = std::sync::LazyLock::new(|| AtomicU64::new(0));
+pub static UDP_COUNT: std::sync::LazyLock<AtomicU64> =
+    std::sync::LazyLock::new(|| AtomicU64::new(0));
+pub static TCP_COUNT: std::sync::LazyLock<AtomicU64> =
+    std::sync::LazyLock::new(|| AtomicU64::new(0));
 
-fn log(level: &str, message: &str, peer: Option<SocketAddr>) {
+pub fn log(level: &str, message: &str, peer: Option<SocketAddr>) {
     let ts = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_secs());
@@ -36,7 +38,7 @@ fn log(level: &str, message: &str, peer: Option<SocketAddr>) {
     }
 }
 
-fn record_request(protocol: Protocol) {
+pub fn record_request(protocol: Protocol) {
     match protocol {
         Protocol::Udp => UDP_COUNT.fetch_add(1, Ordering::Relaxed),
         Protocol::Tcp => TCP_COUNT.fetch_add(1, Ordering::Relaxed),
@@ -49,7 +51,7 @@ fn record_request(protocol: Protocol) {
 /// Note: `ResponseCode::to_string()` returns a human-readable phrase
 /// ("No Error", "Server Failure", ...) which does not match the wire mnemonics
 /// the rest of the system (query log classification, traffic stats) expects.
-fn response_code_mnemonic(code: ResponseCode) -> &'static str {
+pub fn response_code_mnemonic(code: ResponseCode) -> &'static str {
     match code {
         ResponseCode::NoError => "NOERROR",
         ResponseCode::FormErr => "FORMERR",
@@ -75,18 +77,14 @@ fn response_code_mnemonic(code: ResponseCode) -> &'static str {
     }
 }
 
-pub(super) struct HickoryRequestHandler {
-    authority: Arc<AuthorityStore>,
+pub struct HickoryRequestHandler {
+    pub authority: Arc<AuthorityStore>,
     dns_config: DnsConfig,
     db: Option<PgPool>,
 }
 
 impl HickoryRequestHandler {
-    pub(super) fn new(
-        authority: Arc<AuthorityStore>,
-        dns_config: DnsConfig,
-        db: Option<PgPool>,
-    ) -> Self {
+    pub fn new(authority: Arc<AuthorityStore>, dns_config: DnsConfig, db: Option<PgPool>) -> Self {
         Self {
             authority,
             dns_config,
@@ -363,79 +361,4 @@ pub fn run(
         server.block_until_done().await.map_err(io::Error::other)?;
         Ok(())
     })
-}
-
-#[cfg(test)]
-mod tests {
-    #![allow(clippy::unwrap_used)]
-
-    use super::*;
-    use crate::dns::config::DnsConfig;
-
-    #[test]
-    fn handler_creation() {
-        let config = DnsConfig::default_config();
-        let authority = Arc::new(AuthorityStore::new(config.clone()));
-        let handler = HickoryRequestHandler::new(authority, config, None);
-        assert!(Arc::strong_count(&handler.authority) >= 1);
-    }
-
-    #[test]
-    fn log_function_creates_valid_json() {
-        log("info", "Test message", None);
-        log("error", "Test error", Some("127.0.0.1:53".parse().unwrap()));
-    }
-
-    #[test]
-    fn response_code_mnemonic_uses_wire_codes() {
-        assert_eq!(response_code_mnemonic(ResponseCode::NoError), "NOERROR");
-        assert_eq!(response_code_mnemonic(ResponseCode::NXDomain), "NXDOMAIN");
-        assert_eq!(response_code_mnemonic(ResponseCode::ServFail), "SERVFAIL");
-        assert_eq!(response_code_mnemonic(ResponseCode::Refused), "REFUSED");
-        assert_eq!(response_code_mnemonic(ResponseCode::FormErr), "FORMERR");
-        assert_eq!(response_code_mnemonic(ResponseCode::Unknown(42)), "UNKNOWN");
-        assert_ne!(response_code_mnemonic(ResponseCode::NoError), "No Error");
-    }
-
-    #[test]
-    fn record_request_counters() {
-        UDP_COUNT.store(0, Ordering::Relaxed);
-        TCP_COUNT.store(0, Ordering::Relaxed);
-
-        record_request(Protocol::Udp);
-        assert_eq!(UDP_COUNT.load(Ordering::Relaxed), 1);
-
-        record_request(Protocol::Tcp);
-        assert_eq!(TCP_COUNT.load(Ordering::Relaxed), 1);
-
-        UDP_COUNT.store(0, Ordering::Relaxed);
-        TCP_COUNT.store(0, Ordering::Relaxed);
-
-        record_request(Protocol::Udp);
-        record_request(Protocol::Udp);
-        record_request(Protocol::Udp);
-
-        assert_eq!(UDP_COUNT.load(Ordering::Relaxed), 3);
-        assert_eq!(TCP_COUNT.load(Ordering::Relaxed), 0);
-
-        UDP_COUNT.store(0, Ordering::Relaxed);
-        TCP_COUNT.store(0, Ordering::Relaxed);
-
-        record_request(Protocol::Tcp);
-        record_request(Protocol::Tcp);
-
-        assert_eq!(UDP_COUNT.load(Ordering::Relaxed), 0);
-        assert_eq!(TCP_COUNT.load(Ordering::Relaxed), 2);
-
-        UDP_COUNT.store(0, Ordering::Relaxed);
-        TCP_COUNT.store(0, Ordering::Relaxed);
-
-        record_request(Protocol::Udp);
-        record_request(Protocol::Tcp);
-        record_request(Protocol::Udp);
-        record_request(Protocol::Tcp);
-
-        assert_eq!(UDP_COUNT.load(Ordering::Relaxed), 2);
-        assert_eq!(TCP_COUNT.load(Ordering::Relaxed), 2);
-    }
 }

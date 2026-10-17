@@ -1,6 +1,6 @@
 use crate::dns::wire::{encode_name_labels_vec, parse_qname};
 
-pub(super) fn tld_from_name(name: &str) -> Option<String> {
+pub fn tld_from_name(name: &str) -> Option<String> {
     name.split('.')
         .rev()
         .find(|label| !label.is_empty())
@@ -10,12 +10,12 @@ pub(super) fn tld_from_name(name: &str) -> Option<String> {
 const TLD_DELEGATION_MIN_TTL_SECS: u64 = 3600;
 const TLD_DELEGATION_MAX_TTL_SECS: u64 = 86400;
 
-pub(super) fn clamp_tld_ttl(ttl_secs: u64) -> u64 {
+pub fn clamp_tld_ttl(ttl_secs: u64) -> u64 {
     ttl_secs.clamp(TLD_DELEGATION_MIN_TTL_SECS, TLD_DELEGATION_MAX_TTL_SECS)
 }
 
 #[derive(Debug, Clone, Copy)]
-pub(super) struct RecordInfo {
+pub struct RecordInfo {
     pub rtype: u16,
     pub pos: usize,
     pub rdlen: usize,
@@ -24,7 +24,7 @@ pub(super) struct RecordInfo {
 
 #[derive(Debug, Clone, Copy)]
 #[allow(dead_code)]
-pub(super) struct DnsHeader {
+pub struct DnsHeader {
     pub id: u16,
     pub flags: u16,
     pub qdcount: u16,
@@ -34,7 +34,7 @@ pub(super) struct DnsHeader {
 }
 
 impl DnsHeader {
-    pub(super) fn from_wire(buf: &[u8]) -> Option<Self> {
+    pub fn from_wire(buf: &[u8]) -> Option<Self> {
         if buf.len() < 12 {
             return None;
         }
@@ -48,12 +48,12 @@ impl DnsHeader {
         })
     }
 
-    pub(super) fn is_truncated(&self) -> bool {
+    pub fn is_truncated(&self) -> bool {
         self.flags & 0x0200 != 0
     }
 }
 
-pub(super) fn build_query(id: u16, qname: &str, qtype: u16) -> Vec<u8> {
+pub fn build_query(id: u16, qname: &str, qtype: u16) -> Vec<u8> {
     let mut out = Vec::new();
     out.extend_from_slice(&id.to_be_bytes());
     out.extend_from_slice(&0x0100u16.to_be_bytes());
@@ -67,7 +67,7 @@ pub(super) fn build_query(id: u16, qname: &str, qtype: u16) -> Vec<u8> {
     out
 }
 
-pub(super) fn response_matches_expected(
+pub fn response_matches_expected(
     resp: &[u8],
     expected_id: u16,
     expected_qname: &str,
@@ -99,7 +99,7 @@ pub(super) fn response_matches_expected(
     qtype == expected_qtype
 }
 
-pub(super) fn parse_rrs(buf: &[u8], mut pos: usize, count: usize) -> Option<Vec<RecordInfo>> {
+pub fn parse_rrs(buf: &[u8], mut pos: usize, count: usize) -> Option<Vec<RecordInfo>> {
     let mut out = Vec::with_capacity(count);
     for _ in 0..count {
         let (_, p2) = parse_qname(buf, pos)?;
@@ -161,98 +161,4 @@ pub(super) fn extract_ns_and_glue(
         }
     }
     (ns_names, glue_ips)
-}
-
-#[cfg(test)]
-mod tests {
-    #![allow(clippy::unwrap_used)]
-
-    use super::*;
-
-    #[test]
-    fn tld_from_name_extracts_tld() {
-        assert_eq!(tld_from_name("WWW.Example.COM."), Some("com".to_string()));
-    }
-
-    #[test]
-    fn clamp_tld_ttl_clamps_values() {
-        assert_eq!(clamp_tld_ttl(10), 3600);
-        assert_eq!(clamp_tld_ttl(999_999), 86400);
-    }
-
-    #[test]
-    fn build_query_and_response_matching() {
-        let mut response = build_query(0x1234, "example.com", 1);
-        response[2] |= 0x80;
-        assert!(response_matches_expected(
-            &response,
-            0x1234,
-            "example.com",
-            1
-        ));
-        assert!(!response_matches_expected(
-            &response,
-            0x9999,
-            "example.com",
-            1
-        ));
-    }
-
-    #[test]
-    fn parse_rrs_accepts_class_in() {
-        let name = encode_name_labels_vec("www.example.com");
-        let mut rr = name.clone();
-        rr.extend_from_slice(&1u16.to_be_bytes());
-        rr.extend_from_slice(&1u16.to_be_bytes());
-        rr.extend_from_slice(&300u32.to_be_bytes());
-        rr.extend_from_slice(&4u16.to_be_bytes());
-        rr.extend_from_slice(&[192, 168, 1, 1]);
-        let result = parse_rrs(&rr, 0, 1);
-        assert!(result.is_some());
-    }
-
-    #[test]
-    fn parse_rrs_rejects_non_in_class() {
-        let name = encode_name_labels_vec("www.example.com");
-        let mut rr = name.clone();
-        rr.extend_from_slice(&1u16.to_be_bytes());
-        rr.extend_from_slice(&3u16.to_be_bytes());
-        rr.extend_from_slice(&300u32.to_be_bytes());
-        rr.extend_from_slice(&4u16.to_be_bytes());
-        rr.extend_from_slice(&[192, 168, 1, 1]);
-        let result = parse_rrs(&rr, 0, 1);
-        assert!(result.is_none());
-    }
-
-    #[test]
-    fn dns_header_parses_from_wire() {
-        let mut bytes = vec![0u8; 12];
-        bytes[0] = 0x12;
-        bytes[1] = 0x34; // id = 0x1234
-        bytes[2] = 0x81;
-        bytes[3] = 0x80; // flags: QR + RD + RA
-        bytes[4] = 0x00;
-        bytes[5] = 0x01; // qdcount = 1
-        bytes[6] = 0x00;
-        bytes[7] = 0x02; // ancount = 2
-        let hdr = DnsHeader::from_wire(&bytes).unwrap();
-        assert_eq!(hdr.id, 0x1234);
-        assert_eq!(hdr.qdcount, 1);
-        assert_eq!(hdr.ancount, 2);
-        assert!(!hdr.is_truncated());
-    }
-
-    #[test]
-    fn dns_header_detects_truncation() {
-        let mut bytes = vec![0u8; 12];
-        bytes[2] = 0x02;
-        bytes[3] = 0x00; // TC bit set
-        let hdr = DnsHeader::from_wire(&bytes).unwrap();
-        assert!(hdr.is_truncated());
-    }
-
-    #[test]
-    fn dns_header_rejects_short_buffer() {
-        assert!(DnsHeader::from_wire(&[0u8; 11]).is_none());
-    }
 }

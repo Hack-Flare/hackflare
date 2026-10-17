@@ -51,7 +51,7 @@ fn encode_component(value: &str) -> String {
 }
 
 /// Hack Club auth entry point
-fn hackclub_target_url(headers: &HeaderMap, return_to: &str) -> String {
+pub fn hackclub_target_url(headers: &HeaderMap, return_to: &str) -> String {
     let target = format!(
         "{}/auth/hackclub?returnTo={}",
         origin_for(headers),
@@ -64,7 +64,7 @@ fn hackclub_target_url(headers: &HeaderMap, return_to: &str) -> String {
 }
 
 /// Sanitize a user-supplied `returnTo` so it can never be an open redirect.
-fn safe_return_to(return_to: Option<String>) -> String {
+pub fn safe_return_to(return_to: Option<String>) -> String {
     match return_to {
         Some(value)
             if value.starts_with('/')
@@ -455,35 +455,4 @@ pub async fn not_found() -> Response {
         "Page not found",
         "The page you are looking for doesn't exist or has moved.",
     )
-}
-
-#[cfg(test)]
-mod tests {
-    use axum::http::HeaderMap;
-
-    use super::{hackclub_target_url, safe_return_to};
-
-    #[test]
-    fn hackclub_target_starts_oauth_flow() {
-        let target = hackclub_target_url(&HeaderMap::new(), "/dash");
-        assert!(target.starts_with("/api/v1/auth/login?target="));
-    }
-
-    #[test]
-    fn safe_return_to_keeps_local_paths() {
-        assert_eq!(safe_return_to(Some("/dash/domains".into())), "/dash/domains");
-    }
-
-    #[test]
-    fn safe_return_to_rejects_external_targets() {
-        for value in [
-            "//attacker.example",
-            "/\\attacker.example",
-            "https://attacker.example",
-            "dash",
-        ] {
-            assert_eq!(safe_return_to(Some(value.into())), "/dash", "{value}");
-        }
-        assert_eq!(safe_return_to(None), "/dash");
-    }
 }

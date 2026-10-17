@@ -1,9 +1,9 @@
 mod cache;
 mod error;
-pub(super) mod hints;
-mod message;
+pub mod hints;
+pub mod message;
 mod resolver;
-pub(super) mod transport;
+pub mod transport;
 
 #[allow(unused_imports)]
 pub use error::ResolveError;

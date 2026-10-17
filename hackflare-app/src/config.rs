@@ -52,7 +52,7 @@ where
 pub struct EnvironmentParseError(#[error(not(source))] String);
 
 #[derive(Debug, PartialEq, Eq, Display)]
-pub(crate) enum Environment {
+pub enum Environment {
     Production,
     Development,
 }
@@ -76,11 +76,11 @@ impl FromStr for Environment {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct HcaConfig {
-    pub(crate) client_id: String,
-    pub(crate) client_secret: String,
+pub struct HcaConfig {
+    pub client_id: String,
+    pub client_secret: String,
     /// May be "http://" or "https://".
-    pub(crate) redirect_uri: Url,
+    pub redirect_uri: Url,
 }
 
 impl HcaConfig {
@@ -90,7 +90,7 @@ impl HcaConfig {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct SmtpConfig {
+pub struct SmtpConfig {
     pub(crate) host: String,
     pub(crate) port: u16,
     pub(crate) username: String,
@@ -103,21 +103,21 @@ pub struct Config {
     pub bind_addr: SocketAddr,
     pub dns_bind_addr: SocketAddr,
     pub static_dir: PathBuf,
-    pub(crate) client_ip_source: ClientIpSource,
-    pub(crate) environment: Environment,
-    pub(crate) database_url: Url,
-    pub(crate) auto_migrate: bool,
-    pub(crate) jwt_encoding_key: EncodingKey,
-    pub(crate) jwt_decoding_key: DecodingKey,
-    pub(crate) hca: HcaConfig,
-    pub(crate) session_inactivity_minutes: i64,
-    pub(crate) access_token_minutes: i64,
-    pub(crate) refresh_token_days: i64,
-    pub(crate) dns_nameservers: Vec<String>,
-    pub(crate) admin_emails: Vec<String>,
-    pub(crate) smtp: Option<SmtpConfig>,
-    pub(crate) domain: Option<Url>,
-    pub(crate) cdn_url: Option<Url>,
+    pub client_ip_source: ClientIpSource,
+    pub environment: Environment,
+    pub database_url: Url,
+    pub auto_migrate: bool,
+    pub jwt_encoding_key: EncodingKey,
+    pub jwt_decoding_key: DecodingKey,
+    pub hca: HcaConfig,
+    pub session_inactivity_minutes: i64,
+    pub access_token_minutes: i64,
+    pub refresh_token_days: i64,
+    pub dns_nameservers: Vec<String>,
+    pub admin_emails: Vec<String>,
+    pub smtp: Option<SmtpConfig>,
+    pub domain: Option<Url>,
+    pub cdn_url: Option<Url>,
 }
 
 impl Config {}

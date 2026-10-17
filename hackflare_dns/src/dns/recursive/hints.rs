@@ -19,7 +19,7 @@ const ROOT_SERVERS: [&str; 13] = [
     "202.12.27.33",
 ];
 
-fn parse_root_hints(content: &str) -> Vec<String> {
+pub fn parse_root_hints(content: &str) -> Vec<String> {
     let mut ips = Vec::new();
     for line in content.lines() {
         let trimmed = line.trim();
@@ -122,21 +122,5 @@ impl RootHints {
 
     pub(crate) fn servers(&self) -> &[String] {
         &self.servers
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #![allow(clippy::unwrap_used)]
-
-    use super::*;
-
-    #[test]
-    fn root_hint_parser_deduplicates_ips() {
-        let hints = parse_root_hints("; comment\n198.41.0.4 198.41.0.4\n170.247.170.2\n");
-        assert_eq!(
-            hints,
-            vec!["170.247.170.2".to_string(), "198.41.0.4".to_string()]
-        );
     }
 }

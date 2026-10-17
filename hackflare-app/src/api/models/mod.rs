@@ -27,14 +27,14 @@ pub(crate) struct HcaUser {
 
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct JwtClaims {
-    pub(crate) sub: String,
-    pub(crate) jit: Uuid,
+pub struct JwtClaims {
+    pub sub: String,
+    pub jit: Uuid,
     #[serde_as(as = "TimestampSeconds<i64>")]
-    pub(crate) exp: DateTime<Utc>,
+    pub exp: DateTime<Utc>,
     #[serde_as(as = "TimestampSeconds<i64>")]
-    pub(crate) iat: DateTime<Utc>,
-    pub(crate) typ: Option<String>,
+    pub iat: DateTime<Utc>,
+    pub typ: Option<String>,
 }
 
 #[derive(Clone, Serialize)]

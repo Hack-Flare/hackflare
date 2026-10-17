@@ -96,7 +96,7 @@ fn random_string(len: usize) -> String {
 const SESSION_CSRF_TOKEN_KEY: &str = "auth::csrf_token";
 const SESSION_TARGET_URL_KEY: &str = "auth::target_url";
 
-fn make_cookie(
+pub fn make_cookie(
     name: String,
     value: String,
     path: String,
@@ -842,18 +842,4 @@ pub(crate) fn routes(config: &Config) -> Router<AppState> {
         .route("/refresh", post(refresh_handler))
         .route("/logout", post(logout_handler))
         .layer(session_layer)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::make_cookie;
-
-    #[test]
-    fn cookies_are_secure_only_for_https_deployments() {
-        let secure = make_cookie("jwt".into(), "token".into(), "/".into(), 60, true);
-        let local = make_cookie("jwt".into(), "token".into(), "/".into(), 60, false);
-
-        assert!(secure.to_string().contains("; Secure"));
-        assert!(!local.to_string().contains("; Secure"));
-    }
 }

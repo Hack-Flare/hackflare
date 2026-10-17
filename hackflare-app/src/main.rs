@@ -1,8 +1,3 @@
-#[macro_use]
-extern crate tracing;
-
-include!("mod.rs");
-
 #[tokio::main]
 async fn main() {
     let dotenv_error = dotenvy::dotenv();
@@ -18,7 +13,7 @@ async fn main() {
 
     let dev_mode = std::env::args().skip(1).any(|arg| arg == "--dev");
 
-    if let Err(error) = run(dev_mode).await {
+    if let Err(error) = hackflare_app::run(dev_mode).await {
         tracing::error!(?error, "application failed");
         std::process::exit(1);
     }
