@@ -1811,27 +1811,31 @@ select.input option {
   gap: 18px;
   min-height: 100vh;
   padding: 22px 16px 16px;
-  background: var(--hf-ink);
-  color: var(--hf-paper);
+  background: var(--hf-paper);
+  color: var(--hf-ink);
   font-size: 14px;
-  border-right: 1px solid var(--ink-4);
+  border-right: 1px solid var(--line);
 }
+.dark .zone-sidebar { background: var(--hf-ink); color: var(--hf-paper); border-right-color: var(--ink-4); }
 .zone-sidebar-brand {
   display: flex;
   align-items: center;
   gap: 12px;
   min-height: 38px;
   padding: 0 10px;
-  color: var(--hf-paper);
+  color: var(--hf-ink);
   font-size: 15px;
   font-weight: 650;
 }
-.zone-sidebar-brand img { object-fit: contain; }
+.zone-sidebar-brand img { object-fit: contain; content: url("/static/brand/logos/mark-small.svg"); }
+.dark .zone-sidebar-brand img { content: url("/static/brand/logos/mark-small-reversed.svg"); }
 .zone-content { min-width: 0; }
 .zone-sidebar .zone-switcher { order: 0; }
 .zone-sidebar .zone-switcher-button {
   width: 100%;
   justify-content: space-between;
+  background: var(--muted);
+  color: var(--foreground);
 }
 .zone-topbar-sep {
   color: var(--hf-smoke);
@@ -1855,7 +1859,7 @@ select.input option {
 .zone-switcher-button .lucide-icon {
   width: 14px;
   height: 14px;
-  color: var(--on-ink-muted);
+  color: var(--muted-foreground);
 }
 .zone-switcher-menu {
   position: absolute;
@@ -1866,10 +1870,10 @@ select.input option {
   padding: 6px;
   margin: 0;
   list-style: none;
-  border: 1px solid var(--ink-4);
+  border: 1px solid var(--line);
   border-radius: var(--hf-radius-button);
-  background: var(--ink-2);
-  box-shadow: 0 16px 40px oklch(0 0 0 / 0.45);
+  background: var(--card);
+  box-shadow: 0 16px 40px oklch(0 0 0 / 0.16);
 }
 .zone-switcher-menu[hidden] {
   display: none;
@@ -1878,14 +1882,14 @@ select.input option {
   display: block;
   padding: 8px 10px;
   border-radius: 6px;
-  color: var(--on-ink-muted);
+  color: var(--muted-foreground);
   font-family: var(--font-mono);
   font-size: 13px;
 }
 .zone-switcher-menu a:hover,
 .zone-switcher-menu a.is-current {
-  background: var(--ink-4);
-  color: var(--hf-paper);
+  background: var(--accent);
+  color: var(--foreground);
 }
 .zone-topnav {
   display: flex;
@@ -1900,28 +1904,28 @@ select.input option {
   gap: 11px;
   padding: 10px 12px;
   border-radius: 8px;
-  color: var(--on-ink-muted);
+  color: var(--muted-foreground);
   font-weight: 500;
 }
 .zone-topnav a .lucide-icon,
-.sidebar-account-link .lucide-icon { color: var(--on-ink-muted); }
+.sidebar-account-link .lucide-icon { color: var(--muted-foreground); }
 .zone-topnav a:hover {
-  background: var(--ink-3);
-  color: var(--hf-paper);
+  background: var(--accent);
+  color: var(--foreground);
 }
 .zone-topnav a.is-active {
-  background: var(--ink-3);
-  color: var(--hf-paper);
+  background: var(--accent);
+  color: var(--foreground);
   font-weight: 600;
 }
-.zone-topnav a.is-active .lucide-icon { color: var(--hf-flame); }
+.zone-topnav a.is-active .lucide-icon { color: var(--link); }
 .zone-sidebar-bottom {
   display: flex;
   flex-direction: column;
   gap: 4px;
   margin-top: auto;
   padding-top: 14px;
-  border-top: 1px solid var(--ink-4);
+  border-top: 1px solid var(--line);
 }
 .sidebar-account-link,
 .zone-sidebar .theme-toggle {
@@ -1933,18 +1937,21 @@ select.input option {
   height: 40px;
   padding: 0 12px;
   border-radius: 8px;
-  color: var(--on-ink-muted);
+  color: var(--muted-foreground);
   font-size: 14px;
 }
 .sidebar-account-link:hover,
 .sidebar-account-link.is-active,
-.zone-sidebar .theme-toggle:hover { background: var(--ink-3); color: var(--hf-paper); }
+.zone-sidebar .theme-toggle:hover { background: var(--accent); color: var(--foreground); }
 .zone-sidebar .theme-toggle-light { display: none; }
 .dark .zone-sidebar .theme-toggle-dark { display: none; }
 .dark .zone-sidebar .theme-toggle-light { display: flex; }
 .sidebar-account { margin-top: 8px; }
 .sidebar-account summary { cursor: pointer; }
 .sidebar-account .account-menu-panel { top: auto; bottom: calc(100% + 8px); right: 0; }
+.zone-sidebar .account-menu-panel { background: var(--card); border-color: var(--line); box-shadow: 0 16px 40px oklch(0 0 0 / 0.16); }
+.zone-sidebar .account-menu-panel > a { color: var(--foreground); }
+.zone-sidebar .account-menu-panel > a:hover { background: var(--accent); }
 .zone-topbar-spacer {
   flex-grow: 1;
 }
@@ -1962,6 +1969,13 @@ select.input option {
   font: inherit;
   font-size: 13px;
 }
+.dark .zone-switcher-menu { border-color: var(--ink-4); box-shadow: 0 16px 40px oklch(0 0 0 / 0.45); }
+.dark .zone-switcher-menu a { color: var(--on-ink-muted); }
+.dark .zone-switcher-menu a:hover,
+.dark .zone-switcher-menu a.is-current { background: var(--ink-4); color: var(--hf-paper); }
+.dark .zone-sidebar .account-menu-panel { box-shadow: 0 16px 40px oklch(0 0 0 / 0.45); }
+.dark .zone-sidebar .account-menu-panel > a { color: var(--on-ink-muted); }
+.dark .zone-sidebar .account-menu-panel > a:hover { background: var(--ink-4); }
 .zone-search .lucide-icon {
   width: 14px;
   height: 14px;
@@ -2554,6 +2568,12 @@ select.input option {
 .tool-tile-dark .tool-meta {
   color: var(--on-ink-muted);
 }
+.tool-tile-dark { background: var(--muted); border-color: var(--muted); color: var(--foreground); }
+.tool-tile-dark .tool-icon { background: var(--background); }
+.tool-tile-dark .tool-meta { color: var(--muted-foreground); }
+.dark .tool-tile-dark { background: var(--hf-ink); border-color: var(--hf-ink); color: var(--hf-paper); }
+.dark .tool-tile-dark .tool-icon { background: var(--ink-3); }
+.dark .tool-tile-dark .tool-meta { color: var(--on-ink-muted); }
 
 /* Two-column body */
 
@@ -2818,15 +2838,21 @@ select.input option {
   margin: 14px 0 0;
   padding: 14px;
   border-radius: 10px;
-  background: var(--hf-ink);
-  color: var(--hf-paper);
+  background: var(--muted);
+  color: var(--foreground);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 500;
   line-height: 1.6;
   /* Wrap rather than scroll: a long FRONTEND_URL must stay readable. */
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+.dark .api-card-code { background: var(--hf-ink); color: var(--hf-paper); }
+.api-card-code .code-cmd { color: var(--link); }
+.api-card-code .code-str { color: var(--warning); }
+.dark .api-card-code .code-cmd { color: var(--hf-flame); }
+.dark .api-card-code .code-str { color: var(--hf-ember); }
 .api-card-actions {
   display: flex;
   align-items: center;
