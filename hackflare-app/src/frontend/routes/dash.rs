@@ -393,6 +393,7 @@ fn error_text(code: &str) -> Option<&'static str> {
         "name_required" => "Please enter a name.",
         "zone_exists" => "That domain has already been added.",
         "invalid_zone" => "That isn't a valid domain name.",
+        "zone_lookup_failed" => "The domain could not be checked right now. Please try again.",
         "zone_not_found" => "Domain not found.",
         "propagation_pending" => {
             "Nameservers are not fully propagated yet. Check your registrar settings and try again."
@@ -417,6 +418,7 @@ fn dns_error_code(error: DnsActionError) -> &'static str {
         DnsActionError::NameRequired => "name_required",
         DnsActionError::ZoneExists => "zone_exists",
         DnsActionError::InvalidZone => "invalid_zone",
+        DnsActionError::ZoneLookupFailed => "zone_lookup_failed",
         DnsActionError::ZoneNotFound => "zone_not_found",
         DnsActionError::ZoneNotVerified => "zone_not_verified",
         DnsActionError::RecordNotFound => "record_not_found",

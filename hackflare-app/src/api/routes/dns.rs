@@ -7,6 +7,7 @@ use axum::{
     routing::{delete, get, post, put},
 };
 use hackflare_dns::dns::authoritative::resolve_ns_authoritative;
+use hickory_resolver::{Resolver, proto::rr::RecordType};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
@@ -404,6 +405,7 @@ pub(crate) enum DnsActionError {
     NameRequired,
     ZoneExists,
     InvalidZone,
+    ZoneLookupFailed,
     ZoneNotFound,
     ZoneNotVerified,
     RecordNotFound,
@@ -425,6 +427,16 @@ pub(crate) async fn add_zone(
     let zones = state.dns_authority.list_zones().await;
     if zones.iter().any(|z| z == &name) {
         return Err(DnsActionError::ZoneExists);
+    }
+
+    let resolver = Resolver::builder_tokio()
+        .map_err(|_| DnsActionError::ZoneLookupFailed)?
+        .build()
+        .map_err(|_| DnsActionError::ZoneLookupFailed)?;
+    match resolver.lookup(&name, RecordType::NS).await {
+        Ok(response) if response.answers().iter().next().is_some() => {}
+        Ok(_) => return Err(DnsActionError::InvalidZone),
+        Err(_) => return Err(DnsActionError::ZoneLookupFailed),
     }
 
     if !state.dns_authority.create_zone(&name).await {
@@ -854,7 +866,7 @@ mod tests {
             .oneshot(ctx.authed_request(
                 "POST",
                 "/api/v1/dns/zones",
-                Some(r#"{"name": "test-create.com"}"#),
+                Some(r#"{"name": "example.com"}"#),
             ))
             .await
             .unwrap();
@@ -872,24 +884,34 @@ mod tests {
             .iter()
             .map(|z| z["name"].as_str().unwrap())
             .collect();
-        assert!(names.contains(&"test-create.com"));
+        assert!(names.contains(&"example.com"));
+
+        let response = build_router(ctx.state.clone())
+            .oneshot(ctx.authed_request(
+                "POST",
+                "/api/v1/dns/zones",
+                Some(r#"{"name": "example.invalid"}"#),
+            ))
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
         // Duplicate zone returns 409
         let response = build_router(ctx.state.clone())
             .oneshot(ctx.authed_request(
                 "POST",
                 "/api/v1/dns/zones",
-                Some(r#"{"name": "test-create.com"}"#),
+                Some(r#"{"name": "example.com"}"#),
             ))
             .await
             .unwrap();
         assert_eq!(response.status(), StatusCode::CONFLICT);
 
         let zones = ctx.state.dns_authority.list_zones().await;
-        assert!(zones.iter().any(|z| z == "test-create.com"));
+        assert!(zones.iter().any(|z| z == "example.com"));
 
         // Cleanup
-        let _ = ctx.state.dns_authority.delete_zone("test-create.com").await;
+        let _ = ctx.state.dns_authority.delete_zone("example.com").await;
         ctx.cleanup().await;
     }
 
