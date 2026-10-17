@@ -20,7 +20,7 @@ dotenvy = "0.15.7"
 hex = "0.4.3"
 hackflare-dns = { path = "../hackflare_dns" }
 hickory-proto = "0.26"
-hickory-resolver = "=0.26.1"
+hickory-resolver = "=0.26.2"
 hyper-rustls = { version = "0.27", default-features = false, features = ["ring"] }
 jsonwebtoken = { version = "11.0.0", default-features = false, features = ["rust_crypto"] }
 lettre = { version = "0.11", default-features = false, features = ["builder", "smtp-transport", "tokio1", "tokio1-rustls-tls"] }
