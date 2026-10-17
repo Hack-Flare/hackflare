@@ -34,47 +34,6 @@
     <button class="btn btn-orange btn-compact" type="submit">Add domain</button>
   </form>
 
-  <div class="tools-row">
-    <a class="tool-tile tool-tile-dark" href="/dash/domains">
-      <span class="tool-icon"
-        ><span class="lucide-icon icon-globe" aria-hidden="true"></span
-      ></span>
-      <span class="tool-body">
-        <span class="tool-name">DNS</span>
-        <span class="tool-meta"
-          >{{ zones.len() }} domain{% if zones.len() != 1 %}s{% endif %} · {{
-          record_count }} record{% if record_count != 1 %}s{% endif %}</span
-        >
-      </span>
-    </a>
-    <a class="tool-tile" href="/dash/tokens">
-      <span class="tool-icon"
-        ><span class="lucide-icon icon-key" aria-hidden="true"></span
-      ></span>
-      <span class="tool-body">
-        <span class="tool-name">API tokens</span>
-        <span class="tool-meta">{{ active_tokens }} active</span>
-      </span>
-    </a>
-    <a class="tool-tile" href="/docs">
-      <span class="tool-icon"
-        ><span class="lucide-icon icon-docs" aria-hidden="true"></span
-      ></span>
-      <span class="tool-body">
-        <span class="tool-name">Docs</span>
-        <span class="tool-meta">Guides and Information</span>
-      </span>
-    </a>
-    <a class="tool-tile" href="/dash/settings">
-      <span class="tool-icon"
-        ><span class="lucide-icon icon-person" aria-hidden="true"></span
-      ></span>
-      <span class="tool-body">
-        <span class="tool-name">Account</span>
-      </span>
-    </a>
-  </div>
-
   <div class="overview-columns">
     {% if zones.is_empty() %}
     <section class="first-domain">
