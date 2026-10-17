@@ -31,6 +31,8 @@ Use this file as the default guide for AI agents working in the repository.
 - Follow existing code style and conventions.
 - Do not rely on stale documentation when the source disagrees.
 - Do not divert from the active task without being asked.
+- When writing text, anywhere, do not have sentences go over multiple lines in an unclear format.
+  - Prefer `Text here.` <br> `More text here...` over `Text here. More` <br> `text here...`
 - Do not use em dashes in code, comments, or documentation.
   - Use singular hyphens instead.
   - In the case of double em dashes, use triple hyphens instead.
