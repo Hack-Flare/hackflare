@@ -31,7 +31,7 @@ Use this file as the default guide for AI agents working in the repository.
 - Follow existing code style and conventions.
 - Do not rely on stale documentation when the source disagrees.
 - Do not divert from the active task without being asked.
-- When writing text, anywhere, do not have sentences go over multiple lines in an unclear format.
+- When writing comments or other text, anywhere, do not have sentences go over multiple lines in an unclear format.
   - Prefer `Text here.` <br> `More text here...` over `Text here. More` <br> `text here...`
 - Do not use em dashes in code, comments, or documentation.
   - Use singular hyphens instead.
@@ -77,7 +77,7 @@ Read the relevant crate's source before relying on documentation for implementat
 - Keep CORS origin configuration in `hackflare-app/src/frontend/cors.rs`.
 - Avoid blocking I/O in async code.
 - Prefer explicit error handling over panics.
-- Add comments only when they clarify non-obvious behavior.
+- Add comments only when they clarify non-obvious behavior. Ensure these comments follow the existing style and conventions. Including rules in Quick Rules above.
 
 
 ## Finally
