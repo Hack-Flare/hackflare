@@ -22,6 +22,7 @@ fn default_config_has_sensible_defaults() {
         ]
     );
     assert_eq!(cfg.max_edns_payload_size, 1232);
+    assert!(cfg.transfer_allow.is_empty());
     assert_eq!(cfg.udp_attempts, 4);
     assert_eq!(cfg.recursion_rounds, 8);
     assert!(!cfg.recursion_debug);

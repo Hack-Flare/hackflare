@@ -589,6 +589,60 @@ impl RequestHandler for AuthorityStore {
             return send_error_response(request, ResponseCode::Refused, response_handle).await;
         };
 
+        let query_type = request_info.query.query_type();
+        if matches!(query_type, RecordType::AXFR | RecordType::IXFR) {
+            if request.protocol() != Protocol::Tcp
+                || !self.config.transfer_allow.contains(&request.src().ip())
+            {
+                return send_error_response(request, ResponseCode::Refused, response_handle).await;
+            }
+
+            // IXFR history is not retained yet, so RFC-compliant fallback is a full AXFR.
+            // Transfer responses are returned as one TCP message.
+            let mut records = Vec::new();
+            {
+                let sets = handler.records().await;
+                for set in sets.values() {
+                    records.extend(set.records_without_rrsigs().cloned());
+                }
+            }
+            let soa = records
+                .iter()
+                .find(|record| record.record_type() == RecordType::SOA)
+                .cloned();
+            let Some(soa) = soa else {
+                return send_error_response(request, ResponseCode::ServFail, response_handle).await;
+            };
+            records.retain(|record| record.record_type() != RecordType::SOA);
+            records.sort_by(|a, b| {
+                a.name
+                    .cmp(&b.name)
+                    .then_with(|| a.record_type().cmp(&b.record_type()))
+            });
+            let mut answers = Vec::with_capacity(records.len() + 2);
+            answers.push(soa.clone());
+            answers.extend(records);
+            answers.push(soa);
+
+            let mut metadata = Metadata::response_from_request(&request.metadata);
+            metadata.authoritative = true;
+            metadata.recursion_available = self.config.recursion_enabled;
+            let mut builder = MessageResponseBuilder::from_message_request(request);
+            if let Some(edns) = &request.edns {
+                builder.edns(edns);
+            }
+            let response = builder.build(metadata, &answers, &[], [], &[]);
+            return response_handle
+                .send_response(response)
+                .await
+                .unwrap_or_else(|_| {
+                    ResponseInfo::from(Header {
+                        metadata,
+                        counts: HeaderCounts::default(),
+                    })
+                });
+        }
+
         let lookup_options = LookupOptions::from_edns(request.edns.as_ref());
         let (cf, _) = handler.search(request, lookup_options).await;
         let result = cf.map_result();

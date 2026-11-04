@@ -1,4 +1,5 @@
 use std::env;
+use std::net::IpAddr;
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -48,6 +49,9 @@ pub struct DnsConfig {
     /// Responses exceeding this limit will be truncated (TC=1), forcing the
     /// client to retry over TCP. Prevents DNS amplification attacks.
     pub max_edns_payload_size: u16,
+
+    /// Client IP addresses allowed to request AXFR/IXFR. Empty means deny all.
+    pub transfer_allow: Vec<IpAddr>,
 }
 
 impl DnsConfig {
@@ -70,6 +74,7 @@ impl DnsConfig {
             root_hints_file: env::var("ROOT_HINTS_FILE").ok().map(PathBuf::from),
             database_url: env::var("DATABASE_URL").ok(),
             max_edns_payload_size: env_u16("DNS_MAX_EDNS_PAYLOAD_SIZE", 1232),
+            transfer_allow: env_ip_list("DNS_TRANSFER_ALLOW"),
         }
     }
 
@@ -93,6 +98,7 @@ impl DnsConfig {
             root_hints_file: None,
             database_url: None,
             max_edns_payload_size: 1232,
+            transfer_allow: Vec::new(),
         }
     }
 }
@@ -139,6 +145,21 @@ pub fn parse_list(value: &str) -> Vec<String> {
         .map(str::trim)
         .filter(|s| !s.is_empty())
         .map(ToOwned::to_owned)
+        .collect()
+}
+
+fn env_ip_list(name: &str) -> Vec<IpAddr> {
+    env::var(name)
+        .ok()
+        .into_iter()
+        .flat_map(|value| parse_list(&value))
+        .filter_map(|value| match value.parse() {
+            Ok(ip) => Some(ip),
+            Err(_) => {
+                eprintln!("[hackflare:dns] ignoring invalid IP in {name}: {value}");
+                None
+            }
+        })
         .collect()
 }
 
