@@ -89,3 +89,63 @@ fn dns_header_detects_truncation() {
 fn dns_header_rejects_short_buffer() {
     assert!(DnsHeader::from_wire(&[0u8; 11]).is_none());
 }
+
+#[test]
+fn parse_sections_extracts_all_sections() {
+    use hackflare_dns::dns::packet::{Message, Record, TYPE_A, TYPE_NS};
+
+    let mut message = Message::query(1, "www.example.com", TYPE_A);
+    message.answers.push(Record {
+        name: "www.example.com".to_string(),
+        rtype: TYPE_A,
+        class: 1,
+        ttl: 300,
+        rdata: vec![192, 0, 2, 1],
+        rdata_offset: 0,
+    });
+    message.authorities.push(Record {
+        name: "example.com".to_string(),
+        rtype: TYPE_NS,
+        class: 1,
+        ttl: 300,
+        rdata: encode_name_labels_vec("ns1.example.com"),
+        rdata_offset: 0,
+    });
+    message.additionals.push(Record {
+        name: "ns1.example.com".to_string(),
+        rtype: TYPE_A,
+        class: 1,
+        ttl: 300,
+        rdata: vec![192, 0, 2, 53],
+        rdata_offset: 0,
+    });
+
+    let bytes = message.encode().unwrap();
+    let sections = parse_sections(&bytes).unwrap();
+
+    assert_eq!(sections.answers.len(), 1);
+    assert_eq!(sections.answers[0].rtype, TYPE_A);
+    assert_eq!(sections.authorities.len(), 1);
+    assert_eq!(sections.authorities[0].rtype, TYPE_NS);
+    assert_eq!(sections.additionals.len(), 1);
+    assert_eq!(sections.additionals[0].rtype, TYPE_A);
+}
+
+#[test]
+fn parse_sections_accepts_edns_additional_records() {
+    use hackflare_dns::dns::packet::{Edns, Message, TYPE_A, TYPE_OPT};
+
+    let mut message = Message::query(1, "example.com", TYPE_A);
+    message.edns = Some(Edns {
+        udp_payload_size: 1232,
+        extended_rcode: 0,
+        version: 0,
+        flags: 0,
+        options: Vec::new(),
+    });
+
+    let bytes = message.encode().unwrap();
+    let sections = parse_sections(&bytes).unwrap();
+
+    assert!(sections.additionals.iter().any(|rr| rr.rtype == TYPE_OPT));
+}

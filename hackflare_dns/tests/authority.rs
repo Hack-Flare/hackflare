@@ -3,44 +3,29 @@
 use hackflare_dns::ns::authority::*;
 
 use hackflare_dns::dns::config::DnsConfig;
+use hackflare_dns::dns::packet::{self, Message, Rcode};
 use hackflare_dns::ns::persistence::{
     MemoryPersistence, PersistedRecord, PersistedZone, ZonePersistence,
 };
-use hickory_server::net::runtime::TokioRuntimeProvider;
-use hickory_server::proto::op::Metadata;
-use hickory_server::proto::op::{LowerQuery, MessageType, OpCode, Query, ResponseCode};
 use hickory_server::proto::rr::{LowerName, Name, RecordType};
-use hickory_server::store::in_memory::InMemoryZoneHandler;
-use hickory_server::zone_handler::{AxfrPolicy, LookupOptions, ZoneHandler, ZoneType};
+use hickory_server::zone_handler::{LookupOptions, ZoneHandler};
 use std::sync::Arc;
 
-#[tokio::test]
-async fn build_auth_response_marks_recursion_when_enabled() {
-    let handler = InMemoryZoneHandler::<TokioRuntimeProvider>::empty(
-        Name::from_utf8("example.com.").unwrap(),
-        ZoneType::Primary,
-        AxfrPolicy::Deny,
-    );
-    let meta = Metadata::new(7, MessageType::Query, OpCode::Query);
-    let query: LowerQuery = Query::new().into();
-    let message = build_auth_response(None, &handler, &meta, &query, true).await;
-    assert!(message.metadata.authoritative);
-    assert!(message.metadata.recursion_available);
-    assert_eq!(message.metadata.response_code, ResponseCode::ServFail);
+#[test]
+fn build_auth_response_marks_recursion_when_enabled() {
+    let query = Message::query(7, "example.com", packet::TYPE_A);
+    let message = build_auth_response(None, &query, true, 1232);
+    assert!(message.header.authoritative());
+    assert!(message.header.recursion_available());
+    assert_eq!(message.header.rcode(), Rcode::ServFail);
 }
 
-#[tokio::test]
-async fn build_auth_response_omits_recursion_when_disabled() {
-    let handler = InMemoryZoneHandler::<TokioRuntimeProvider>::empty(
-        Name::from_utf8("example.com.").unwrap(),
-        ZoneType::Primary,
-        AxfrPolicy::Deny,
-    );
-    let meta = Metadata::new(7, MessageType::Query, OpCode::Query);
-    let query: LowerQuery = Query::new().into();
-    let message = build_auth_response(None, &handler, &meta, &query, false).await;
-    assert!(message.metadata.authoritative);
-    assert!(!message.metadata.recursion_available);
+#[test]
+fn build_auth_response_omits_recursion_when_disabled() {
+    let query = Message::query(7, "example.com", packet::TYPE_A);
+    let message = build_auth_response(None, &query, false, 1232);
+    assert!(message.header.authoritative());
+    assert!(!message.header.recursion_available());
 }
 
 #[tokio::test]
@@ -542,4 +527,102 @@ async fn load_zones_from_storage_restores_serial_without_bumping() {
         persisted.serial,
         stored_serial.saturating_add(1).max(today_serial_base())
     );
+}
+
+#[tokio::test]
+async fn answer_returns_authoritative_a_record() {
+    let store = AuthorityStore::new(DnsConfig::default_config());
+    store.create_zone("example.com").await;
+    store
+        .add_record("example.com", "www", "A", 300, "192.0.2.1")
+        .await;
+
+    let query = Message::query(1, "www.example.com", packet::TYPE_A);
+    let response = store
+        .answer(
+            &query,
+            "127.0.0.1:5300".parse().unwrap(),
+            packet::Protocol::Udp,
+        )
+        .await;
+
+    assert_eq!(response.header.rcode(), Rcode::NoError);
+    assert!(response.header.authoritative());
+    assert_eq!(response.answers.len(), 1);
+    assert_eq!(response.answers[0].rdata, vec![192, 0, 2, 1]);
+}
+
+#[tokio::test]
+async fn answer_returns_nxdomain_for_missing_name() {
+    let store = AuthorityStore::new(DnsConfig::default_config());
+    store.create_zone("example.com").await;
+
+    let query = Message::query(1, "missing.example.com", packet::TYPE_A);
+    let response = store
+        .answer(
+            &query,
+            "127.0.0.1:5300".parse().unwrap(),
+            packet::Protocol::Udp,
+        )
+        .await;
+
+    assert_eq!(response.header.rcode(), Rcode::NxDomain);
+}
+
+#[tokio::test]
+async fn answer_refuses_unknown_zone() {
+    let store = AuthorityStore::new(DnsConfig::default_config());
+
+    let query = Message::query(1, "example.com", packet::TYPE_A);
+    let response = store
+        .answer(
+            &query,
+            "127.0.0.1:5300".parse().unwrap(),
+            packet::Protocol::Udp,
+        )
+        .await;
+
+    assert_eq!(response.header.rcode(), Rcode::Refused);
+}
+
+#[tokio::test]
+async fn answer_refuses_zonetransfer_over_udp() {
+    let store = AuthorityStore::new(DnsConfig::default_config());
+    store.create_zone("example.com").await;
+
+    let query = Message::query(1, "example.com", packet::TYPE_AXFR);
+    let response = store
+        .answer(
+            &query,
+            "127.0.0.1:5300".parse().unwrap(),
+            packet::Protocol::Udp,
+        )
+        .await;
+
+    assert_eq!(response.header.rcode(), Rcode::Refused);
+}
+
+#[tokio::test]
+async fn answer_allows_zonetransfer_over_tcp_for_allowed_client() {
+    let mut config = DnsConfig::default_config();
+    config.transfer_allow.push("127.0.0.1".parse().unwrap());
+    let store = AuthorityStore::new(config);
+    store.create_zone("example.com").await;
+    store
+        .add_record("example.com", "www", "A", 300, "192.0.2.1")
+        .await;
+
+    let query = Message::query(1, "example.com", packet::TYPE_AXFR);
+    let response = store
+        .answer(
+            &query,
+            "127.0.0.1:5300".parse().unwrap(),
+            packet::Protocol::Tcp,
+        )
+        .await;
+
+    assert_eq!(response.header.rcode(), Rcode::NoError);
+    assert!(response.answers.len() >= 3);
+    assert_eq!(response.answers[0].rtype, packet::TYPE_SOA);
+    assert_eq!(response.answers.last().unwrap().rtype, packet::TYPE_SOA);
 }

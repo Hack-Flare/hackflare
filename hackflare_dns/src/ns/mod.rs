@@ -1,13 +1,13 @@
 pub mod authority;
-pub mod hickory;
 
 pub mod config;
+pub mod handler;
 pub mod persistence;
 pub mod server;
 
 pub use authority::AuthorityStore;
 pub use config::NsConfig;
-pub use hickory::run;
+pub use handler::run;
 pub use persistence::{
     MemoryPersistence, PersistedRecord, PersistedZone, PostgresPersistence, ZonePersistence,
 };

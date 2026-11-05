@@ -10,7 +10,7 @@ use super::error::ResolveError;
 use super::hints;
 use super::message::{
     DnsHeader, RecordInfo, build_query, clamp_tld_ttl, extract_ns_and_glue, parse_rrs,
-    tld_from_name,
+    parse_sections, tld_from_name,
 };
 use super::transport::{UdpTransport, tcp_send_recv};
 
@@ -101,44 +101,6 @@ fn try_query(
         resp = tcp_send_recv(srv, req);
     }
     resp
-}
-
-struct ParsedResponse {
-    _header: DnsHeader,
-    answers: Vec<RecordInfo>,
-    authorities: Vec<RecordInfo>,
-    additionals: Vec<RecordInfo>,
-}
-
-fn parse_sections(resp: &[u8]) -> Option<ParsedResponse> {
-    let header = DnsHeader::from_wire(resp)?;
-    let ancount = header.ancount as usize;
-    let nscount = header.nscount as usize;
-    let arcount = header.arcount as usize;
-    let mut pos = 12usize;
-    let (_qn, p2) = crate::dns::wire::parse_qname(resp, pos)?;
-    pos = p2 + 4;
-
-    let answers = if ancount > 0 {
-        parse_rrs(resp, pos, ancount).unwrap_or_default()
-    } else {
-        Vec::new()
-    };
-
-    let auth_pos = answers.last().map_or(pos, |rr| rr.pos + rr.rdlen);
-
-    let authorities = parse_rrs(resp, auth_pos, nscount).unwrap_or_default();
-    let after_auth = authorities
-        .last()
-        .map_or(auth_pos, |last| last.pos + last.rdlen);
-    let additionals = parse_rrs(resp, after_auth, arcount).unwrap_or_default();
-
-    Some(ParsedResponse {
-        _header: header,
-        answers,
-        authorities,
-        additionals,
-    })
 }
 
 fn check_direct_answer(answers: &[RecordInfo], qtype: u16) -> Option<u32> {

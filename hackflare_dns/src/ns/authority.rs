@@ -1,20 +1,19 @@
 use crate::DnsError;
 use crate::dns::DnsConfig;
+use crate::dns::packet::{self, Edns, Message, Protocol, Rcode};
+use crate::dns::wire::encode_name_labels_vec;
 use crate::ns::persistence::{PersistedRecord, PersistedZone, ZonePersistence};
 use hickory_server::net::runtime::TokioRuntimeProvider;
-use hickory_server::net::xfer::Protocol;
-use hickory_server::proto::op::{Header, HeaderCounts, Message, Metadata, ResponseCode};
+use hickory_server::proto::op::ResponseCode;
 use hickory_server::proto::rr::{
     LowerName, Name, RData, Record, RecordType,
     rdata::{NS, SOA},
 };
-use hickory_server::proto::serialize::binary::BinEncodable;
-use hickory_server::server::{Request, RequestHandler, ResponseHandler, ResponseInfo};
+use hickory_server::proto::serialize::binary::{BinEncodable, BinEncoder, NameEncoding};
 use hickory_server::store::in_memory::InMemoryZoneHandler;
-use hickory_server::zone_handler::{
-    AxfrPolicy, LookupError, LookupOptions, MessageResponseBuilder, ZoneHandler, ZoneType,
-};
+use hickory_server::zone_handler::{AxfrPolicy, LookupError, LookupOptions, ZoneHandler, ZoneType};
 use std::collections::HashMap;
+use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -463,7 +462,7 @@ impl AuthorityStore {
     }
 }
 
-// ── Zone lookup & query handling ──
+// Zone lookup & query handling
 
 /// Find the best-matching zone handler by walking parent suffixes.
 pub fn find_zone(
@@ -483,102 +482,179 @@ pub fn find_zone(
     }
 }
 
-/// Build a response message for an authoritative zone lookup.
-pub async fn build_auth_response(
-    result: Option<Result<hickory_server::zone_handler::AuthLookup, LookupError>>,
-    _handler: &InMemoryZoneHandler<TokioRuntimeProvider>,
-    request_meta: &Metadata,
-    query: &hickory_server::proto::op::LowerQuery,
-    recursion_available: bool,
-) -> Message {
-    let mut response_meta = Metadata::response_from_request(request_meta);
-    response_meta.authoritative = true;
-    // Advertise recursion when the server can resolve non-hosted queries
-    response_meta.recursion_available = recursion_available;
-
-    let mut message = Message::new(
-        response_meta.id,
-        response_meta.message_type,
-        response_meta.op_code,
-    );
-    message.add_query(query.original().clone());
-
-    let Some(result) = result else {
-        response_meta.response_code = ResponseCode::ServFail;
-        message.metadata = response_meta;
-        return message;
-    };
-
-    match result {
-        Ok(mut auth_lookup) => {
-            response_meta.response_code = ResponseCode::NoError;
-            if let Some(adds) = auth_lookup.take_additionals() {
-                message.additionals.extend(adds.iter().cloned());
-            }
-            let is_referral = auth_lookup.iter().next().is_some_and(|r| {
-                r.record_type() == RecordType::NS
-                    && query.query_type() != RecordType::NS
-                    && query.query_type() != RecordType::ANY
-            });
-            if is_referral {
-                message.authorities.extend(auth_lookup.iter().cloned());
-            } else {
-                message.answers.extend(auth_lookup.iter().cloned());
-            }
-            message.metadata = response_meta;
-            message
+/// Encode RDATA for records stored in the authoritative zone.
+fn encode_rdata(data: &RData) -> Vec<u8> {
+    match data {
+        RData::A(address) => address.0.octets().to_vec(),
+        RData::AAAA(address) => address.0.octets().to_vec(),
+        RData::NS(name) => encode_name_labels_vec(&name.0.to_utf8()),
+        RData::CNAME(name) => encode_name_labels_vec(&name.0.to_utf8()),
+        RData::PTR(name) => encode_name_labels_vec(&name.0.to_utf8()),
+        RData::ANAME(name) => encode_name_labels_vec(&name.0.to_utf8()),
+        RData::MX(mx) => {
+            let mut out = mx.preference.to_be_bytes().to_vec();
+            out.extend_from_slice(&encode_name_labels_vec(&mx.exchange.to_utf8()));
+            out
         }
-        Err(e) => {
-            if e.is_nx_domain() {
-                response_meta.response_code = ResponseCode::NXDomain;
-            } else if matches!(&e, LookupError::ResponseCode(rc) if *rc == ResponseCode::Refused || *rc == ResponseCode::NotAuth)
-            {
-                response_meta.response_code = *match &e {
-                    LookupError::ResponseCode(rc) => rc,
-                    _ => &ResponseCode::ServFail,
-                };
-            } else {
-                response_meta.response_code = ResponseCode::NoError;
+        RData::TXT(txt) => {
+            let mut out = Vec::new();
+            for value in &txt.txt_data {
+                let len = value.len().min(usize::from(u8::MAX));
+                out.push(len as u8);
+                out.extend_from_slice(&value[..len]);
             }
-            message.metadata = response_meta;
-            message
+            out
+        }
+        RData::SOA(soa) => {
+            let mut out = encode_name_labels_vec(&soa.mname.to_utf8());
+            out.extend_from_slice(&encode_name_labels_vec(&soa.rname.to_utf8()));
+            out.extend_from_slice(&soa.serial.to_be_bytes());
+            out.extend_from_slice(&soa.refresh.to_be_bytes());
+            out.extend_from_slice(&soa.retry.to_be_bytes());
+            out.extend_from_slice(&soa.expire.to_be_bytes());
+            out.extend_from_slice(&soa.minimum.to_be_bytes());
+            out
+        }
+        RData::SRV(srv) => {
+            let mut out = srv.priority.to_be_bytes().to_vec();
+            out.extend_from_slice(&srv.weight.to_be_bytes());
+            out.extend_from_slice(&srv.port.to_be_bytes());
+            out.extend_from_slice(&encode_name_labels_vec(&srv.target.to_utf8()));
+            out
+        }
+        RData::CAA(caa) => {
+            let mut out = Vec::with_capacity(2 + caa.tag.len() + caa.value.len());
+            let flags = u8::from(caa.issuer_critical) << 7;
+            out.push(flags | caa.reserved_flags);
+            out.push(caa.tag.len().min(usize::from(u8::MAX)) as u8);
+            out.extend_from_slice(&caa.tag.as_bytes()[..caa.tag.len().min(usize::from(u8::MAX))]);
+            out.extend_from_slice(&caa.value);
+            out
+        }
+        other => {
+            let mut buffer = Vec::new();
+            let mut encoder = BinEncoder::new(&mut buffer);
+            encoder.set_name_encoding(NameEncoding::Uncompressed);
+            if other.emit(&mut encoder).is_ok() {
+                buffer
+            } else {
+                Vec::new()
+            }
         }
     }
 }
 
-/// Send a simple error response.
-async fn send_error_response<R: ResponseHandler>(
-    request: &Request,
-    code: ResponseCode,
-    mut response_handle: R,
-) -> ResponseInfo {
-    let mut metadata = Metadata::response_from_request(&request.metadata);
-    metadata.response_code = code;
-    let response = MessageResponseBuilder::from_message_request(request).build_no_records(metadata);
-    response_handle
-        .send_response(response)
-        .await
-        .unwrap_or_else(|_| {
-            ResponseInfo::from(Header {
-                metadata,
-                counts: HeaderCounts::default(),
-            })
-        })
+/// Convert a hickory resource record into a wire record with uncompressed RDATA.
+fn record_to_wire(record: &Record) -> packet::Record {
+    packet::Record {
+        name: record.name.to_utf8(),
+        rtype: u16::from(record.record_type()),
+        class: u16::from(record.dns_class),
+        ttl: record.ttl,
+        rdata: encode_rdata(&record.data),
+        rdata_offset: 0,
+    }
 }
 
-#[async_trait::async_trait]
-impl RequestHandler for AuthorityStore {
-    async fn handle_request<R: ResponseHandler, T: hickory_server::net::runtime::Time>(
-        &self,
-        request: &Request,
-        response_handle: R,
-    ) -> ResponseInfo {
-        let mut response_handle = response_handle;
-        let Ok(request_info) = request.request_info() else {
-            return send_error_response(request, ResponseCode::FormErr, response_handle).await;
+fn error_response(
+    query: &Message,
+    rcode: Rcode,
+    recursion_available: bool,
+    server_payload_size: u16,
+) -> Message {
+    let mut response = Message::response_to(query);
+    response.header.set_authoritative(true);
+    response.header.set_recursion_available(recursion_available);
+    response.header.set_rcode(rcode);
+    response.edns = query
+        .edns
+        .as_ref()
+        .map(|edns| Edns::response_to(edns, server_payload_size));
+    response
+}
+
+/// Build a response message for an authoritative zone lookup.
+pub fn build_auth_response(
+    result: Option<Result<hickory_server::zone_handler::AuthLookup, LookupError>>,
+    query: &Message,
+    recursion_available: bool,
+    server_payload_size: u16,
+) -> Message {
+    let mut response = Message::response_to(query);
+    response.header.set_authoritative(true);
+    response.header.set_recursion_available(recursion_available);
+    response.edns = query
+        .edns
+        .as_ref()
+        .map(|edns| Edns::response_to(edns, server_payload_size));
+
+    let Some(result) = result else {
+        response.header.set_rcode(Rcode::ServFail);
+        return response;
+    };
+
+    match result {
+        Ok(mut auth_lookup) => {
+            response.header.set_rcode(Rcode::NoError);
+            if let Some(adds) = auth_lookup.take_additionals() {
+                response.additionals.extend(adds.iter().map(record_to_wire));
+            }
+
+            let question = query.questions.first();
+            let is_referral = auth_lookup.iter().next().is_some_and(|record| {
+                record.record_type() == RecordType::NS
+                    && question.is_some_and(|question| {
+                        question.qtype != packet::TYPE_NS && question.qtype != packet::TYPE_ANY
+                    })
+            });
+
+            let records: Vec<packet::Record> = auth_lookup.iter().map(record_to_wire).collect();
+            if is_referral {
+                response.authorities.extend(records);
+            } else {
+                response.answers.extend(records);
+            }
+            response
+        }
+        Err(error) => {
+            if error.is_nx_domain() {
+                response.header.set_rcode(Rcode::NxDomain);
+            } else if let LookupError::ResponseCode(code) = &error
+                && (*code == ResponseCode::Refused || *code == ResponseCode::NotAuth)
+            {
+                response
+                    .header
+                    .set_rcode(Rcode::from_u8(u16::from(*code) as u8));
+            } else {
+                response.header.set_rcode(Rcode::NoError);
+            }
+            response
+        }
+    }
+}
+
+impl AuthorityStore {
+    /// Answer an authoritative query, including zone transfers.
+    pub async fn answer(&self, query: &Message, src: SocketAddr, protocol: Protocol) -> Message {
+        let Some(question) = query.questions.first() else {
+            return error_response(
+                query,
+                Rcode::FormErr,
+                self.config.recursion_enabled,
+                self.config.max_edns_payload_size,
+            );
         };
 
-        let query_name = request_info.query.name().clone();
+        let Ok(mut query_name) = Name::from_utf8(&question.name) else {
+            return error_response(
+                query,
+                Rcode::FormErr,
+                self.config.recursion_enabled,
+                self.config.max_edns_payload_size,
+            );
+        };
+        query_name.set_fqdn(true);
+        let query_name = LowerName::new(&query_name);
 
         let handler = {
             let zones = self.zones.read().await;
@@ -586,15 +662,22 @@ impl RequestHandler for AuthorityStore {
         };
 
         let Some(handler) = handler else {
-            return send_error_response(request, ResponseCode::Refused, response_handle).await;
+            return error_response(
+                query,
+                Rcode::Refused,
+                self.config.recursion_enabled,
+                self.config.max_edns_payload_size,
+            );
         };
 
-        let query_type = request_info.query.query_type();
-        if matches!(query_type, RecordType::AXFR | RecordType::IXFR) {
-            if request.protocol() != Protocol::Tcp
-                || !self.config.transfer_allow.contains(&request.src().ip())
-            {
-                return send_error_response(request, ResponseCode::Refused, response_handle).await;
+        if matches!(question.qtype, packet::TYPE_AXFR | packet::TYPE_IXFR) {
+            if protocol != Protocol::Tcp || !self.config.transfer_allow.contains(&src.ip()) {
+                return error_response(
+                    query,
+                    Rcode::Refused,
+                    self.config.recursion_enabled,
+                    self.config.max_edns_payload_size,
+                );
             }
 
             // IXFR history is not retained yet, so RFC-compliant fallback is a full AXFR.
@@ -611,7 +694,12 @@ impl RequestHandler for AuthorityStore {
                 .find(|record| record.record_type() == RecordType::SOA)
                 .cloned();
             let Some(soa) = soa else {
-                return send_error_response(request, ResponseCode::ServFail, response_handle).await;
+                return error_response(
+                    query,
+                    Rcode::ServFail,
+                    self.config.recursion_enabled,
+                    self.config.max_edns_payload_size,
+                );
             };
             records.retain(|record| record.record_type() != RecordType::SOA);
             records.sort_by(|a, b| {
@@ -619,75 +707,48 @@ impl RequestHandler for AuthorityStore {
                     .cmp(&b.name)
                     .then_with(|| a.record_type().cmp(&b.record_type()))
             });
+
             let mut answers = Vec::with_capacity(records.len() + 2);
-            answers.push(soa.clone());
-            answers.extend(records);
-            answers.push(soa);
+            answers.push(record_to_wire(&soa));
+            answers.extend(records.iter().map(record_to_wire));
+            answers.push(record_to_wire(&soa));
 
-            let mut metadata = Metadata::response_from_request(&request.metadata);
-            metadata.authoritative = true;
-            metadata.recursion_available = self.config.recursion_enabled;
-            let mut builder = MessageResponseBuilder::from_message_request(request);
-            if let Some(edns) = &request.edns {
-                builder.edns(edns);
-            }
-            let response = builder.build(metadata, &answers, &[], [], &[]);
-            return response_handle
-                .send_response(response)
+            let mut response = Message::response_to(query);
+            response.header.set_authoritative(true);
+            response
+                .header
+                .set_recursion_available(self.config.recursion_enabled);
+            response.header.set_rcode(Rcode::NoError);
+            response.answers = answers;
+            response.edns = query
+                .edns
+                .as_ref()
+                .map(|edns| Edns::response_to(edns, self.config.max_edns_payload_size));
+            return response;
+        }
+
+        let mut lookup_options = LookupOptions::default();
+        lookup_options.dnssec_ok = query
+            .edns
+            .as_ref()
+            .is_some_and(|edns| edns.flags & 0x8000 != 0);
+
+        let record_type = RecordType::from(question.qtype);
+        let control_flow = if record_type == RecordType::SOA {
+            handler
+                .lookup(handler.origin(), record_type, None, lookup_options)
                 .await
-                .unwrap_or_else(|_| {
-                    ResponseInfo::from(Header {
-                        metadata,
-                        counts: HeaderCounts::default(),
-                    })
-                });
-        }
+        } else {
+            handler
+                .lookup(&query_name, record_type, None, lookup_options)
+                .await
+        };
 
-        let lookup_options = LookupOptions::from_edns(request.edns.as_ref());
-        let (cf, _) = handler.search(request, lookup_options).await;
-        let result = cf.map_result();
-
-        let mut message = build_auth_response(
-            result,
-            &handler,
-            &request.metadata,
-            request_info.query,
+        build_auth_response(
+            control_flow.map_result(),
+            query,
             self.config.recursion_enabled,
+            self.config.max_edns_payload_size,
         )
-        .await;
-
-        // Clamp UDP response size to prevent amplification attacks
-        if request.protocol() == Protocol::Udp {
-            let wire_len = message.to_bytes().ok().map(|v| v.len());
-            if let Some(len) = wire_len
-                && len > self.config.max_edns_payload_size as usize
-            {
-                message.metadata.truncation = true;
-                message.answers.clear();
-                message.additionals.clear();
-            }
-        }
-
-        let mut builder = MessageResponseBuilder::from_message_request(request);
-        if let Some(edns) = &request.edns {
-            builder.edns(edns);
-        }
-        let response = builder.build(
-            message.metadata,
-            &message.answers,
-            &message.authorities,
-            std::iter::empty(),
-            &message.additionals,
-        );
-
-        response_handle
-            .send_response(response)
-            .await
-            .unwrap_or_else(|_| {
-                ResponseInfo::from(Header {
-                    metadata: Metadata::response_from_request(&request.metadata),
-                    counts: HeaderCounts::default(),
-                })
-            })
     }
 }

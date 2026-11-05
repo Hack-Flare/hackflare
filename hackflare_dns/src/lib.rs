@@ -1,10 +1,11 @@
 //! # Hackflare DNS
 //!
-//! A high-performance, authoritative and recursive DNS server crate built on top of hickory-server.
+//! A high-performance, authoritative and recursive DNS server crate with a built-in wire codec.
 //!
 //! ## Features
 //!
 //! - **Authoritative DNS Zones**: Host your own DNS zones with full control
+//! - **Wire Codec**: Custom DNS packet parser and encoder for UDP and TCP
 //! - **Recursive Resolution**: Resolve external domains through DNS root servers
 //! - **Zone Persistence**: Pluggable backends via [`ZonePersistence`] trait
 //! - **In-Memory Storage**: Fast zone operations with [`MemoryPersistence`] for testing

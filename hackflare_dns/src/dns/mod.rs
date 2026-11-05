@@ -1,5 +1,6 @@
 pub mod authoritative;
 pub mod config;
+pub mod packet;
 pub mod recursive;
 pub mod wire;
 

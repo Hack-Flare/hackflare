@@ -2,7 +2,7 @@ use crate::NsConfig;
 use crate::dns::DnsConfig;
 use crate::error::DnsError;
 use crate::ns::authority::AuthorityStore;
-use crate::ns::hickory::run;
+use crate::ns::handler::run;
 use crate::ns::persistence::ZonePersistence;
 use sqlx::PgPool;
 use std::io;

@@ -23,7 +23,6 @@ pub struct RecordInfo {
 }
 
 #[derive(Debug, Clone, Copy)]
-#[allow(dead_code)]
 pub struct DnsHeader {
     pub id: u16,
     pub flags: u16,
@@ -99,7 +98,24 @@ pub fn response_matches_expected(
     qtype == expected_qtype
 }
 
-pub fn parse_rrs(buf: &[u8], mut pos: usize, count: usize) -> Option<Vec<RecordInfo>> {
+pub fn parse_rrs(buf: &[u8], pos: usize, count: usize) -> Option<Vec<RecordInfo>> {
+    parse_rrs_inner(buf, pos, count, true)
+}
+
+/// Parse records while accepting any DNS class.
+///
+/// Additional sections may contain OPT or TSIG pseudo-records whose class field is not IN
+/// They must not be rejected by the class filter.
+fn parse_rrs_any_class(buf: &[u8], pos: usize, count: usize) -> Option<Vec<RecordInfo>> {
+    parse_rrs_inner(buf, pos, count, false)
+}
+
+fn parse_rrs_inner(
+    buf: &[u8],
+    mut pos: usize,
+    count: usize,
+    require_in_class: bool,
+) -> Option<Vec<RecordInfo>> {
     let mut out = Vec::with_capacity(count);
     for _ in 0..count {
         let (_, p2) = parse_qname(buf, pos)?;
@@ -109,7 +125,7 @@ pub fn parse_rrs(buf: &[u8], mut pos: usize, count: usize) -> Option<Vec<RecordI
         }
         let rtype = u16::from_be_bytes([buf[pos], buf[pos + 1]]);
         let class = u16::from_be_bytes([buf[pos + 2], buf[pos + 3]]);
-        if class != 1 {
+        if require_in_class && class != 1 {
             return None;
         }
         let ttl = u32::from_be_bytes([buf[pos + 4], buf[pos + 5], buf[pos + 6], buf[pos + 7]]);
@@ -127,6 +143,40 @@ pub fn parse_rrs(buf: &[u8], mut pos: usize, count: usize) -> Option<Vec<RecordI
         pos += rdlen;
     }
     Some(out)
+}
+
+#[derive(Debug, Clone)]
+pub struct ParsedSections {
+    pub answers: Vec<RecordInfo>,
+    pub authorities: Vec<RecordInfo>,
+    pub additionals: Vec<RecordInfo>,
+}
+
+/// Parse the answer, authority, and additional sections of a DNS response.
+pub fn parse_sections(resp: &[u8]) -> Option<ParsedSections> {
+    let header = DnsHeader::from_wire(resp)?;
+    let mut pos = 12usize;
+    for _ in 0..header.qdcount {
+        let (_, p2) = parse_qname(resp, pos)?;
+        pos = p2.checked_add(4)?;
+        if pos > resp.len() {
+            return None;
+        }
+    }
+
+    let answers = parse_rrs(resp, pos, header.ancount as usize)?;
+    let auth_pos = answers.last().map_or(pos, |rr| rr.pos + rr.rdlen);
+    let authorities = parse_rrs(resp, auth_pos, header.nscount as usize)?;
+    let after_auth = authorities
+        .last()
+        .map_or(auth_pos, |last| last.pos + last.rdlen);
+    let additionals = parse_rrs_any_class(resp, after_auth, header.arcount as usize)?;
+
+    Some(ParsedSections {
+        answers,
+        authorities,
+        additionals,
+    })
 }
 
 pub(super) fn extract_ns_and_glue(
