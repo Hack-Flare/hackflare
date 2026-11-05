@@ -5,6 +5,7 @@
 !**.env.example
 **.env
 
-/bench-results
+/bench-results/
+/bench-results-*/
 
 root.hints
