@@ -1,0 +1,27 @@
+[package]
+name = "hackflare-bench"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "hackflare_bench"
+path = "src/lib.rs"
+
+[[bin]]
+name = "hackflare-bench"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow = "1.0.104"
+clap = { version = "4.6.7", features = ["derive"] }
+reqwest = { version = "0.13.4", default-features = false, features = ["json", "rustls"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+sysinfo = "0.33.1"
+tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread", "time"] }
+plotters = "0.3.7"
+
+[dev-dependencies]

@@ -66,3 +66,32 @@ db-logs:
 # Build the merged application image from the repository root.
 docker-build-app:
 	docker build -f hackflare-app/Dockerfile -t hackflare-app:dev .
+
+# Benchmarking ---------------------------------------------------------------
+
+# Build the release binary and the bench tool, then run a self-hosted
+# benchmark against the embedded development server.
+bench:
+	just build-app
+	cargo run -p hackflare-bench -- \
+	--binary target/release/hackflare-app \
+	--dev \
+	--users 100 \
+	--duration-secs 60 \
+	--ramp-up-secs 10 \
+	--output-dir ./bench-results
+
+# Run benchmarks at multiple scales (10, 100, 1000 users) and keep each report.
+bench-scale:
+	just build-app
+	@for users in 10 100 1000; do \
+	echo "=== benchmarking with $$users users ==="; \
+	cargo run -p hackflare-bench -- \
+	--binary target/release/hackflare-app \
+	--dev \
+	--users $$users \
+	--duration-secs 60 \
+	--ramp-up-secs 10 \
+	--output-dir ./bench-results-$$users; \
+	done
+
