@@ -1,0 +1,29 @@
+name: 'Dump markdown to job summary'
+description: 'Reads a pre-generated markdown file and appends it to the job summary.'
+inputs:
+  file-path:
+    description: 'Path to the markdown file to be dumped into the job summary.'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Append Markdown to Summary
+      shell: bash
+      run: |
+        FILE="${{ inputs.file-path }}"
+        
+        # Verify the file actually exists before trying to read it
+        if [ ! -f "$FILE" ]; then
+          echo "::error file=$FILE::Markdown summary file not found at path: $FILE"
+          exit 1
+        fi
+        
+        # Ensure a clean line break before appending to avoid formatting leaks
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Safely dump the entire content into the summary stream
+        cat "$FILE" >> $GITHUB_STEP_SUMMARY
+        
+        # Final trailing newline to close out the markdown block cleanly
+        echo "" >> $GITHUB_STEP_SUMMARY
