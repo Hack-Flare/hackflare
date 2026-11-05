@@ -57,7 +57,9 @@ jobs:
               --dev \
               --dns \
               --users "$users" \
-              --duration-secs "${{ github.event.inputs.duration-secs || 30 }}" \
+              --dns-users "$users" \
+              --duration-secs "${{ github.event.inputs.duration-secs || 60 }}" \
+              --dns-duration-secs "${{ github.event.inputs.duration-secs || 60 }}" \
               --ramp-up-secs 10 \
               --output-dir "bench-results-$users"
           done
