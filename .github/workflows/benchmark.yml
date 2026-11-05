@@ -8,11 +8,11 @@ on:
       users:
         description: "Comma separated user counts to benchmark"
         required: false
-        default: "10,100,1000"
+        default: "100,1000,10000"
       duration-secs:
         description: "Seconds to run each scale"
         required: false
-        default: "30"
+        default: "60"
 
 permissions:
   contents: read
@@ -44,7 +44,7 @@ jobs:
 
       - name: Determine user counts
         run: |
-          USERS="${{ github.event.inputs.users || '10,100,1000' }}"
+          USERS="${{ github.event.inputs.users || '100,1000,10000' }}"
           echo "USERS=$USERS" >> "$GITHUB_ENV"
 
       - name: Run benchmarks at each scale
@@ -55,6 +55,7 @@ jobs:
             cargo run -p hackflare-bench --release -- \
               --binary target/release/hackflare-app \
               --dev \
+              --dns \
               --users "$users" \
               --duration-secs "${{ github.event.inputs.duration-secs || 30 }}" \
               --ramp-up-secs 10 \
@@ -81,3 +82,8 @@ jobs:
           name: hackflare-bench-summary
           path: summary.md
           retention-days: 30
+
+      - name: Publish Summary to Job Summary
+        uses: ./.github/actions/dump-summary
+        with:
+          file-path: 'summary.md'
