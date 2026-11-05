@@ -27,10 +27,6 @@ Hackflare is a project that aims to provide a free, open-source and open-infra a
 It is designed to be easy to use, easy to deploy and realtively easy to maintain.  
 We may even do additional software other than DNS in future but that will have its own Repositories.
 
-## Roadmap
-
-See [ROADMAP.md](docs/ROADMAP.md) for the roadmap.
-
 ## Running the project
 
 ### Production
