@@ -4,6 +4,7 @@ mod monitor;
 mod report;
 mod server;
 mod simulator;
+pub mod summary;
 
 pub use config::Config;
 pub use dns::DnsResult;

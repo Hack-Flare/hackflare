@@ -93,6 +93,14 @@ pub struct Config {
     /// DNS server port to use when self-hosting
     #[arg(long, default_value = "5454")]
     pub dns_port: u16,
+
+    /// Generate a combined markdown summary from one or more benchmark result
+    #[arg(long, num_args(1..), value_name = "DIR")]
+    pub summary: Option<Vec<PathBuf>>,
+
+    /// Output markdown file for --summary (default: summary.md)
+    #[arg(long, default_value = "summary.md")]
+    pub summary_output: PathBuf,
 }
 
 impl Config {

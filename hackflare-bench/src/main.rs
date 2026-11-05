@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use clap::Parser;
 
-use hackflare_bench::{Config, run};
+use hackflare_bench::{Config, run, summary};
 
 #[tokio::main]
 async fn main() {
@@ -14,8 +14,15 @@ async fn main() {
 
 async fn run_main() -> anyhow::Result<()> {
     let config = Config::parse();
-    let start = Instant::now();
 
+    // --summary: combine one or more result directories into a markdown report.
+    if let Some(dirs) = &config.summary {
+        summary::write_summary(dirs, config.summary_output.clone())?;
+        println!("summary written to {}", config.summary_output.display());
+        return Ok(());
+    }
+
+    let start = Instant::now();
     let report = run(config).await?;
 
     println!("benchmark complete");

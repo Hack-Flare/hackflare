@@ -1,7 +1,7 @@
 use std::net::UdpSocket;
 use std::time::Instant;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
 
@@ -13,7 +13,7 @@ const FLAG_AA: u16 = 0x0400;
 const FLAG_RA: u16 = 0x0080;
 const RCODE_MASK: u16 = 0x000F;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DnsLatencyStats {
     pub min_ms: f64,
     pub max_ms: f64,
@@ -23,7 +23,7 @@ pub struct DnsLatencyStats {
     pub p99_ms: f64,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DnsResult {
     pub server: String,
     pub users: usize,

@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
 use crate::dns::DnsResult;
@@ -13,7 +13,7 @@ const PER_SECOND_LATENCY_CAP: usize = 2_000;
 /// Maximum latency samples kept overall for percentile computation.
 const GLOBAL_LATENCY_CAP: usize = 200_000;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LatencyStats {
     pub min_ms: f64,
     pub max_ms: f64,
@@ -23,7 +23,7 @@ pub struct LatencyStats {
     pub p99_ms: f64,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RunResult {
     pub target: String,
     pub users: usize,
