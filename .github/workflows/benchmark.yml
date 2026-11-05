@@ -67,3 +67,17 @@ jobs:
           name: hackflare-bench-reports
           path: bench-results-*/
           retention-days: 30
+
+      - name: Generate combined summary
+        run: |
+          SCALE_DIRS=$(ls -d bench-results-* 2>/dev/null | tr '\n' ' ')
+          if [ -n "$SCALE_DIRS" ]; then
+            cargo run -p hackflare-bench --release -- --summary $SCALE_DIRS --summary-output summary.md
+          fi
+
+      - name: Upload benchmark summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: hackflare-bench-summary
+          path: summary.md
+          retention-days: 30
