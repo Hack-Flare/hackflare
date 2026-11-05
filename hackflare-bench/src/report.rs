@@ -56,7 +56,8 @@ fn write_line_chart(
 fn write_report(
     dir: &Path,
     result: &RunResult,
-    resources: &[ResourceSample],
+    http_resources: &[ResourceSample],
+    dns_resources: &[ResourceSample],
 ) -> anyhow::Result<Report> {
     std::fs::create_dir_all(dir)?;
 
@@ -64,37 +65,111 @@ fn write_report(
     let json = serde_json::to_string_pretty(result)?;
     std::fs::write(&json_path, json)?;
 
-    let cpu_points = to_points(resources, |s| s.cpu_percent);
-    let ram_points = to_points(resources, |s| s.ram_mb);
+    let http_cpu_points = to_points(http_resources, |s| s.cpu_percent);
+    let http_ram_points = to_points(http_resources, |s| s.ram_mb);
     let latency_points: Vec<(f64, f64)> = result.latency_over_time.clone();
 
-    let cpu_path = dir.join("cpu.svg");
-    let ram_path = dir.join("ram.svg");
+    let http_cpu_path = dir.join("http-cpu.svg");
+    let http_ram_path = dir.join("http-ram.svg");
     let throughput_path = dir.join("throughput.svg");
     let latency_path = dir.join("latency.svg");
 
-    write_line_chart(&cpu_path, "CPU Usage (%)", "%", &cpu_points)?;
-    write_line_chart(&ram_path, "RAM Usage (MiB)", "MiB", &ram_points)?;
+    write_line_chart(
+        &http_cpu_path,
+        "HTTP Phase - CPU Usage (%)",
+        "%",
+        &http_cpu_points,
+    )?;
+    write_line_chart(
+        &http_ram_path,
+        "HTTP Phase - RAM Usage (MiB)",
+        "MiB",
+        &http_ram_points,
+    )?;
     write_line_chart(
         &throughput_path,
-        "Throughput (requests / second)",
+        "HTTP Throughput (requests / second)",
         "req/s",
         &result.throughput,
     )?;
-    write_line_chart(&latency_path, "Request Latency (ms)", "ms", &latency_points)?;
+    write_line_chart(
+        &latency_path,
+        "HTTP Request Latency (ms)",
+        "ms",
+        &latency_points,
+    )?;
+
+    let mut dns_paths: Vec<(&str, PathBuf)> = Vec::new();
+    if let Some(dns) = &result.dns {
+        let dns_cpu_path = dir.join("dns-cpu.svg");
+        let dns_ram_path = dir.join("dns-ram.svg");
+        let dns_throughput_path = dir.join("dns-throughput.svg");
+        let dns_hits_path = dir.join("dns-hits.svg");
+        let dns_misses_path = dir.join("dns-misses.svg");
+        let dns_latency_path = dir.join("dns-latency.svg");
+
+        let dns_cpu_points = to_points(dns_resources, |s| s.cpu_percent);
+        let dns_ram_points = to_points(dns_resources, |s| s.ram_mb);
+
+        write_line_chart(
+            &dns_cpu_path,
+            "DNS Phase - CPU Usage (%)",
+            "%",
+            &dns_cpu_points,
+        )?;
+        write_line_chart(
+            &dns_ram_path,
+            "DNS Phase - RAM Usage (MiB)",
+            "MiB",
+            &dns_ram_points,
+        )?;
+        write_line_chart(
+            &dns_throughput_path,
+            "DNS Throughput (queries / second)",
+            "qps",
+            &dns.throughput,
+        )?;
+        write_line_chart(
+            &dns_hits_path,
+            "DNS Cache Hits / second",
+            "hits/s",
+            &dns.hits_over_time,
+        )?;
+        write_line_chart(
+            &dns_misses_path,
+            "DNS Cache Misses / second",
+            "misses/s",
+            &dns.misses_over_time,
+        )?;
+        write_line_chart(
+            &dns_latency_path,
+            "DNS Query Latency (ms)",
+            "ms",
+            &dns.latency_over_time,
+        )?;
+
+        dns_paths.push(("dns-cpu.svg", dns_cpu_path));
+        dns_paths.push(("dns-ram.svg", dns_ram_path));
+        dns_paths.push(("dns-throughput.svg", dns_throughput_path));
+        dns_paths.push(("dns-hits.svg", dns_hits_path));
+        dns_paths.push(("dns-misses.svg", dns_misses_path));
+        dns_paths.push(("dns-latency.svg", dns_latency_path));
+    }
 
     let html_path = dir.join("report.html");
     let html = render_html(
         result,
-        resources,
-        &cpu_path,
-        &ram_path,
+        http_resources,
+        dns_resources,
+        &http_cpu_path,
+        &http_ram_path,
         &throughput_path,
         &latency_path,
+        &dns_paths,
     );
     std::fs::write(&html_path, html)?;
 
-    write_webserver_run_script(&dir)?;
+    write_webserver_run_script(dir)?;
 
     Ok(Report {
         dir: dir.to_path_buf(),
@@ -103,47 +178,50 @@ fn write_report(
     })
 }
 
-fn write_webserver_run_script(
-    dir: &Path,
-) -> anyhow::Result<()> {
+fn write_webserver_run_script(dir: &Path) -> anyhow::Result<()> {
     let script_path = dir.join("webserver-run.sh");
-    let script = format!(
-        r#"#!/bin/bash
+    let script = r#"#!/bin/bash
         # Run a simple webserver for the report.html file
         # Usage: ./webserver-run.sh
         set -euo pipefail
         cd "$(dirname "$0")"
         echo "Serving report.html at http://localhost:8000"
         python3 -m http.server 8000
-"#,
-    );
+"#
+    .to_string();
     std::fs::write(&script_path, script)?;
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn render_html(
     result: &RunResult,
-    resources: &[ResourceSample],
-    cpu_path: &Path,
-    ram_path: &Path,
+    http_resources: &[ResourceSample],
+    dns_resources: &[ResourceSample],
+    http_cpu_path: &Path,
+    http_ram_path: &Path,
     throughput_path: &Path,
     latency_path: &Path,
+    dns_paths: &[(&str, PathBuf)],
 ) -> String {
-    let avg_cpu = if resources.is_empty() {
+    let avg_cpu = if http_resources.is_empty() {
         0.0
     } else {
-        resources.iter().map(|s| s.cpu_percent).sum::<f64>() / resources.len() as f64
+        http_resources.iter().map(|s| s.cpu_percent).sum::<f64>() / http_resources.len() as f64
     };
-    let max_cpu = resources
+    let max_cpu = http_resources
         .iter()
         .map(|s| s.cpu_percent)
         .fold(0.0f64, f64::max);
-    let avg_ram = if resources.is_empty() {
+    let avg_ram = if http_resources.is_empty() {
         0.0
     } else {
-        resources.iter().map(|s| s.ram_mb).sum::<f64>() / resources.len() as f64
+        http_resources.iter().map(|s| s.ram_mb).sum::<f64>() / http_resources.len() as f64
     };
-    let max_ram = resources.iter().map(|s| s.ram_mb).fold(0.0f64, f64::max);
+    let max_ram = http_resources
+        .iter()
+        .map(|s| s.ram_mb)
+        .fold(0.0f64, f64::max);
 
     let error_rate = if result.total_requests > 0 {
         result.failed_requests as f64 / result.total_requests as f64 * 100.0
@@ -151,7 +229,7 @@ fn render_html(
         0.0
     };
 
-    format!(
+    let mut html = format!(
         r#"<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -200,18 +278,13 @@ fn render_html(
 </div>
 
 <div class="row">
-  <div class="chart"><h2>CPU Usage</h2><img src="{cpu}"></div>
-  <div class="chart"><h2>RAM Usage</h2><img src="{ram}"></div>
+  <div class="chart"><h2>HTTP Phase - CPU Usage</h2><img src="{http_cpu}"></div>
+  <div class="chart"><h2>HTTP Phase - RAM Usage</h2><img src="{http_ram}"></div>
 </div>
 <div class="row">
-  <div class="chart"><h2>Throughput</h2><img src="{throughput}"></div>
-  <div class="chart"><h2>Latency Over Time</h2><img src="{latency}"></div>
-</div>
-
-<h2>Raw Data</h2>
-<p class="mono">See <span class="mono">results.json</span> for per-request and per-sample data.</p>
-</body>
-</html>"#,
+  <div class="chart"><h2>HTTP Throughput</h2><img src="{throughput}"></div>
+  <div class="chart"><h2>HTTP Latency Over Time</h2><img src="{latency}"></div>
+</div>"#,
         target = result.target,
         users = result.users,
         duration_secs = result.duration_secs,
@@ -228,29 +301,147 @@ fn render_html(
         p50 = result.latency.p50_ms,
         p95 = result.latency.p95_ms,
         p99 = result.latency.p99_ms,
-        cpu = cpu_path
-            .file_name()
-            .expect("cpu path has a name")
-            .to_string_lossy(),
-        ram = ram_path
-            .file_name()
-            .expect("ram path has a name")
-            .to_string_lossy(),
-        throughput = throughput_path
-            .file_name()
-            .expect("throughput path has a name")
-            .to_string_lossy(),
-        latency = latency_path
-            .file_name()
-            .expect("latency path has a name")
-            .to_string_lossy(),
-    )
+        http_cpu = file_name(http_cpu_path),
+        http_ram = file_name(http_ram_path),
+        throughput = file_name(throughput_path),
+        latency = file_name(latency_path),
+    );
+
+    if let Some(dns) = &result.dns {
+        let dns_error_rate = if dns.total > 0 {
+            dns.failures as f64 / dns.total as f64 * 100.0
+        } else {
+            0.0
+        };
+        let dns_avg_cpu = if dns_resources.is_empty() {
+            0.0
+        } else {
+            dns_resources.iter().map(|s| s.cpu_percent).sum::<f64>() / dns_resources.len() as f64
+        };
+        let dns_max_cpu = dns_resources
+            .iter()
+            .map(|s| s.cpu_percent)
+            .fold(0.0f64, f64::max);
+        let dns_avg_ram = if dns_resources.is_empty() {
+            0.0
+        } else {
+            dns_resources.iter().map(|s| s.ram_mb).sum::<f64>() / dns_resources.len() as f64
+        };
+        let dns_max_ram = dns_resources
+            .iter()
+            .map(|s| s.ram_mb)
+            .fold(0.0f64, f64::max);
+        html.push_str(&format!(
+            r#"
+<h2>DNS Benchmark</h2>
+<div class="meta">
+  Server: <span class="mono">{server}</span> &nbsp;|&nbsp;
+  Users: {dns_users} &nbsp;|&nbsp;
+  Duration: {dns_duration}s &nbsp;|&nbsp;
+  Hit ratio target: {dns_hit_ratio:.0}
+</div>
+<div class="summary">
+  <div class="card"><div class="label">Total Queries</div><div class="value">{dns_total}</div></div>
+  <div class="card"><div class="label">Cache Hits</div><div class="value">{dns_hits}</div></div>
+  <div class="card"><div class="label">Cache Misses</div><div class="value">{dns_misses}</div></div>
+  <div class="card"><div class="label">Failures</div><div class="value">{dns_failures}</div></div>
+  <div class="card"><div class="label">Query Error Rate</div><div class="value">{dns_error_rate:.2}%</div></div>
+  <div class="card"><div class="label">Queries / sec</div><div class="value">{dns_rps:.2}</div></div>
+  <div class="card"><div class="label">Actual Hit Ratio</div><div class="value">{dns_hit_ratio_actual:.2}</div></div>
+  <div class="card"><div class="label">Avg CPU</div><div class="value">{dns_avg_cpu:.2}%</div></div>
+  <div class="card"><div class="label">Peak CPU</div><div class="value">{dns_max_cpu:.2}%</div></div>
+  <div class="card"><div class="label">Avg RAM</div><div class="value">{dns_avg_ram:.2} MiB</div></div>
+  <div class="card"><div class="label">Peak RAM</div><div class="value">{dns_max_ram:.2} MiB</div></div>
+  <div class="card"><div class="label">Latency p50</div><div class="value">{dns_p50:.2} ms</div></div>
+  <div class="card"><div class="label">Latency p95</div><div class="value">{dns_p95:.2} ms</div></div>
+  <div class="card"><div class="label">Latency p99</div><div class="value">{dns_p99:.2} ms</div></div>
+</div>
+<div class="row">
+  <div class="chart"><h2>DNS Phase - CPU Usage</h2><img src="{dns_cpu_img}"></div>
+  <div class="chart"><h2>DNS Phase - RAM Usage</h2><img src="{dns_ram_img}"></div>
+</div>
+<div class="row">
+  <div class="chart"><h2>DNS Throughput</h2><img src="{dns_throughput_img}"></div>
+  <div class="chart"><h2>DNS Cache Hits / s</h2><img src="{dns_hits_img}"></div>
+</div>
+<div class="row">
+  <div class="chart"><h2>DNS Cache Misses / s</h2><img src="{dns_misses_img}"></div>
+  <div class="chart"><h2>DNS Latency Over Time</h2><img src="{dns_latency_img}"></div>
+</div>"#,
+            server = dns.server,
+            dns_users = dns.users,
+            dns_duration = dns.duration_secs,
+            dns_hit_ratio = dns.hit_ratio * 100.0,
+            dns_total = dns.total,
+            dns_hits = dns.hits,
+            dns_misses = dns.misses,
+            dns_failures = dns.failures,
+            dns_error_rate = dns_error_rate,
+            dns_rps = dns.requests_per_second,
+            dns_hit_ratio_actual = dns.hit_ratio,
+            dns_avg_cpu = dns_avg_cpu,
+            dns_max_cpu = dns_max_cpu,
+            dns_avg_ram = dns_avg_ram,
+            dns_max_ram = dns_max_ram,
+            dns_p50 = dns.latency.p50_ms,
+            dns_p95 = dns.latency.p95_ms,
+            dns_p99 = dns.latency.p99_ms,
+            dns_cpu_img = dns_paths
+                .iter()
+                .find(|(name, _)| *name == "dns-cpu.svg")
+                .map(|(_, p)| file_name(p))
+                .unwrap_or_default(),
+            dns_ram_img = dns_paths
+                .iter()
+                .find(|(name, _)| *name == "dns-ram.svg")
+                .map(|(_, p)| file_name(p))
+                .unwrap_or_default(),
+            dns_throughput_img = dns_paths
+                .iter()
+                .find(|(name, _)| *name == "dns-throughput.svg")
+                .map(|(_, p)| file_name(p))
+                .unwrap_or_default(),
+            dns_hits_img = dns_paths
+                .iter()
+                .find(|(name, _)| *name == "dns-hits.svg")
+                .map(|(_, p)| file_name(p))
+                .unwrap_or_default(),
+            dns_misses_img = dns_paths
+                .iter()
+                .find(|(name, _)| *name == "dns-misses.svg")
+                .map(|(_, p)| file_name(p))
+                .unwrap_or_default(),
+            dns_latency_img = dns_paths
+                .iter()
+                .find(|(name, _)| *name == "dns-latency.svg")
+                .map(|(_, p)| file_name(p))
+                .unwrap_or_default(),
+        ));
+    }
+
+    html.push_str(
+        r#"
+<h2>Raw Data</h2>
+<p class="mono">See <span class="mono">results.json</span> for per-request and per-sample data.</p>
+</body>
+</html>"#,
+    );
+
+    html
+}
+
+fn file_name(path: &Path) -> String {
+    path.file_name()
+        .expect("path has a file name")
+        .to_string_lossy()
+        .to_string()
 }
 
 pub fn write(
     dir: &Path,
     result: &RunResult,
-    resources: &[ResourceSample],
+    http_resources: &[ResourceSample],
+    dns_resources: &[ResourceSample],
 ) -> anyhow::Result<Report> {
-    write_report(dir, result, resources)
+    write_report(dir, result, http_resources, dns_resources)
 }

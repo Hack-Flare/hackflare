@@ -10,7 +10,7 @@ pub struct Server {
 }
 
 impl Server {
-    /// Spawn the binary and return a handle. 
+    /// Spawn the binary and return a handle.
     pub fn spawn(binary: &Path, port: u16, dev: bool) -> anyhow::Result<Self> {
         let mut command = std::process::Command::new(binary);
         if dev {

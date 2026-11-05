@@ -12,7 +12,11 @@ fmt-check:
 build:
 	cargo build -p hackflare-app
 
+build-release:
+  cargo build -p hackflare-app --release
+
 alias build-app := build
+alias build-app-release := build-release
 
 # Build every workspace crate.
 build-workspace:
@@ -72,26 +76,34 @@ docker-build-app:
 # Build the release binary and the bench tool, then run a self-hosted
 # benchmark against the embedded development server.
 bench:
-	just build-app
-	cargo run -p hackflare-bench -- \
+	just build-app-release
+	cargo run --release -p hackflare-bench -- \
 	--binary target/release/hackflare-app \
 	--dev \
+	--dns \
+	--dns-port 5454 \
 	--users 100 \
 	--duration-secs 60 \
 	--ramp-up-secs 10 \
+	--dns-users 100 \
+	--dns-duration-secs 60 \
 	--output-dir ./bench-results
 
 # Run benchmarks at multiple scales (10, 100, 1000 users) and keep each report.
 bench-scale:
-	just build-app
+	just build-app-release
 	@for users in 10 100 1000; do \
 	echo "=== benchmarking with $$users users ==="; \
-	cargo run -p hackflare-bench -- \
+	cargo run --release -p hackflare-bench -- \
 	--binary target/release/hackflare-app \
 	--dev \
+	--dns \
+	--dns-port 5454 \
 	--users $$users \
 	--duration-secs 60 \
 	--ramp-up-secs 10 \
+	--dns-users 100 \
+	--dns-duration-secs 60 \
 	--output-dir ./bench-results-$$users; \
 	done
 

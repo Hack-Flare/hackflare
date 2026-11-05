@@ -5,6 +5,8 @@ use std::time::Instant;
 use serde::Serialize;
 
 use crate::config::Config;
+use crate::dns::DnsResult;
+use crate::monitor::ResourceSample;
 
 /// Maximum latency samples kept per second for the latency-over-time chart.
 const PER_SECOND_LATENCY_CAP: usize = 2_000;
@@ -36,6 +38,14 @@ pub struct RunResult {
     pub throughput: Vec<(f64, f64)>,
     /// Per-second mean latency: (seconds since start, mean latency ms).
     pub latency_over_time: Vec<(f64, f64)>,
+
+    /// Server CPU/RAM samples collected during the HTTP phase.
+    pub http_resources: Vec<ResourceSample>,
+    /// Server CPU/RAM samples collected during the DNS phase.
+    pub dns_resources: Vec<ResourceSample>,
+
+    /// Optional DNS benchmark results, populated when `--dns` is enabled.
+    pub dns: Option<DnsResult>,
 }
 
 fn percentile(sorted: &[f64], p: f64) -> f64 {
@@ -207,6 +217,9 @@ pub async fn simulate(target: &str, config: &Config) -> RunResult {
         latency,
         throughput,
         latency_over_time,
+        http_resources: Vec::new(),
+        dns_resources: Vec::new(),
+        dns: None,
     }
 }
 
