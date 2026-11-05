@@ -6,3 +6,5 @@
 **.env
 
 /bench-results
+
+root.hints
