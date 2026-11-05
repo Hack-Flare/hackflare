@@ -92,18 +92,40 @@ bench:
 # Run benchmarks at multiple scales (10, 100, 1000 users) and keep each report.
 bench-scale:
 	just build-app-release
-	@for users in 10 100 1000; do \
-	echo "=== benchmarking with $$users users ==="; \
+	@echo "=== benchmarking with 10 users ==="; \
 	cargo run --release -p hackflare-bench -- \
 	--binary target/release/hackflare-app \
 	--dev \
 	--dns \
 	--dns-port 5454 \
-	--users $$users \
+	--users 10 \
 	--duration-secs 60 \
 	--ramp-up-secs 10 \
 	--dns-users 100 \
 	--dns-duration-secs 60 \
-	--output-dir ./bench-results-$$users; \
-	done
+	--output-dir ./bench-results-10; \
+	echo "=== benchmarking with 100 users ==="; \
+	cargo run --release -p hackflare-bench -- \
+	--binary target/release/hackflare-app \
+	--dev \
+	--dns \
+	--dns-port 5454 \
+	--users 100 \
+	--duration-secs 60 \
+	--ramp-up-secs 10 \
+	--dns-users 100 \
+	--dns-duration-secs 60 \
+	--output-dir ./bench-results-100; \
+	echo "=== benchmarking with 1000 users ==="; \
+	cargo run --release -p hackflare-bench -- \
+	--binary target/release/hackflare-app \
+	--dev \
+	--dns \
+	--dns-port 5454 \
+	--users 1000 \
+	--duration-secs 60 \
+	--ramp-up-secs 10 \
+	--dns-users 100 \
+	--dns-duration-secs 60 \
+	--output-dir ./bench-results-1000
 
