@@ -40,3 +40,7 @@ You shouln't think of how to stay within the rules, but rather just be good in g
 
 This is pretty open-ended but the point is to have a safe and welcoming environment for everyone.  
 There is nothing wrong with showing your point of view, but you should do it in a respectful and productive way.
+
+## Credits
+
+Adapated and Inspired by the [Hack Club Code of Conduct](https://github.com/hackclub/.github/blob/main/CODE_OF_CONDUCT.md)
