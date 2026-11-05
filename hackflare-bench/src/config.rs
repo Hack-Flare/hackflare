@@ -49,7 +49,6 @@ pub struct Config {
     pub timeout_secs: u64,
 
     // DNS benchmarking
-
     /// Also run a DNS query benchmark against a DNS server.
     #[arg(long, default_value = "false")]
     pub dns: bool,
