@@ -51,5 +51,3 @@ runs:
         echo "" >> $FILE
         echo "Triggered by **${{ github.actor }}**  on branch: ${{ github.ref_name }}" >> $FILE
         echo "Commit: ${{ github.sha }}  [View Commit](${{ github.event.head_commit.url }})" >> $FILE
-
-        cat $FILE >> $GITHUB_STEP_SUMMARY
