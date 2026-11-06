@@ -1,7 +1,3 @@
-<div align="center">
-<!-- Logo goes here in future -->
-</div>
-
 # Hackflare
 
 Cloudflare alternative, for free and open-source.  
