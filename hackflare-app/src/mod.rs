@@ -39,7 +39,8 @@ async fn start_dev_database() -> Result<(PostgreSQL, Url)> {
     postgres.setup().await?;
     postgres.start().await?;
     postgres.create_database("hackflare_dev").await?;
-    let database_url = Url::parse(&postgres.settings().url("hackflare_dev"))?;
+    let mut database_url = Url::parse(&postgres.settings().url("hackflare_dev"))?;
+    database_url.set_scheme("postgres").map_err(|()| anyhow::anyhow!("invalid scheme"))?;
     Ok((postgres, database_url))
 }
 

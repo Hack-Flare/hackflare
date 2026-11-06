@@ -56,8 +56,9 @@ impl TestCtx {
                 pg.setup().await.ok()?;
                 pg.start().await.ok()?;
                 pg.create_database("hackflare_test").await.ok()?;
-                let database_url = pg.settings().url("hackflare_test");
-                (database_url, Some(pg))
+                let mut database_url = Url::parse(&pg.settings().url("hackflare_test")).ok()?;
+                database_url.set_scheme("postgres").ok()?;
+                (database_url.to_string(), Some(pg))
             }
         };
         #[cfg(not(feature = "embedded-db"))]
