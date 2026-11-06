@@ -1,6 +1,6 @@
 //! DNS record types and resource data.
 //!
-//! These types back the in-memory zone store and are independent of the wire codec. 
+//! These types back the in-memory zone store and are independent of the wire codec.
 //! Names are stored as canonical lowercase fully qualified strings with a trailing dot.
 
 use std::fmt;
