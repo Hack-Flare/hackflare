@@ -2,7 +2,7 @@
 resolver = "3"
 members = [
     "hackflare-app",
-    "hackflare_dns",
+    "hackflare-dns",
     "hackflare-bench",
 ]
 

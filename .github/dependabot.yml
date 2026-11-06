@@ -21,7 +21,7 @@ updates:
           - "*"
 
   - package-ecosystem: cargo
-    directory: "/hackflare_dns"
+    directory: "/hackflare-dns"
     schedule:
       interval: daily
     open-pull-requests-limit: 20
