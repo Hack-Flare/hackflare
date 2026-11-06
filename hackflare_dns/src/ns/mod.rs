@@ -4,6 +4,7 @@ pub mod config;
 pub mod handler;
 pub mod persistence;
 pub mod server;
+pub mod zone;
 
 pub use authority::AuthorityStore;
 pub use config::NsConfig;

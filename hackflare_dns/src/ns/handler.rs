@@ -1,8 +1,8 @@
 use crate::dns::config::DnsConfig;
 use crate::dns::packet::{self, Edns, Header, Message, Protocol, Rcode};
+use crate::dns::rr::{RecordType, canonical_name};
 use crate::ns::NsConfig;
 use crate::ns::authority::AuthorityStore;
-use hickory_server::proto::rr::{LowerName, Name, RecordType};
 use sqlx::PgPool;
 use std::io;
 use std::net::SocketAddr;
@@ -124,7 +124,7 @@ impl DnsHandler {
         let query_name = question.map_or_else(String::new, |question| question.name.clone());
         let query_type = question.map_or_else(
             || "UNKNOWN".to_string(),
-            |question| RecordType::from(question.qtype).to_string(),
+            |question| RecordType::from_u16(question.qtype).to_string(),
         );
 
         let mut reply = HandlerReply {
@@ -173,16 +173,14 @@ impl DnsHandler {
             return reply;
         }
 
-        let Ok(mut name) = Name::from_utf8(&question.name) else {
+        if canonical_name(&question.name).is_none() {
             return reply;
-        };
-        name.set_fqdn(true);
-        let lower = LowerName::new(&name);
+        }
 
-        if self.authority.contains_zone_for(&lower).await {
+        if self.authority.contains_zone_for(&question.name).await {
             reply.zone_name = self
                 .authority
-                .find_zone_name(&lower)
+                .find_zone_name(&question.name)
                 .await
                 .unwrap_or_default();
             let response = self.authority.answer(query, src, protocol).await;

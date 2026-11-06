@@ -1,17 +1,9 @@
 use crate::DnsError;
 use crate::dns::DnsConfig;
-use crate::dns::packet::{self, Edns, Message, Protocol, Rcode};
-use crate::dns::wire::encode_name_labels_vec;
+use crate::dns::packet::{Edns, Message, Protocol, Rcode};
+use crate::dns::rr::{RData, Record, RecordType, canonical_name};
 use crate::ns::persistence::{PersistedRecord, PersistedZone, ZonePersistence};
-use hickory_server::net::runtime::TokioRuntimeProvider;
-use hickory_server::proto::op::ResponseCode;
-use hickory_server::proto::rr::{
-    LowerName, Name, RData, Record, RecordType,
-    rdata::{NS, SOA},
-};
-use hickory_server::proto::serialize::binary::{BinEncodable, BinEncoder, NameEncoding};
-use hickory_server::store::in_memory::InMemoryZoneHandler;
-use hickory_server::zone_handler::{AxfrPolicy, LookupError, LookupOptions, ZoneHandler, ZoneType};
+use crate::ns::zone::Zone;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::str::FromStr;
@@ -30,10 +22,10 @@ pub fn today_serial_base() -> u32 {
     (now.year() as u32) * 1_000_000 + now.month() * 10_000 + now.day() * 100
 }
 
-/// Provides authoritative DNS zone management using hickory-server's in-memory zones.
+/// Provides authoritative DNS zone management using the built-in in-memory zone store.
 pub struct AuthorityStore {
     config: DnsConfig,
-    pub zones: RwLock<HashMap<String, Arc<InMemoryZoneHandler<TokioRuntimeProvider>>>>,
+    pub zones: RwLock<HashMap<String, Zone>>,
     persistence: Option<Arc<dyn ZonePersistence>>,
 }
 
@@ -64,7 +56,7 @@ impl AuthorityStore {
     /// Create a new DNS zone, seeding its SOA record with the given serial.
     async fn create_zone_with_serial(&self, name: impl Into<String>, serial: u32) -> bool {
         let zone_name = Self::normalize_zone_name(&name.into());
-        let Ok(origin) = Name::from_utf8(&zone_name) else {
+        let Some(origin) = canonical_name(&zone_name) else {
             return false;
         };
 
@@ -72,33 +64,25 @@ impl AuthorityStore {
             return false;
         };
 
-        let handler = Arc::new(InMemoryZoneHandler::empty(
-            origin.clone(),
-            ZoneType::Primary,
-            AxfrPolicy::Deny,
-        ));
-
-        if !handler.upsert(soa_record, serial).await {
-            return false;
-        }
+        let mut zone = Zone::new(origin.clone(), serial);
+        zone.upsert(soa_record);
 
         // Advertise the configured nameservers at the zone apex so that
         // authoritative NS queries resolve to Hackflare's own servers.
         for ns_name in &self.config.nameservers {
-            let Ok(ns_name) = Name::from_utf8(ns_name.trim()) else {
+            let Some(ns_name) = canonical_name(ns_name) else {
                 eprintln!("[hackflare:dns] skipping invalid nameserver in config");
                 continue;
             };
-            handler
-                .upsert(
-                    Record::from_rdata(origin.clone(), self.config.soa_ttl, RData::NS(NS(ns_name))),
-                    serial,
-                )
-                .await;
+            zone.upsert(Record {
+                name: origin.clone(),
+                ttl: self.config.soa_ttl,
+                data: RData::Ns(ns_name),
+            });
         }
 
         let zone_key = zone_name.trim_end_matches('.').to_string();
-        self.zones.write().await.insert(zone_key.clone(), handler);
+        self.zones.write().await.insert(zone_key.clone(), zone);
 
         if let Some(persistence) = &self.persistence {
             let persisted = PersistedZone {
@@ -155,29 +139,40 @@ impl AuthorityStore {
         let normalized_zone = Self::normalize_zone_name(zone_name);
         let zone_key = normalized_zone.trim_end_matches('.').to_string();
 
-        let Some(handler) = self.zones.read().await.get(&zone_key).cloned() else {
-            return false;
-        };
-
         let fqdn = Self::build_fqdn(&normalized_zone, name);
-        let Ok(record_name) = Name::from_utf8(&fqdn) else {
+        let Some(record_name) = canonical_name(&fqdn) else {
             return false;
         };
 
         let Ok(record_type) = RecordType::from_str(rtype.trim()) else {
             return false;
         };
-        let Ok(rdata) = RData::try_from_str(record_type, data) else {
+        let Some(rdata) = RData::parse(record_type, data) else {
             return false;
         };
 
-        let serial = handler.serial().await;
-        let ok = handler
-            .upsert(Record::from_rdata(record_name, ttl, rdata), serial)
-            .await;
+        let record = Record {
+            name: record_name,
+            ttl,
+            data: rdata,
+        };
 
-        if ok && bump {
-            self.bump_soa_serial(&zone_key).await;
+        let (ok, serial) = {
+            let mut zones = self.zones.write().await;
+            let Some(zone) = zones.get_mut(&zone_key) else {
+                return false;
+            };
+            let ok = zone.upsert(record);
+            let serial = if ok && bump {
+                Some(zone.bump_serial(today_serial_base()))
+            } else {
+                None
+            };
+            (ok, serial)
+        };
+
+        if let Some(serial) = serial {
+            self.persist_serial(&zone_key, serial).await;
         }
 
         if ok && let Some(persistence) = &self.persistence {
@@ -202,45 +197,41 @@ impl AuthorityStore {
         let normalized_zone = Self::normalize_zone_name(zone_name);
         let zone_key = normalized_zone.trim_end_matches('.').to_string();
 
-        let Some(handler) = self.zones.read().await.get(&zone_key).cloned() else {
-            return false;
-        };
-
         let fqdn = Self::build_fqdn(&normalized_zone, name);
-        let record_name = match Name::from_utf8(&fqdn) {
-            Ok(n) => n,
-            Err(_) => return false,
+        let Some(record_name) = canonical_name(&fqdn) else {
+            return false;
         };
 
         let Ok(record_type) = RecordType::from_str(rtype.trim()) else {
             return false;
         };
 
-        // Apex NS records are managed by the authoritative server; refuse deletion
-        if record_type == RecordType::NS && fqdn == normalized_zone {
+        // Apex NS records are managed by the authoritative server; refuse deletion.
+        if record_type == RecordType::Ns && record_name == normalized_zone {
             return false;
         }
 
-        let removed = {
-            let mut records = handler.records_mut().await;
-            let before_count = records.len();
-            let target_name = LowerName::new(&record_name);
-            records
-                .retain(|key, _| !(key.name() == &target_name && key.record_type == record_type));
-            before_count != records.len()
+        let (removed, serial) = {
+            let mut zones = self.zones.write().await;
+            let Some(zone) = zones.get_mut(&zone_key) else {
+                return false;
+            };
+            let removed = zone.remove(&record_name, record_type);
+            let serial = removed.then(|| zone.bump_serial(today_serial_base()));
+            (removed, serial)
         };
 
-        if removed {
-            self.bump_soa_serial(&zone_key).await;
-            if let Some(persistence) = &self.persistence
-                && let Err(e) = persistence
-                    .delete_record(zone_name, name, rtype.trim())
-                    .await
-            {
-                eprintln!(
-                    "[hackflare:dns] failed to remove record {name} ({rtype}) from storage: {e}"
-                );
-            }
+        if let Some(serial) = serial {
+            self.persist_serial(&zone_key, serial).await;
+        }
+
+        if removed
+            && let Some(persistence) = &self.persistence
+            && let Err(e) = persistence
+                .delete_record(zone_name, name, rtype.trim())
+                .await
+        {
+            eprintln!("[hackflare:dns] failed to remove record {name} ({rtype}) from storage: {e}");
         }
 
         removed
@@ -257,71 +248,46 @@ impl AuthorityStore {
         let normalized_zone = Self::normalize_zone_name(zone_name);
         let zone_key = normalized_zone.trim_end_matches('.').to_string();
 
-        let Some(handler) = self.zones.read().await.get(&zone_key).cloned() else {
-            return false;
-        };
-
         let fqdn = Self::build_fqdn(&normalized_zone, name);
-        let Ok(record_name) = Name::from_utf8(&fqdn) else {
+        let Some(record_name) = canonical_name(&fqdn) else {
             return false;
         };
 
         let Ok(record_type) = RecordType::from_str(rtype.trim()) else {
             return false;
         };
-        let Ok(rdata) = RData::try_from_str(record_type, data) else {
+        let Some(rdata) = RData::parse(record_type, data) else {
             return false;
         };
 
         // Apex NS records are managed by the authoritative server; refuse deletion.
-        if record_type == RecordType::NS && fqdn == normalized_zone {
+        if record_type == RecordType::Ns && record_name == normalized_zone {
             return false;
         }
 
-        let target = Record::from_rdata(record_name.clone(), 0, rdata);
-        let target_name = LowerName::new(&record_name);
-        let serial = handler.serial().await;
-
-        let removed = {
-            let mut records = handler.records_mut().await;
-            let key = records
-                .keys()
-                .find(|k| k.name() == &target_name && k.record_type == record_type)
-                .cloned();
-
-            let Some(key) = key else {
+        let (removed, serial) = {
+            let mut zones = self.zones.write().await;
+            let Some(zone) = zones.get_mut(&zone_key) else {
                 return false;
             };
-
-            let Some(current) = records.get(&key).cloned() else {
-                return false;
-            };
-
-            // Clone the RecordSet out of the Arc so we can drop a single value.
-            let mut new_set = Arc::try_unwrap(current).unwrap_or_else(|arc| (*arc).clone());
-            if !new_set.remove(&target, serial) {
-                return false;
-            }
-
-            if new_set.is_empty() {
-                records.remove(&key).is_some()
-            } else {
-                records.insert(key, Arc::new(new_set));
-                true
-            }
+            let removed = zone.remove_value(&record_name, record_type, &rdata);
+            let serial = removed.then(|| zone.bump_serial(today_serial_base()));
+            (removed, serial)
         };
 
-        if removed {
-            self.bump_soa_serial(&zone_key).await;
-            if let Some(persistence) = &self.persistence
-                && let Err(e) = persistence
-                    .delete_record_value(zone_name, name, rtype.trim(), data)
-                    .await
-            {
-                eprintln!(
-                    "[hackflare:dns] failed to remove record {name} ({rtype}) value from storage: {e}"
-                );
-            }
+        if let Some(serial) = serial {
+            self.persist_serial(&zone_key, serial).await;
+        }
+
+        if removed
+            && let Some(persistence) = &self.persistence
+            && let Err(e) = persistence
+                .delete_record_value(zone_name, name, rtype.trim(), data)
+                .await
+        {
+            eprintln!(
+                "[hackflare:dns] failed to remove record {name} ({rtype}) value from storage: {e}"
+            );
         }
 
         removed
@@ -333,25 +299,19 @@ impl AuthorityStore {
     }
 
     /// Check if a zone exists for the given name.
-    pub async fn contains_zone_for(&self, name: &LowerName) -> bool {
+    pub async fn contains_zone_for(&self, name: &str) -> bool {
+        let Some(name) = canonical_name(name) else {
+            return false;
+        };
         let zones = self.zones.read().await;
-        find_zone(&zones, name).is_some()
+        find_zone_key(&zones, &name).is_some()
     }
 
     /// Return the zone name that best matches the given name, if any.
-    pub async fn find_zone_name(&self, name: &LowerName) -> Option<String> {
+    pub async fn find_zone_name(&self, name: &str) -> Option<String> {
+        let name = canonical_name(name)?;
         let zones = self.zones.read().await;
-        let mut current = name.clone();
-        loop {
-            let key = current.to_utf8().trim_end_matches('.').to_string();
-            if zones.contains_key(&key) {
-                return Some(key);
-            }
-            if current.is_root() {
-                return None;
-            }
-            current = current.base_name();
-        }
+        find_zone_key(&zones, &name)
     }
 
     /// Load all zones from persistence storage.
@@ -386,33 +346,16 @@ impl AuthorityStore {
 
     // === Helper Methods ===
 
-    /// Increment a zone's SOA serial and persist the new value.
-    ///
-    /// The new serial is stamped with the current UTC date and is always
-    /// greater than the previous serial: `max(current + 1, today_serial_base())`.
-    /// This keeps secondaries in sync while avoiding serial collapse on a new day.
-    async fn bump_soa_serial(&self, zone_key: &str) -> Option<u32> {
-        let handler = self.zones.read().await.get(zone_key)?.clone();
-        let current = handler.serial().await;
-        let new_serial = current.saturating_add(1).max(today_serial_base());
-
-        let origin: Name = handler.origin().clone().into();
-        // Replace the SOA record; hickory accepts the update because the new
-        // serial is strictly greater than the existing one.
-        let soa_record = self.build_soa_record(&origin, new_serial)?;
-        if !handler.upsert(soa_record, new_serial).await {
-            return None;
-        }
-
-        if let Some(persistence) = &self.persistence
-            && let Err(e) = persistence.update_zone_serial(zone_key, new_serial).await
-        {
+    /// Persist a zone's new SOA serial after an in-memory mutation.
+    async fn persist_serial(&self, zone_key: &str, serial: u32) {
+        let Some(persistence) = &self.persistence else {
+            return;
+        };
+        if let Err(e) = persistence.update_zone_serial(zone_key, serial).await {
             eprintln!(
-                "[hackflare:dns] failed to persist SOA serial {new_serial} for zone {zone_key}: {e}"
+                "[hackflare:dns] failed to persist SOA serial {serial} for zone {zone_key}: {e}"
             );
         }
-
-        Some(new_serial)
     }
 
     /// Normalize zone name (lowercase, trailing dot).
@@ -439,120 +382,46 @@ impl AuthorityStore {
     }
 
     // Build a default SOA record for a zone with the given serial.
-    #[allow(clippy::cast_possible_wrap)]
-    fn build_soa_record(&self, origin: &Name, serial: u32) -> Option<Record> {
-        let mname = Name::from_utf8(&self.config.soa_mname).ok()?;
-        let rname = Name::from_utf8(&self.config.soa_rname).ok()?;
+    fn build_soa_record(&self, origin: &str, serial: u32) -> Option<Record> {
+        let mname = canonical_name(&self.config.soa_mname)?;
+        let rname = canonical_name(&self.config.soa_rname)?;
 
-        let soa = SOA::new(
-            mname,
-            rname,
-            serial,
-            self.config.soa_refresh as i32,
-            self.config.soa_retry as i32,
-            self.config.soa_expire as i32,
-            self.config.soa_minimum,
-        );
-
-        Some(Record::from_rdata(
-            origin.clone(),
-            self.config.soa_ttl,
-            RData::SOA(soa),
-        ))
+        Some(Record {
+            name: origin.to_string(),
+            ttl: self.config.soa_ttl,
+            data: RData::Soa {
+                mname,
+                rname,
+                serial,
+                refresh: self.config.soa_refresh,
+                retry: self.config.soa_retry,
+                expire: self.config.soa_expire,
+                minimum: self.config.soa_minimum,
+            },
+        })
     }
 }
 
 // Zone lookup & query handling
 
-/// Find the best-matching zone handler by walking parent suffixes.
-pub fn find_zone(
-    zones: &HashMap<String, Arc<InMemoryZoneHandler<TokioRuntimeProvider>>>,
-    name: &LowerName,
-) -> Option<Arc<InMemoryZoneHandler<TokioRuntimeProvider>>> {
-    let mut current = name.clone();
+/// Find the best-matching zone for a canonical name.
+#[must_use]
+pub fn find_zone<'a>(zones: &'a HashMap<String, Zone>, name: &str) -> Option<&'a Zone> {
+    let key = find_zone_key(zones, name)?;
+    zones.get(&key)
+}
+
+fn find_zone_key(zones: &HashMap<String, Zone>, name: &str) -> Option<String> {
+    let mut current = name.trim_end_matches('.').to_string();
     loop {
-        let key = current.to_utf8().trim_end_matches('.').to_string();
-        if let Some(handler) = zones.get(&key) {
-            return Some(handler.clone());
+        if zones.contains_key(&current) {
+            return Some(current);
         }
-        if current.is_root() {
+        let (_, suffix) = current.split_once('.')?;
+        if suffix.is_empty() {
             return None;
         }
-        current = current.base_name();
-    }
-}
-
-/// Encode RDATA for records stored in the authoritative zone.
-fn encode_rdata(data: &RData) -> Vec<u8> {
-    match data {
-        RData::A(address) => address.0.octets().to_vec(),
-        RData::AAAA(address) => address.0.octets().to_vec(),
-        RData::NS(name) => encode_name_labels_vec(&name.0.to_utf8()),
-        RData::CNAME(name) => encode_name_labels_vec(&name.0.to_utf8()),
-        RData::PTR(name) => encode_name_labels_vec(&name.0.to_utf8()),
-        RData::ANAME(name) => encode_name_labels_vec(&name.0.to_utf8()),
-        RData::MX(mx) => {
-            let mut out = mx.preference.to_be_bytes().to_vec();
-            out.extend_from_slice(&encode_name_labels_vec(&mx.exchange.to_utf8()));
-            out
-        }
-        RData::TXT(txt) => {
-            let mut out = Vec::new();
-            for value in &txt.txt_data {
-                let len = value.len().min(usize::from(u8::MAX));
-                out.push(len as u8);
-                out.extend_from_slice(&value[..len]);
-            }
-            out
-        }
-        RData::SOA(soa) => {
-            let mut out = encode_name_labels_vec(&soa.mname.to_utf8());
-            out.extend_from_slice(&encode_name_labels_vec(&soa.rname.to_utf8()));
-            out.extend_from_slice(&soa.serial.to_be_bytes());
-            out.extend_from_slice(&soa.refresh.to_be_bytes());
-            out.extend_from_slice(&soa.retry.to_be_bytes());
-            out.extend_from_slice(&soa.expire.to_be_bytes());
-            out.extend_from_slice(&soa.minimum.to_be_bytes());
-            out
-        }
-        RData::SRV(srv) => {
-            let mut out = srv.priority.to_be_bytes().to_vec();
-            out.extend_from_slice(&srv.weight.to_be_bytes());
-            out.extend_from_slice(&srv.port.to_be_bytes());
-            out.extend_from_slice(&encode_name_labels_vec(&srv.target.to_utf8()));
-            out
-        }
-        RData::CAA(caa) => {
-            let mut out = Vec::with_capacity(2 + caa.tag.len() + caa.value.len());
-            let flags = u8::from(caa.issuer_critical) << 7;
-            out.push(flags | caa.reserved_flags);
-            out.push(caa.tag.len().min(usize::from(u8::MAX)) as u8);
-            out.extend_from_slice(&caa.tag.as_bytes()[..caa.tag.len().min(usize::from(u8::MAX))]);
-            out.extend_from_slice(&caa.value);
-            out
-        }
-        other => {
-            let mut buffer = Vec::new();
-            let mut encoder = BinEncoder::new(&mut buffer);
-            encoder.set_name_encoding(NameEncoding::Uncompressed);
-            if other.emit(&mut encoder).is_ok() {
-                buffer
-            } else {
-                Vec::new()
-            }
-        }
-    }
-}
-
-/// Convert a hickory resource record into a wire record with uncompressed RDATA.
-fn record_to_wire(record: &Record) -> packet::Record {
-    packet::Record {
-        name: record.name.to_utf8(),
-        rtype: u16::from(record.record_type()),
-        class: u16::from(record.dns_class),
-        ttl: record.ttl,
-        rdata: encode_rdata(&record.data),
-        rdata_offset: 0,
+        current = suffix.to_string();
     }
 }
 
@@ -573,66 +442,6 @@ fn error_response(
     response
 }
 
-/// Build a response message for an authoritative zone lookup.
-pub fn build_auth_response(
-    result: Option<Result<hickory_server::zone_handler::AuthLookup, LookupError>>,
-    query: &Message,
-    recursion_available: bool,
-    server_payload_size: u16,
-) -> Message {
-    let mut response = Message::response_to(query);
-    response.header.set_authoritative(true);
-    response.header.set_recursion_available(recursion_available);
-    response.edns = query
-        .edns
-        .as_ref()
-        .map(|edns| Edns::response_to(edns, server_payload_size));
-
-    let Some(result) = result else {
-        response.header.set_rcode(Rcode::ServFail);
-        return response;
-    };
-
-    match result {
-        Ok(mut auth_lookup) => {
-            response.header.set_rcode(Rcode::NoError);
-            if let Some(adds) = auth_lookup.take_additionals() {
-                response.additionals.extend(adds.iter().map(record_to_wire));
-            }
-
-            let question = query.questions.first();
-            let is_referral = auth_lookup.iter().next().is_some_and(|record| {
-                record.record_type() == RecordType::NS
-                    && question.is_some_and(|question| {
-                        question.qtype != packet::TYPE_NS && question.qtype != packet::TYPE_ANY
-                    })
-            });
-
-            let records: Vec<packet::Record> = auth_lookup.iter().map(record_to_wire).collect();
-            if is_referral {
-                response.authorities.extend(records);
-            } else {
-                response.answers.extend(records);
-            }
-            response
-        }
-        Err(error) => {
-            if error.is_nx_domain() {
-                response.header.set_rcode(Rcode::NxDomain);
-            } else if let LookupError::ResponseCode(code) = &error
-                && (*code == ResponseCode::Refused || *code == ResponseCode::NotAuth)
-            {
-                response
-                    .header
-                    .set_rcode(Rcode::from_u8(u16::from(*code) as u8));
-            } else {
-                response.header.set_rcode(Rcode::NoError);
-            }
-            response
-        }
-    }
-}
-
 impl AuthorityStore {
     /// Answer an authoritative query, including zone transfers.
     pub async fn answer(&self, query: &Message, src: SocketAddr, protocol: Protocol) -> Message {
@@ -645,7 +454,7 @@ impl AuthorityStore {
             );
         };
 
-        let Ok(mut query_name) = Name::from_utf8(&question.name) else {
+        let Some(query_name) = canonical_name(&question.name) else {
             return error_response(
                 query,
                 Rcode::FormErr,
@@ -653,15 +462,11 @@ impl AuthorityStore {
                 self.config.max_edns_payload_size,
             );
         };
-        query_name.set_fqdn(true);
-        let query_name = LowerName::new(&query_name);
 
-        let handler = {
-            let zones = self.zones.read().await;
-            find_zone(&zones, &query_name)
-        };
+        let qtype = RecordType::from_u16(question.qtype);
+        let zones = self.zones.read().await;
 
-        let Some(handler) = handler else {
+        let Some(zone) = find_zone(&zones, &query_name) else {
             return error_response(
                 query,
                 Rcode::Refused,
@@ -670,7 +475,7 @@ impl AuthorityStore {
             );
         };
 
-        if matches!(question.qtype, packet::TYPE_AXFR | packet::TYPE_IXFR) {
+        if matches!(qtype, RecordType::Axfr | RecordType::Ixfr) {
             if protocol != Protocol::Tcp || !self.config.transfer_allow.contains(&src.ip()) {
                 return error_response(
                     query,
@@ -682,16 +487,9 @@ impl AuthorityStore {
 
             // IXFR history is not retained yet, so RFC-compliant fallback is a full AXFR.
             // Transfer responses are returned as one TCP message.
-            let mut records = Vec::new();
-            {
-                let sets = handler.records().await;
-                for set in sets.values() {
-                    records.extend(set.records_without_rrsigs().cloned());
-                }
-            }
-            let soa = records
-                .iter()
-                .find(|record| record.record_type() == RecordType::SOA)
+            let soa = zone
+                .all_records()
+                .find(|record| record.record_type() == RecordType::Soa)
                 .cloned();
             let Some(soa) = soa else {
                 return error_response(
@@ -701,7 +499,11 @@ impl AuthorityStore {
                     self.config.max_edns_payload_size,
                 );
             };
-            records.retain(|record| record.record_type() != RecordType::SOA);
+
+            let mut records: Vec<&Record> = zone
+                .all_records()
+                .filter(|record| record.record_type() != RecordType::Soa)
+                .collect();
             records.sort_by(|a, b| {
                 a.name
                     .cmp(&b.name)
@@ -709,9 +511,9 @@ impl AuthorityStore {
             });
 
             let mut answers = Vec::with_capacity(records.len() + 2);
-            answers.push(record_to_wire(&soa));
-            answers.extend(records.iter().map(record_to_wire));
-            answers.push(record_to_wire(&soa));
+            answers.push(soa.to_wire());
+            answers.extend(records.iter().map(|record| record.to_wire()));
+            answers.push(soa.to_wire());
 
             let mut response = Message::response_to(query);
             response.header.set_authoritative(true);
@@ -727,28 +529,48 @@ impl AuthorityStore {
             return response;
         }
 
-        let mut lookup_options = LookupOptions::default();
-        lookup_options.dnssec_ok = query
-            .edns
-            .as_ref()
-            .is_some_and(|edns| edns.flags & 0x8000 != 0);
-
-        let record_type = RecordType::from(question.qtype);
-        let control_flow = if record_type == RecordType::SOA {
-            handler
-                .lookup(handler.origin(), record_type, None, lookup_options)
-                .await
+        let lookup = if qtype == RecordType::Soa {
+            zone.lookup(zone.origin(), RecordType::Soa)
         } else {
-            handler
-                .lookup(&query_name, record_type, None, lookup_options)
-                .await
+            zone.lookup(&query_name, qtype)
         };
 
-        build_auth_response(
-            control_flow.map_result(),
-            query,
-            self.config.recursion_enabled,
-            self.config.max_edns_payload_size,
-        )
+        let mut response = Message::response_to(query);
+        response.header.set_authoritative(true);
+        response
+            .header
+            .set_recursion_available(self.config.recursion_enabled);
+        response.edns = query
+            .edns
+            .as_ref()
+            .map(|edns| Edns::response_to(edns, self.config.max_edns_payload_size));
+
+        if lookup.nx_domain {
+            response.header.set_rcode(Rcode::NxDomain);
+            return response;
+        }
+
+        response.header.set_rcode(Rcode::NoError);
+        response
+            .additionals
+            .extend(lookup.additionals.iter().map(Record::to_wire));
+
+        let is_referral = lookup.records.first().is_some_and(|record| {
+            record.record_type() == RecordType::Ns
+                && qtype != RecordType::Ns
+                && qtype != RecordType::Any
+        });
+
+        if is_referral {
+            response
+                .authorities
+                .extend(lookup.records.iter().map(Record::to_wire));
+        } else {
+            response
+                .answers
+                .extend(lookup.records.iter().map(Record::to_wire));
+        }
+
+        response
     }
 }

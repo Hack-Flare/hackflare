@@ -4,28 +4,60 @@ use hackflare_dns::ns::authority::*;
 
 use hackflare_dns::dns::config::DnsConfig;
 use hackflare_dns::dns::packet::{self, Message, Rcode};
+use hackflare_dns::dns::rr::{Record, RecordType};
 use hackflare_dns::ns::persistence::{
     MemoryPersistence, PersistedRecord, PersistedZone, ZonePersistence,
 };
-use hickory_server::proto::rr::{LowerName, Name, RecordType};
-use hickory_server::zone_handler::{LookupOptions, ZoneHandler};
 use std::sync::Arc;
 
-#[test]
-fn build_auth_response_marks_recursion_when_enabled() {
-    let query = Message::query(7, "example.com", packet::TYPE_A);
-    let message = build_auth_response(None, &query, true, 1232);
-    assert!(message.header.authoritative());
-    assert!(message.header.recursion_available());
-    assert_eq!(message.header.rcode(), Rcode::ServFail);
+async fn zone_records(store: &AuthorityStore, zone_name: &str) -> Vec<Record> {
+    let zones = store.zones.read().await;
+    zones
+        .get(zone_name)
+        .map(|zone| zone.all_records().cloned().collect())
+        .unwrap_or_default()
 }
 
-#[test]
-fn build_auth_response_omits_recursion_when_disabled() {
-    let query = Message::query(7, "example.com", packet::TYPE_A);
-    let message = build_auth_response(None, &query, false, 1232);
-    assert!(message.header.authoritative());
-    assert!(!message.header.recursion_available());
+#[tokio::test]
+async fn answer_marks_recursion_when_enabled() {
+    let mut config = DnsConfig::default_config();
+    config.recursion_enabled = true;
+    let store = AuthorityStore::new(config);
+    store.create_zone("example.com").await;
+    store
+        .add_record("example.com", "www", "A", 300, "192.0.2.1")
+        .await;
+
+    let query = Message::query(7, "www.example.com", packet::TYPE_A);
+    let response = store
+        .answer(
+            &query,
+            "127.0.0.1:5300".parse().unwrap(),
+            packet::Protocol::Udp,
+        )
+        .await;
+
+    assert!(response.header.authoritative());
+    assert!(response.header.recursion_available());
+    assert_eq!(response.header.rcode(), Rcode::NoError);
+}
+
+#[tokio::test]
+async fn answer_omits_recursion_when_disabled() {
+    let store = AuthorityStore::new(DnsConfig::default_config());
+    store.create_zone("example.com").await;
+
+    let query = Message::query(7, "www.example.com", packet::TYPE_A);
+    let response = store
+        .answer(
+            &query,
+            "127.0.0.1:5300".parse().unwrap(),
+            packet::Protocol::Udp,
+        )
+        .await;
+
+    assert!(response.header.authoritative());
+    assert!(!response.header.recursion_available());
 }
 
 #[tokio::test]
@@ -119,8 +151,22 @@ async fn add_record_allows_multiple_values_same_name_type() {
             .await
     );
 
-    let zones = store.list_zones().await;
-    assert!(zones.contains(&"example.com".to_string()));
+    let records = zone_records(&store, "example.com").await;
+    let www_a: Vec<String> = records
+        .iter()
+        .filter(|record| record.name == "www.example.com." && record.record_type() == RecordType::A)
+        .map(|record| record.data.to_string())
+        .collect();
+    assert_eq!(www_a.len(), 2);
+
+    let txt: Vec<String> = records
+        .iter()
+        .filter(|record| {
+            record.name == "_acme-challenge.example.com." && record.record_type() == RecordType::Txt
+        })
+        .map(|record| record.data.to_string())
+        .collect();
+    assert_eq!(txt.len(), 2);
 }
 
 #[tokio::test]
@@ -190,30 +236,28 @@ async fn remove_record_value_removes_only_matching_value() {
         .await;
     assert!(result);
 
-    // The other value remains unpublished/queryable.
-    let name = LowerName::new(&Name::from_utf8("www.example.com.").unwrap());
-    {
-        let handler =
-            find_zone(&*store.zones.read().await, &name).expect("example.com handler exists");
-        let records = handler.records().await;
-        let mut remaining: Vec<String> = records
-            .values()
-            .flat_map(|set| {
-                set.records_without_rrsigs()
-                    .map(|r| r.data.to_string())
-                    .collect::<Vec<_>>()
-            })
-            .filter(|d| d.contains("192.168.1."))
-            .collect();
-        remaining.sort();
-        assert_eq!(remaining, vec!["192.168.1.2"]);
-    }
+    // The other value remains published and queryable.
+    let records = zone_records(&store, "example.com").await;
+    let mut remaining: Vec<String> = records
+        .iter()
+        .filter(|record| record.name == "www.example.com.")
+        .map(|record| record.data.to_string())
+        .collect();
+    remaining.sort();
+    assert_eq!(remaining, vec!["192.168.1.2"]);
 
     // Removing the other value as well empties the RRset.
     let result = store
         .remove_record_value("example.com", "www", "A", "192.168.1.2")
         .await;
     assert!(result);
+
+    let records = zone_records(&store, "example.com").await;
+    assert!(
+        !records
+            .iter()
+            .any(|record| record.name == "www.example.com.")
+    );
 }
 
 #[tokio::test]
@@ -236,17 +280,11 @@ async fn remove_record_value_succeeds_for_acme_challenge_duplicates() {
             .await
     );
 
-    let name = LowerName::new(&Name::from_utf8("_acme-challenge.example.com.").unwrap());
-    let handler = find_zone(&*store.zones.read().await, &name).expect("handler exists");
-    let records = handler.records().await;
+    let records = zone_records(&store, "example.com").await;
     let remaining: Vec<String> = records
-        .values()
-        .flat_map(|set| {
-            set.records_without_rrsigs()
-                .map(|r| r.data.to_string())
-                .collect::<Vec<_>>()
-        })
-        .filter(|d| d.contains("challenge"))
+        .iter()
+        .filter(|record| record.name == "_acme-challenge.example.com.")
+        .map(|record| record.data.to_string())
         .collect();
     assert_eq!(remaining, vec!["challenge-two"]);
 }
@@ -306,8 +344,7 @@ async fn contains_zone_for_returns_true_for_existing_zone() {
 
     store.create_zone("example.com").await;
 
-    let name = LowerName::new(&Name::from_utf8("example.com.").unwrap());
-    assert!(store.contains_zone_for(&name).await);
+    assert!(store.contains_zone_for("example.com.").await);
 }
 
 #[tokio::test]
@@ -315,8 +352,7 @@ async fn contains_zone_for_returns_false_for_missing_zone() {
     let config = DnsConfig::default_config();
     let store = AuthorityStore::new(config);
 
-    let name = LowerName::new(&Name::from_utf8("nonexistent.com.").unwrap());
-    assert!(!store.contains_zone_for(&name).await);
+    assert!(!store.contains_zone_for("nonexistent.com.").await);
 }
 
 #[tokio::test]
@@ -325,17 +361,11 @@ async fn create_zone_adds_apex_ns_records() {
     let store = AuthorityStore::new(config.clone());
     store.create_zone("example.com").await;
 
-    let handler = store.zones.read().await.get("example.com").unwrap().clone();
-    let records = handler.records().await;
-    let apex = Name::from_utf8("example.com.").unwrap();
+    let records = zone_records(&store, "example.com").await;
     let mut apex_ns: Vec<String> = records
-        .values()
-        .filter(|set| set.record_type() == RecordType::NS && set.name() == &apex)
-        .flat_map(|set| {
-            set.records_without_rrsigs()
-                .map(|r| r.data.to_string())
-                .collect::<Vec<_>>()
-        })
+        .iter()
+        .filter(|record| record.name == "example.com." && record.record_type() == RecordType::Ns)
+        .map(|record| record.data.to_string())
         .collect();
     apex_ns.sort();
     assert_eq!(
@@ -353,15 +383,14 @@ async fn apex_ns_records_resolve_on_lookup() {
     let store = AuthorityStore::new(config);
     store.create_zone("example.com").await;
 
-    let handler = store.zones.read().await.get("example.com").unwrap().clone();
-    let apex = LowerName::new(&Name::from_utf8("example.com.").unwrap());
-    let lookup = handler
-        .lookup(&apex, RecordType::NS, None, LookupOptions::default())
-        .await
-        .map_result()
-        .unwrap()
-        .unwrap();
-    let mut served: Vec<String> = lookup.iter().map(|r| r.data.to_string()).collect();
+    let zones = store.zones.read().await;
+    let zone = zones.get("example.com").unwrap();
+    let lookup = zone.lookup("example.com.", RecordType::Ns);
+    let mut served: Vec<String> = lookup
+        .records
+        .iter()
+        .map(|record| record.data.to_string())
+        .collect();
     served.sort();
     assert_eq!(
         served,
@@ -407,17 +436,11 @@ async fn load_zones_from_storage_readds_apex_ns() {
     let store = AuthorityStore::with_persistence(DnsConfig::default_config(), persistence);
     store.load_zones_from_storage().await.unwrap();
 
-    let handler = store.zones.read().await.get("example.com").unwrap().clone();
-    let apex = Name::from_utf8("example.com.").unwrap();
-    let records = handler.records().await;
+    let records = zone_records(&store, "example.com").await;
     let apex_ns: Vec<String> = records
-        .values()
-        .filter(|set| set.record_type() == RecordType::NS && set.name() == &apex)
-        .flat_map(|set| {
-            set.records_without_rrsigs()
-                .map(|r| r.data.to_string())
-                .collect::<Vec<_>>()
-        })
+        .iter()
+        .filter(|record| record.name == "example.com." && record.record_type() == RecordType::Ns)
+        .map(|record| record.data.to_string())
         .collect();
     assert_eq!(apex_ns.len(), 2);
 }
@@ -428,8 +451,11 @@ async fn serial_starts_at_todays_base_on_zone_creation() {
     let store = AuthorityStore::new(config);
     store.create_zone("example.com").await;
 
-    let handler = store.zones.read().await.get("example.com").unwrap().clone();
-    assert_eq!(handler.serial().await, today_serial_base());
+    let zones = store.zones.read().await;
+    assert_eq!(
+        zones.get("example.com").unwrap().serial(),
+        today_serial_base()
+    );
 }
 
 #[tokio::test]
@@ -439,8 +465,8 @@ async fn serial_increments_on_add_and_remove() {
     store.create_zone("example.com").await;
 
     let serial = || async {
-        let handler = store.zones.read().await.get("example.com").unwrap().clone();
-        handler.serial().await
+        let zones = store.zones.read().await;
+        zones.get("example.com").unwrap().serial()
     };
 
     assert!(
@@ -468,8 +494,8 @@ async fn serial_increments_on_single_value_removal() {
         .await;
 
     let serial = || async {
-        let handler = store.zones.read().await.get("example.com").unwrap().clone();
-        handler.serial().await
+        let zones = store.zones.read().await;
+        zones.get("example.com").unwrap().serial()
     };
 
     let before = serial().await;
@@ -508,8 +534,9 @@ async fn load_zones_from_storage_restores_serial_without_bumping() {
     let store = AuthorityStore::with_persistence(DnsConfig::default_config(), persistence.clone());
     store.load_zones_from_storage().await.unwrap();
 
-    let handler = store.zones.read().await.get("example.com").unwrap().clone();
-    assert_eq!(handler.serial().await, stored_serial);
+    let zones = store.zones.read().await;
+    assert_eq!(zones.get("example.com").unwrap().serial(), stored_serial);
+    drop(zones);
 
     // a subsequent mutation bumps from the restored value, never below today's date
     assert!(
@@ -517,10 +544,12 @@ async fn load_zones_from_storage_restores_serial_without_bumping() {
             .add_record("example.com", "api", "A", 300, "192.168.1.2")
             .await
     );
+    let zones = store.zones.read().await;
     assert_eq!(
-        handler.serial().await,
+        zones.get("example.com").unwrap().serial(),
         stored_serial.saturating_add(1).max(today_serial_base())
     );
+    drop(zones);
 
     let persisted = persistence.load_zone("example.com").await.unwrap().unwrap();
     assert_eq!(
