@@ -5,8 +5,8 @@ services:
     env_file:
       - ../.env
     ports:
-      - "53:5353/udp"
-      - "53:5353/tcp"
+      - "53:5353/udp" # Change to 53:53/udp for default DNS port
+      - "53:5353/tcp" # Change to 53:53/tcp for default DNS port
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
       interval: 30s
