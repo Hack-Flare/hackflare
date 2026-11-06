@@ -57,6 +57,7 @@ Run from the repository root:
 
 - `hackflare-app/` - merged HTTP API and Rust SSR frontend
 - `hackflare_dns/` - DNS server library
+- `hackflare-bench/` - Benchmarking tool
 - `docs/` - project documentation
 
 Read the relevant crate's source before relying on documentation for implementation details.
