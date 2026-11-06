@@ -22,6 +22,7 @@ pub struct User {
     pub hca_access_token: String,
     pub hca_refresh_token: String,
     pub hca_token_expires_at: DateTime<Utc>,
+    pub is_admin: bool,
 }
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]

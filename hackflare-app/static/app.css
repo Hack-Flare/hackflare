@@ -3703,3 +3703,10 @@ select.input option {
     height: 62px;
   }
 }
+
+.admin-add-card { margin-bottom: 1rem; }
+.admin-users-head { grid-template-columns: minmax(8rem, 1fr) minmax(10rem, 1.4fr) auto auto; }
+.admin-zones-head { grid-template-columns: minmax(8rem, 1fr) minmax(10rem, 1.4fr) auto; }
+.admin-user-actions { justify-self: end; }
+.admin-user-actions form { margin: 0; }
+.status-pill-admin { background: color-mix(in oklab, var(--color-flame) 14%, transparent); color: var(--color-flame); border-color: color-mix(in oklab, var(--color-flame) 40%, transparent); }

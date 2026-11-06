@@ -95,6 +95,7 @@ pub struct AdminUser {
     pub last_name: String,
     pub status: String,
     pub created_at: String,
+    pub is_admin: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

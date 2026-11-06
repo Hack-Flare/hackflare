@@ -87,6 +87,7 @@ pub async fn require_user(
         return Err(Redirect::to("/login"));
     };
     let email = user.email.clone();
+    let is_admin = crate::api::middlewares::admin::is_admin_user(&user, &state.config);
     Ok(crate::frontend::models::AuthenticatedUser {
         id: user.id,
         first_name: user.first_name,
@@ -94,7 +95,7 @@ pub async fn require_user(
         email,
         eligible: user.ysws_eligible,
         has_password: user.password_hash.is_some(),
-        is_admin: state.config.admin_emails.iter().any(|email| email == &user.email),
+        is_admin,
         created_at: user.created_at.to_rfc3339(),
     })
 }
@@ -161,7 +162,7 @@ pub async fn public_header(state: &AppState, headers: &HeaderMap) -> PublicHeade
         display_name,
         email: user.email.clone(),
         initials,
-        is_admin: state.config.admin_emails.iter().any(|email| email == &user.email),
+        is_admin: crate::api::middlewares::admin::is_admin_user(&user, &state.config),
     }
 }
 

@@ -4,7 +4,7 @@ use axum::{
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 
-use crate::{middlewares::auth_middleware, models::CurrentUser, state::AppState};
+use crate::{api::middlewares::admin::is_admin_user, middlewares::auth_middleware, models::CurrentUser, state::AppState};
 
 #[derive(Serialize)]
 struct Me {
@@ -23,7 +23,7 @@ async fn me_handler(
     Extension(current_user): Extension<CurrentUser>,
 ) -> impl IntoResponse {
     let user = current_user.user;
-    let is_admin = state.config.admin_emails.iter().any(|e| e == &user.email);
+    let is_admin = is_admin_user(&user, &state.config);
     Json(Me {
         id: user.id,
         first_name: user.first_name,

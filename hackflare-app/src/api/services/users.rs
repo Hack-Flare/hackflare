@@ -87,4 +87,15 @@ impl UsersService {
 
         Ok(user)
     }
+
+    pub(crate) async fn set_admin_by_email(&self, email: &str, is_admin: bool) -> Result<bool> {
+        let result = query(
+            "UPDATE users SET is_admin = $1, updated_at = NOW() WHERE lower(email) = lower($2)",
+        )
+        .bind(is_admin)
+        .bind(email.trim())
+        .execute(&self.db)
+        .await?;
+        Ok(result.rows_affected() > 0)
+    }
 }

@@ -193,9 +193,9 @@ async fn fetch_admin_stats(state: &AppState) -> Option<AdminStats> {
 
 /// Every registered account, newest first. Mirrors `/api/v1/admin/users`.
 async fn fetch_admin_users(state: &AppState) -> Vec<AdminUser> {
-    sqlx::query_as::<_, (String, String, String, String, String)>(
+    sqlx::query_as::<_, (String, String, String, String, String, bool)>(
         r#"
-        SELECT id, email, first_name, last_name, verification_status
+        SELECT id, email, first_name, last_name, verification_status, is_admin
         FROM users
         ORDER BY created_at DESC
         "#,
@@ -204,14 +204,17 @@ async fn fetch_admin_users(state: &AppState) -> Vec<AdminUser> {
     .await
     .unwrap_or_default()
     .into_iter()
-    .map(|(id, email, first_name, last_name, status)| AdminUser {
-        id,
-        email,
-        first_name,
-        last_name,
-        status,
-        created_at: String::new(),
-    })
+    .map(
+        |(id, email, first_name, last_name, status, is_admin)| AdminUser {
+            id,
+            email,
+            first_name,
+            last_name,
+            status,
+            created_at: String::new(),
+            is_admin,
+        },
+    )
     .collect()
 }
 
@@ -384,6 +387,8 @@ fn notice_text(code: &str) -> Option<&'static str> {
         "password_updated" => "Password updated.",
         "notifications_read" => "All notifications marked as read.",
         "token_revoked" => "Token revoked.",
+        "admin_added" => "Admin access granted.",
+        "admin_removed" => "Admin access removed.",
         _ => return None,
     })
 }
@@ -391,6 +396,9 @@ fn notice_text(code: &str) -> Option<&'static str> {
 fn error_text(code: &str) -> Option<&'static str> {
     Some(match code {
         "name_required" => "Please enter a name.",
+        "email_required" => "Please enter an email address.",
+        "user_not_found" => "No user found for that email.",
+        "cannot_remove_self" => "You can't remove your own admin access here.",
         "zone_exists" => "That domain has already been added.",
         "invalid_zone" => "That isn't a valid domain name.",
         "zone_lookup_failed" => "The domain could not be checked right now. Please try again.",
@@ -661,6 +669,14 @@ pub async fn notifications_get(
     section(state, Path("notifications".to_string()), flash, headers).await
 }
 
+pub async fn admin_get(
+    state: State<AppState>,
+    flash: Query<Flash>,
+    headers: HeaderMap,
+) -> Response {
+    section(state, Path("admin".to_string()), flash, headers).await
+}
+
 pub async fn dns_get(
     state: State<AppState>,
     Path(domain): Path<String>,
@@ -848,4 +864,47 @@ pub async fn notifications_post(
         .map(|()| "notifications_read")
         .map_err(|_| "internal");
     redirect_with("/dash/notifications", result)
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AdminForm {
+    action: String,
+    email: Option<String>,
+}
+
+/// `POST /dash/admin`: grant or revoke admin access by email.
+pub async fn admin_post(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Form(form): Form<AdminForm>,
+) -> Response {
+    let user = match require_user(&state, &headers).await {
+        Ok(user) => user,
+        Err(redirect) => return redirect.into_response(),
+    };
+    if !user.is_admin {
+        return not_found().await;
+    }
+
+    let email = form.email.unwrap_or_default().trim().to_string();
+    if email.is_empty() {
+        return redirect_with("/dash/admin", Err("email_required"));
+    }
+
+    let (make_admin, notice) = match form.action.as_str() {
+        "grant" => (true, "admin_added"),
+        "revoke" => (false, "admin_removed"),
+        _ => return redirect_with("/dash/admin", Err("invalid_request")),
+    };
+
+    if !make_admin && email.eq_ignore_ascii_case(&user.email) {
+        return redirect_with("/dash/admin", Err("cannot_remove_self"));
+    }
+
+    let result = match state.users.set_admin_by_email(&email, make_admin).await {
+        Ok(true) => Ok(notice),
+        Ok(false) => Err("user_not_found"),
+        Err(_) => Err("internal"),
+    };
+    redirect_with("/dash/admin", result)
 }
