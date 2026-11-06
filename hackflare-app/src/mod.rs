@@ -12,40 +12,34 @@ use std::net::SocketAddr;
 use anyhow::{Context, Result};
 use hackflare_dns::ns::{NsConfig, run as run_dns};
 #[cfg(feature = "embedded-db")]
-use pg_embed::{
-    pg_enums::PgAuthMethod,
-    pg_fetch::{PG_V17, PgFetchSettings},
-    postgres::{PgEmbed, PgSettings},
-};
+use postgresql_embedded::{PostgreSQL, SettingsBuilder, V17};
 use reqwest::Url;
 use tracing::{error, info};
 
 #[cfg(feature = "embedded-db")]
-async fn start_dev_database() -> Result<(PgEmbed, Url)> {
+async fn start_dev_database() -> Result<(PostgreSQL, Url)> {
     let port = {
         let listener = std::net::TcpListener::bind(("127.0.0.1", 0))?;
         listener.local_addr()?.port()
     };
-    let pg_settings = PgSettings {
-        database_dir: std::env::temp_dir()
-            .join(format!("hackflare-dev-postgres-{}", std::process::id())),
-        port,
-        user: "postgres".to_string(),
-        password: "postgres".to_string(),
-        auth_method: PgAuthMethod::Plain,
-        persistent: false,
-        timeout: Some(std::time::Duration::from_secs(30)),
-        migration_dir: None,
-    };
-    let fetch_settings = PgFetchSettings {
-        version: PG_V17,
-        ..Default::default()
-    };
-    let mut postgres = PgEmbed::new(pg_settings, fetch_settings).await?;
+    let settings = SettingsBuilder::new()
+        .host("127.0.0.1")
+        .port(port)
+        .username("postgres")
+        .password("postgres")
+        .data_dir(std::env::temp_dir().join(format!(
+            "hackflare-dev-postgres-{}",
+            std::process::id()
+        )))
+        .temporary(true)
+        .timeout(Some(std::time::Duration::from_secs(30)))
+        .version(V17.clone())
+        .build();
+    let mut postgres = PostgreSQL::new(settings);
     postgres.setup().await?;
-    postgres.start_db().await?;
+    postgres.start().await?;
     postgres.create_database("hackflare_dev").await?;
-    let database_url = Url::parse(&postgres.full_db_uri("hackflare_dev"))?;
+    let database_url = Url::parse(&postgres.settings().url("hackflare_dev"))?;
     Ok((postgres, database_url))
 }
 

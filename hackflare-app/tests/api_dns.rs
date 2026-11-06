@@ -10,11 +10,7 @@ use axum::http::{Request, StatusCode};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, encode};
 #[cfg(feature = "embedded-db")]
-use pg_embed::{
-    pg_enums::PgAuthMethod,
-    pg_fetch::{PG_V17, PgFetchSettings},
-    postgres::{PgEmbed, PgSettings},
-};
+use postgresql_embedded::{PostgreSQL, SettingsBuilder, V17};
 use reqwest::Url;
 use tower::ServiceExt;
 use uuid::Uuid;
@@ -33,7 +29,7 @@ static NEXT_POSTGRES_PORT: AtomicU16 = AtomicU16::new(55432);
 struct TestCtx {
     state: AppState,
     #[cfg(feature = "embedded-db")]
-    _embedded_postgres: Option<PgEmbed>,
+    _embedded_postgres: Option<PostgreSQL>,
     jwt: String,
     user_id: String,
     session_id: Uuid,
@@ -46,26 +42,21 @@ impl TestCtx {
             Ok(database_url) => (database_url, None),
             Err(_) => {
                 let port = NEXT_POSTGRES_PORT.fetch_add(1, Ordering::Relaxed);
-                let pg_settings = PgSettings {
-                    database_dir: std::env::temp_dir()
-                        .join(format!("hackflare-test-postgres-{port}")),
-                    port,
-                    user: "postgres".to_string(),
-                    password: "postgres".to_string(),
-                    auth_method: PgAuthMethod::Plain,
-                    persistent: false,
-                    timeout: Some(std::time::Duration::from_secs(30)),
-                    migration_dir: None,
-                };
-                let fetch_settings = PgFetchSettings {
-                    version: PG_V17,
-                    ..Default::default()
-                };
-                let mut pg = PgEmbed::new(pg_settings, fetch_settings).await.ok()?;
+                let settings = SettingsBuilder::new()
+                    .host("127.0.0.1")
+                    .port(port)
+                    .username("postgres")
+                    .password("postgres")
+                    .data_dir(std::env::temp_dir().join(format!("hackflare-test-postgres-{port}")))
+                    .temporary(true)
+                    .timeout(Some(std::time::Duration::from_secs(30)))
+                    .version(V17.clone())
+                    .build();
+                let mut pg = PostgreSQL::new(settings);
                 pg.setup().await.ok()?;
-                pg.start_db().await.ok()?;
+                pg.start().await.ok()?;
                 pg.create_database("hackflare_test").await.ok()?;
-                let database_url = pg.full_db_uri("hackflare_test");
+                let database_url = pg.settings().url("hackflare_test");
                 (database_url, Some(pg))
             }
         };
