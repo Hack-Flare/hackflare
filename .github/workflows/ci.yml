@@ -83,15 +83,18 @@ jobs:
 
       # Check formatting first
       - name: Check formatting
+        id: fmt
         run: cargo fmt --all --check
         continue-on-error: true
 
       # Clippy handles what cargo check does
       - name: Clippy
+        id: clippy  
         run: cargo clippy --all-targets --all-features -- -D warnings
         continue-on-error: true
 
       - name: Run migrations
+        id: migrations  
         run: cargo sqlx migrate run --source database/migrations
         env:
           DATABASE_URL: postgres://hackflare:hackflare@localhost:5432/hackflare
@@ -99,6 +102,7 @@ jobs:
         continue-on-error: true
 
       - name: Check offline query files
+        id: sqlx_check
         run: cargo sqlx prepare --check --workspace
         env:
           DATABASE_URL: postgres://hackflare:hackflare@localhost:5432/hackflare
@@ -107,6 +111,7 @@ jobs:
         continue-on-error: true
 
       - name: Run tests
+        id: tests
         run: cargo test --all-features
         continue-on-error: true
 
