@@ -4,7 +4,7 @@ main-app:
 
 dns:
   - changed-files:
-      - any-glob-to-any-file: hackflare_dns/**/*
+      - any-glob-to-any-file: hackflare-dns/**/*
 
 ci:
   - changed-files:

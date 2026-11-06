@@ -9,7 +9,7 @@ on:
     types: [opened, synchronize, closed]
     paths:
       - 'hackflare-app/**'
-      - 'hackflare_dns/**'
+      - 'hackflare-dns/**'
       - 'database/migrations/**'
       - 'Cargo.toml'
       - 'deployment/**'

@@ -4,7 +4,7 @@ on:
   push:
     paths:
       - "hackflare-app/**"
-      - "hackflare_dns/**"
+      - "hackflare-dns/**"
       - "database/**"
       - "Cargo.toml"
       - "Cargo.lock"
@@ -15,7 +15,7 @@ on:
       - main
     paths:
       - "hackflare-app/**"
-      - "hackflare_dns/**"
+      - "hackflare-dns/**"
       - "database/**"
       - "Cargo.toml"
       - "Cargo.lock"
