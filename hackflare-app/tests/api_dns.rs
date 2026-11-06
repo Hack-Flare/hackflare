@@ -19,10 +19,9 @@ use reqwest::Url;
 use tower::ServiceExt;
 use uuid::Uuid;
 
-use axum_client_ip::ClientIpSource;
 use hackflare_app::{
     api::routes::build_router,
-    config::{Config, Environment, HcaConfig},
+    config::{ClientIpSource, Config, Environment, HcaConfig},
     models::JwtClaims,
     state::AppState,
 };

@@ -1,6 +1,5 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use serde_with::{TimestampSeconds, serde_as};
 use uuid::Uuid;
 
 pub(crate) mod db;
@@ -25,14 +24,34 @@ pub(crate) struct HcaUser {
 
 }
 
-#[serde_as]
+mod timestamp_seconds {
+    use chrono::{DateTime, Utc};
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S>(value: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_i64(value.timestamp())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let seconds = i64::deserialize(deserializer)?;
+        DateTime::from_timestamp(seconds, 0)
+            .ok_or_else(|| serde::de::Error::custom("timestamp is out of range"))
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JwtClaims {
     pub sub: String,
     pub jit: Uuid,
-    #[serde_as(as = "TimestampSeconds<i64>")]
+    #[serde(with = "timestamp_seconds")]
     pub exp: DateTime<Utc>,
-    #[serde_as(as = "TimestampSeconds<i64>")]
+    #[serde(with = "timestamp_seconds")]
     pub iat: DateTime<Utc>,
     pub typ: Option<String>,
 }

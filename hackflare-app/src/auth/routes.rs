@@ -7,7 +7,6 @@ use axum::{
     response::{IntoResponse, Redirect, Response},
     routing::{get, post},
 };
-use axum_client_ip::ClientIp;
 use axum_extra::extract::CookieJar;
 use chrono::{Duration, Utc};
 use jsonwebtoken::{Header, Validation};
@@ -15,7 +14,6 @@ use rand::{RngExt, distr::Alphanumeric};
 use reqwest::{StatusCode, Url};
 use serde::Deserialize;
 use serde_json::json;
-use serde_with::{DurationSeconds, serde_as};
 use sqlx::PgPool;
 use tower_sessions::{
     Expiry, MemoryStore, Session, SessionManagerLayer,
@@ -26,6 +24,7 @@ use uuid::Uuid;
 use crate::{
     api::models::{HcaUser, JwtClaims, db::User},
     api::services::{user_sessions::UserSessionsService, users::UsersService},
+    client_ip::ClientIp,
     config::{Config, HcaConfig},
     state::AppState,
 };
@@ -66,13 +65,24 @@ enum TokenType {
     Bearer,
 }
 
-#[serde_as]
+mod duration_seconds {
+    use chrono::Duration;
+    use serde::{Deserialize, Deserializer};
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Duration, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Ok(Duration::seconds(i64::deserialize(deserializer)?))
+    }
+}
+
 #[allow(unused)]
 #[derive(Deserialize)]
 struct HcaTokenResponse {
     access_token: String,
     token_type: TokenType,
-    #[serde_as(as = "DurationSeconds<i64>")]
+    #[serde(deserialize_with = "duration_seconds::deserialize")]
     expires_in: Duration,
     refresh_token: String,
     scope: String,

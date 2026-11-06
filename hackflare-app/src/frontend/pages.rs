@@ -1,5 +1,40 @@
 use askama::Template;
-use askama_web::WebTemplate;
+use axum::{
+    http::{StatusCode, header},
+    response::{IntoResponse, Response},
+};
+
+fn template_response<T: Template>(template: &T) -> Response {
+    match template.render() {
+        Ok(html) => (
+            StatusCode::OK,
+            [(header::CONTENT_TYPE, "text/html; charset=utf-8")],
+            html,
+        )
+            .into_response(),
+        Err(error) => {
+            tracing::error!(%error, "failed to render template");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                [(header::CONTENT_TYPE, "text/plain; charset=utf-8")],
+                "INTERNAL SERVER ERROR",
+            )
+                .into_response()
+        }
+    }
+}
+
+macro_rules! impl_template_response {
+    ($($ty:ty),* $(,)?) => {
+        $(
+            impl IntoResponse for $ty {
+                fn into_response(self) -> Response {
+                    template_response(&self)
+                }
+            }
+        )*
+    };
+}
 
 use crate::frontend::models::{
     AdminStats, AdminUser, AdminZone, ApiKey, AuthenticatedUser, CreatedApiKey, DnsRecord,
@@ -25,7 +60,7 @@ fn friendly_error(error: &str) -> String {
 
 // --- Public pages ---
 
-#[derive(Template, WebTemplate)]
+#[derive(Template)]
 #[template(path = "home.html")]
 pub struct HomeTemplate {
     pub header: PublicHeader,
@@ -40,7 +75,7 @@ pub struct PublicHeader {
     pub is_admin: bool,
 }
 
-#[derive(Template, WebTemplate)]
+#[derive(Template)]
 #[template(path = "login.html")]
 pub struct LoginTemplate {
     pub error: Option<String>,
@@ -64,7 +99,7 @@ impl LoginTemplate {
     }
 }
 
-#[derive(Template, WebTemplate)]
+#[derive(Template)]
 #[template(path = "register.html")]
 pub struct RegisterTemplate {
     pub error: Option<String>,
@@ -73,7 +108,7 @@ pub struct RegisterTemplate {
     pub email: String,
 }
 
-#[derive(Template, WebTemplate)]
+#[derive(Template)]
 #[template(path = "forgot_password.html")]
 pub struct ForgotPasswordTemplate {
     pub error: Option<String>,
@@ -81,14 +116,14 @@ pub struct ForgotPasswordTemplate {
     pub email: String,
 }
 
-#[derive(Template, WebTemplate)]
+#[derive(Template)]
 #[template(path = "reset_password.html")]
 pub struct ResetPasswordTemplate {
     pub error: Option<String>,
     pub token: String,
 }
 
-#[derive(Template, WebTemplate)]
+#[derive(Template)]
 #[template(path = "error.html")]
 pub struct ErrorTemplate {
     pub status: u16,
@@ -96,7 +131,7 @@ pub struct ErrorTemplate {
     pub details: String,
 }
 
-#[derive(Template, WebTemplate)]
+#[derive(Template)]
 #[template(path = "public_page.html")]
 pub struct PublicPageTemplate {
     pub header: PublicHeader,
@@ -112,7 +147,7 @@ pub struct DocLink {
     pub active: bool,
 }
 
-#[derive(Template, WebTemplate)]
+#[derive(Template)]
 #[template(path = "docs.html")]
 pub struct DocsTemplate {
     pub header: PublicHeader,
@@ -122,7 +157,7 @@ pub struct DocsTemplate {
     pub links: Vec<DocLink>,
 }
 
-#[derive(Template, WebTemplate)]
+#[derive(Template)]
 #[template(path = "team.html")]
 pub struct TeamTemplate {
     pub header: PublicHeader,
@@ -179,7 +214,7 @@ fn initials_from(first_name: &str, last_name: &str, email: &str) -> String {
     out
 }
 
-#[derive(Template, WebTemplate)]
+#[derive(Template)]
 #[template(path = "dash/base.html")]
 #[allow(dead_code)]
 pub struct DashboardTemplate {
@@ -230,3 +265,16 @@ pub struct DashboardTemplate {
     /// Public origin for the dashboard's example API request.
     pub api_base_url: String,
 }
+
+impl_template_response!(
+    HomeTemplate,
+    LoginTemplate,
+    RegisterTemplate,
+    ForgotPasswordTemplate,
+    ResetPasswordTemplate,
+    ErrorTemplate,
+    PublicPageTemplate,
+    DocsTemplate,
+    TeamTemplate,
+    DashboardTemplate,
+);

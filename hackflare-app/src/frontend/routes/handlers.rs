@@ -10,11 +10,11 @@ use axum::{
 };
 use serde::Deserialize;
 use std::net::SocketAddr;
-use axum_client_ip::ClientIp;
 use axum_extra::extract::{CookieJar, cookie::{Cookie, SameSite}};
 
 use crate::{
     auth::{middleware, routes as auth_routes},
+    client_ip::ClientIp,
     frontend::pages::{
         ErrorTemplate, ForgotPasswordTemplate, HomeTemplate, LoginTemplate, PublicHeader,
         RegisterTemplate, ResetPasswordTemplate,

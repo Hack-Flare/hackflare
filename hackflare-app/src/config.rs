@@ -6,10 +6,10 @@ use std::{
 };
 
 use anyhow::{Context, Result};
-use axum_client_ip::ClientIpSource;
-use derive_more::{Display, Error};
 use jsonwebtoken::{DecodingKey, EncodingKey};
 use reqwest::Url;
+
+pub use crate::client_ip::ClientIpSource;
 
 fn env_req<T>(name: &str) -> Result<T>
 where
@@ -44,17 +44,34 @@ where
     }
 }
 
-#[derive(Debug, Display, Error)]
-#[display(
-    "invalid environment: `{}`, expected `development` or `production`",
-    _0
-)]
-pub struct EnvironmentParseError(#[error(not(source))] String);
+#[derive(Debug)]
+pub struct EnvironmentParseError(String);
 
-#[derive(Debug, PartialEq, Eq, Display)]
+impl std::fmt::Display for EnvironmentParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "invalid environment: `{}`, expected `development` or `production`",
+            self.0
+        )
+    }
+}
+
+impl std::error::Error for EnvironmentParseError {}
+
+#[derive(Debug, PartialEq, Eq)]
 pub enum Environment {
     Production,
     Development,
+}
+
+impl std::fmt::Display for Environment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::Production => "Production",
+            Self::Development => "Development",
+        })
+    }
 }
 
 impl Environment {

@@ -1,5 +1,6 @@
 pub mod api;
 pub mod auth;
+pub mod client_ip;
 pub mod config;
 pub mod frontend;
 pub mod state;

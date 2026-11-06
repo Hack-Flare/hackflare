@@ -40,7 +40,7 @@ fn v1_routes(state: AppState, config: &Config) -> Router<AppState> {
 }
 
 pub fn build_router(state: AppState) -> Router {
-    let ip_source_extension = state.config.client_ip_source.clone().into_extension();
+    let ip_source_extension = axum::Extension(state.config.client_ip_source);
     Router::new()
         .nest("/api/v1", v1_routes(state.clone(), &state.config))
         .layer(TraceLayer::new_for_http())
