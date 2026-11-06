@@ -1,0 +1,55 @@
+name: 'Generate CI markdown summary'
+description: 'Generates a markdown summary of the CI pipeline results and saves it to a file.'
+inputs:
+  output-file:
+    description: 'Path to the output markdown file for the CI summary.'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Generate CI markdown Summary
+      shell: bash
+      run: |
+        FILE="${{ inputs.output-file }}"
+        
+        echo "## CI Summary" > $FILE
+        echo "" >> $FILE
+        echo " | Pipeline Gate | Status |" >> $FILE
+        echo " | :--- | :--- |" >> $FILE
+
+        if [ "${{ steps.fmt.outcome }}" = "success" ]; then
+          echo " | Formatting | Passed ✅ |" >> $FILE
+        else
+          echo " | Formatting | Failed ❌ |" >> $FILE
+        fi
+
+        if [ "${{ steps.clippy.outcome }}" = "success" ]; then
+          echo " | Clippy | Passed ✅ |" >> $FILE
+        else
+          echo " | Clippy | Failed ❌ |" >> $FILE
+        fi
+
+        if [ "${{ steps.migrations.outcome }}" = "success" ]; then
+          echo " | Migrations | Passed ✅ |" >> $FILE
+        else
+          echo " | Migrations | Failed ❌ |" >> $FILE
+        fi
+
+        if [ "${{ steps.sqlx-check.outcome }}" = "success" ]; then
+          echo " | SQLX Check | Passed ✅ |" >> $FILE
+        else
+          echo " | SQLX Check | Failed ❌ |" >> $FILE
+        fi
+
+        if [ "${{ steps.tests.outcome }}" = "success" ]; then
+          echo " | Tests | Passed ✅ |" >> $FILE
+        else
+          echo " | Tests | Failed ❌ |" >> $FILE
+        fi
+
+        echo "" >> $FILE
+        echo "Triggered by **${{ github.actor }}**  on branch: ${{ github.ref_name }}" >> $FILE
+        echo "Commit: ${{ github.sha }}  [View Commit](${{ github.event.head_commit.url }})" >> $FILE
+
+        cat $FILE >> $GITHUB_STEP_SUMMARY

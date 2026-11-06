@@ -84,16 +84,19 @@ jobs:
       # Check formatting first
       - name: Check formatting
         run: cargo fmt --all --check
+        continue-on-error: true
 
       # Clippy handles what cargo check does
       - name: Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
+        continue-on-error: true
 
       - name: Run migrations
         run: cargo sqlx migrate run --source database/migrations
         env:
           DATABASE_URL: postgres://hackflare:hackflare@localhost:5432/hackflare
           SQLX_OFFLINE: false
+        continue-on-error: true
 
       - name: Check offline query files
         run: cargo sqlx prepare --check --workspace
@@ -101,7 +104,33 @@ jobs:
           DATABASE_URL: postgres://hackflare:hackflare@localhost:5432/hackflare
           SQLX_OFFLINE: false
           SQLX_OFFLINE_DIR: database/.sqlx
+        continue-on-error: true
 
       - name: Run tests
         run: cargo test --all-features
+        continue-on-error: true
+
+      - name: Generate CI Summary
+        if: always()
+        uses: ./.github/actions/CI-summary
+        with:
+          output-file: 'ci-summary.md'
+
+      - name: Dump CI Summary
+        if: always()
+        uses: ./.github/actions/dump-summary
+        with:
+          file-path: 'ci-summary.md'
+
+      - name: Pipeline Status enforcement
+        if: always()
+        run: |
+          if [ "${{ steps.fmt.outcome }}" != "success" ] || \
+             [ "${{ steps.clippy.outcome }}" != "success" ] || \
+             [ "${{ steps.migrations.outcome }}" != "success" ] || \
+             [ "${{ steps.sqlx_check.outcome }}" != "success" ] || \
+             [ "${{ steps.tests.outcome }}" != "success" ]; then
+             echo "Job failed due to one or more pipeline gates failing. Please check the CI summary for details."
+             exit 1
+          fi  
 
