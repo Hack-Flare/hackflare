@@ -120,6 +120,11 @@ jobs:
         uses: ./.github/actions/CI-summary
         with:
           output-file: 'ci-summary.md'
+          fmt: ${{ steps.fmt.outcome }}
+          clippy: ${{ steps.clippy.outcome }}
+          migrations: ${{ steps.migrations.outcome }}
+          sqlx_check: ${{ steps.sqlx_check.outcome }}
+          tests: ${{ steps.tests.outcome }}
 
       - name: Dump CI Summary
         if: always()

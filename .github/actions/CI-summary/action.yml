@@ -4,6 +4,21 @@ inputs:
   output-file:
     description: 'Path to the output markdown file for the CI summary.'
     required: true
+  fmt:
+    description: 'The outcome of the formatting check.'
+    required: true
+  clippy:
+    description: 'The outcome of the clippy check.'
+    required: true
+  migrations:
+    description: 'The outcome of the migrations check.'
+    required: true
+  sqlx_check:
+    description: 'The outcome of the SQLX check.'
+    required: true
+  tests:
+    description: 'The outcome of the tests.'
+    required: true
 
 runs:
   using: 'composite'
@@ -18,31 +33,31 @@ runs:
         echo " | Pipeline Gate | Status |" >> $FILE
         echo " | :--- | :--- |" >> $FILE
 
-        if [ "${{ steps.fmt.outcome }}" = "success" ]; then
+        if [ "${{ inputs.fmt }}" = "success" ]; then
           echo " | Formatting | Passed ✅ |" >> $FILE
         else
           echo " | Formatting | Failed ❌ |" >> $FILE
         fi
 
-        if [ "${{ steps.clippy.outcome }}" = "success" ]; then
+        if [ "${{ inputs.clippy }}" = "success" ]; then
           echo " | Clippy | Passed ✅ |" >> $FILE
         else
           echo " | Clippy | Failed ❌ |" >> $FILE
         fi
 
-        if [ "${{ steps.migrations.outcome }}" = "success" ]; then
+        if [ "${{ inputs.migrations }}" = "success" ]; then
           echo " | Migrations | Passed ✅ |" >> $FILE
         else
           echo " | Migrations | Failed ❌ |" >> $FILE
         fi
 
-        if [ "${{ steps.sqlx-check.outcome }}" = "success" ]; then
+        if [ "${{ inputs.sqlx_check }}" = "success" ]; then
           echo " | SQLX Check | Passed ✅ |" >> $FILE
         else
           echo " | SQLX Check | Failed ❌ |" >> $FILE
         fi
 
-        if [ "${{ steps.tests.outcome }}" = "success" ]; then
+        if [ "${{ inputs.tests }}" = "success" ]; then
           echo " | Tests | Passed ✅ |" >> $FILE
         else
           echo " | Tests | Failed ❌ |" >> $FILE
