@@ -23,9 +23,9 @@ build-workspace:
 	cargo build --workspace
 
 # Run the merged application's tests. Tests start an embedded PostgreSQL when
-# DATABASE_URL is not set, so Docker and a system PostgreSQL are optional.
+# DATABASE_URL is not set and the embedded-db feature is enabled.
 test-app:
-	cargo test -p hackflare-app
+	cargo test -p hackflare-app --features embedded-db
 
 # Run the DNS library tests.
 test-dns:
@@ -53,7 +53,7 @@ run-app:
 
 # Run with an embedded PostgreSQL database.
 run-dev:
-  cargo run -p hackflare-app -- --dev
+  cargo run -p hackflare-app --features embedded-db -- --dev
 
 # Start PostgreSQL for local application development.
 db-up:
@@ -76,7 +76,7 @@ docker-build-app:
 # Build the release binary and the bench tool, then run a self-hosted
 # benchmark against the embedded development server.
 bench:
-	just build-app-release
+	cargo build -p hackflare-app --release --features embedded-db
 	cargo run --release -p hackflare-bench -- \
 	--binary target/release/hackflare-app \
 	--dev \
@@ -91,7 +91,7 @@ bench:
 
 # Run benchmarks at multiple scales (10, 100, 1000 users) and keep each report.
 bench-scale:
-	just build-app-release
+	cargo build -p hackflare-app --release --features embedded-db
 	@echo "=== benchmarking with 10 users ==="; \
 	cargo run --release -p hackflare-bench -- \
 	--binary target/release/hackflare-app \

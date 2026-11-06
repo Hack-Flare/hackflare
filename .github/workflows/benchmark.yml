@@ -40,7 +40,7 @@ jobs:
           shared-key: ${{ runner.os }}-rust-cache
 
       - name: Build release binary
-        run: cargo build --release -p hackflare-app --bin hackflare-app
+        run: cargo build --release -p hackflare-app --bin hackflare-app --features embedded-db
 
       - name: Determine user counts
         run: |

@@ -1,15 +1,15 @@
 #![allow(clippy::unwrap_used)]
 
-use std::{
-    net::SocketAddr,
-    str::FromStr,
-    sync::atomic::{AtomicU16, Ordering},
-};
+use std::{net::SocketAddr, str::FromStr};
+
+#[cfg(feature = "embedded-db")]
+use std::sync::atomic::{AtomicU16, Ordering};
 
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, encode};
+#[cfg(feature = "embedded-db")]
 use pg_embed::{
     pg_enums::PgAuthMethod,
     pg_fetch::{PG_V17, PgFetchSettings},
@@ -28,10 +28,12 @@ use hackflare_app::{
 };
 
 const TEST_JWT_SECRET: &str = "dGhpcyBpcyBhIHRlc3Qgc2VjcmV0IGZvciB0ZXN0aW5nIHB1cnBvc2Vz";
+#[cfg(feature = "embedded-db")]
 static NEXT_POSTGRES_PORT: AtomicU16 = AtomicU16::new(55432);
 
 struct TestCtx {
     state: AppState,
+    #[cfg(feature = "embedded-db")]
     _embedded_postgres: Option<PgEmbed>,
     jwt: String,
     user_id: String,
@@ -40,6 +42,7 @@ struct TestCtx {
 
 impl TestCtx {
     async fn setup() -> Option<Self> {
+        #[cfg(feature = "embedded-db")]
         let (database_url, embedded_postgres) = match std::env::var("DATABASE_URL") {
             Ok(database_url) => (database_url, None),
             Err(_) => {
@@ -67,6 +70,8 @@ impl TestCtx {
                 (database_url, Some(pg))
             }
         };
+        #[cfg(not(feature = "embedded-db"))]
+        let (database_url, _embedded_postgres) = (std::env::var("DATABASE_URL").ok()?, ());
         let url = Url::parse(&database_url).ok()?;
 
         let config = Config {
@@ -151,6 +156,7 @@ impl TestCtx {
 
         Some(Self {
             state,
+            #[cfg(feature = "embedded-db")]
             _embedded_postgres: embedded_postgres,
             jwt,
             user_id,

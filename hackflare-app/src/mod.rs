@@ -10,6 +10,7 @@ use std::net::SocketAddr;
 
 use anyhow::{Context, Result};
 use hackflare_dns::ns::{NsConfig, run as run_dns};
+#[cfg(feature = "embedded-db")]
 use pg_embed::{
     pg_enums::PgAuthMethod,
     pg_fetch::{PG_V17, PgFetchSettings},
@@ -18,6 +19,7 @@ use pg_embed::{
 use reqwest::Url;
 use tracing::{error, info};
 
+#[cfg(feature = "embedded-db")]
 async fn start_dev_database() -> Result<(PgEmbed, Url)> {
     let port = {
         let listener = std::net::TcpListener::bind(("127.0.0.1", 0))?;
@@ -47,6 +49,7 @@ async fn start_dev_database() -> Result<(PgEmbed, Url)> {
 }
 
 pub async fn run(dev_mode: bool) -> Result<()> {
+    #[cfg(feature = "embedded-db")]
     let (_embedded_postgres, database_url) = if dev_mode {
         info!("starting embedded PostgreSQL for development");
         let (postgres, database_url) = start_dev_database().await?;
@@ -54,6 +57,9 @@ pub async fn run(dev_mode: bool) -> Result<()> {
     } else {
         (None, None)
     };
+    #[cfg(not(feature = "embedded-db"))]
+    let database_url: Option<Url> = None;
+
     let mut config = match database_url {
         Some(database_url) => config::from_env_with_database_url(Some(database_url)),
         None => config::from_env(),
