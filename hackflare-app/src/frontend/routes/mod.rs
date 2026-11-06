@@ -76,6 +76,7 @@ pub fn build_router(state: AppState) -> Router {
         .route("/health", get(handlers::health))
         .route("/docs", get(public::docs))
         .route("/ourteam", get(public::team))
+        .route("/sitemap.xml", get(public::sitemap))
         .route("/dash", get(dash::index))
         .route("/dash/domains", get(dash::domains_get).post(dash::domains_post))
         .route("/dash/settings", get(dash::settings_get).post(dash::settings_post))

@@ -31,7 +31,7 @@ fn attach_cookies(response: &mut Response, source: &Response) {
 }
 
 /// Request origin derived from the standard proxy headers.
-fn origin_for(headers: &HeaderMap) -> String {
+pub(crate) fn origin_for(headers: &HeaderMap) -> String {
     let scheme = headers
         .get("x-forwarded-proto")
         .and_then(|value| value.to_str().ok())

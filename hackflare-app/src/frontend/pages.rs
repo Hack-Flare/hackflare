@@ -163,6 +163,12 @@ pub struct TeamTemplate {
     pub header: PublicHeader,
 }
 
+#[derive(Template)]
+#[template(path = "sitemap.xml")]
+pub struct SitemapTemplate {
+    pub origin: String,
+}
+
 // --- Dashboard ---
 
 /// Context shared by every dashboard template
