@@ -19,8 +19,14 @@ Please do **not** open a public GitHub issue for security vulnerabilities.
 This policy covers:
 
 - The merged Hackflare application (`hackflare-app/`)
-- The Hackflare DNS server library (`hackflare_dns/`)
+- The Hackflare DNS server library (`hackflare-dns/`)
 - Build and deployment configurations
+
+## Out of Scope
+
+This policy does **not** cover:
+
+- The benchmark crate (`hackflare-bench/`)
 
 ## Supported versions
 
