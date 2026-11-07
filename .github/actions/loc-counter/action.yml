@@ -18,18 +18,25 @@ runs:
   using: 'composite'
   steps:
     - name: 'Install SCC'
+      shell: bash  
       run: |
         curl -C - -L -O https://github.com/boyter/scc/releases/download/v4.1.0/scc_Darwin_x86_64.tar.gz | tar -xz -C /tmp
         sudo mv /tmp/scc /usr/local/bin/scc
+
     - name: 'Count Lines of Code'
+      shell: bash
       run: |
        scc > ${{ inputs.scc-output-file }}
+
     - name: 'Isolate Total LOC from output table'
+      shell: bash  
       run: |
         total_loc=$(grep -E '^\s*Total' ${{ inputs.scc-output-file }} | awk '{print $6}')
         echo "Total LOC: $total_loc"
         echo "$total_loc" > ${{ inputs.loc-output-file }}
+
     - name: 'Summary'
+      shell: bash  
       if: ${{ inputs.upload-summary == 'true' }}
       run: |
         echo "## Lines of Code Summary" >> $GITHUB_STEP_SUMMARY
