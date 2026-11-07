@@ -7,7 +7,7 @@
 
 {% if let Some(stats) = stats %}
 <div class="tools-row">
-  <a class="tool-tile tool-tile-dark" href="/dash/admin?view=users">
+  <a class="tool-tile" href="/dash/admin?view=users">
     <span class="tool-body">
       <span class="tool-meta">Users</span>
       <span class="admin-stat">{{ stats.total_users }}</span>
@@ -17,6 +17,12 @@
     <span class="tool-body">
       <span class="tool-meta">Zones</span>
       <span class="admin-stat">{{ stats.total_zones }}</span>
+    </span>
+  </a>
+  <a class="tool-tile" href="/dash/admin/conf">
+    <span class="tool-body">
+      <span class="tool-meta">Configurables</span>
+      <span class="admin-stat">No Count Yet</span>
     </span>
   </a>
   <div class="tool-tile">
