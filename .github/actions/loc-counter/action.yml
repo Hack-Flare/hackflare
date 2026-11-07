@@ -1,0 +1,43 @@
+name: 'LOC Counter'
+description: 'Counts the lines of code in the repository and outputs the result as a GitHub Action output.'
+inputs:
+  loc-output-file:
+    description: 'The name of the output file where the line count will be saved.'
+    required: false
+    default: 'loc_output.txt'
+  scc-output-file:
+    description: 'The name of the output file where the scc output will be saved.'
+    required: false
+    default: 'scc_output.txt'
+  upload-summary:
+    description: 'Whether to upload the SCC output and LOC output as an action summary.'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: 'Install SCC'
+      run: |
+        curl -C - -L -O https://github.com/boyter/scc/releases/download/v4.1.0/scc_Darwin_x86_64.tar.gz | tar -xz -C /tmp
+        sudo mv /tmp/scc /usr/local/bin/scc
+    - name: 'Count Lines of Code'
+      run: |
+       scc > ${{ inputs.scc-output-file }}
+    - name: 'Isolate Total LOC from output table'
+      run: |
+        total_loc=$(grep -E '^\s*Total' ${{ inputs.scc-output-file }} | awk '{print $6}')
+        echo "Total LOC: $total_loc"
+        echo "$total_loc" > ${{ inputs.loc-output-file }}
+    - name: 'Summary'
+      if: ${{ inputs.upload-summary == 'true' }}
+      run: |
+        echo "## Lines of Code Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Total LOC" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        cat ${{ inputs.loc-output-file }} >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### SCC Output" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        cat ${{ inputs.scc-output-file }} >> $GITHUB_STEP_SUMMARY
