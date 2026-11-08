@@ -135,6 +135,7 @@ Optional variable:
 - `BIND_ADDR` defaults to `0.0.0.0:8080`
 - `DNS_BIND_ADDR` defaults to `0.0.0.0:5353`
 - `AUTO_MIGRATE` controls whether startup applies pending migrations.
+- `DISABLE_HOME_PAGE` replaces the public home page at `/` with a redirect to `/dash`. Defaults to `false`.
 
 Notes:
 

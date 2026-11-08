@@ -172,6 +172,11 @@ pub async fn home(State(state): State<AppState>, headers: HeaderMap) -> HomeTemp
     }
 }
 
+/// `GET /` when `DISABLE_HOME_PAGE` is set. `/dash` handles auth itself.
+pub async fn dashboard_redirect() -> Redirect {
+    Redirect::to("/dash")
+}
+
 #[derive(Debug, Deserialize)]
 pub struct ThemeParams {
     theme: Option<String>,

@@ -51,8 +51,14 @@ async fn apply_theme(request: Request<Body>, next: Next) -> Response {
 }
 
 pub fn build_router(state: AppState) -> Router {
+    let home_route = if state.config.disable_home_page {
+        get(handlers::dashboard_redirect)
+    } else {
+        get(handlers::home)
+    };
+
     Router::new()
-        .route("/", get(handlers::home))
+        .route("/", home_route)
         .route("/auth", get(handlers::auth_redirect))
         .route(
             "/login",

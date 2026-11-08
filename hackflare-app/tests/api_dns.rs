@@ -73,6 +73,7 @@ impl TestCtx {
             environment: Environment::Development,
             database_url: url,
             auto_migrate: true,
+            disable_home_page: false,
             jwt_encoding_key: EncodingKey::from_base64_secret(TEST_JWT_SECRET).ok()?,
             jwt_decoding_key: DecodingKey::from_base64_secret(TEST_JWT_SECRET).ok()?,
             hca: HcaConfig {
