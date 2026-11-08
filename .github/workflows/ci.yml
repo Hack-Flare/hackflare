@@ -137,15 +137,9 @@ jobs:
       - name: Add lines of code to CI Summary
         if: always()
         run: |
-          echo "## Lines of Code" >> ci-summary.md
-          echo "" >> ci-summary.md
-          echo "### Total LOC" >> ci-summary.md
+          echo "## Total LOC" >> ci-summary.md
           echo "" >> ci-summary.md
           cat loc_output.txt >> ci-summary.md
-          echo "" >> ci-summary.md
-          echo "### SCC Output" >> ci-summary.md
-          echo "" >> ci-summary.md
-          cat scc_output.txt >> ci-summary.md
         continue-on-error: true
 
       - name: Dump CI Summary
