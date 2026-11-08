@@ -26,14 +26,14 @@ runs:
     - name: 'Count Lines of Code'
       shell: bash
       run: |
-       scc > ${{ inputs.scc-output-file }}
+       scc >> ${{ inputs.scc-output-file }}
 
     - name: 'Isolate Total LOC from output table'
       shell: bash  
       run: |
         total_loc=$(grep -E '^\s*Total' ${{ inputs.scc-output-file }} | awk '{print $6}')
         echo "Total LOC: $total_loc"
-        echo "$total_loc" > ${{ inputs.loc-output-file }}
+        echo "$total_loc" >> ${{ inputs.loc-output-file }}
 
     - name: 'Summary'
       shell: bash  
