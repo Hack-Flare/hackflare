@@ -476,6 +476,59 @@ async fn test_delete_duplicate_record_keeps_others() {
 }
 
 #[tokio::test]
+async fn test_create_extended_record_types() {
+    let Some(ctx) = TestCtx::setup().await else {
+        eprintln!("skipping: database unavailable");
+        return;
+    };
+
+    ctx.state.dns_authority.create_zone("test-ext.com").await;
+    sqlx::query("UPDATE dns_zones SET user_id = $1 WHERE name = 'test-ext.com'")
+        .bind(&ctx.user_id)
+        .execute(&ctx.state.db)
+        .await
+        .ok();
+    let _ = sqlx::query("UPDATE dns_zones SET ns_verified = true WHERE name = 'test-ext.com'")
+        .execute(&ctx.state.db)
+        .await;
+
+    let response = build_router(ctx.state.clone())
+        .oneshot(ctx.authed_request(
+            "POST",
+            "/api/v1/dns/zones/test-ext.com/records",
+            Some(
+                r#"{"name":"_sip._tcp","type":"SVCB","value":"1 svc.example.com alpn=h2 port=443","ttl":300}"#,
+            ),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = build_router(ctx.state.clone())
+        .oneshot(ctx.authed_request(
+            "POST",
+            "/api/v1/dns/zones/test-ext.com/records",
+            Some(r#"{"name":"loc","type":"LOC","value":"\\# 4 01020304","ttl":300}"#),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = build_router(ctx.state.clone())
+        .oneshot(ctx.authed_request("GET", "/api/v1/dns/zones/test-ext.com/records", None))
+        .await
+        .unwrap();
+    let body = get_body(response).await;
+    let records = body.as_array().unwrap();
+    assert_eq!(records.len(), 2);
+    assert!(records.iter().any(|record| record["type"] == "SVCB"));
+    assert!(records.iter().any(|record| record["type"] == "LOC"));
+
+    let _ = ctx.state.dns_authority.delete_zone("test-ext.com").await;
+    ctx.cleanup().await;
+}
+
+#[tokio::test]
 async fn test_records_nonexistent_zone() {
     let Some(ctx) = TestCtx::setup().await else {
         eprintln!("skipping: database unavailable");

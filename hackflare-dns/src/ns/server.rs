@@ -124,9 +124,10 @@ impl Nameserver {
     ///
     /// * `zone_name` - Name of the zone (e.g., "example.com")
     /// * `name` - Record name, relative to zone (e.g., "www", "@" for apex)
-    /// * `rtype` - Record type (e.g., "A", "AAAA", "MX", "TXT")
+    /// * `rtype` - Record type (e.g., "A", "AAAA", "MX", "TXT", or any IANA name)
     /// * `ttl` - Time-to-live in seconds
-    /// * `data` - Record data (e.g., IP address for A records)
+    /// * `data` - Record data (e.g., an IP address for A records). Types without
+    ///   a typed parser accept the RFC 3597 format: `\# <length> <hex>`.
     ///
     /// Returns `true` if the record was added, `false` if the zone doesn't exist.
     pub fn add_record(

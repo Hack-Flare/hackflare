@@ -239,6 +239,8 @@ pub struct DashboardTemplate {
     pub pending_count: usize,
     pub zone_name: String,
     pub records: Vec<DnsRecord>,
+    /// Record type names offered by the DNS record form.
+    pub record_types: Vec<String>,
     pub recent_logs: Vec<QueryLogEntry>,
     pub ns_verified: bool,
     pub a_count: usize,

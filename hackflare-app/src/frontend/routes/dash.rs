@@ -605,6 +605,10 @@ fn dashboard_page(
         pending_count: 0,
         zone_name: String::new(),
         records: Vec::new(),
+        record_types: hackflare_dns::dns::rr::RECORD_TYPES
+            .iter()
+            .map(|name| (*name).to_string())
+            .collect(),
         recent_logs: Vec::new(),
         ns_verified: false,
         a_count: 0,
