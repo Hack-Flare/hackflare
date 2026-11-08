@@ -20,9 +20,20 @@ runs:
     - name: 'Install SCC'
       shell: bash  
       run: |
-        curl -fsSL -o /tmp/scc.tar.gz https://github.com/boyter/scc/releases/download/v4.1.0/scc_Linux_x86_64.tar.gz
-        tar -xzf /tmp/scc.tar.gz -C /tmp
-        sudo mv /tmp/scc /usr/local/bin/scc
+        if ! command -v scc &> /dev/null; then
+          echo "SCC is not installed."
+          curl -fsSL -o /tmp/scc.tar.gz https://github.com/boyter/scc/releases/download/v4.1.0/scc_Linux_x86_64.tar.gz
+          tar -xzf /tmp/scc.tar.gz -C /tmp
+          sudo mv /tmp/scc /usr/local/bin/scc
+        else 
+          echo "SCC is already installed."
+        fi
+
+    - name: 'Cache SCC'
+      uses: actions/cache@v3
+      with:
+        path: /usr/local/bin/scc
+        key: scc-${{ runner.os }}-v4.1.0
 
     - name: 'Count Lines of Code'
       shell: bash
