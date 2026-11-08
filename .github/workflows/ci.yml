@@ -5,10 +5,12 @@ on:
     paths:
       - "hackflare-app/**"
       - "hackflare-dns/**"
+      - "hackflare-bench/**"
       - "database/**"
       - "Cargo.toml"
       - "Cargo.lock"
-      - ".github/workflows/ci.yml"
+      - ".github/workflows/**"
+      - ".github/actions/**"
       - "!**/*.md"
   pull_request:
     branches:
@@ -16,10 +18,12 @@ on:
     paths:
       - "hackflare-app/**"
       - "hackflare-dns/**"
+      - "hackflare-bench/**"
       - "database/**"
       - "Cargo.toml"
       - "Cargo.lock"
-      - ".github/workflows/ci.yml"
+      - ".github/workflows/**"
+      - ".github/actions/**"
       - "!**/*.md"
   workflow_call:
   workflow_dispatch:
