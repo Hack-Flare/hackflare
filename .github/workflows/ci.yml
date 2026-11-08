@@ -88,18 +88,36 @@ jobs:
       # Check formatting first
       - name: Check formatting
         id: fmt
-        run: cargo fmt --all --check
+        run: |
+          start=$(date +%s%N)
+          status=0
+          cargo fmt --all --check || status=$?
+          end=$(date +%s%N)
+          echo "duration_ms=$(( (end - start) / 1000000 ))" >> "$GITHUB_OUTPUT"
+          exit $status
         continue-on-error: true
 
       # Clippy handles what cargo check does
       - name: Clippy
         id: clippy  
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: |
+          start=$(date +%s%N)
+          status=0
+          cargo clippy --all-targets --all-features -- -D warnings || status=$?
+          end=$(date +%s%N)
+          echo "duration_ms=$(( (end - start) / 1000000 ))" >> "$GITHUB_OUTPUT"
+          exit $status
         continue-on-error: true
 
       - name: Run migrations
         id: migrations  
-        run: cargo sqlx migrate run --source database/migrations
+        run: |
+          start=$(date +%s%N)
+          status=0
+          cargo sqlx migrate run --source database/migrations || status=$?
+          end=$(date +%s%N)
+          echo "duration_ms=$(( (end - start) / 1000000 ))" >> "$GITHUB_OUTPUT"
+          exit $status
         env:
           DATABASE_URL: postgres://hackflare:hackflare@localhost:5432/hackflare
           SQLX_OFFLINE: false
@@ -107,7 +125,13 @@ jobs:
 
       - name: Check offline query files
         id: sqlx_check
-        run: cargo sqlx prepare --check --workspace
+        run: |
+          start=$(date +%s%N)
+          status=0
+          cargo sqlx prepare --check --workspace || status=$?
+          end=$(date +%s%N)
+          echo "duration_ms=$(( (end - start) / 1000000 ))" >> "$GITHUB_OUTPUT"
+          exit $status
         env:
           DATABASE_URL: postgres://hackflare:hackflare@localhost:5432/hackflare
           SQLX_OFFLINE: false
@@ -116,7 +140,13 @@ jobs:
 
       - name: Run tests
         id: tests
-        run: cargo test --all-features
+        run: |
+          start=$(date +%s%N)
+          status=0
+          cargo test --all-features || status=$?
+          end=$(date +%s%N)
+          echo "duration_ms=$(( (end - start) / 1000000 ))" >> "$GITHUB_OUTPUT"
+          exit $status
         continue-on-error: true
 
       - name: Count Lines of Code
@@ -129,10 +159,15 @@ jobs:
         with:
           output-file: 'ci-summary.md'
           fmt: ${{ steps.fmt.outcome }}
+          fmt-time: ${{ steps.fmt.outputs.duration_ms }}
           clippy: ${{ steps.clippy.outcome }}
+          clippy-time: ${{ steps.clippy.outputs.duration_ms }}
           migrations: ${{ steps.migrations.outcome }}
+          migrations-time: ${{ steps.migrations.outputs.duration_ms }}
           sqlx_check: ${{ steps.sqlx_check.outcome }}
+          sqlx_check-time: ${{ steps.sqlx_check.outputs.duration_ms }}
           tests: ${{ steps.tests.outcome }}
+          tests-time: ${{ steps.tests.outputs.duration_ms }}
 
       - name: Add lines of code to CI Summary
         if: always()

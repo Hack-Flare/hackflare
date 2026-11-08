@@ -7,18 +7,33 @@ inputs:
   fmt:
     description: 'The outcome of the formatting check.'
     required: true
+  fmt-time:
+    description: 'The time taken for the formatting check.'
+    required: false
   clippy:
     description: 'The outcome of the clippy check.'
     required: true
+  clippy-time:
+    description: 'The time taken for the clippy check.'
+    required: false
   migrations:
     description: 'The outcome of the migrations check.'
     required: true
+  migrations-time:
+    description: 'The time taken for the migrations check.'
+    required: false
   sqlx_check:
     description: 'The outcome of the SQLX check.'
     required: true
+  sqlx_check-time:
+    description: 'The time taken for the SQLX check.'
+    required: false
   tests:
     description: 'The outcome of the tests.'
     required: true
+  tests-time:
+    description: 'The time taken for the tests.'
+    required: false
 
 runs:
   using: 'composite'
@@ -27,42 +42,49 @@ runs:
       shell: bash
       run: |
         FILE="${{ inputs.output-file }}"
-        
-        echo "## CI Summary" > $FILE
-        echo "" >> $FILE
-        echo " | Pipeline Gate | Status |" >> $FILE
-        echo " | :--- | :--- |" >> $FILE
 
-        if [ "${{ inputs.fmt }}" = "success" ]; then
-          echo " | Formatting | Passed ✅ |" >> $FILE
-        else
-          echo " | Formatting | Failed ❌ |" >> $FILE
-        fi
+        format_duration() {
+          local ms="$1"
+          if ! [[ "$ms" =~ ^[0-9]+$ ]]; then
+            echo "-"
+            return
+          fi
+          if [ "$ms" -lt 1000 ]; then
+            echo "${ms}ms"
+            return
+          fi
+          local total_seconds=$((ms / 1000))
+          local minutes=$((total_seconds / 60))
+          local seconds=$((total_seconds % 60))
+          if [ "$minutes" -gt 0 ]; then
+            printf '%dm %02ds\n' "$minutes" "$seconds"
+          else
+            printf '%d.%02ds\n' "$total_seconds" "$(( (ms % 1000) / 10 ))"
+          fi
+        }
 
-        if [ "${{ inputs.clippy }}" = "success" ]; then
-          echo " | Clippy | Passed ✅ |" >> $FILE
-        else
-          echo " | Clippy | Failed ❌ |" >> $FILE
-        fi
+        write_row() {
+          local name="$1"
+          local outcome="$2"
+          local duration="$3"
+          local status="Passed ✅"
+          if [ "$outcome" != "success" ]; then
+            status="Failed ❌"
+          fi
+          echo " | ${name} | ${status} | $(format_duration "$duration") |" >> "$FILE"
+        }
 
-        if [ "${{ inputs.migrations }}" = "success" ]; then
-          echo " | Migrations | Passed ✅ |" >> $FILE
-        else
-          echo " | Migrations | Failed ❌ |" >> $FILE
-        fi
+        echo "## CI Summary" > "$FILE"
+        echo "" >> "$FILE"
+        echo " | Pipeline Gate | Status | Duration |" >> "$FILE"
+        echo " | :--- | :--- | :--- |" >> "$FILE"
 
-        if [ "${{ inputs.sqlx_check }}" = "success" ]; then
-          echo " | SQLX Check | Passed ✅ |" >> $FILE
-        else
-          echo " | SQLX Check | Failed ❌ |" >> $FILE
-        fi
+        write_row "Formatting" "${{ inputs.fmt }}" "${{ inputs.fmt-time }}"
+        write_row "Clippy" "${{ inputs.clippy }}" "${{ inputs.clippy-time }}"
+        write_row "Migrations" "${{ inputs.migrations }}" "${{ inputs.migrations-time }}"
+        write_row "SQLX Check" "${{ inputs.sqlx_check }}" "${{ inputs.sqlx_check-time }}"
+        write_row "Tests" "${{ inputs.tests }}" "${{ inputs.tests-time }}"
 
-        if [ "${{ inputs.tests }}" = "success" ]; then
-          echo " | Tests | Passed ✅ |" >> $FILE
-        else
-          echo " | Tests | Failed ❌ |" >> $FILE
-        fi
-
-        echo "" >> $FILE
+        echo "" >> "$FILE"
         echo "Triggered by **${{ github.actor }}**  on branch: ${{ github.ref_name }}" >> $FILE
         echo "Commit: ${{ github.sha }}  [View Commit](${{ github.event.head_commit.url }})" >> $FILE
