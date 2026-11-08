@@ -20,7 +20,8 @@ runs:
     - name: 'Install SCC'
       shell: bash  
       run: |
-        curl -C - -L -O https://github.com/boyter/scc/releases/download/v4.1.0/scc_Darwin_x86_64.tar.gz | tar -xz -C /tmp
+        curl -fsSL -o /tmp/scc.tar.gz https://github.com/boyter/scc/releases/download/v4.1.0/scc_Linux_x86_64.tar.gz
+        tar -xzf /tmp/scc.tar.gz -C /tmp
         sudo mv /tmp/scc /usr/local/bin/scc
 
     - name: 'Count Lines of Code'
