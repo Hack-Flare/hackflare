@@ -392,6 +392,7 @@ pub const RECORD_TYPES: &[&str] = &[
     "EID",
     "EUI48",
     "EUI64",
+    "GID",
     "GPOS",
     "HHIT",
     "HINFO",
