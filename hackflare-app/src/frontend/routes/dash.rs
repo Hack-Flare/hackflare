@@ -16,7 +16,7 @@ use crate::{
     auth::middleware,
     frontend::models::{
         AdminStats, AdminUser, AdminZone, ApiKey, AuthenticatedUser, CreatedApiKey, DnsRecord,
-        DnsZone, Notification, QueryLogsSummary,
+        DnsZone, FeatureFlagGroup, FeatureFlagView, Notification, QueryLogsSummary,
     },
     frontend::pages::{DashContext, DashboardTemplate},
     state::AppState,
@@ -218,6 +218,27 @@ async fn fetch_admin_users(state: &AppState) -> Vec<AdminUser> {
     .collect()
 }
 
+/// Registered feature flags, grouped by tag for the admin panel.
+async fn fetch_feature_flag_groups(state: &AppState) -> Vec<FeatureFlagGroup> {
+    let mut groups: Vec<FeatureFlagGroup> = Vec::new();
+    for flag in state.flags.list().await.unwrap_or_default() {
+        let view = FeatureFlagView {
+            key: flag.key,
+            description: flag.description,
+            enabled: flag.enabled,
+            updated_at: flag.updated_at.format("%Y-%m-%d %H:%M UTC").to_string(),
+        };
+        match groups.iter_mut().find(|group| group.tag == flag.tag) {
+            Some(group) => group.flags.push(view),
+            None => groups.push(FeatureFlagGroup {
+                tag: flag.tag,
+                flags: vec![view],
+            }),
+        }
+    }
+    groups
+}
+
 async fn fetch_admin_zones(state: &AppState) -> Vec<AdminZone> {
     sqlx::query_as::<_, (String, String, bool, i64)>(
         r#"
@@ -389,6 +410,8 @@ fn notice_text(code: &str) -> Option<&'static str> {
         "token_revoked" => "Token revoked.",
         "admin_added" => "Admin access granted.",
         "admin_removed" => "Admin access removed.",
+        "feature_enabled" => "Feature enabled.",
+        "feature_disabled" => "Feature disabled.",
         _ => return None,
     })
 }
@@ -411,6 +434,7 @@ fn error_text(code: &str) -> Option<&'static str> {
         }
         "record_not_found" => "Record not found.",
         "token_not_found" => "Token not found.",
+        "feature_not_found" => "Feature flag not found.",
         "invalid_ttl" => "TTL must be a whole number of seconds.",
         "password_too_short" => "Password must be at least 8 characters.",
         "password_mismatch" => "The new passwords don't match.",
@@ -519,6 +543,7 @@ pub async fn section(
         }
         "admin" => {
             page.stats = fetch_admin_stats(&state).await;
+            page.feature_flag_count = state.flags.count().await.unwrap_or(0);
             if page.show_admin_zones {
                 page.admin_zones = fetch_admin_zones(&state).await;
             } else {
@@ -634,6 +659,8 @@ fn dashboard_page(
         admin_zones: Vec::new(),
         show_admin_zones: false,
         stats: None,
+        feature_flag_groups: Vec::new(),
+        feature_flag_count: 0,
         traffic_summary: None,
         traffic_timeseries: Vec::new(),
         message: None,
@@ -911,4 +938,78 @@ pub async fn admin_post(
         Err(_) => Err("internal"),
     };
     redirect_with("/dash/admin", result)
+}
+
+/// `GET /dash/admin/flags`: feature flags grouped by tag.
+pub async fn admin_flags_get(
+    State(state): State<AppState>,
+    Query(flash): Query<Flash>,
+    headers: HeaderMap,
+) -> Response {
+    let user = match require_user(&state, &headers).await {
+        Ok(user) => user,
+        Err(redirect) => return redirect.into_response(),
+    };
+    if !user.is_admin {
+        return not_found().await;
+    }
+
+    let mut page = dashboard_page(
+        &user,
+        "admin-flags",
+        "Feature flags",
+        &state.config.dns_nameservers,
+    );
+    page.description = "Toggle features by tag. Changes are saved immediately.".to_string();
+    page.feature_flag_groups = fetch_feature_flag_groups(&state).await;
+    page.feature_flag_count = page
+        .feature_flag_groups
+        .iter()
+        .map(|group| group.flags.len() as i64)
+        .sum();
+    flash.apply(&mut page);
+    page.into_response()
+}
+
+#[derive(Debug, Deserialize)]
+pub struct FeatureFlagForm {
+    action: String,
+    key: String,
+}
+
+/// `POST /dash/admin/flags`: enable or disable a feature flag.
+pub async fn admin_flags_post(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Form(form): Form<FeatureFlagForm>,
+) -> Response {
+    let user = match require_user(&state, &headers).await {
+        Ok(user) => user,
+        Err(redirect) => return redirect.into_response(),
+    };
+    if !user.is_admin {
+        return not_found().await;
+    }
+
+    let enabled = match form.action.as_str() {
+        "enable" => true,
+        "disable" => false,
+        _ => return redirect_with("/dash/admin/flags", Err("invalid_request")),
+    };
+    let key = form.key.trim();
+    if key.is_empty() {
+        return redirect_with("/dash/admin/flags", Err("feature_not_found"));
+    }
+
+    let result = match state
+        .flags
+        .set_enabled(key, enabled, Some(&user.id))
+        .await
+    {
+        Ok(Some(_)) if enabled => Ok("feature_enabled"),
+        Ok(Some(_)) => Ok("feature_disabled"),
+        Ok(None) => Err("feature_not_found"),
+        Err(_) => Err("internal"),
+    };
+    redirect_with("/dash/admin/flags", result)
 }

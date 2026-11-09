@@ -18,7 +18,8 @@ endblock %} {% block content %}
     include "dash/settings.html" %} {% elif active == "profile" %} {% include
     "dash/profile.html" %} {% elif active == "help" %} {% include
     "dash/help.html" %} {% elif active == "admin" %} {% include
-    "dash/admin-panel.html" %} {% else %} {% include "dash/placeholder.html" %}
+    "dash/admin-panel.html" %} {% elif active == "admin-flags" %} {% include
+    "dash/admin-flags.html" %} {% else %} {% include "dash/placeholder.html" %}
     {% endif %}
   </main>
   {% endif %}</div>

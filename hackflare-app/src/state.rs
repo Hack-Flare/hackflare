@@ -21,6 +21,7 @@ use crate::{
     },
     auth::password_reset::PasswordResetService,
     config::Config,
+    flipper::FeatureFlags,
 };
 
 #[derive(Clone, FromRef)]
@@ -34,6 +35,7 @@ pub struct AppState {
     pub dns_authority: Arc<AuthorityStore>,
 
     // -- services --
+    pub(crate) flags: FeatureFlags,
     pub(crate) api_keys: ApiKeysService,
     pub(crate) users: UsersService,
     pub(crate) user_sessions: UserSessionsService,
@@ -136,6 +138,7 @@ impl AppState {
         let users = UsersService::new(db.clone());
         let user_sessions = UserSessionsService::new(db.clone());
         let api_keys = ApiKeysService::new(db.clone());
+        let flags = FeatureFlags::new(db.clone());
 
         let dns_config = DnsConfig::from_env();
         let persistence: Arc<dyn ZonePersistence> = Arc::new(PostgresPersistence::new(db.clone()));
@@ -155,6 +158,7 @@ impl AppState {
             db,
             dns_config,
             dns_authority,
+            flags,
             api_keys,
             users,
             user_sessions,

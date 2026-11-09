@@ -93,6 +93,10 @@ pub fn build_router(state: AppState) -> Router {
             get(dash::notifications_get).post(dash::notifications_post),
         )
         .route("/dash/admin", get(dash::admin_get).post(dash::admin_post))
+        .route(
+            "/dash/admin/flags",
+            get(dash::admin_flags_get).post(dash::admin_flags_post),
+        )
         .route("/dash/{section}", get(dash::section))
         .route(
             "/dash/domains/{domain}/dns",

@@ -1,0 +1,52 @@
+<div class="page-head">
+  <div>
+    <h1>Feature flags</h1>
+    <p class="page-sub">Toggle features by tag. Changes are saved immediately.</p>
+  </div>
+</div>
+
+{% if feature_flag_groups.is_empty() %}
+<section class="domains-panel">
+  <p class="domains-empty">No feature flags registered yet.</p>
+</section>
+{% else %}
+{% for group in feature_flag_groups %}
+<section class="domains-panel flags-panel" aria-labelledby="flag-group-{{ loop.index }}">
+  <div class="domains-panel-head">
+    <h2 id="flag-group-{{ loop.index }}">{{ group.tag }}</h2>
+    <span class="domains-count">{{ group.flags.len() }}</span>
+  </div>
+  <div class="users-row users-head flags-head">
+    <span>FEATURE</span><span>STATE</span><span></span>
+  </div>
+  {% for flag in group.flags %}
+  <div class="users-row user-item flags-row">
+    <span class="flag-copy">
+      <span class="domain-name">{{ flag.key }}</span>
+      {% if !flag.description.is_empty() %}
+      <span class="flag-description">{{ flag.description }}</span>
+      {% endif %}
+      <span class="flag-updated">Updated {{ flag.updated_at }}</span>
+    </span>
+    <span>
+      {% if flag.enabled %}
+      <span class="status-pill status-pill-live">Enabled</span>
+      {% else %}
+      <span class="status-pill">Disabled</span>
+      {% endif %}
+    </span>
+    <form class="admin-user-actions" method="post" action="/dash/admin/flags">
+      <input type="hidden" name="key" value="{{ flag.key }}" />
+      {% if flag.enabled %}
+      <input type="hidden" name="action" value="disable" />
+      <button class="btn btn-ghost btn-compact" type="submit">Disable</button>
+      {% else %}
+      <input type="hidden" name="action" value="enable" />
+      <button class="btn btn-ghost btn-compact" type="submit">Enable</button>
+      {% endif %}
+    </form>
+  </div>
+  {% endfor %}
+</section>
+{% endfor %}
+{% endif %}

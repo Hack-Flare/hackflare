@@ -114,6 +114,20 @@ pub struct AdminStats {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FeatureFlagView {
+    pub key: String,
+    pub description: String,
+    pub enabled: bool,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FeatureFlagGroup {
+    pub tag: String,
+    pub flags: Vec<FeatureFlagView>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Notification {
     pub id: String,
     pub user_id: String,

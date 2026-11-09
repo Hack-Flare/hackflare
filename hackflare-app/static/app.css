@@ -3705,6 +3705,12 @@ select.input option {
 }
 
 .admin-add-card { margin-bottom: 1rem; }
+.flags-panel + .flags-panel { margin-top: 1rem; }
+.flags-head, .flags-row { grid-template-columns: minmax(0, 1fr) auto auto; }
+.flags-row { padding-block: 10px; }
+.flag-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.flag-description { color: var(--muted-foreground); font-size: 12px; }
+.flag-updated { color: var(--muted-foreground); font-size: 11px; }
 .admin-users-head { grid-template-columns: minmax(8rem, 1fr) minmax(10rem, 1.4fr) auto auto; }
 .admin-zones-head { grid-template-columns: minmax(8rem, 1fr) minmax(10rem, 1.4fr) auto; }
 .admin-user-actions { justify-self: end; }

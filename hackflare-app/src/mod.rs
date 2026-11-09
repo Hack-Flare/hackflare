@@ -3,6 +3,7 @@ pub mod auth;
 pub mod client_ip;
 pub mod config;
 pub mod frontend;
+pub mod flipper;
 pub mod state;
 
 pub use api::{middlewares, models, services};

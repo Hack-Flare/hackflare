@@ -38,8 +38,8 @@ macro_rules! impl_template_response {
 
 use crate::frontend::models::{
     AdminStats, AdminUser, AdminZone, ApiKey, AuthenticatedUser, CreatedApiKey, DnsRecord,
-    DnsZone, Notification, QueryLogEntry, QueryLogsSummary, TimeseriesPoint, TopQuery,
-    TrafficSummary, UserSession, ZoneTraffic,
+    DnsZone, FeatureFlagGroup, Notification, QueryLogEntry, QueryLogsSummary, TimeseriesPoint,
+    TopQuery, TrafficSummary, UserSession, ZoneTraffic,
 };
 
 fn friendly_error(error: &str) -> String {
@@ -262,6 +262,9 @@ pub struct DashboardTemplate {
     pub admin_zones: Vec<AdminZone>,
     pub show_admin_zones: bool,
     pub stats: Option<AdminStats>,
+    /// Registered feature flags grouped by tag for the admin panel.
+    pub feature_flag_groups: Vec<FeatureFlagGroup>,
+    pub feature_flag_count: i64,
     pub traffic_summary: Option<TrafficSummary>,
     pub traffic_timeseries: Vec<TimeseriesPoint>,
     pub message: Option<String>,

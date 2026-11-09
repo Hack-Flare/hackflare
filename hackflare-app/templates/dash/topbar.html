@@ -45,7 +45,7 @@
     <a class="{% if active == "logs" %}is-active{% endif %}" href="/dash/logs"><span class="lucide-icon icon-logs" aria-hidden="true"></span>Logs</a>
     <a class="{% if active == "notifications" %}is-active{% endif %}" href="/dash/notifications"><span class="lucide-icon icon-notifications" aria-hidden="true"></span>Notifications</a>
     <a class="{% if active == "help" %}is-active{% endif %}" href="/dash/help"><span class="lucide-icon icon-help" aria-hidden="true"></span>Help</a>
-    {% if is_admin %}<a class="{% if active == "admin" %}is-active{% endif %}" href="/dash/admin"><span class="lucide-icon icon-admin" aria-hidden="true"></span>Admin panel</a>{% endif %}
+    {% if is_admin %}<a class="{% if active == "admin" || active == "admin-flags" %}is-active{% endif %}" href="/dash/admin"><span class="lucide-icon icon-admin" aria-hidden="true"></span>Admin panel</a>{% endif %}
   </nav>
 
   <div class="zone-sidebar-bottom">
