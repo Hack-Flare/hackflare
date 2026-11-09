@@ -139,6 +139,7 @@ impl AppState {
         let user_sessions = UserSessionsService::new(db.clone());
         let api_keys = ApiKeysService::new(db.clone());
         let flags = FeatureFlags::new(db.clone());
+        flags.initialize().await?;
 
         let dns_config = DnsConfig::from_env();
         let persistence: Arc<dyn ZonePersistence> = Arc::new(PostgresPersistence::new(db.clone()));
