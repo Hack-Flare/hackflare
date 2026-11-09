@@ -152,7 +152,7 @@ jobs:
           done <<< "$TAGS"
   
   coolify-deploy:
-    if: true
+    if: false # Server currently down
     needs: [publish, merge-manifest]
     runs-on: ubuntu-latest
     steps:
