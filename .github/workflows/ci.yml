@@ -44,23 +44,16 @@ jobs:
   rust:
     name: Rust Checks
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:18-alpine
-        env:
-          POSTGRES_PASSWORD: hackflare
-          POSTGRES_USER: hackflare
-          POSTGRES_DB: hackflare
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 2s
-          --health-timeout 3s
-          --health-retries 30
-          --health-start-period 1s
     steps:
       - uses: actions/checkout@v7
+
+      # Use the preinstalled PostgreSQL to avoid container pull and init time.
+      - name: Start PostgreSQL
+        run: |
+          sudo systemctl start postgresql.service
+          sudo -u postgres psql -v ON_ERROR_STOP=1 \
+            -c "CREATE ROLE hackflare LOGIN PASSWORD 'hackflare' SUPERUSER;"
+          sudo -u postgres createdb -O hackflare hackflare
 
       - name: Setup Rust
         uses: ./.github/actions/setup-rust
