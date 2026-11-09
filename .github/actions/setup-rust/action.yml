@@ -3,5 +3,21 @@ description: "GitHub Action to set up Rust toolchain and cache cargo dependencie
 runs:
   using: "composite"
   steps:
+    - name: Cache Rust Toolchain
+      id: cache-rust
+      uses: actions/cache@v6
+      with:
+        path: |
+          ~/.rustup
+          ~/.cargo/bin
+        # Update the key string to bust the cache when needed
+        key: ${{ runner.os }}-rust-stable-v1
+
     - name: Install Rust
+      if: steps.cache-rust.outputs.cache-hit != 'true'
       uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache Rust Artifacts
+      uses: Swatinem/rust-cache@v2
+      with:
+        shared-key: ${{ runner.os }}-rust-cache

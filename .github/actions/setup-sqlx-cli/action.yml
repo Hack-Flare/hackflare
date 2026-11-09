@@ -1,0 +1,20 @@
+name: Setup sqlx-cli
+description: "GitHub Action to set up sqlx-cli and cache its binary."
+runs:
+  using: "composite"
+  steps:
+    - name: Cache sqlx-cli
+      id: cache-sqlx
+      uses: actions/cache@v6
+      with:
+        path: ~/.cargo/bin/sqlx
+        key: ${{ runner.os }}-sqlx-cli-0.8.6-postgres-rustls
+
+    - name: Install sqlx-cli
+      if: steps.cache-sqlx.outputs.cache-hit != 'true'
+      run: |
+        cargo install sqlx-cli \
+        --version 0.8.6 \
+        --locked \
+        --no-default-features \
+        --features postgres,rustls  
