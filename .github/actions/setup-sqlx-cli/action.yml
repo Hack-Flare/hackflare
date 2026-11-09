@@ -12,6 +12,7 @@ runs:
 
     - name: Install sqlx-cli
       if: steps.cache-sqlx.outputs.cache-hit != 'true'
+      shell: bash
       run: |
         cargo install sqlx-cli \
         --version 0.8.6 \
