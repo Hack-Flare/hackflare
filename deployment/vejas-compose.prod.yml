@@ -17,7 +17,8 @@ services:
       - "8080"
     networks:
       - backend
-
+      - coolify
+      
   db:
     image: postgres:18
     shm_size: 256mb
@@ -34,10 +35,11 @@ services:
       start_period: 10s
     networks:
       - backend
-      - coolify
 
 volumes:
   pgdata:
 
 networks:
   backend:
+  coolify:
+    external: true
