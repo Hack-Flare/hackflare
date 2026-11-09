@@ -1,0 +1,3 @@
+[env]
+# resolve migrations from the workspace root for tests and local cargo runs
+MIGRATIONS_PATH = { value = "database/migrations", relative = true }

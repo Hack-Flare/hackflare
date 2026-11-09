@@ -91,6 +91,14 @@ pub trait ZonePersistence: Send + Sync {
         data: &str,
     ) -> Result<(), Box<dyn Error>>;
 
+    /// Replace a record value, preserving the record's storage identity.
+    async fn update_record(
+        &self,
+        zone_name: &str,
+        old: &PersistedRecord,
+        new: &PersistedRecord,
+    ) -> Result<(), Box<dyn Error>>;
+
     /// Update the SOA serial for a zone
     ///
     /// This is idempotent - setting the same serial twice is safe.
@@ -407,6 +415,35 @@ impl ZonePersistence for PostgresPersistence {
         Ok(())
     }
 
+    async fn update_record(
+        &self,
+        zone_name: &str,
+        old: &PersistedRecord,
+        new: &PersistedRecord,
+    ) -> Result<(), Box<dyn Error>> {
+        sqlx::query(
+            r#"
+            UPDATE dns_records
+            SET name = $2, rtype = $3, ttl = $4, data = $5, updated_at = now()
+            WHERE zone_id = (SELECT id FROM dns_zones WHERE name = $1)
+              AND name = $6
+              AND rtype = $7
+              AND data = $8
+            "#,
+        )
+        .bind(zone_name)
+        .bind(&new.name)
+        .bind(&new.rtype)
+        .bind(new.ttl as i32)
+        .bind(&new.data)
+        .bind(&old.name)
+        .bind(&old.rtype)
+        .bind(&old.data)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
     async fn update_zone_serial(&self, zone_name: &str, serial: u32) -> Result<(), Box<dyn Error>> {
         sqlx::query(
             r#"
@@ -536,6 +573,27 @@ impl ZonePersistence for MemoryPersistence {
         if let Some(zone) = zones.get_mut(zone_name) {
             zone.records
                 .retain(|r| !(r.name == name && r.rtype == rtype && r.data == data));
+        }
+        drop(zones);
+        Ok(())
+    }
+
+    async fn update_record(
+        &self,
+        zone_name: &str,
+        old: &PersistedRecord,
+        new: &PersistedRecord,
+    ) -> Result<(), Box<dyn Error>> {
+        let mut zones = self.zones.write();
+        if let Some(zone) = zones.get_mut(zone_name)
+            && let Some(record) = zone.records.iter_mut().find(|record| {
+                record.name == old.name && record.rtype == old.rtype && record.data == old.data
+            })
+        {
+            record.name.clone_from(&new.name);
+            record.rtype.clone_from(&new.rtype);
+            record.ttl = new.ttl;
+            record.data.clone_from(&new.data);
         }
         drop(zones);
         Ok(())

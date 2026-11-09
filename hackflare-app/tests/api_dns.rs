@@ -624,6 +624,13 @@ async fn test_verify_zone() {
         return;
     };
 
+    ctx.state.dns_authority.create_zone("example.com").await;
+    sqlx::query("UPDATE dns_zones SET user_id = $1 WHERE name = 'example.com'")
+        .bind(&ctx.user_id)
+        .execute(&ctx.state.db)
+        .await
+        .ok();
+
     let response = build_router(ctx.state.clone())
         .oneshot(ctx.authed_request("POST", "/api/v1/dns/zones/example.com/verify", None))
         .await
@@ -632,5 +639,6 @@ async fn test_verify_zone() {
     let body = get_body(response).await;
     assert!(body["verified"].as_bool().is_some());
 
+    let _ = ctx.state.dns_authority.delete_zone("example.com").await;
     ctx.cleanup().await;
 }

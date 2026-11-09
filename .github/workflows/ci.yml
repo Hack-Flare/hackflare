@@ -64,26 +64,8 @@ jobs:
       - name: Setup Rust
         uses: ./.github/actions/setup-rust
 
-      - name: Cache Rust artifacts
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: ${{ runner.os }}-rust-cache
-
-      - name: Cache sqlx-cli
-        id: cache-sqlx-cli
-        uses: actions/cache@v6
-        with:
-          path: ~/.cargo/bin/sqlx
-          key: ${{ runner.os }}-sqlx-cli-0.8.6-postgres-rustls
-
-      - name: Install sqlx-cli
-        if: steps.cache-sqlx-cli.outputs.cache-hit != 'true' 
-        run: |
-          cargo install sqlx-cli \
-          --version 0.8.6 \
-          --locked \
-          --no-default-features \
-          --features postgres,rustls
+      - name: Setup sqlx-cli
+        uses: ./.github/actions/setup-sqlx-cli
 
       # Check formatting first
       - name: Check formatting
@@ -143,7 +125,13 @@ jobs:
         run: |
           start=$(date +%s%N)
           status=0
-          cargo test --all-features || status=$?
+
+          DATABASE_URL=postgres://hackflare:hackflare@localhost:5432/hackflare \
+            cargo test -p hackflare-app --all-features -- --test-threads=1 || status=$?
+          DATABASE_URL=postgres://hackflare:hackflare@localhost:5432/hackflare \
+            cargo test -p hackflare-dns --all-features -- --test-threads=1 || status=$?
+
+          cargo test -p hackflare-bench --all-features || status=$?
           end=$(date +%s%N)
           echo "duration_ms=$(( (end - start) / 1000000 ))" >> "$GITHUB_OUTPUT"
           exit $status

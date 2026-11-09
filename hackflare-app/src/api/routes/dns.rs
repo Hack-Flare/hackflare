@@ -7,6 +7,7 @@ use axum::{
     routing::{delete, get, post, put},
 };
 use hackflare_dns::dns::authoritative::resolve_ns_authoritative;
+use hackflare_dns::ns::PersistedRecord;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
@@ -345,23 +346,28 @@ async fn update_record(
         return zone_not_verified().into_response();
     }
 
-    let Some((old_name, old_rtype, old_data)) =
+    let Some((old_name, old_rtype, old_ttl, old_data)) =
         get_record_by_id(&state.db, &zone_name, record_id).await
     else {
         return record_not_found().into_response();
     };
 
-    if !state
-        .dns_authority
-        .remove_record_value(&zone_name, &old_name, &old_rtype, &old_data)
-        .await
-    {
-        return record_not_found().into_response();
-    }
+    let old_record = PersistedRecord {
+        name: old_name,
+        rtype: old_rtype,
+        ttl: old_ttl,
+        data: old_data,
+    };
+    let new_record = PersistedRecord {
+        name: req.name.clone(),
+        rtype: req.rtype.clone(),
+        ttl: req.ttl,
+        data: req.value.clone(),
+    };
 
     if !state
         .dns_authority
-        .add_record(&zone_name, &req.name, &req.rtype, req.ttl, &req.value)
+        .update_record_value(&zone_name, &old_record, &new_record)
         .await
     {
         return internal_error("failed to update record").into_response();
@@ -542,7 +548,7 @@ pub(crate) async fn remove_record(
     ensure_zone_verified(&state.db, zone_name)
         .await
         .map_err(|_| DnsActionError::ZoneNotVerified)?;
-    let (name, rtype, data) = get_record_by_id(&state.db, zone_name, record_id)
+    let (name, rtype, _ttl, data) = get_record_by_id(&state.db, zone_name, record_id)
         .await
         .ok_or(DnsActionError::RecordNotFound)?;
     if state
@@ -562,10 +568,10 @@ async fn get_record_by_id(
     db: &PgPool,
     zone_name: &str,
     record_id: uuid::Uuid,
-) -> Option<(String, String, String)> {
-    let row: Option<(uuid::Uuid, String, String, String)> = sqlx::query_as(
+) -> Option<(String, String, u32, String)> {
+    let row: Option<(uuid::Uuid, String, String, i32, String)> = sqlx::query_as(
         r#"
-        SELECT r.id, r.name, r.rtype, r.data
+        SELECT r.id, r.name, r.rtype, r.ttl, r.data
         FROM dns_records r
         JOIN dns_zones z ON z.id = r.zone_id
         WHERE r.id = $1 AND z.name = $2
@@ -577,7 +583,7 @@ async fn get_record_by_id(
     .await
     .ok()?;
 
-    row.map(|(_, name, rtype, data)| (name, rtype, data))
+    row.map(|(_, name, rtype, ttl, data)| (name, rtype, ttl as u32, data))
 }
 
 /// List all records for a zone.

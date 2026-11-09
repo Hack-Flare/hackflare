@@ -289,6 +289,63 @@ async fn remove_record_value_succeeds_for_acme_challenge_duplicates() {
     assert_eq!(remaining, vec!["challenge-two"]);
 }
 
+#[tokio::test]
+async fn update_record_value_replaces_only_matching_value() {
+    let persistence = Arc::new(MemoryPersistence::new());
+    let store = AuthorityStore::with_persistence(DnsConfig::default_config(), persistence.clone());
+
+    store.create_zone("example.com").await;
+    store
+        .add_record("example.com", "www", "A", 300, "192.168.1.1")
+        .await;
+    store
+        .add_record("example.com", "www", "A", 300, "192.168.1.2")
+        .await;
+
+    let old = PersistedRecord {
+        name: "www".to_string(),
+        rtype: "A".to_string(),
+        ttl: 300,
+        data: "192.168.1.1".to_string(),
+    };
+    let new = PersistedRecord {
+        name: "www".to_string(),
+        rtype: "A".to_string(),
+        ttl: 600,
+        data: "192.168.1.9".to_string(),
+    };
+    assert!(store.update_record_value("example.com", &old, &new).await);
+
+    let records = zone_records(&store, "example.com").await;
+    let mut values: Vec<(String, u32)> = records
+        .iter()
+        .filter(|record| record.name == "www.example.com.")
+        .map(|record| (record.data.to_string(), record.ttl))
+        .collect();
+    values.sort();
+    assert_eq!(
+        values,
+        vec![
+            ("192.168.1.2".to_string(), 300),
+            ("192.168.1.9".to_string(), 600)
+        ]
+    );
+
+    let persisted = persistence.load_zone("example.com").await.unwrap().unwrap();
+    assert!(
+        persisted
+            .records
+            .iter()
+            .any(|record| record.data == "192.168.1.9" && record.ttl == 600)
+    );
+    assert!(
+        !persisted
+            .records
+            .iter()
+            .any(|record| record.data == "192.168.1.1")
+    );
+}
+
 #[test]
 fn normalize_zone_name_adds_trailing_dot() {
     assert_eq!(

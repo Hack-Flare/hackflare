@@ -187,8 +187,11 @@ async fn memory_persistence_delete_value_is_idempotent() {
 async fn get_test_pool() -> Option<sqlx::PgPool> {
     let url = std::env::var("DATABASE_URL").ok()?;
     let pool = sqlx::PgPool::connect(&url).await.ok()?;
-    sqlx::query(POSTGRES_SCHEMA_SQL).execute(&pool).await.ok()?;
-    // clean slate — cascade clears records first
+    sqlx::raw_sql(POSTGRES_SCHEMA_SQL)
+        .execute(&pool)
+        .await
+        .ok()?;
+    // clean slate - cascade clears records first
     sqlx::query("TRUNCATE dns_records, dns_zones RESTART IDENTITY CASCADE")
         .execute(&pool)
         .await
@@ -414,7 +417,7 @@ async fn postgres_delete_record_value_removes_only_one() {
         .unwrap();
 
     let zone = storage.load_zone("example.com").await.unwrap().unwrap();
-    assert_eq!(zone.records.len(), 3);
+    assert_eq!(zone.records.len(), 2);
     let www: Vec<_> = zone
         .records
         .iter()

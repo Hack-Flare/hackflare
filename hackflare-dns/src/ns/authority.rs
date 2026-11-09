@@ -293,6 +293,82 @@ impl AuthorityStore {
         removed
     }
 
+    /// Replace a single DNS record value, preserving its storage identity
+    pub async fn update_record_value(
+        &self,
+        zone_name: &str,
+        old: &PersistedRecord,
+        new: &PersistedRecord,
+    ) -> bool {
+        let normalized_zone = Self::normalize_zone_name(zone_name);
+        let zone_key = normalized_zone.trim_end_matches('.').to_string();
+
+        let old_fqdn = Self::build_fqdn(&normalized_zone, &old.name);
+        let Some(old_record_name) = canonical_name(&old_fqdn) else {
+            return false;
+        };
+        let Ok(old_record_type) = RecordType::from_str(old.rtype.trim()) else {
+            return false;
+        };
+        let Some(old_rdata) = RData::parse(old_record_type, &old.data) else {
+            return false;
+        };
+
+        let new_fqdn = Self::build_fqdn(&normalized_zone, &new.name);
+        let Some(new_record_name) = canonical_name(&new_fqdn) else {
+            return false;
+        };
+        let Ok(new_record_type) = RecordType::from_str(new.rtype.trim()) else {
+            return false;
+        };
+        let Some(new_rdata) = RData::parse(new_record_type, &new.data) else {
+            return false;
+        };
+
+        // Apex NS records are managed by the authoritative server; refuse updates
+        if old_record_type == RecordType::Ns && old_record_name == normalized_zone {
+            return false;
+        }
+
+        let record = Record {
+            name: new_record_name,
+            ttl: new.ttl,
+            data: new_rdata,
+        };
+
+        let (updated, serial) = {
+            let mut zones = self.zones.write().await;
+            let Some(zone) = zones.get_mut(&zone_key) else {
+                return false;
+            };
+            if !zone.remove_value(&old_record_name, old_record_type, &old_rdata) {
+                return false;
+            }
+            let updated = zone.upsert(record);
+            let serial = updated.then(|| zone.bump_serial(today_serial_base()));
+            (updated, serial)
+        };
+
+        if !updated {
+            return false;
+        }
+
+        if let Some(serial) = serial {
+            self.persist_serial(&zone_key, serial).await;
+        }
+
+        if let Some(persistence) = &self.persistence
+            && let Err(e) = persistence.update_record(zone_name, old, new).await
+        {
+            eprintln!(
+                "[hackflare:dns] failed to update record {} ({}) in zone {zone_name}: {e}",
+                new.name, new.rtype
+            );
+        }
+
+        true
+    }
+
     /// List all zones.
     pub async fn list_zones(&self) -> Vec<String> {
         self.zones.read().await.keys().cloned().collect()
