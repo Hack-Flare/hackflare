@@ -18,6 +18,8 @@ services:
     networks:
       - backend
       - coolify
+    labels:
+      - "traefik.docker.network=coolify"
       
   db:
     image: postgres:18
