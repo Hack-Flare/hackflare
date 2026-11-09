@@ -34,11 +34,6 @@ jobs:
       - name: Setup Rust
         uses: ./.github/actions/setup-rust
 
-      - name: Cache Rust artifacts
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: ${{ runner.os }}-rust-cache
-
       - name: Build release binary
         run: cargo build --release -p hackflare-app --bin hackflare-app --features embedded-db
 
