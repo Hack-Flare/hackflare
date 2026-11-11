@@ -17,7 +17,10 @@ services:
       - "8080"
     networks:
       - backend
-
+      - coolify
+    labels:
+      - "traefik.docker.network=coolify"
+      
   db:
     image: postgres:18
     shm_size: 256mb
@@ -40,3 +43,5 @@ volumes:
 
 networks:
   backend:
+  coolify:
+    external: true
