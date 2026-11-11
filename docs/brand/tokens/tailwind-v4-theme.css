@@ -9,7 +9,7 @@
   --color-ash: #ECEBE6;
 
   --font-sans: 'Instrument Sans', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   --radius-button: 10px;
   --radius-card: 16px;

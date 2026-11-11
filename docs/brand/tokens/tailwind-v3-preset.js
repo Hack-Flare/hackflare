@@ -13,7 +13,7 @@ module.exports = {
       },
       fontFamily: {
         sans: ['Instrument Sans', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
       },
       borderRadius: { button: '10px', card: '16px', panel: '20px' },
     },

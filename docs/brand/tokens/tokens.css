@@ -1,6 +1,6 @@
-/* Hackflare design tokens. Import once, then use the variables. */
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
+/* Hackflare design tokens. Import once, then use the variables.
+   This folder does not load webfonts.
+   The application's vendored copy adds an @font-face for the self-hosted Instrument Sans woff2. */
 :root {
   --hf-flame: #F2611D;
   --hf-ember: #FFC24A;
@@ -11,7 +11,7 @@
   --hf-ash: #ECEBE6;
 
   --hf-font-sans: 'Instrument Sans', system-ui, sans-serif;
-  --hf-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --hf-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   --hf-radius-button: 10px;
   --hf-radius-card: 16px;
