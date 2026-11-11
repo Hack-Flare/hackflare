@@ -132,32 +132,6 @@ pub struct ErrorTemplate {
 }
 
 #[derive(Template)]
-#[template(path = "public_page.html")]
-pub struct PublicPageTemplate {
-    pub header: PublicHeader,
-    pub title: String,
-    pub heading: String,
-    pub message: String,
-    pub status: u16,
-}
-
-pub struct DocLink {
-    pub slug: String,
-    pub title: String,
-    pub active: bool,
-}
-
-#[derive(Template)]
-#[template(path = "docs.html")]
-pub struct DocsTemplate {
-    pub header: PublicHeader,
-    pub title: String,
-    /// Pre-rendered HTML; raw HTML in the markdown source is escaped.
-    pub content: String,
-    pub links: Vec<DocLink>,
-}
-
-#[derive(Template)]
 #[template(path = "team.html")]
 pub struct TeamTemplate {
     pub header: PublicHeader,
@@ -284,8 +258,6 @@ impl_template_response!(
     ForgotPasswordTemplate,
     ResetPasswordTemplate,
     ErrorTemplate,
-    PublicPageTemplate,
-    DocsTemplate,
     TeamTemplate,
     DashboardTemplate,
 );

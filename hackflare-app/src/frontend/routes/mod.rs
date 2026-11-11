@@ -80,7 +80,6 @@ pub fn build_router(state: AppState) -> Router {
         .route("/theme", get(handlers::theme))
         .route("/logout", get(handlers::logout))
         .route("/health", get(handlers::health))
-        .route("/docs", get(public::docs))
         .route("/ourteam", get(public::team))
         .route("/sitemap.xml", get(public::sitemap))
         .route("/dash", get(dash::index))

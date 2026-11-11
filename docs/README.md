@@ -15,4 +15,3 @@ When a document here disagrees with the code, trust the code and update the docu
 
 - [README.md](../README.md) - project overview and license.
 - [AGENTS.md](../AGENTS.md) - instructions for agents and contributors.
-- [hackflare-app/docs](../hackflare-app/docs) - user-facing guides rendered in the application at `/docs`.

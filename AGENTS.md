@@ -10,7 +10,6 @@
 - `docs/API.md` - HTTP API reference.
 - `docs/DESIGN.md` - dashboard design system.
 - `docs/brand/` - brand kit: logos and design tokens.
-- `hackflare-app/docs/` - user-facing guides served at `/docs`.
 
 ## Commands
 
