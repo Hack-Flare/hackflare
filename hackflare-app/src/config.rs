@@ -208,7 +208,7 @@ pub(crate) fn from_env_with_database_url(database_url_override: Option<Url>) -> 
         access_token_minutes: env_or("ACCESS_TOKEN_MINUTES", 15i64)?,
         refresh_token_days: env_or("REFRESH_TOKEN_DAYS", 30i64)?,
         dns_nameservers: env::var("DNS_NAMESERVERS")
-            .unwrap_or_else(|_| "ns1.hackflare.dev,ns2.hackflare.dev".to_string())
+            .unwrap_or_else(|_| "ns1.hackflare.net,ns2.hackflare.net".to_string())
             .split(',')
             .map(|s| s.trim().to_string().trim_end_matches('.').to_string())
             .filter(|s| !s.is_empty())

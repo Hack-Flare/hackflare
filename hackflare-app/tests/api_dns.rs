@@ -84,7 +84,7 @@ impl TestCtx {
             session_inactivity_minutes: 15,
             access_token_minutes: 15,
             refresh_token_days: 30,
-            dns_nameservers: vec!["ns1.hackflare.dev".into(), "ns2.hackflare.dev".into()],
+            dns_nameservers: vec!["ns1.hackflare.net".into(), "ns2.hackflare.net".into()],
             admin_emails: vec![],
             smtp: None,
             domain: None,
