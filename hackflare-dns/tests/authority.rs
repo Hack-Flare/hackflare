@@ -616,6 +616,70 @@ async fn load_zones_from_storage_restores_serial_without_bumping() {
 }
 
 #[tokio::test]
+async fn load_zones_from_storage_does_not_modify_storage() {
+    let persistence = Arc::new(MemoryPersistence::new());
+    let zone = PersistedZone {
+        name: "example.com".to_string(),
+        serial: 2024010107,
+        records: vec![
+            PersistedRecord {
+                name: "www".to_string(),
+                rtype: "A".to_string(),
+                ttl: 300,
+                data: "192.168.1.1".to_string(),
+            },
+            PersistedRecord {
+                name: "broken".to_string(),
+                rtype: "NOTATYPE".to_string(),
+                ttl: 300,
+                data: "value".to_string(),
+            },
+        ],
+    };
+    persistence.save_zone(&zone).await.unwrap();
+
+    let store = AuthorityStore::with_persistence(DnsConfig::default_config(), persistence.clone());
+    store.load_zones_from_storage().await.unwrap();
+
+    // The unusable record is skipped in memory but must survive in storage, proving that loading is read-only.
+    let persisted = persistence.load_zone("example.com").await.unwrap().unwrap();
+    assert_eq!(persisted.serial, zone.serial);
+    assert_eq!(persisted.records.len(), 2);
+
+    let records = zone_records(&store, "example.com").await;
+    assert!(records.iter().any(|record| {
+        record.name == "www.example.com." && record.record_type() == RecordType::A
+    }));
+    assert!(
+        !records
+            .iter()
+            .any(|record| { record.name == "broken.example.com." })
+    );
+}
+
+#[tokio::test]
+async fn load_zones_from_storage_replaces_stale_zones() {
+    let persistence = Arc::new(MemoryPersistence::new());
+    persistence
+        .save_zone(&PersistedZone {
+            name: "example.com".to_string(),
+            serial: 42,
+            records: Vec::new(),
+        })
+        .await
+        .unwrap();
+
+    let store = AuthorityStore::with_persistence(DnsConfig::default_config(), persistence.clone());
+    store.load_zones_from_storage().await.unwrap();
+    assert!(store.contains_zone_for("example.com").await);
+
+    persistence.delete_zone("example.com").await.unwrap();
+    store.load_zones_from_storage().await.unwrap();
+
+    assert!(!store.contains_zone_for("example.com").await);
+}
+
+#[tokio::test]
 async fn answer_returns_authoritative_a_record() {
     let store = AuthorityStore::new(DnsConfig::default_config());
     store.create_zone("example.com").await;

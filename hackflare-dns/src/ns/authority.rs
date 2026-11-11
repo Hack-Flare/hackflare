@@ -55,33 +55,10 @@ impl AuthorityStore {
 
     /// Create a new DNS zone, seeding its SOA record with the given serial.
     async fn create_zone_with_serial(&self, name: impl Into<String>, serial: u32) -> bool {
-        let zone_name = Self::normalize_zone_name(&name.into());
-        let Some(origin) = canonical_name(&zone_name) else {
+        let Some((zone_key, zone)) = self.build_zone(&name.into(), serial, &[]) else {
             return false;
         };
 
-        let Some(soa_record) = self.build_soa_record(&origin, serial) else {
-            return false;
-        };
-
-        let mut zone = Zone::new(origin.clone(), serial);
-        zone.upsert(soa_record);
-
-        // Advertise the configured nameservers at the zone apex so that
-        // authoritative NS queries resolve to Hackflare's own servers.
-        for ns_name in &self.config.nameservers {
-            let Some(ns_name) = canonical_name(ns_name) else {
-                eprintln!("[hackflare:dns] skipping invalid nameserver in config");
-                continue;
-            };
-            zone.upsert(Record {
-                name: origin.clone(),
-                ttl: self.config.soa_ttl,
-                data: RData::Ns(ns_name),
-            });
-        }
-
-        let zone_key = zone_name.trim_end_matches('.').to_string();
         self.zones.write().await.insert(zone_key.clone(), zone);
 
         if let Some(persistence) = &self.persistence {
@@ -122,11 +99,11 @@ impl AuthorityStore {
         ttl: u32,
         data: &str,
     ) -> bool {
-        self.add_record_inner(zone_name, name, rtype, ttl, data, true)
+        self.add_record_inner(zone_name, name, rtype, ttl, data)
             .await
     }
 
-    /// Add a DNS record to a zone, optionally bumping the SOA serial on success.
+    /// Add a DNS record to a zone.
     async fn add_record_inner(
         &self,
         zone_name: &str,
@@ -134,7 +111,6 @@ impl AuthorityStore {
         rtype: &str,
         ttl: u32,
         data: &str,
-        bump: bool,
     ) -> bool {
         let normalized_zone = Self::normalize_zone_name(zone_name);
         let zone_key = normalized_zone.trim_end_matches('.').to_string();
@@ -163,11 +139,7 @@ impl AuthorityStore {
                 return false;
             };
             let ok = zone.upsert(record);
-            let serial = if ok && bump {
-                Some(zone.bump_serial(today_serial_base()))
-            } else {
-                None
-            };
+            let serial = ok.then(|| zone.bump_serial(today_serial_base()));
             (ok, serial)
         };
 
@@ -391,6 +363,8 @@ impl AuthorityStore {
     }
 
     /// Load all zones from persistence storage.
+    ///
+    /// Loading never writes to storage, so starting an instance does not disturb zones served by other instances.
     pub async fn load_zones_from_storage(&self) -> Result<(), DnsError> {
         let Some(persistence) = &self.persistence else {
             return Err(DnsError::PersistenceUnconfigured);
@@ -401,22 +375,15 @@ impl AuthorityStore {
             .await
             .map_err(|e| DnsError::PersistenceOperation(format!("{e}")))?;
 
+        let mut loaded = HashMap::with_capacity(zones.len());
         for zone in zones {
-            self.create_zone_with_serial(&zone.name, zone.serial).await;
-            for record in zone.records {
-                let _ = self
-                    .add_record_inner(
-                        &zone.name,
-                        &record.name,
-                        &record.rtype,
-                        record.ttl,
-                        &record.data,
-                        false,
-                    )
-                    .await;
+            if let Some((zone_key, built)) = self.build_zone(&zone.name, zone.serial, &zone.records)
+            {
+                loaded.insert(zone_key, built);
             }
         }
 
+        *self.zones.write().await = loaded;
         Ok(())
     }
 
@@ -455,6 +422,53 @@ impl AuthorityStore {
         } else {
             format!("{normalized}.{zone}")
         }
+    }
+
+    // Build a zone from persisted data without reading or writing storage.
+    fn build_zone(
+        &self,
+        name: &str,
+        serial: u32,
+        records: &[PersistedRecord],
+    ) -> Option<(String, Zone)> {
+        let zone_name = Self::normalize_zone_name(name);
+        let origin = canonical_name(&zone_name)?;
+
+        let mut zone = Zone::new(origin.clone(), serial);
+        zone.upsert(self.build_soa_record(&origin, serial)?);
+
+        // Advertise the configured nameservers at the zone apex so that authoritative NS queries resolve to Hackflare's own servers.
+        for ns_name in &self.config.nameservers {
+            let Some(ns_name) = canonical_name(ns_name) else {
+                eprintln!("[hackflare:dns] skipping invalid nameserver in config");
+                continue;
+            };
+            zone.upsert(Record {
+                name: origin.clone(),
+                ttl: self.config.soa_ttl,
+                data: RData::Ns(ns_name),
+            });
+        }
+
+        for record in records {
+            let fqdn = Self::build_fqdn(&zone_name, &record.name);
+            let Some(record_name) = canonical_name(&fqdn) else {
+                continue;
+            };
+            let Ok(record_type) = RecordType::from_str(record.rtype.trim()) else {
+                continue;
+            };
+            let Some(rdata) = RData::parse(record_type, &record.data) else {
+                continue;
+            };
+            zone.upsert(Record {
+                name: record_name,
+                ttl: record.ttl,
+                data: rdata,
+            });
+        }
+
+        Some((zone_name.trim_end_matches('.').to_string(), zone))
     }
 
     // Build a default SOA record for a zone with the given serial.
