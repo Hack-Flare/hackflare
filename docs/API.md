@@ -335,6 +335,10 @@ When `SMTP_HOST` is set, `SMTP_PORT` (default `587`), `SMTP_USERNAME`, `SMTP_PAS
 Bare hostnames default to HTTPS and explicit ports are preserved.
 Neither may include a path, query, or fragment.
 
+When `CDN_URL` is set, rendered HTML rewrites `/static/` asset URLs to the CDN origin.
+The CDN origin is added to the allowed CORS origins together with `DOMAIN`.
+The CDN must serve `/static/*` with `Access-Control-Allow-Origin` for the application origin.
+
 The DNS library reads its own `DNS_*` settings for SOA fields, recursion, and timeouts.
 See [hackflare-dns](../hackflare-dns).
 

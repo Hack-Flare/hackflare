@@ -1,86 +1,73 @@
 # Agent Instructions
 
-Use this file as the default guide for AI agents working in the repository.
+## Layout
 
-## Brand
-
-- All brand assets and rules live in `docs/brand/`.
-- Always use the logo files in `docs/brand/logos/`. Never retype "hackflare", redraw the fire h, or recreate the logo in CSS.
-- Served copies of the logos are vendored into `hackflare-app/static/brand/logos/`; reference those from templates as `/static/brand/logos/...`.
-- Only use the colors in `docs/brand/tokens/`. Never put white text on Flame orange (#F2611D).
-- Font: Instrument Sans for UI text. Use the system monospace stack for code so
-  pages do not download an additional code font.
-- `DOMAIN` accepts a full `http` or `https` URL or a bare hostname. Bare
-  hostnames default to HTTPS and explicit ports are preserved.
-- `CDN_URL` is optional. When set, rendered `/static/` asset URLs are rewritten
-  to the CDN and the CDN origin is included in CORS. Configure the CDN to serve
-  `/static/*` with `Access-Control-Allow-Origin` for the application origin.
-
-## Human In The Loop
-
-- Keep the user informed when making substantial changes.
-- Do not commit, push, deploy, or change shared infrastructure without explicit approval.
-- Do not modify unrelated user changes in the worktree.
-
-## Quick Rules
-
-- Inspect the source before changing behavior.
-- No dead code is allowed. Remove it or comment it out. 
-  - For example, `#[allow(dead_code)]` is not allowed.
-- Keep changes minimal and localized.
-- Follow existing code style and conventions.
-- Do not rely on stale documentation when the source disagrees.
-- Do not divert from the active task without being asked.
-- When writing comments or other text, anywhere, do not have sentences go over multiple lines in an unclear format.
-  - Prefer `Text here.` <br> `More text here...` over `Text here. More` <br> `text here...`
-- Do not use em dashes in code, comments, or documentation.
-  - Use singular hyphens instead.
-  - In the case of double em dashes, use triple hyphens instead.
-  - If you are editing documentation that already has em dashes, replace them with hyphens.
+- `hackflare-app/` - merged HTTP API and Rust SSR frontend.
+- `hackflare-dns/` - DNS server library.
+- `hackflare-bench/` - benchmarking tool.
+- `database/` - SQL migrations.
+- `deployment/` - Docker Compose deployment files.
+- `docs/API.md` - HTTP API reference.
+- `docs/DESIGN.md` - dashboard design system.
+- `docs/brand/` - brand kit: logos and design tokens.
+- `hackflare-app/docs/` - user-facing guides served at `/docs`.
 
 ## Commands
 
 Run from the repository root:
 
-- `just fmt` - format Rust code
-- `just fmt-check` - verify Rust formatting
-- `just build-app` - build the merged application
-- `just test-app` - test the merged application using embedded PostgreSQL when needed
-- `just test-dns` - test the DNS library
-- `just lint-app` - lint the merged application
-- `just check` - run formatting, linting, and tests
-- `just db-up` - start PostgreSQL for local application development
-- `just db-down` - stop the development PostgreSQL service
-- `just docker-build-app` - build the merged application image
+- `just fmt` - format Rust code.
+- `just fmt-check` - verify Rust formatting.
+- `just lint-app` - lint the merged application.
+- `just test-app` - test the merged application.
+- `just test-dns` - test the DNS library.
+- `just check` - run formatting, linting, and tests.
+- `just build-app` - build the merged application.
 
-## Repository Layout
+## Rules
 
-- `hackflare-app/` - merged HTTP API and Rust SSR frontend
-- `hackflare_dns/` - DNS server library
-- `hackflare-bench/` - Benchmarking tool
-- `docs/` - project documentation
-
-Read the relevant crate's source before relying on documentation for implementation details.
-
-## Frontend Conventions
-
-- The frontend uses Axum and Askama templates.
-- Keep each dashboard page in its own template.
-- Put presentation styles in `static/app.css`; never add inline `style` attributes.
-- Use the vendored Lucide assets in `static/icons` for dashboard icons. You can add more if neccesary.
-- Pages without an implementation must say `Coming Soon`.
-- Run the frontend build and clippy checks after frontend changes.
-
-## Code Conventions
-
-- Keep route behavior, configuration, middleware, and persistence logic near the module that owns it.
-- Keep CDN URL rewriting and CDN-specific behavior in `hackflare-app/src/frontend/cdn.rs`.
-- Keep CORS origin configuration in `hackflare-app/src/frontend/cors.rs`.
+- Read the source before changing behavior.
+- When documentation and source disagree, trust the source.
+- Keep changes minimal and localized.
+- Follow existing code style and conventions.
+- Do not divert from the active task without being asked.
 - Avoid blocking I/O in async code.
 - Prefer explicit error handling over panics.
-- Add comments only when they clarify non-obvious behavior. Ensure these comments follow the existing style and conventions. Including rules in Quick Rules above.
+- No dead code.
+  - Remove it or comment it out.
+  - Never add `#[allow(dead_code)]`.
 
+## Writing
 
-## Finally
+These rules apply to code, comments, and documentation.
 
-Thanks for your contributions <3, Love the support.
+- One sentence per line.
+  - Never wrap a sentence across lines.
+- No em dashes.
+  - Use a single hyphen instead, or a triple hyphen for a double em dash.
+  - Replace em dashes with hyphens when editing text that already has them.
+- Add comments only when they clarify non-obvious behavior.
+
+## Human In The Loop
+
+- Keep the user informed when making substantial changes.
+- Do not modify unrelated user changes in the worktree.
+- Do not commit, push, deploy, or change shared infrastructure without explicit approval.
+
+## Frontend
+
+- The frontend is Axum plus Askama templates.
+- Keep each dashboard page in its own template.
+- Put presentation styles in `hackflare-app/static/app.css`; never add inline `style` attributes.
+- Use the vendored Lucide assets in `hackflare-app/static/icons` for dashboard icons; add more when needed.
+- Pages without an implementation must say `Coming Soon`, or better, not exist at all.
+- Run `just lint-app` after frontend changes; it compiles the templates too.
+
+## Brand
+
+- All brand assets and rules live in `docs/brand/`.
+- Use the logo files in `docs/brand/logos/`; never retype "hackflare", redraw the fire h, or recreate the logo in CSS.
+- Templates reference the vendored copies in `hackflare-app/static/brand/` as `/static/brand/...`; re-vendor after changing a brand file.
+- Only use the colors in `docs/brand/tokens/`.
+- Never put white text on Flame orange (`#F2611D`).
+- Instrument Sans for UI text; the system monospace stack for code.
