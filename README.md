@@ -1,7 +1,6 @@
 # Hackflare
 
-Cloudflare alternative, for free and open-source.  
-Made by HackClubbers from [Hack Club](https://hackclub.com/) as an alternative to Cloudflare. Hence the name Hackflare.
+Hackflare is a free, open-source and open-infra alternative to Cloudflare.
 
 > [!IMPORTANT]  
 > Hackflare is still in development, and is not yet the most reliable for production use.
@@ -9,27 +8,20 @@ Made by HackClubbers from [Hack Club](https://hackclub.com/) as an alternative t
 > [!IMPORTANT]
 > The main Hackflare instance is currently down to a server failure, this includes all email services on its domain. If you need to contact us then please reach out at my (Nayte) personal email: [here](mailto:seradedstripes@gmail.com)
 
-## About Hackflare
-
-Hackflare is a project that originated in Hack Club, but it is not a Hack Club project or affiliated with Hack Club in any way.
-
-Hackflare hopes to become fiscally sponsored in the future, but is not currently fiscally sponsored by any organization.  
-
-If you are interested in sponsoring or supporting Hackflare, please contact us [here](mailto:contact@hackflare.net).  
-Sponsoring through github sponsors is also an option, although it is through a main contributor's account, donations will go towards Hackflare.
-
 ## Introduction
 
-Hackflare is a project that aims to provide a free, open-source and open-infra alternative to Cloudflare.  
-It is designed to be easy to use, easy to deploy and realtively easy to maintain.  
-We may even do additional software other than DNS in future but that will have its own Repositories.
+Hackflare is designed to be a free, open-source and easy to use. Prioritizing security, privacy, performance and ease of use over how good it looks and how many features it has.
 
-## Running the project
+## About Hackflare
 
-### Production
+A project which originated in Hack Club Slack, Hackflare is a free, open-source and open-infra alternative to Cloudflare.  
+Hackflare is a project that aims to provide authoritative DNS, DDoS protection, and other services that Cloudflare provides, but in a free and open-source manner.
 
-We deploy Hackflare using the docker images off ghcr.io.  
-For development use you can do `just run-dev` as it uses an embedded PostgreSQL in development mode.
+## Sponsoring
+
+Hackflare hopes to become fiscally sponsored in the future, but is not currently fiscally sponsored by any organization.  
+If you are interested in sponsoring or supporting Hackflare, please contact us [here](mailto:contact@hackflare.net).  
+Sponsoring through github sponsors is also an option, although it is through a main contributor's account, donations will go towards Hackflare.
 
 ## License
 
