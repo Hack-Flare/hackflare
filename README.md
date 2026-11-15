@@ -10,7 +10,7 @@ Hackflare is a free, open-source and open-infra alternative to Cloudflare.
 
 ## Introduction
 
-Hackflare is designed to be a free, open-source and easy to use. Prioritizing security, privacy, performance and ease of use over how good it looks and how many features it has.
+Hackflare is designed to be free, open-source, and easy to use. Prioritizing security, privacy, performance and ease of use over how good it looks and how many features it has.
 
 ## About Hackflare
 
