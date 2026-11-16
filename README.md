@@ -21,7 +21,6 @@ Hackflare is a project that aims to provide authoritative DNS, DDoS protection, 
 
 Hackflare hopes to become fiscally sponsored in the future, but is not currently fiscally sponsored by any organization.  
 If you are interested in sponsoring or supporting Hackflare, please contact us [here](mailto:contact@hackflare.net).  
-Sponsoring through github sponsors is also an option, although it is through a main contributor's account, donations will go towards Hackflare.
 
 ## License
 
