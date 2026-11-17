@@ -6,7 +6,7 @@ Hackflare is a free, open-source and open-infra alternative to Cloudflare.
 > Hackflare is still in development, and is not yet the most reliable for production use.
 
 > [!IMPORTANT]
-> The main Hackflare instance is currently down to a server failure, this includes all email services on its domain. If you need to contact us then please reach out at my (Nayte) personal email: [here](mailto:seradedstripes@gmail.com)
+> The main Hackflare instance is currently down to a server failure
 
 ## Introduction
 
