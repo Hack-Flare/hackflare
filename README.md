@@ -4,9 +4,7 @@ Hackflare is a free, open-source and open-infra alternative to Cloudflare.
 
 > [!IMPORTANT]  
 > Hackflare is still in development, and is not yet the most reliable for production use.
-
-> [!IMPORTANT]
-> The main Hackflare instance is currently down to a server failure
+> The main Hackflare instance is also currently down to a server failure
 
 ## Introduction
 
